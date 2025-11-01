@@ -11,6 +11,7 @@
 <body>
   <h1>Player Client</h1>
   <label>Session ID: <input id="sessionId" value="room1"></label>
+  <label>User ID: <input id="userId" value="5"></label>
   <button id="connectBtn">Connect</button>
   <h3>Messages:</h3>
   <div id="log"></div>
@@ -30,9 +31,57 @@
       const sessionId = document.getElementById("sessionId").value.trim();
       ws = new WebSocket(`ws://localhost:8080/ws/${sessionId}/player`);
 
-      ws.onopen = () => log("✅ Connected as player");
-      ws.onmessage = (event) => log("📩 " + event.data);
+      ws.onopen = () => {
+          const register = {
+            type: 6,
+            name: prompt("Enter your name:", "ali"),
+            character: "❤️"
+          };
+          ws.send(JSON.stringify(register));
+          log("📤 Sent registration");
+      };
+
       ws.onclose = () => log("❌ Disconnected");
+
+      ws.onmessage = (event) => {
+        log("📩 " + event.data);
+
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 10) {
+              log(`✅ Registered! User ID: ${data.user_id}`);
+              localStorage.setItem("user_id", data.user_id);
+              localStorage.setItem("player_name", data.name);
+              localStorage.setItem("character", data.character);
+          }
+          if (data.type === 2) {
+            // Got question, send OK immediately
+            ws.send("ok");
+            log("✅ Sent OK");
+
+            // Choose random answer time
+            const delay = Math.floor(Math.random() * data.question_time * 1000);
+            log(`🕐 Will answer after ${delay / 1000}s`);
+
+            setTimeout(() => {
+              const answer = {
+                type: 4,
+                question_id: data.question_id,
+                user_id: Number(document.getElementById("userId").value),
+                submit_time: delay / 1000,
+                options_result: data.options.map(opt => ({
+                  option_id: opt.option_id,
+                  picked: Math.random() < 0.5 // random answer
+                }))
+              };
+              ws.send(JSON.stringify(answer));
+              log("📤 Sent answer: " + JSON.stringify(answer));
+            }, delay);
+          }
+        } catch (e) {
+          // Probably a text message like OK count
+        }
+      };
     };
   </script>
 </body>

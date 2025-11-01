@@ -5,8 +5,17 @@ edition = "2024"
 
 [dependencies]
 actix = "0.13"
+actix-rt = "2.11.0"
 actix-web = "4"
 actix-web-actors = "4"
+redis = {version="0.32.7", features = ["tokio-comp"] }
 serde = "1.0.228"
 serde_json = "1.0.145"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[dependencies.uuid]
+version = "1.18.1"
+# Lets you generate random UUIDs
+features = [
+    "v4",
+]

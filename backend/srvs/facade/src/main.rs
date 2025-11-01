@@ -3,6 +3,8 @@ use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use serde::Serialize;
+use serde::Deserialize;
+use uuid::Uuid;
 
 // Local modules
 mod manager;
@@ -10,6 +12,8 @@ mod player;
 
 use manager::*;
 use player::*;
+
+
 
 // ==== Question struct ====
 #[derive(Serialize, Clone)]
@@ -42,12 +46,56 @@ pub struct QuestionResult {
     pub options_result: Vec<OptionResult>,
 }
 
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct NewQuestion(pub Question);
+
+// ===== Player Answer =====
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct PlayerOptionAnswer {
+    pub option_id: u32,
+    pub picked: bool,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct PlayerAnswer {
+    pub r#type: u8,
+    pub question_id: u32,
+    pub user_id: u32,
+    pub submit_time: f32,
+    pub options_result: Vec<PlayerOptionAnswer>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct PlayerAnswerMessage(pub PlayerAnswer);
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ManagerAction {
+    pub r#type: u8,
+    pub action: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct PlayerInfo {
+    pub r#type: u8,
+    pub name: String,
+    pub character: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendPlayerList;
+
+
 
 // ====== Room ======
 pub struct Room {
     players: HashSet<Addr<PlayerSession>>,
     manager: Option<Addr<ManagerSession>>,
     ok_responses: usize,
+    last_question: Option<Question>,
 }
 
 impl Room {
@@ -56,12 +104,83 @@ impl Room {
             players: HashSet::new(),
             manager: None,
             ok_responses: 0,
+            last_question: None,
         }
     }
 }
 
 impl Actor for Room {
     type Context = Context<Self>;
+}
+
+impl Handler<NewQuestion> for Room {
+    type Result = ();
+    fn handle(&mut self, msg: NewQuestion, _: &mut Self::Context) {
+        self.last_question = Some(msg.0);
+    }
+}
+
+impl Handler<PlayerAnswerMessage> for Room {
+    type Result = ();
+
+    fn handle(&mut self, msg: PlayerAnswerMessage, _: &mut Self::Context) {
+        let answer = msg.0.clone();
+
+        println!(
+            "🧩 Player {} answered question {}: {:?}",
+            answer.user_id, answer.question_id, answer.options_result
+        );
+
+        // You can later store this in DB or a HashMap for scoring
+        // Example: self.answers.insert(answer.user_id, answer);
+    }
+}
+
+use redis::AsyncCommands;
+
+#[derive(Serialize)]
+struct PlayerListMsg {
+    r#type: u8,
+    users: Vec<serde_json::Value>,
+}
+
+impl Handler<SendPlayerList> for Room {
+    type Result = ();
+
+    fn handle(&mut self, _: SendPlayerList, _: &mut Self::Context) {
+        let manager = self.manager.clone();
+        actix_rt::spawn(async move {
+            if manager.is_none() { return; }
+
+            let client = redis::Client::open("redis://127.0.0.1:6379/").unwrap();
+            let mut con = client.get_multiplexed_async_connection().await.unwrap();
+
+            // Get all player keys
+            let keys: Vec<String> = con.keys("player:*").await.unwrap_or_default();
+
+            let mut users = vec![];
+
+            for key in keys {
+                // Try to get redis string
+                let json_str: Result<String, _> = con.get(&key).await;
+
+                if let Ok(json) = json_str {
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&json) {
+                        users.push(v);
+                    }
+                }
+            }
+
+
+            let msg = PlayerListMsg {
+                r#type: 7,
+                users,
+            };
+
+            let payload = serde_json::to_string(&msg).unwrap();
+            manager.unwrap().do_send(crate::ManagerText(payload));
+        });
+    }
 }
 
 impl Handler<RegisterPlayer> for Room {
@@ -108,7 +227,6 @@ impl Handler<PlayerOk> for Room {
     fn handle(&mut self, _: PlayerOk, ctx: &mut Self::Context) {
         self.ok_responses += 1;
 
-        // Notify the manager about progress
         if let Some(manager) = &self.manager {
             manager.do_send(ManagerText(format!(
                 "OK count: {} / {}",
@@ -117,16 +235,20 @@ impl Handler<PlayerOk> for Room {
             )));
         }
 
-        // When all players have acknowledged
+        // When all players have responded
         if self.ok_responses == self.players.len() && self.players.len() > 0 {
-            println!("✅ All players sent OK. Starting 10s timer...");
+            println!("✅ All players OK. Starting timer...");
 
             let players = self.players.clone();
+            let question_time = self
+                .last_question
+                .as_ref()
+                .map(|q| q.question_time)
+                .unwrap_or(40);
 
-            // Define your result data
             let result = crate::QuestionResult {
                 r#type: 3,
-                question_id: 45,
+                question_id: self.last_question.as_ref().map(|q| q.question_id).unwrap_or(0),
                 options_result: vec![
                     crate::OptionResult { option_id: 58, answer: false },
                     crate::OptionResult { option_id: 59, answer: true },
@@ -135,9 +257,8 @@ impl Handler<PlayerOk> for Room {
 
             let result_json = serde_json::to_string(&result).unwrap();
 
-            // Schedule the delayed broadcast
-            ctx.run_later(std::time::Duration::from_secs(10), move |_, _ctx| {
-                println!("⏰ Sending result data to players after 10s");
+            ctx.run_later(std::time::Duration::from_secs(question_time as u64), move |_, _| {
+                println!("⏰ Sending result after {}s", question_time);
                 for player in &players {
                     player.do_send(PlayerText(result_json.clone()));
                 }
