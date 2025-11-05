@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use serde::Deserialize;
 use uuid::Uuid;
+use redis::{AsyncCommands};
 
 // Local modules
 mod manager;
@@ -28,8 +29,8 @@ pub struct Question {
     pub question_id: u32,
     pub question_text: String,
     pub question_time: u32,
-    pub max_point: u32,
-    pub min_point: u32,
+    pub max_point: f64,
+    pub min_point: f64,
     pub options: Vec<OptionItem>,
 }
 
@@ -52,7 +53,7 @@ pub struct NewQuestion(pub Question);
 
 // ===== Player Answer =====
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, serde::Serialize)]
 pub struct PlayerOptionAnswer {
     pub option_id: u32,
     pub picked: bool,
@@ -86,7 +87,9 @@ pub struct PlayerInfo {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendPlayerList;
+pub struct SendPlayerList{
+    session_id: String,
+}
 
 
 
@@ -136,8 +139,6 @@ impl Handler<PlayerAnswerMessage> for Room {
     }
 }
 
-use redis::AsyncCommands;
-
 #[derive(Serialize)]
 struct PlayerListMsg {
     r#type: u8,
@@ -147,16 +148,20 @@ struct PlayerListMsg {
 impl Handler<SendPlayerList> for Room {
     type Result = ();
 
-    fn handle(&mut self, _: SendPlayerList, _: &mut Self::Context) {
+    fn handle(&mut self, data: SendPlayerList, _: &mut Self::Context) {
         let manager = self.manager.clone();
+        let session_id = data.session_id.clone();
+        
+        // let redis_client = self.
         actix_rt::spawn(async move {
             if manager.is_none() { return; }
 
-            let client = redis::Client::open("redis://127.0.0.1:6379/").unwrap();
+            let client = redis::Client::open(REDIS_URL.unwrap()).unwrap();
             let mut con = client.get_multiplexed_async_connection().await.unwrap();
 
             // Get all player keys
-            let keys: Vec<String> = con.keys("player:*").await.unwrap_or_default();
+            let pattern = format!("player:{session_id}:*");
+            let keys: Vec<String> = con.keys(&pattern).await.unwrap();
 
             let mut users = vec![];
 
@@ -287,10 +292,26 @@ async fn ws_route(
         .entry(session_id.clone())
         .or_insert_with(|| Room::new().start())
         .clone();
-
+    let redis_client = redis::Client::open(REDIS_URL.unwrap()).unwrap();
     match role.as_str() {
-        "manager" => actix_web_actors::ws::start(ManagerSession { room }, &req, stream),
-        "player" => actix_web_actors::ws::start(PlayerSession { room }, &req, stream),
+        "manager" => actix_web_actors::ws::start(
+            ManagerSession {
+                room: room,
+                session_id: session_id,
+                redis_client: redis_client,
+            }, &req, stream),
+        "player" => actix_web_actors::ws::start(
+                PlayerSession {
+                            id: Uuid::new_v4(),
+                            room: room,
+                            name: None,
+                            character: None,
+                            session_id: session_id,
+                            redis_client: redis_client,
+                        },
+                        &req,
+                        stream,
+                    ),
         _ => Ok(HttpResponse::BadRequest().body("role must be 'manager' or 'player'")),
     }
 }

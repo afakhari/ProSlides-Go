@@ -35,7 +35,7 @@
       ws.onclose = () => log("❌ Disconnected");
       ws.onmessage = (e) => {
         log("📩 " + e.data);
-        if (e.data.type == 7) {
+        if (e.data["type"] == 7) {
             log("Player list updated:", e.data.users);
         }
       };

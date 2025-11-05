@@ -4,7 +4,7 @@
     "type": 1,
     "results": [
       {
-        "user_id": 21,
+        "user_id": "6e8b2a3e-b79a-456d-a8a1-c5eb9ad949dd",
         "name": "Ali",
         "character": "\uD83C\uDF83",
         "rank": 1,
@@ -45,7 +45,7 @@
   {
     "type": 4,
     "question_id": 45,
-    "user_id": 5,
+    "user_id": "6e8b2a3e-b79a-456d-a8a1-c5eb9ad949dd",
     "submit_time": 12,
     "options_result": [
       {"option_id": 58, "picked":  true},
@@ -77,12 +77,16 @@
       {
         "user_id": "6e8b2a3e-b79a-456d-a8a1-c5eb9ad949dd",
         "name": "ali",
-        "character": "❤\uFE0F"
+        "character": "❤\uFE0F",
+        "total_points": 0.0,
+        "new_points": 0.0
       },
       {
         "user_id": "6e8b2a3e-b79a-456d-a8a1-aaab9a3949ad",
         "name": "Amin",
-        "character": "\uD83D\uDC4D"
+        "character": "\uD83D\uDC4D",
+        "total_points": 0.0,
+        "new_points": 0.0
       }
     ]
   },
