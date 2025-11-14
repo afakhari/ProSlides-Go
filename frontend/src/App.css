@@ -1,177 +1,34 @@
-/* ====== پس‌زمینه ====== */
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f8a8c3;
-  font-family: "Poppins", sans-serif;
-  color: white;
-}
+@import "tailwindcss";
 
-/* ====== ریشه اصلی React ====== */
-#root {
-  width: 100%;
-  margin-top: 50px;
-}
+@import "tailwindcss/preflight" /* instead @tailwind base */ @tailwind utilities; /* Covers both @tailwind utilities & @tailwind components */
 
-/* ====== کارت آزمون ====== */
-.quiz-card {
-  max-width: 700px;
-  margin: 20px auto; /* وسط‌چین افقی */
-  padding: 20px;
-}
+.custom-bg {
+  background: radial-gradient(
+      circle at 30% 20%,
+      rgba(242, 3, 3, 0.7),
+      rgba(233, 54, 5, 0.4)
+    ),
+    radial-gradient(
+      circle at 70% 80%,
+      rgba(252, 31, 2, 0.6),
+      rgba(243, 24, 4, 0.947)
+    ),
+    linear-gradient(135deg, #f9a8d4 0%, #f472b6 100%);
 
-/* ====== عنوان ====== */
-.hh {
-  font-size: clamp(1.5rem, 5vw, 2rem);
-  font-weight: 600;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-/* ====== نوار زمان ====== */
-.progress-bar {
-  background: rgba(255, 255, 255, 0.3);
-  height: 8px;
-  border-radius: 5px;
-  margin: 10px 0 20px;
-  overflow: hidden;
-}
-
-.progress {
-  height: 100%;
-  background: #8b4fff;
-  transition: width 1s linear;
-}
-
-/* ====== گزینه‌ها ====== */
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.option {
-  background: rgba(0, 0, 0, 0.2);
-  padding: 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: clamp(1rem, 2.3vw, 1.4rem);
-  transition: 0.3s;
-  margin: 0 10px; /* فاصله کم از لبه‌های صفحه */
-  border: solid;
-  border-color: white;
-  border-width: 2px;
-}
-
-.option:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.option.selected {
-  background: #6c2bd9;
-}
-
-.option.correct {
-  background: #28a745 !important;
-  color: white;
-}
-
-.option.wrong {
-  background: #dc3545 !important;
-  color: white;
-}
-
-/* ====== دایره ====== */
-.circle {
-  width: 24px;
-  height: 24px;
-  border: 2px solid white;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  background-blend-mode: overlay;
   position: relative;
 }
 
-.inner-circle {
-  width: 22px;
-  height: 22px;
-  background: #393e3a;
-  border-radius: 50%;
-}
-
-.icon {
-  font-size: 14px;
-  color: white;
+/* Dots layer */
+/* .custom-bg::before {
+  content: "";
   position: absolute;
-}
-
-/* ====== دکمه ====== */
-.submit-btn {
-  margin: 25px 10px 0;
-  width: calc(100% - 20px);
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  background: #ddd;
-  color: #555;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-  font-size: clamp(1rem, 2vw, 1.2rem);
-}
-
-.submit-btn:enabled {
-  background: white;
-  color: #6c2bd9;
-}
-
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* kjk */
-/* ====== نوار زمان + عدد ====== */
-.progress-wrapper {
-  /* width: 90%; */
-  margin: 10px;
-  /* margin: 0 auto 2vh; */
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5vh;
-}
-
-/* ====== نوار بالا (اعداد 0 و 100) ====== */
-.progress-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 3vw;
-  font-weight: 600;
-  color: white;
-  padding: 0 0.5vw;
-  opacity: 0.9;
-}
-
-/* ====== خود نوار زمان ====== */
-.progress-bar {
-  background: rgba(255, 255, 255, 0.3);
-  height: 1vh;
-  border-radius: 0.5vh;
-  overflow: hidden;
-  margin-top: 0px;
-  border: solid;
-  border-color: white;
-  border-width: 2px;
-}
-
-.progress {
-  height: 100%;
-  background: #8b4fff;
-  transition: width 1s linear;
-}
+  inset: 0;
+  background-image: radial-gradient(
+    rgba(228, 230, 74, 0.52) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+  opacity: 2.5;
+  pointer-events: none;
+} */

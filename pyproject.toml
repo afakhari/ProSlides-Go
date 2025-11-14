@@ -6,6 +6,9 @@ requires-python = ">=3.13"
 dependencies = [
     "django>=5.2.7",
     "django-cors-headers>=4.9.0",
+    "django-filter>=25.2",
+    "djangorestframework>=3.16.1",
+    "drf-yasg>=1.21.11",
     "environs>=14.3.0",
     "pytz>=2025.2",
 ]
