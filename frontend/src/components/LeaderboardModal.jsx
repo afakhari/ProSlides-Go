@@ -1,14 +1,43 @@
 import React from "react";
-import { DefaultModalPlayers } from "../data/mockData";
+import { LeaderboardPlayers } from "../data/mockData";
+import { useServerData } from "../hooks/useServerData";
 
 export default function LeaderboardModal({ isOpen, onClose, players = [] }) {
+  // Get leaderboard data from server (must be before early return)
+  const { leaderboardResults } = useServerData();
+
   if (!isOpen) return null;
 
   // Sample players if none provided
-  const defaultPlayers = DefaultModalPlayers;
+  const defaultPlayers = LeaderboardPlayers;
 
-  const displayPlayers = players.length > 0 ? players : defaultPlayers;
-  const sortedPlayers = [...displayPlayers].sort((a, b) => b.points - a.points);
+  // Use server data if available, otherwise use props, otherwise use default
+  const displayPlayers =
+    leaderboardResults && leaderboardResults.length > 0
+      ? leaderboardResults
+      : players.length > 0
+      ? players
+      : defaultPlayers;
+
+  console.log("[LeaderboardModal] Data source:", {
+    fromServer: leaderboardResults && leaderboardResults.length > 0,
+    serverData: leaderboardResults,
+    propsData: players,
+    displayPlayers,
+  });
+
+  // Sort players by rank
+  const sortedPlayers = [...displayPlayers].sort((a, b) => a.rank - b.rank);
+
+  // Calculate percentage like in LeaderBoard.jsx
+  const maxScore = Math.max(...sortedPlayers.map((p) => p.total_points));
+  const minScore = Math.min(...sortedPlayers.map((p) => p.total_points));
+
+  const calcPercent = (score) => {
+    if (maxScore === minScore) return 100;
+    const percent = ((score - minScore) / (maxScore - minScore)) * 99 + 1;
+    return Math.max(percent, 1);
+  };
 
   return (
     <>
@@ -43,18 +72,17 @@ export default function LeaderboardModal({ isOpen, onClose, players = [] }) {
 
           {/* Leaderboard List */}
           <div className="space-y-3">
-            {sortedPlayers.map((player, index) => {
-              const maxPoints = sortedPlayers[0]?.points || 1;
-              const barWidth = (player.points / maxPoints) * 100;
+            {sortedPlayers.map((player) => {
+              const barWidth = calcPercent(player.total_points);
 
               return (
                 <div
-                  key={player.id}
+                  key={player.user_id}
                   className="flex items-center gap-4 relative"
                 >
                   {/* Rank */}
                   <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white font-bold shrink-0">
-                    {index + 1}
+                    {player.rank}
                   </div>
 
                   {/* Player Bar */}
@@ -75,7 +103,7 @@ export default function LeaderboardModal({ isOpen, onClose, players = [] }) {
 
                   {/* Points */}
                   <div className="text-white font-bold text-xl shrink-0 w-20 text-right">
-                    {player.points}p
+                    {Math.round(player.total_points)}p
                   </div>
                 </div>
               );

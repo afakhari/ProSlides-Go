@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 
-export default function QRSidebar({ gameCode = "ZH4NJ", isOpen, onClose }) {
+export default function QRSidebar({ gameCode = "1", isOpen, onClose }) {
   const [copiedLink, setCopiedLink] = useState(false);
-  const joinUrl = `ahaslides.com/${gameCode}`;
+  const joinUrl = `proslides.ir/${gameCode}`;
 
   // Function to copy link to clipboard
   const copyToClipboard = () => {

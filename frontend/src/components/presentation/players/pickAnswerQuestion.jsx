@@ -111,7 +111,7 @@ export default function PickAnswerQuestion() {
                                   border-solid border-white border-2 hover:bg-black/30 ${optionClass}`}
                     onClick={() => handleSelect(goz)}
                   >
-                    <span className="w-6 h-6 border-2 border-white rounded-full inline-flex flex-shrink-0 items-center justify-center relative">
+                    <span className="w-6 h-6 border-2 border-white rounded-full inline-flex shrink-0 items-center justify-center relative">
                       {selectedOptions.includes(goz) && !showResults && (
                         <span className="w-[22px] h-[22px] bg-[#393e3a] rounded-full"></span>
                       )}

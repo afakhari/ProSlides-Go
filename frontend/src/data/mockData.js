@@ -11,7 +11,7 @@ export const User_adding = {
     // { user_id: 2, name: "ahmad", character: "😊" },
     // { user_id: 4, name: "mike", character: "⭐" },
     // { user_id: 5, name: "mike", character: "⭐" },
-    // { user_id: 6, name: "mike", character: "⭐" },
+    // { user_id: 6, name: "mike", character: "⭐" },s
     // { user_id: 7, name: "mike", character: "⭐" },
     // { user_id: 8, name: "mike", character: "⭐" },
     // { user_id: 9, name: "mike", character: "😁" },
@@ -33,7 +33,7 @@ export const LeaderboardPlayers = [
     name: "Chloe",
     character: "👑",
     color: "#db2777",
-    rank: 1,
+    rank: 110,
     total_points: 153,
     new_points: 61,
   },
@@ -75,23 +75,23 @@ export const LeaderboardPlayers = [
   },
   {
     user_id: 6,
-    name: "Chloghje",
-    character: "👑",
+    name: "ali",
+    character: "@",
     color: "#db9869",
     rank: 1,
-    total_points: 1053,
+    total_points: 100,
     new_points: 61,
   },
 ];
 
 // Default players for LeaderboardModal
-export const DefaultModalPlayers = [
-  { id: 1, name: "Chloe", character: "👑", points: 213, color: "#ec4899" },
-  { id: 2, name: "Trang", character: "🌸", points: 123, color: "#10b981" },
-  { id: 3, name: "Alex", character: "🐱", points: 109, color: "#f97316" },
-  { id: 4, name: "Hesam3", character: "👯", points: 44, color: "#6366f1" },
-  { id: 5, name: "hesam2", character: "🧑", points: 0, color: "#8b5cf6" },
-];
+// export const DefaultModalPlayers = [
+//   { id: 1, name: "Chloe", character: "👑", points: 213, color: "#ec4899" },
+//   { id: 2, name: "Trang", character: "🌸", points: 123, color: "#10b981" },
+//   { id: 3, name: "Alex", character: "🐱", points: 109, color: "#f97316" },
+//   { id: 4, name: "Hesam3", character: "👯", points: 44, color: "#6366f1" },
+//   { id: 5, name: "hesam2", character: "🧑", points: 0, color: "#8b5cf6" },
+// ];
 
 // ============================================
 // Questions Data
@@ -122,10 +122,10 @@ export const PickAnswerResult_EN = {
   type: 3,
   question_id: 45,
   optionsResult: [
-    { option_id: 47, answer: false},
-    { option_id: 48, answer: false},
-    { option_id: 49, answer: true},
-    { option_id: 50, answer: false},
+    { option_id: 47, answer: false },
+    { option_id: 48, answer: false },
+    { option_id: 49, answer: true },
+    { option_id: 50, answer: false },
   ],
 };
 
@@ -152,43 +152,70 @@ export const PickAnswerResult_FA = {
   type: 3,
   question_id: 46,
   optionsResult: [
-    { option_id: 51, answer: false},
-    { option_id: 52, answer: false},
-    { option_id: 53, answer: false},
-    { option_id: 54, answer: true},
-    { option_id: 55, answer: false},
-    { option_id: 56, answer: false},
+    { option_id: 51, answer: false },
+    { option_id: 52, answer: false },
+    { option_id: 53, answer: false },
+    { option_id: 54, answer: true },
+    { option_id: 55, answer: false },
+    { option_id: 56, answer: false },
   ],
 };
 
 // Quiz Setup with multiple slides
+// slide_type: 1 = Question, 2 = Leaderboard
 export const QuizSetup = {
   type: 5,
   slides: [
     {
       slide_type: 1,
-      question_id: 56,
+      question_id: 145,
       question_text: "What is the capital of France?",
-      question_time: 40,
+      question_time: 4,
       max_point: 100,
       min_point: 0,
       options: [
-        { option_id: 72, option_text: "Berlin", answer: false, votes : 6 },
-        { option_id: 73, option_text: "Madrid", answer: false, votes : 4 },
-        { option_id: 74, option_text: "Paris", answer: true, votes : 9 },
-        { option_id: 75, option_text: "Rome", answer: false, votes : 7 },
+        { option_id: 72, option_text: "Berlin", answer: false },
+        { option_id: 73, option_text: "Madrid", answer: false },
+        { option_id: 74, option_text: "Paris", answer: true },
+        { option_id: 75, option_text: "Rome", answer: false },
       ],
     },
     {
-      slide_type: 2,
-      question_id: 57,
+      slide_type: 2, // Final leaderboard
+    },
+    {
+      slide_type: 1,
+      question_id: 146,
       question_text: "What is 2 + 2?",
+      question_time: 4,
+      max_point: 80,
+      min_point: 0,
       options: [
-        { option_id: "a", option_text: "3", answer: false, votes : 14 },
-        { option_id: "b", option_text: "4", answer: true, votes : 16 },
-        { option_id: "c", option_text: "5", answer: false, votes : 7 },
-        { option_id: "d", option_text: "6", answer: false, votes : 10 },
+        { option_id: 76, option_text: "3", answer: false },
+        { option_id: 77, option_text: "4", answer: true },
+        { option_id: 78, option_text: "5", answer: false },
+        { option_id: 79, option_text: "6", answer: false },
       ],
+    },
+    {
+      slide_type: 2, // Leaderboard after second question
+    },
+    {
+      slide_type: 1,
+      question_id: 147,
+      question_text: "Which planet is known as the Red Planet?",
+      question_time: 25,
+      max_point: 70,
+      min_point: 0,
+      options: [
+        { option_id: 80, option_text: "Venus", answer: false },
+        { option_id: 81, option_text: "Mars", answer: true },
+        { option_id: 82, option_text: "Jupiter", answer: false },
+        { option_id: 83, option_text: "Saturn", answer: false },
+      ],
+    },
+    {
+      slide_type: 2, // Final leaderboard
     },
   ],
 };
@@ -241,7 +268,7 @@ export const Reactions = [
 // ============================================
 
 // Default game code
-export const DefaultGameCode = "ZH4NJ";
+export const DefaultGameCode = "room1";
 
 // Color list for user names
 export const UserColorList = [
@@ -261,7 +288,7 @@ export const UserColorList = [
 // Output/Response Types
 // ============================================
 
-// User answer submission format
+// User answer submission format (no longer used - see PlayerPickAnswerQuestion for the correct format)
 export const createUserAnswer = (questionId, selectedOptions, timeLeft) => ({
   type: 4,
   question_id: questionId,
@@ -279,3 +306,40 @@ export const createNextPrevious = (
   action, // "next" or "previous"
   slide_index: slideIndex, // Current slide index
 });
+
+// Question Result - Updated to match server format
+export const QuestionResult = {
+  type: 8,
+  question_id: 45,
+  options: [
+    { option_id: 62, number_of_submits: 10 },
+    { option_id: 63, number_of_submits: 5 },
+    { option_id: 64, number_of_submits: 3 },
+    { option_id: 65, number_of_submits: 2 },
+  ],
+};
+
+// Leaderboard Result - Type 1 from server
+export const LeaderboardResult = {
+  type: 1,
+  results: [
+    {
+      user_id: "8b6e39ab-4c6d-4255-a90a-41cb7ce7171b",
+      name: "Ali",
+      character: "❤️",
+      color: "#db2777",
+      rank: 1,
+      total_points: 83.97,
+      new_points: 83.97,
+    },
+    {
+      user_id: "957d350e-bc07-47c2-a997-d09256e91f9a",
+      name: "Sima",
+      character: "❤️",
+      color: "#059669",
+      rank: 2,
+      total_points: 0,
+      new_points: 0,
+    },
+  ],
+};

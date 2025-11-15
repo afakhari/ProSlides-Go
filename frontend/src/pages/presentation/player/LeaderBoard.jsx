@@ -51,7 +51,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 // ];
 
 function PlayerLeaderBoard({ players }) {
-
   const [hovered, setHovered] = useState(null);
   const [hiddenNames, setHiddenNames] = useState([]);
   const [displayedPlayers, setDisplayedPlayers] = useState([]);
@@ -98,7 +97,7 @@ function PlayerLeaderBoard({ players }) {
 
   return (
     <div
-      className="h-screen bg-cover bg-center bg-no-repeat"
+      className="h-screen overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/src/assets/bg.jpg')" }}
     >
       <header>
@@ -109,8 +108,8 @@ function PlayerLeaderBoard({ players }) {
         </div>
       </header>
 
-      <div className="mt-7">
-        <section>
+      <div className="mt-7 flex-1 flex flex-col min-h-0">
+        <section className="flex-1 flex flex-col min-h-0">
           {/* Title and player count */}
           <div className="text-center">
             <h1 className="text-white px-4 text-5xl font-bold">Leaderboard</h1>
@@ -119,95 +118,105 @@ function PlayerLeaderBoard({ players }) {
             </p>
           </div>
 
-          <ul className="mt-6 space-y-4 w-full flex flex-col items-center">
-            <AnimatePresence>
-              {displayedPlayers.map((p) => {
-                const isHidden = hiddenNames.includes(p.rank);
-                const widthPercent = calcPercent(p.total_points);
+          {/* Scrollable players list */}
+          <div
+            className="mt-6 flex-1 overflow-auto w-full min-h-0 no-scrollbar"
+            style={{ maxHeight: "calc(100vh - 220px)" }}
+          >
+            <ul className="space-y-4 w-full flex flex-col items-stretch py-2">
+              <AnimatePresence>
+                {displayedPlayers.map((p) => {
+                  const isHidden = hiddenNames.includes(p.rank);
+                  const widthPercent = calcPercent(p.total_points);
 
-                return (
-                  <motion.li
-                    key={p.rank}
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ type: "spring", stiffness: 120, damping: 18 }}
-                    className="flex justify-start items-center relative w-[90%] max-w-2xl"
-                    onMouseEnter={() => setHovered(p.rank)}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    {/* Rank */}
-                    <div className="text-white/90 text-lg font-semibold w-8 text-center rounded-full bg-white/20 mr-3 py-1">
-                      {p.rank}
-                    </div>
+                  return (
+                    <motion.li
+                      key={p.rank}
+                      layout
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 120,
+                        damping: 18,
+                      }}
+                      className="flex justify-start items-center relative w-[90%] max-w-2xl mx-auto"
+                      onMouseEnter={() => setHovered(p.rank)}
+                      onMouseLeave={() => setHovered(null)}
+                    >
+                      {/* Rank */}
+                      <div className="text-white/90 text-lg font-semibold w-8 text-center rounded-full bg-white/20 mr-3 py-1">
+                        {p.rank}
+                      </div>
 
-                    {/* Fixed-width translucent track */}
-                    <div className="relative overlay-hidden bg-white/10 w-full h-14 mr-3">
-                      {/* Colored fill */}
-                      <motion.div
-                        className={`absolute left-0 top-0 h-full z-10`}
-                        style={{ backgroundColor: p.color }}
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: animateBars ? `${widthPercent}%` : 0,
-                        }}
-                        transition={{ duration: 1.3, ease: "easeOut" }}
-                      />
+                      {/* Fixed-width translucent track */}
+                      <div className="relative overlay-hidden bg-white/10 w-full h-14 mr-3">
+                        {/* Colored fill */}
+                        <motion.div
+                          className={`absolute left-0 top-0 h-full z-10`}
+                          style={{ backgroundColor: p.color }}
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: animateBars ? `${widthPercent}%` : 0,
+                          }}
+                          transition={{ duration: 1.3, ease: "easeOut" }}
+                        />
 
-                      {/* Content on top */}
-                      <div className="relative z-20 flex items-center px-4 py-3 gap-4">
-                        <div className="player-avatar text-2xl">
-                          {p.character}
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`text-white font-medium transition-all duration-200 ${
-                              isHidden ? "blur-sm select-none" : ""
-                            }`}
-                          >
-                            {isHidden ? "****" : p.name}
+                        {/* Content on top */}
+                        <div className="relative z-20 flex items-center px-4 py-3 gap-4">
+                          <div className="player-avatar text-2xl">
+                            {p.character}
                           </div>
 
-                          {hovered === p.rank && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleToggleBlur(p.rank)}
-                                className="bg-white/90 text-gray-800 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                              >
-                                👁️
-                              </button>
-                              <button
-                                onClick={() => handleClick("✏️ Edit", p.name)}
-                                className="bg-white/90 text-blue-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleClick("📞 Call", p.name)}
-                                className="bg-white/90 text-green-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                              >
-                                📞
-                              </button>
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`text-white font-medium transition-all duration-200 ${
+                                isHidden ? "blur-sm select-none" : ""
+                              }`}
+                            >
+                              {isHidden ? "****" : p.name}
                             </div>
-                          )}
+
+                            {hovered === p.rank && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleToggleBlur(p.rank)}
+                                  className="bg-white/90 text-gray-800 px-2 py-1 rounded-lg text-sm hover:bg-white"
+                                >
+                                  👁️
+                                </button>
+                                <button
+                                  onClick={() => handleClick("✏️ Edit", p.name)}
+                                  className="bg-white/90 text-blue-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleClick("📞 Call", p.name)}
+                                  className="bg-white/90 text-green-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
+                                >
+                                  📞
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Score */}
-                    <div className="relative w-[15%] text-white font-semibold ml-3">
-                      {p.total_points}p{" "}
-                      <span className="text-white/60 text-sm">
-                        +{p.new_points}
-                      </span>
-                    </div>
-                  </motion.li>
-                );
-              })}
-            </AnimatePresence>
-          </ul>
+                      {/* Score */}
+                      <div className="relative w-[15%] text-white font-semibold ml-3">
+                        {Math.round(p.total_points)}p{" "}
+                        <span className="text-white/60 text-sm">
+                          +{Math.round(p.new_points)}
+                        </span>
+                      </div>
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
+          </div>
         </section>
       </div>
     </div>

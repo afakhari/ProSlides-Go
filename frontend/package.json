@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@shadcn/ui": "^0.0.4",
     "@tailwindcss/vite": "^4.1.15",
@@ -19,8 +18,8 @@
     "emoji-picker-react": "^4.15.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.5",
     "shadcn-ui": "^0.9.5",
     "tailwind-merge": "^3.3.1",
@@ -42,7 +41,7 @@
     "postcss": "^8.5.6",
     "shadcn": "^3.4.2",
     "tailwindcss": "^4.1.15",
-    "vite": "npm:rolldown-vite@^7.1.14"
+    "vite": "npm:rolldown-vite@7.1.14"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.1.14"

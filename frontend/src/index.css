@@ -82,3 +82,19 @@ h1 {
 .animate-custom-pulse {
   animation: customPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Ensure full-height layout so h-screen works reliably and inner flex scrolling behaves correctly */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Utility to hide native scrollbars while preserving scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}

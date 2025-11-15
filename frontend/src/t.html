@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Manager Client</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+      #log {
+        background: white;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 200px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Manager Client</h1>
+    <label>Session ID: <input id="sessionId" value="room1" /></label>
+    <button id="connectBtn">Connect</button>
+    <button id="nextBtn">Next</button>
+    <button id="prevBtn">Previous</button>
+    <h3>Messages:</h3>
+    <div id="log"></div>
+
+    <script>
+      let ws;
+      const logDiv = document.getElementById("log");
+
+      function log(msg) {
+        const div = document.createElement("div");
+        div.textContent = msg;
+        logDiv.appendChild(div);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      document.getElementById("connectBtn").onclick = () => {
+        const sessionId = document.getElementById("sessionId").value.trim();
+        //ws = new WebSocket(`ws://localhost:8080/ws/${sessionId}/manager`);
+        ws = new WebSocket(
+          `wss://present.proslides.ir/ws/${sessionId}/manager`
+        );
+        ws.onopen = () => log("✅ Connected as manager");
+        ws.onclose = () => log("❌ Disconnected");
+        ws.onmessage = (e) => {
+          log("📩 " + e.data);
+          if (e.data["type"] == 7) {
+            log("Player list updated:", e.data.users);
+          }
+        };
+      };
+
+      document.getElementById("nextBtn").onclick = () => {
+        const msg = { type: 9, action: "next" };
+        ws.send(JSON.stringify(msg));
+        log("➡️ Sent NEXT");
+      };
+
+      document.getElementById("prevBtn").onclick = () => {
+        const msg = { type: 9, action: "previous" };
+        ws.send(JSON.stringify(msg));
+        log("⬅️ Sent PREVIOUS");
+      };
+    </script>
+  </body>
+</html>
