@@ -30,6 +30,7 @@
     document.getElementById("connectBtn").onclick = () => {
       const sessionId = document.getElementById("sessionId").value.trim();
       ws = new WebSocket(`ws://localhost:8080/ws/${sessionId}/player`);
+      // ws = new WebSocket(`wss://present.proslides.ir/ws/${sessionId}/player`);
 
       ws.onopen = () => {
           const register = {
@@ -49,6 +50,7 @@
         try {
           const data = JSON.parse(event.data);
           if (data.type === 10) {
+              localStorage.setItem("user_id", data.user_id);
               log(`✅ Registered! User ID: ${data.user_id}`);
               localStorage.setItem("user_id", data.user_id);
               localStorage.setItem("player_name", data.name);
@@ -67,7 +69,7 @@
               const answer = {
                 type: 4,
                 question_id: data.question_id,
-                user_id: Number(document.getElementById("userId").value),
+                user_id: localStorage.getItem('user_id'),
                 submit_time: delay / 1000,
                 options_result: data.options.map(opt => ({
                   option_id: opt.option_id,

@@ -31,6 +31,7 @@
     document.getElementById("connectBtn").onclick = () => {
       const sessionId = document.getElementById("sessionId").value.trim();
       ws = new WebSocket(`ws://localhost:8080/ws/${sessionId}/manager`);
+      //ws = new WebSocket(`wss://present.proslides.ir/ws/${sessionId}/manager`);
       ws.onopen = () => log("✅ Connected as manager");
       ws.onclose = () => log("❌ Disconnected");
       ws.onmessage = (e) => {

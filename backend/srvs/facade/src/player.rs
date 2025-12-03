@@ -1,64 +1,37 @@
 use actix::*;
 use actix_web_actors::ws;
-use actix::prelude::*;
 use redis::{AsyncCommands};
-use uuid::Uuid;
-use serde::{Deserialize};
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-pub const REDIS_URL: Option<&str> = Some("redis://127.0.0.1/");
-
-// Messages used by Room ↔ Player
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct PlayerText(pub String);
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct RegisterPlayer(pub Addr<PlayerSession>);
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct UnregisterPlayer(pub Addr<PlayerSession>);
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct PlayerOk(pub Addr<PlayerSession>);
-
-/// Player WebSocket actor
-pub struct PlayerSession {
-    pub id: Uuid,
-    pub room: Addr<crate::Room>,
-    pub name: Option<String>,
-    pub character: Option<String>,
-    pub session_id: String,
-    pub redis_client: redis::Client,
-}
-#[derive(Deserialize)]
-struct PlayerAnswer {
-    question_id: i64,
-    options_result: Vec<OptionPick>
-}
-
-#[derive(Deserialize)]
-struct OptionPick {
-    option_id: i64,
-    picked: bool,
-}
+use crate::utils::{
+    get_slide_index,
+};
+use crate::models::{
+    PlayerText,
+    PlayerSession,
+    RegisterPlayer,
+    UnregisterPlayer,
+    PlayerOk,
+    PlayerInfo,
+    PlayerAnswer,
+    SendPlayerList,
+    QuestionResult,
+    OptionResult,
+};
 
 
 impl Actor for PlayerSession {
     type Context = ws::WebsocketContext<Self>;
-
+    
     fn started(&mut self, ctx: &mut Self::Context) {
         self.room.do_send(RegisterPlayer(ctx.address()));
     }
-
+    
     fn stopped(&mut self, ctx: &mut Self::Context) {
         self.room.do_send(UnregisterPlayer(ctx.address()));
     }
 }
+
 
 impl Handler<PlayerText> for PlayerSession {
     type Result = ();
@@ -68,6 +41,11 @@ impl Handler<PlayerText> for PlayerSession {
         ctx.text(msg.0.clone());
 
         // Automatically send "ok" back to manager
+        if let Ok(player_info) = serde_json::from_str::<PlayerInfo>(&msg.0) {
+            if player_info.r#type == 6 { // Player registration
+
+            }
+        }
         self.room.do_send(PlayerOk(ctx.address()));
     }
 }
@@ -75,13 +53,13 @@ impl Handler<PlayerText> for PlayerSession {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         if let Ok(ws::Message::Text(text)) = msg {
-            // Player registration
-            if let Ok(player_info) = serde_json::from_str::<crate::PlayerInfo>(&text) {
-                if player_info.r#type == 6 {
+            if let Ok(player_info) = serde_json::from_str::<PlayerInfo>(&text) {
+                if player_info.r#type == 6 { // Player registration
                     let name = player_info.name.clone();
                     let character = player_info.character.clone();
                     self.name = Some(name.clone());
                     self.character = Some(character.clone());
+                    let redis_client = self.redis_client.clone();
 
 
                     // Generate a unique ID
@@ -103,26 +81,32 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                         "character": character,
                         "user_id": user_id
                     });
+                    let user_data = serde_json::json!({
+                        "name": name,
+                        "character": character,
+                        "user_id": user_id
+                    });
                     let session_id = self.session_id.clone();
 
 
                     actix_rt::spawn(async move {
-                        if let Ok(client) = redis::Client::open(REDIS_URL.unwrap()) {
-                            if let Ok(mut con) = client.get_multiplexed_async_connection().await {
-                                let _: () = con
-                                    .set(format!("player:{}:{}", session_id, user_id), redis_data)
-                                    .await
-                                    .unwrap_or_default();
-                                let session_key = format!("players:{}", session_id);
-                                let player_key = format!("player:{}:{}", session_id, user_id);
+                        if let Ok(mut con) = redis_client.get_multiplexed_async_connection().await {
+                            let _: () = con
+                                .set(format!("player:{}:{}", session_id, user_id), redis_data)
+                                .await
+                                .unwrap_or_default();
+                            let session_key = format!("players:{}", session_id);
+                            let player_key = format!("player:{}:{}", session_id, user_id);
 
-                                // after saving player JSON
-                                let _: () = con.sadd(session_key, player_key).await.unwrap();
-                            }
+                            // after saving player JSON
+                            let _: () = con.sadd(session_key, player_key).await.unwrap();
                         }
                     });
                     // Notify room to send updated list to manager
-                    self.room.do_send(crate::SendPlayerList { session_id: self.session_id.clone() });
+                    self.room.do_send(SendPlayerList { 
+                        session_id: self.session_id.clone(),
+                        new_player: user_data,
+                    });
 
                     // Send confirmation back to player
                     ctx.text(confirmation.to_string());
@@ -136,15 +120,18 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
             // Other message handling (answers, ok, etc.)
             if text == "ok" {
 //                 self.room.do_send(crate::PlayerOk(ctx.address()));
-            } else if let Ok(answer) = serde_json::from_str::<crate::PlayerAnswer>(&text) {
-                if answer.r#type == 4 {
+            } else if let Ok(answer) = serde_json::from_str::<PlayerAnswer>(&text) {
+                if answer.r#type == 4 { // Submit Question
                     // self.room.do_send(crate::PlayerAnswerMessage(answer));
                     let session_id = self.session_id.clone();
                     let user_id = self.id.to_string();
-                    let room_addr = self.room.clone(); // if needed for callback
                     let answer_clone = answer.clone();
                     let redis_client = self.redis_client.clone();
+                    let slides = self.quiz_setup.slides.clone();
+                    
                     actix_rt::spawn(async move {
+                        let slide = slides[get_slide_index(&redis_client, &session_id).await as usize].clone();
+                        let question = slide.question.clone().unwrap();
                         let mut con = redis_client.get_multiplexed_async_connection().await.unwrap();
 
                         let qkey = format!("question:{}:{}", session_id, answer.question_id);
@@ -160,15 +147,22 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                         let question_time = qmeta["question_time"].as_f64().unwrap();
                         let max_point = qmeta["max_point"].as_f64().unwrap();
                         let min_point = qmeta["min_point"].as_f64().unwrap();
+
+                        let mut options: Vec<OptionResult> = Vec::new();
+                        for option in question.options {
+                            options.push(
+                                OptionResult { 
+                                    option_id: option.option_id, 
+                                    answer: option.is_correct,
+                                }
+                            );
+                        }
                         
                         // temp result
-                        let result = crate::QuestionResult {
+                        let result = QuestionResult {
                             r#type: 3,
-                            question_id: 0,
-                            options_result: vec![
-                                crate::OptionResult { option_id: 58, answer: false },
-                                crate::OptionResult { option_id: 59, answer: true },
-                            ],
+                            question_id: question.question_id,
+                            options_result: options,
                         };
                         let mut correct_picked_nums: i16 = 0;
                         let mut total_corrects: u8 = 0;

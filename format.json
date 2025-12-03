@@ -1,5 +1,5 @@
 {
-  "leaderboard":
+  "leaderboard_to_manager_as_slide":
   {
     "type": 1,
     "results": [
@@ -57,13 +57,13 @@
     "type": 9,
     "action": "next"
   },
-  "player_adding":
+  "player_adding_to_server":
   {
     "type": 6,
     "name": "ali",
     "character": "❤\uFE0F"
   },
-  "player_adding2":
+  "player_adding_to_player":
   {
     "type": 10,
     "name": "ali",
@@ -97,6 +97,34 @@
     "options": [
       {"option_id": 16, "number_of_submits": 12},
       {"option_id": 17, "number_of_submits": 5}
+    ]
+  },
+  "leaderboard_to_player":
+  {
+    "type": 11,
+    "results": [
+      {
+        "user_id": "6e8b2a3e-b79a-456d-a8a1-c5eb9ad949dd",
+        "name": "Ali",
+        "character": "\uD83C\uDF83",
+        "rank": 1,
+        "total_points": 120,
+        "new_points": 2
+      }
+    ]
+  },
+  "leaderboard_to_manager_after_result":
+  {
+    "type": 12,
+    "results": [
+      {
+        "user_id": "6e8b2a3e-b79a-456d-a8a1-c5eb9ad949dd",
+        "name": "Ali",
+        "character": "\uD83C\uDF83",
+        "rank": 1,
+        "total_points": 120,
+        "new_points": 2
+      }
     ]
   }
 }
