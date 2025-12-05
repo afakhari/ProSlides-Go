@@ -2,6 +2,7 @@ use crate::models::{
     QuizSetup,
 };
 use redis::{AsyncCommands, aio::MultiplexedConnection};
+use reqwest::Client;
 use serde_json::json;
 use actix_rt;
 
@@ -53,7 +54,7 @@ pub async fn get_slide_index(
 
     con.get::<_, i32>(key).await.unwrap_or(-1)
 }
-// TODO: fix bug of 0 in slide_index
+/*
 pub fn get_quiz_setup() -> Option<QuizSetup> {
     let quiz_setup = json!(
         {
@@ -244,4 +245,20 @@ pub fn get_quiz_setup() -> Option<QuizSetup> {
             }
     );
     serde_json::from_value(quiz_setup).ok()
+}
+*/
+pub async fn get_quiz_setup(session_id: &str) -> Result<QuizSetup, Box<dyn std::error::Error>> {
+    let url = format!("https://api.proslides.ir/api/quizzes/{}/export/", session_id);
+
+    let client = Client::new();
+
+    let response = client
+        .get(&url)
+        .send()
+        .await?
+        .error_for_status()?; // fail on 4xx/5xx automatically
+
+    let quiz_setup: QuizSetup = response.json().await?;
+
+    Ok(quiz_setup)
 }

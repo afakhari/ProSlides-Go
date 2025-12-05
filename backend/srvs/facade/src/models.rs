@@ -106,17 +106,22 @@ pub struct Room {
 pub struct QuizSetup {
     pub quiz_id: u32,
     pub title: String,
-    #[serde(default)]
-    pub background: Option<String>,
+    pub background: Background,
     #[serde(default)]
     pub music_url: Option<String>,
     pub slides: Vec<Slide>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Background {
+    pub color: String,
+    pub image: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Slide {
     pub slide_id: u64,
-    pub slide_type: u8, // 1 = question, 2 = leaderboard
+    pub slide_type: u8, // 1 = question, 2 = content, 3 = leaderboard
     pub order: u16,
     #[serde(default)]
     pub show_leaderboad_after: Option<bool>,
@@ -129,7 +134,13 @@ pub struct Slide {
     #[serde(default)]
     pub question: Option<QuizQuestion>,
     #[serde(default)]
-    pub leaderboard: Option<String>,
+    pub leaderboard: Vec<LeaderboardEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LeaderboardEntry {
+    // Your Django response shows: []
+    // If leaderboard has fields later, add them here.
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -142,7 +153,7 @@ pub struct QuizQuestion {
     pub question_type: String,
     #[serde(default)]
     pub image_url: Option<String>,
-    pub partial_scoring: u8,
+    pub partial_scoring: bool,
     pub time_limit: u32,
     #[serde(default)]
     pub max_point: f64,
@@ -160,7 +171,7 @@ pub struct QuizOption {
     pub is_correct: bool,
     pub votes: u32,
     #[serde(default)]
-    pub image: Option<String>,
+    pub image_url: Option<String>,
 }
 //
 // Messages used by Room ↔ Player

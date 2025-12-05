@@ -101,7 +101,7 @@ async fn send_leaderbaord(con: &mut MultiplexedConnection, session_id: String, s
         });
         manager_addr.do_send(ServerMessage(leaderboard_manager_json.to_string()));
     }
-    else if slide.slide_type == 2 { // leaderboard slide
+    else if slide.slide_type == 3 { // leaderboard slide
         let leaderboard_manager_json = json!({
             "type": 1,
             "results": ranked,
@@ -139,10 +139,15 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                 let slide: Slide = slides[slide_index as usize].clone();
 
                             
-                                if slide.slide_type == 2 { // Leaderboard Slide
+                                if slide.slide_type == 3 { // Leaderboard Slide
                                     if let Ok(mut con) = redis_client.get_multiplexed_async_connection().await {
                                         send_leaderbaord(&mut con, session_id.clone(), slide.clone(), manager_addr.clone(), room_clone.clone()).await;
                                     }
+                                }
+                                else if slide.slide_type == 2 { // content
+                                    let str_json = serde_json::to_string(&slide).unwrap();
+                                    room_clone.do_send(BroadcastToPlayers(str_json.clone()));
+                                    manager_addr.do_send(ServerMessage(str_json));
                                 }
                                 else if slide.slide_type == 1 { // PickAnswerQuestion Slide
                                     let _question = slide.question.clone().unwrap();
@@ -152,7 +157,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                             OptionItem { 
                                                 option_id: option.option_id, 
                                                 option_text: option.text,
-                                                image: option.image,
+                                                image: option.image_url,
                                             }
                                         );
                                     }

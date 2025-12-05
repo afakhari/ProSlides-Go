@@ -46,14 +46,14 @@ use crate::utils::get_slide_index;
 pub const REDIS_URL: Option<&str> = Some("redis://127.0.0.1/");
 
 impl Room {
-    pub fn new(session_id: String) -> Self {
+    pub fn new(session_id: String, quiz_setup: Option<QuizSetup>) -> Self {
         Room {
             players: HashSet::new(),
             manager: None,
             ok_responses: 0,
             last_question: None,
             redis_client: redis::Client::open(REDIS_URL.unwrap()).unwrap(),
-            quiz_setup: get_quiz_setup(),
+            quiz_setup: quiz_setup,
             session_id: session_id,
         }
     }
@@ -202,7 +202,10 @@ impl Handler<PlayerOk> for Room {
             let session_id = self.session_id.clone();
             actix_rt::spawn(async move {
                 let slide = quiz_setup.slides[get_slide_index(&redis_client, &session_id).await as usize].clone();
-                if slide.slide_type == 2 { // leaderboard
+                if slide.slide_type == 3 { // leaderboard
+                    // pass
+                }
+                else if slide.slide_type == 2 { // content
                     // pass
                 }
                 else if slide.slide_type == 1 { // question
@@ -260,13 +263,13 @@ async fn ws_route(
 ) -> Result<HttpResponse, Error> {
     let (session_id, role) = path.into_inner();
     let mut rooms = data.rooms.lock().unwrap();
+    let quiz_setup = get_quiz_setup(&session_id).await.unwrap();
 
     let room = rooms
         .entry(session_id.clone())
-        .or_insert_with(|| Room::new(session_id.clone()).start())
+        .or_insert_with(|| Room::new(session_id.clone(), Some(quiz_setup.clone())).start())
         .clone();
     let redis_client = redis::Client::open(REDIS_URL.unwrap()).unwrap();
-    let quiz_setup = get_quiz_setup().unwrap();
     save_quiz_setup(&session_id, &quiz_setup, &redis_client).await.expect("Error in saving quiz");
     match role.as_str() {
         "manager" => actix_web_actors::ws::start(
