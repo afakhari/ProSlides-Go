@@ -9,6 +9,7 @@ use std::{rc::Rc, time::{SystemTime, UNIX_EPOCH}};
 use crate::utils::{
     save_slide_index,
     get_slide_index,
+    save_quiz_setup,
 };
 use crate::models::{
     ManagerSession,
@@ -23,12 +24,15 @@ use crate::models::{
     Room,
     ManagerAction,
     NewQuestion,
+    OptionResult,
+    QuestionResult,
 };
 
 impl Actor for ManagerSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        save_quiz_setup(&self.session_id, &self.quiz_setup, &self.redis_client);
         self.room.do_send(RegisterManager(ctx.address()));
     }
 
@@ -152,7 +156,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                 else if slide.slide_type == 1 { // PickAnswerQuestion Slide
                                     let _question = slide.question.clone().unwrap();
                                     let mut options: Vec<OptionItem> = Vec::new();
-                                    for option in _question.options {
+                                    for option in _question.options.clone() {
                                         options.push(
                                             OptionItem { 
                                                 option_id: option.option_id, 
@@ -225,7 +229,26 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
 
                                         // Send to manager WebSocket
                                         manager_addr.do_send(ServerMessage(results_json.to_string()));
-
+                                        // Send result to Player
+                                        let mut options: Vec<OptionResult> = Vec::new();
+                                        for option in _question.options {
+                                            options.push(
+                                                OptionResult { 
+                                                    option_id: option.option_id, 
+                                                    answer: option.is_correct,
+                                                }
+                                            );
+                                        }
+                                        
+                                        let result = QuestionResult {
+                                            r#type: 3,
+                                            question_id: question.question_id,
+                                            options_result: options,
+                                        };
+                                        
+                                        let result_json = serde_json::to_string(&result).unwrap();
+                                        room_clone.do_send(BroadcastToPlayers(result_json));
+                                        // Send leaderboard to manager
                                         send_leaderbaord(&mut con, session_id.clone(), slide.clone(), manager_addr.clone(), room_clone.clone()).await;
                                     }
                                 }

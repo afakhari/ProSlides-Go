@@ -93,7 +93,6 @@ pub struct QuizSetupMessage(pub QuizSetup);
 pub struct Room {
     pub players: HashSet<Addr<PlayerSession>>,
     pub manager: Option<Addr<ManagerSession>>,
-    pub quiz_setup: Option<QuizSetup>,
     pub ok_responses: usize,
     pub last_question: Option<Question>,
     pub redis_client: redis::Client,
@@ -201,7 +200,7 @@ pub struct PlayerSession {
     pub character: Option<String>,
     pub session_id: String,
     pub redis_client: redis::Client,
-    pub quiz_setup: QuizSetup,
+    pub quiz_setup: Option<QuizSetup>,
 }
 /*
 #[derive(Deserialize)]

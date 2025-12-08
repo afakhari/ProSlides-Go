@@ -4,7 +4,7 @@ use redis::{AsyncCommands};
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::utils::{
-    get_slide_index,
+    get_quiz_setup, get_slide_index, load_quiz_setup
 };
 use crate::models::{
     PlayerText,
@@ -22,8 +22,16 @@ use crate::models::{
 
 impl Actor for PlayerSession {
     type Context = ws::WebsocketContext<Self>;
-    
     fn started(&mut self, ctx: &mut Self::Context) {
+        let redis_client = self.redis_client.clone();
+        let session_id = self.session_id.clone();
+        actix_rt::spawn(async move {
+            if let Ok(mut con) = redis_client.get_multiplexed_async_connection().await {
+                let quiz_key = format!("quiz:{session_id}");
+
+            }
+
+        });
         self.room.do_send(RegisterPlayer(ctx.address()));
     }
     
@@ -127,12 +135,22 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                     let user_id = self.id.to_string();
                     let answer_clone = answer.clone();
                     let redis_client = self.redis_client.clone();
-                    let slides = self.quiz_setup.slides.clone();
+                    let quiz_key = format!("quiz:{session_id}");
+                    // let slides = self.quiz_setup.slides.clone();
+                    let mut must_load_quiz: bool = false;
+                    let mut setup_quiz = self.quiz_setup.clone();
+                    if self.quiz_setup.is_none() {
+                        must_load_quiz = true;
+                    }
                     
                     actix_rt::spawn(async move {
+                        let mut con = redis_client.get_multiplexed_async_connection().await.unwrap();
+                        if must_load_quiz {
+                            setup_quiz = load_quiz_setup(&session_id, &redis_client).await;
+                        }
+                        let slides = setup_quiz.unwrap().slides;
                         let slide = slides[get_slide_index(&redis_client, &session_id).await as usize].clone();
                         let question = slide.question.clone().unwrap();
-                        let mut con = redis_client.get_multiplexed_async_connection().await.unwrap();
 
                         let qkey = format!("question:{}:{}", session_id, answer.question_id);
 
