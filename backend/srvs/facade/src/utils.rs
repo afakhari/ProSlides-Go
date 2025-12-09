@@ -248,7 +248,8 @@ pub fn get_quiz_setup() -> Option<QuizSetup> {
 }
 */
 pub async fn get_quiz_setup(session_id: &str) -> Result<QuizSetup, Box<dyn std::error::Error>> {
-    let url = format!("https://api.proslides.ir/api/quizzes/{}/export/", session_id);
+    // let url = format!("https://api.proslides.ir/api/quizzes/{}/export/", session_id);
+    let url = format!("http://87.107.165.177:8000/api/quizzes/{}/export/", session_id);
 
     let client = Client::new();
 

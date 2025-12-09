@@ -130,13 +130,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
 //                 self.room.do_send(crate::PlayerOk(ctx.address()));
             } else if let Ok(answer) = serde_json::from_str::<PlayerAnswer>(&text) {
                 if answer.r#type == 4 { // Submit Question
-                    // self.room.do_send(crate::PlayerAnswerMessage(answer));
                     let session_id = self.session_id.clone();
                     let user_id = self.id.to_string();
                     let answer_clone = answer.clone();
                     let redis_client = self.redis_client.clone();
-                    let quiz_key = format!("quiz:{session_id}");
-                    // let slides = self.quiz_setup.slides.clone();
                     let mut must_load_quiz: bool = false;
                     let mut setup_quiz = self.quiz_setup.clone();
                     if self.quiz_setup.is_none() {
