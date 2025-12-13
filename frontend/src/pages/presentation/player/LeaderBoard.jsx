@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -55,6 +55,9 @@ function PlayerLeaderBoard({ players }) {
   const [hiddenNames, setHiddenNames] = useState([]);
   const [displayedPlayers, setDisplayedPlayers] = useState([]);
   const [animateBars, setAnimateBars] = useState(false);
+  const [highlightedUserId, setHighlightedUserId] = useState(null);
+  const containerRef = useRef(null);
+  const itemRefs = useRef({});
   // const navigate = useNavigate();
 
   const handleToggleBlur = (id) => {
@@ -95,6 +98,37 @@ function PlayerLeaderBoard({ players }) {
     return () => clearTimeout(t);
   }, []);
 
+  // After bars animate, scroll to current player (if needed) and highlight them
+  useEffect(() => {
+    if (!animateBars) return;
+
+    const id = localStorage.getItem("user_id");
+    if (!id) return;
+
+    const timer = setTimeout(() => {
+      const target = displayedPlayers.find((p) => String(p.user_id) === String(id));
+      if (!target) return;
+
+      const el = itemRefs.current[target.user_id];
+      const container = containerRef.current;
+      if (el && container) {
+        const elRect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        const needsScroll = elRect.top < containerRect.top || elRect.bottom > containerRect.bottom;
+        if (needsScroll) {
+          // Smooth scroll into center of container
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        // Highlight after scroll (or immediately if no scroll needed)
+        setHighlightedUserId(target.user_id);
+      }
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, [animateBars, displayedPlayers]);
+
   return (
     <div
       className="h-screen overflow-hidden bg-cover bg-center bg-no-repeat"
@@ -120,6 +154,7 @@ function PlayerLeaderBoard({ players }) {
 
           {/* Scrollable players list */}
           <div
+            ref={containerRef}
             className="mt-6 flex-1 overflow-auto w-full min-h-0 no-scrollbar"
             style={{ maxHeight: "calc(100vh - 220px)" }}
           >
@@ -141,7 +176,10 @@ function PlayerLeaderBoard({ players }) {
                         stiffness: 120,
                         damping: 18,
                       }}
-                      className="flex justify-start items-center relative w-[90%] max-w-2xl mx-auto"
+                      ref={(el) => (itemRefs.current[p.user_id] = el)}
+                      className={`flex justify-start items-center relative w-[90%] max-w-2xl mx-auto transition-all duration-300 ${
+                        highlightedUserId === p.user_id ? "ring-2 ring-blue-400 rounded-md" : ""
+                      }`}
                       onMouseEnter={() => setHovered(p.rank)}
                       onMouseLeave={() => setHovered(null)}
                     >
@@ -171,9 +209,9 @@ function PlayerLeaderBoard({ players }) {
 
                           <div className="flex items-center space-x-3">
                             <div
-                              className={`text-white font-medium transition-all duration-200 ${
+                              className={`text-white transition-all duration-200 ${
                                 isHidden ? "blur-sm select-none" : ""
-                              }`}
+                              } ${highlightedUserId === p.user_id ? "font-bold" : "font-medium"}`}
                             >
                               {isHidden ? "****" : p.name}
                             </div>
