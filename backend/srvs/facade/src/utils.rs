@@ -1,5 +1,8 @@
 use crate::models::{
     QuizSetup,
+    LeaderboardEntry,
+    LeaderboardUpdate,
+    Room,
 };
 use redis::{AsyncCommands, aio::MultiplexedConnection};
 use reqwest::Client;
@@ -262,4 +265,36 @@ pub async fn get_quiz_setup(session_id: &str) -> Result<QuizSetup, Box<dyn std::
     let quiz_setup: QuizSetup = response.json().await?;
 
     Ok(quiz_setup)
+}
+pub async fn post_question_leaderboard(
+    session_id: &str,
+    slide_pk: u64,
+    leaderboard: Vec<LeaderboardEntry>,
+) -> anyhow::Result<()> {
+
+    let url = format!(
+        "https://api.proslides.ir/api/quizzes/{}/slides/{}/question/leaderboard/",
+        session_id, slide_pk
+    );
+
+    let payload = LeaderboardUpdate { leaderboard };
+
+    let client = reqwest::Client::new();
+
+    let response = client
+        .post(&url)
+        .json(&payload)
+        .send()
+        .await?;
+    let status = response.status();
+    if !response.status().is_success() {
+        let text = response.text().await?;
+        anyhow::bail!(
+            "Failed to send leaderboard (HTTP {}): {}",
+            status,
+            text
+        );
+    }
+
+    Ok(())
 }

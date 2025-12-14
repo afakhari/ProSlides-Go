@@ -7,16 +7,7 @@ use crate::utils::{
     get_quiz_setup, get_slide_index, load_quiz_setup
 };
 use crate::models::{
-    PlayerText,
-    PlayerSession,
-    RegisterPlayer,
-    UnregisterPlayer,
-    PlayerOk,
-    PlayerInfo,
-    PlayerAnswer,
-    SendPlayerList,
-    QuestionResult,
-    OptionResult,
+    OptionResult, PlayerAnswer, PlayerInfo, PlayerOk, PlayerSession, PlayerText, QuestionResult, QuizSetup, RegisterPlayer, SendPlayerList, UnregisterPlayer
 };
 
 
@@ -134,15 +125,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                     let user_id = self.id.to_string();
                     let answer_clone = answer.clone();
                     let redis_client = self.redis_client.clone();
-                    let mut must_load_quiz: bool = false;
-                    let mut setup_quiz = self.quiz_setup.clone();
-                    if self.quiz_setup.is_none() {
-                        must_load_quiz = true;
-                    }
+                    let existing_setup: Option<QuizSetup> = self.quiz_setup.clone();
                     
                     actix_rt::spawn(async move {
                         let mut con = redis_client.get_multiplexed_async_connection().await.unwrap();
-                        if must_load_quiz {
+                        let mut setup_quiz = existing_setup;
+                        if setup_quiz.is_none() {
                             setup_quiz = load_quiz_setup(&session_id, &redis_client).await;
                         }
                         let slides = setup_quiz.unwrap().slides;

@@ -14,6 +14,7 @@ redis = {version="0.32.7", features = ["tokio-comp"] }
 serde = "1.0.228"
 serde_json = "1.0.145"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anyhow = "1.0.100"
 
 [dependencies.uuid]
 version = "1.18.1"

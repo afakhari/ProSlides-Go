@@ -1,7 +1,7 @@
 use actix::*;
 use actix_web::body::MessageBody;
 use actix_web_actors::ws;
-use serde_json::to_string;
+use serde_json::{Value, to_string};
 use redis::{AsyncCommands, Client, aio::MultiplexedConnection};
 use chrono::Utc;
 use serde_json::json;
@@ -10,6 +10,7 @@ use crate::utils::{
     save_slide_index,
     get_slide_index,
     save_quiz_setup,
+    post_question_leaderboard,
 };
 use crate::models::{
     ManagerSession,
@@ -26,13 +27,19 @@ use crate::models::{
     NewQuestion,
     OptionResult,
     QuestionResult,
+    LeaderboardEntry,
 };
 
 impl Actor for ManagerSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        save_quiz_setup(&self.session_id, &self.quiz_setup, &self.redis_client);
+        let session_id = self.session_id.clone();
+        let quiz_setup = self.quiz_setup.clone();
+        let redis_client = self.redis_client.clone();
+        actix_rt::spawn(async move {
+            save_quiz_setup(&session_id, &quiz_setup, &redis_client).await.ok();
+        });
         self.room.do_send(RegisterManager(ctx.address()));
     }
 
@@ -98,7 +105,57 @@ async fn send_leaderbaord(con: &mut MultiplexedConnection, session_id: String, s
             "new_points": p["new_points"]
         }));
     }
+
+    /*
+    let leaderboard_after_key = format!("quiz:{}:leaderboard_after", session_id);
+    let leaderboard_after = serde_json::to_string(&ranked).ok().unwrap();
+    let _: () = con.set(leaderboard_after_key, leaderboard_after).await.expect("Error in sending leaderboard");
+    */
     if slide.slide_type == 1 { // quesion slide
+        /*
+        let leaderboard_befor_key = format!("quiz:{}:leaderboard_befor", session_id);
+        let leaderboard_befor: Option<String> = con.get(&leaderboard_befor_key).await.ok();
+        if leaderboard_befor.is_none() {
+                
+        } else {
+            let mut result = Vec::new();
+
+            for a in leaderboard_after {
+                if let Some(b) = before.iter().find(|x| x.user_id == a.user_id) {
+                    result.push(LeaderboardEntry {
+                        rust_session_id: a.user_id,
+                        player_name: a.name.clone(),
+                        character: a.character.clone(),
+                        new_points: a.total_points - b.total_points,
+                        total_points: a.total_points,
+                        rank: a.rank,
+                    });
+                }
+            }
+        }
+        */
+        let mut question_leaderboard = slide.leaderboard.clone();
+        let mut new_points = 0;
+        for p in players.iter() {
+            new_points = p["new_points"].to_string().parse::<f32>().expect("Error in numeric").round() as u32;
+            question_leaderboard.push(LeaderboardEntry {
+                rust_session_id: p["user_id"].to_string(),
+                player_name: p["name"].to_string(),
+                avatar: p["character"].to_string(),
+                score: new_points.clone(),
+                time_taken: 0.,
+                rank: 0,
+            });
+        }
+        question_leaderboard.sort_by(|a, b| {
+            b.score.partial_cmp(&a.score).unwrap()
+        });
+        let mut index = 1;
+        for p in &mut question_leaderboard {
+            p.rank = index;
+            index += 1;
+        }
+        post_question_leaderboard(&session_id, slide.slide_id, question_leaderboard.clone()).await.ok();
         let leaderboard_manager_json = json!({
             "type": 12,
             "results": ranked,
@@ -156,6 +213,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                 else if slide.slide_type == 1 { // PickAnswerQuestion Slide
                                     let _question = slide.question.clone().unwrap();
                                     let mut options: Vec<OptionItem> = Vec::new();
+                                    let mut answer_nums = 0;
                                     for option in _question.options.clone() {
                                         options.push(
                                             OptionItem { 
@@ -164,6 +222,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                                 image: option.image_url,
                                             }
                                         );
+                                        if option.is_correct {
+                                            answer_nums += 1;
+                                        }
                                     }
                                     let question = Question {
                                         r#type: 2,
@@ -172,6 +233,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                         question_time: _question.time_limit,
                                         max_point: _question.max_point,
                                         min_point: _question.min_point,
+                                        has_multiple: if answer_nums > 1 {true} else {false},
                                         options: options,
                                     };
                                     let json = serde_json::to_string(&question).unwrap();

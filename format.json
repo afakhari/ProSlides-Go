@@ -21,6 +21,7 @@
     "question_time": 40,
     "max_point": 100,
     "min_point": 0,
+    "has_multiple": false,
     "options": [
       {
         "option_id":  58,

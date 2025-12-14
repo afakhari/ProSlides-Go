@@ -2,7 +2,7 @@ use actix::*;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use serde::Serialize;
 use uuid::Uuid;
 use redis::{AsyncCommands};
@@ -14,7 +14,6 @@ mod models;
 mod utils;
 use utils::{
     get_quiz_setup,
-    save_quiz_setup,
 };
 use models::{
     PlayerSession,
@@ -37,11 +36,8 @@ use models::{
     ManagerSession,
 };
 
-use crate::models::QuizSetup;
-use crate::utils::get_slide_index;
-// TODO: Fix static answer 
-// TODO: Fix change in the server
-// TODO: Fix 1 record remain in redis
+// TODO: Fix end of quiz management: remove players, players list
+// TODO: Handle Players of setup quiz and add it into leaderboard of present
 
 pub const REDIS_URL: Option<&str> = Some("redis://127.0.0.1/");
 
@@ -246,6 +242,17 @@ struct AppState {
     rooms: Mutex<HashMap<String, Addr<Room>>>,
 }
 
+fn lock_rooms<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
+    match mutex.lock() {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("⚠️ Recovering poisoned mutex");
+            e.into_inner()
+        }
+    }
+}
+
+
 // ====== Route ======
 async fn ws_route(
     req: HttpRequest,
@@ -254,14 +261,16 @@ async fn ws_route(
     path: web::Path<(String, String)>, // (session_id, role)
 ) -> Result<HttpResponse, Error> {
     let (session_id, role) = path.into_inner();
-    let mut rooms = data.rooms.lock().unwrap();
+    // let mut rooms = data.rooms.lock().unwrap();
+    let mut rooms = lock_rooms(&data.rooms);
+
+
 
     let room = rooms
         .entry(session_id.clone())
         .or_insert_with(|| Room::new(session_id.clone()).start())
         .clone();
     let redis_client = redis::Client::open(REDIS_URL.unwrap()).unwrap();
-    // save_quiz_setup(&session_id, &quiz_setup, &redis_client).await.expect("Error in saving quiz");
     match role.as_str() {
         "manager" => actix_web_actors::ws::start(
             ManagerSession {
