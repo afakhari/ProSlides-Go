@@ -1,4 +1,5 @@
 import logging
+import re
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
@@ -7,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import F, Max
+from django.db.models import Count, F, Max, Sum
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -15,13 +17,17 @@ from .models import Quiz, Slide, Question, Option, PlayerSession, Leaderboard
 from .serializers import (
     QuizSerializer, SlideSerializer, QuestionSerializer, OptionSerializer,
     ExportSerializer, PlayerSessionSerializer, LeaderboardReceiveSerializer,
-    RegisterSerializer
+    RegisterSerializer, QuizListSerializer
 )
 from .permissions import IsQuizOwner
 
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
+
+
+def touch_quiz(quiz_id):
+    Quiz.objects.filter(pk=quiz_id).update(updated_at=timezone.now())
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -43,6 +49,32 @@ class QuizViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def _next_copy_title(self, title):
+        match = re.match(r'^(.*)\s\(copy\d+\)$', title)
+        base_title = match.group(1) if match else title
+
+        pattern = re.compile(rf'^{re.escape(base_title)} \(copy(\d+)\)$')
+        existing = Quiz.objects.filter(
+            owner=self.request.user,
+            title__startswith=f"{base_title} (copy"
+        ).values_list('title', flat=True)
+        max_copy = 0
+        for existing_title in existing:
+            matched = pattern.match(existing_title)
+            if matched:
+                max_copy = max(max_copy, int(matched.group(1)))
+        return f"{base_title} (copy{max_copy + 1})"
+
+    @swagger_auto_schema(
+        operation_description="Return quiz list for user panel.",
+        responses={200: QuizListSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], url_path='list')
+    def list_quizzes(self, request):
+        queryset = self.get_queryset().annotate(slides_count=Count('slides', distinct=True))
+        serializer = QuizListSerializer(queryset, many=True)
+        return Response(serializer.data)
+
     @swagger_auto_schema(
         operation_description="صادرات کامل اطلاعات کوئیز برای Rust",
         responses={200: ExportSerializer}
@@ -58,6 +90,140 @@ class QuizViewSet(viewsets.ModelViewSet):
         quiz = self.get_object()
         serializer = ExportSerializer(quiz)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="Calculate final leaderboard for a quiz.",
+        responses={200: openapi.Response("Final leaderboard")}
+    )
+    @action(detail=True, methods=['get'], url_path='final-leaderboard')
+    def final_leaderboard(self, request, pk=None):
+        quiz = self.get_object()
+        totals = (
+            Leaderboard.objects
+            .filter(question__slide__quiz=quiz)
+            .values('user_id')
+            .annotate(score=Sum('score'))
+            .order_by('-score', 'user_id')
+        )
+        session_map = PlayerSession.objects.filter(
+            quiz=quiz
+        ).in_bulk(field_name='user_id')
+
+        fallback_rows = (
+            Leaderboard.objects
+            .filter(question__slide__quiz=quiz)
+            .values('user_id')
+            .annotate(player_name=Max('player_name'), avatar=Max('avatar'))
+        )
+        fallback_map = {row['user_id']: row for row in fallback_rows}
+
+        entries = []
+        for row in totals:
+            user_id = row['user_id']
+            session = session_map.get(user_id)
+            fallback = fallback_map.get(user_id, {})
+            entries.append({
+                'user_id': user_id,
+                'player_name': session.player_name if session else fallback.get('player_name'),
+                'avatar': session.avatar if session else fallback.get('avatar'),
+                'score': row['score'] or 0,
+            })
+
+        ranked = []
+        prev_score = None
+        current_rank = 0
+        for idx, entry in enumerate(entries):
+            if prev_score is None or entry['score'] < prev_score:
+                current_rank = idx + 1
+            prev_score = entry['score']
+            entry['rank'] = current_rank
+            ranked.append(entry)
+
+        return Response({'leaderboard': ranked})
+
+    @swagger_auto_schema(
+        operation_description="Reset quiz results and participants.",
+        responses={200: openapi.Response("Results reset")}
+    )
+    @action(detail=True, methods=['post'], url_path='reset-result')
+    def reset_result(self, request, pk=None):
+        quiz = self.get_object()
+        with transaction.atomic():
+            leaderboard_deleted = Leaderboard.objects.filter(
+                question__slide__quiz=quiz
+            ).delete()[0]
+            participants_deleted = PlayerSession.objects.filter(
+                quiz=quiz
+            ).delete()[0]
+            Quiz.objects.filter(pk=quiz.pk).update(
+                participants_count=0,
+                updated_at=timezone.now(),
+            )
+        return Response({
+            'status': 'reset',
+            'leaderboard_deleted': leaderboard_deleted,
+            'participants_deleted': participants_deleted,
+            'participants_count': 0,
+        })
+
+    @swagger_auto_schema(
+        operation_description="Duplicate a quiz with all slides/questions/options.",
+        responses={201: QuizSerializer}
+    )
+    @action(detail=True, methods=['post'], url_path='duplicate')
+    def duplicate(self, request, pk=None):
+        quiz = self.get_object()
+        with transaction.atomic():
+            new_quiz = Quiz.objects.create(
+                title=self._next_copy_title(quiz.title),
+                author=quiz.author,
+                owner=quiz.owner,
+                music_url=quiz.music_url,
+                background_color=quiz.background_color,
+                background_image_url=quiz.background_image_url,
+                participants_count=0,
+            )
+
+            for slide in quiz.slides.all().order_by('order'):
+                new_slide = Slide.objects.create(
+                    quiz=new_quiz,
+                    slide_type=slide.slide_type,
+                    order=slide.order,
+                    show_leaderboard_after=slide.show_leaderboard_after,
+                    title=slide.title,
+                    content_text=slide.content_text,
+                    content_image_url=slide.content_image_url,
+                )
+
+                if slide.slide_type == 1 and hasattr(slide, 'question'):
+                    question = slide.question
+                    new_question = Question.objects.create(
+                        slide=new_slide,
+                        title=question.title,
+                        text=question.text,
+                        question_type=question.question_type,
+                        min_point=question.min_point,
+                        max_point=question.max_point,
+                        time_limit=question.time_limit,
+                        image_url=question.image_url,
+                        faster_answers_more_points=question.faster_answers_more_points,
+                        partial_scoring=question.partial_scoring,
+                    )
+                    options = [
+                        Option(
+                            question=new_question,
+                            text=option.text,
+                            is_correct=option.is_correct,
+                            votes=0,
+                            image_url=option.image_url,
+                        )
+                        for option in question.options.all()
+                    ]
+                    if options:
+                        Option.objects.bulk_create(options)
+
+        serializer = QuizSerializer(new_quiz)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class SlideViewSet(viewsets.ModelViewSet):
@@ -84,6 +250,7 @@ class SlideViewSet(viewsets.ModelViewSet):
             if order is not None:
                 Slide.objects.filter(quiz=quiz, order__gte=order).update(order=F('order') + 1)
             serializer.save(quiz=quiz, order=order)
+            touch_quiz(quiz.pk)
 
     def _reorder_existing(self, quiz, instance, new_order):
         """Shift other slides to keep order unique when one slide moves."""
@@ -121,6 +288,7 @@ class SlideViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 self._reorder_existing(quiz, instance, new_order)
                 serializer.save(quiz=quiz, order=new_order)
+                touch_quiz(quiz.pk)
         except ValidationError as exc:
             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
@@ -133,6 +301,11 @@ class SlideViewSet(viewsets.ModelViewSet):
             )
 
         return Response(serializer.data)
+
+    def perform_destroy(self, instance):
+        quiz_id = instance.quiz_id
+        super().perform_destroy(instance)
+        touch_quiz(quiz_id)
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -195,6 +368,7 @@ class QuestionViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             try:
                 serializer.save(slide=slide)
+                touch_quiz(slide.quiz_id)
             except Exception:
                 logger.exception(
                     "Failed to create question for slide_id=%s quiz_pk=%s",
@@ -224,6 +398,7 @@ class QuestionViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             try:
                 serializer.save()
+                touch_quiz(question.slide.quiz_id)
             except Exception:
                 logger.exception(
                     "Failed to update question slide_id=%s quiz_pk=%s",
@@ -258,6 +433,7 @@ class QuestionViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             try:
                 serializer.save()
+                touch_quiz(question.slide.quiz_id)
             except Exception:
                 logger.exception(
                     "Failed to partially update question slide_id=%s quiz_pk=%s",
@@ -287,6 +463,7 @@ class QuestionViewSet(viewsets.ViewSet):
             question = Question.objects.get(
                 slide_id=slide_pk, slide__quiz_id=quiz_pk, slide__quiz__owner=request.user)
             question.delete()
+            touch_quiz(question.slide.quiz_id)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Question.DoesNotExist:
             return Response(
@@ -320,16 +497,27 @@ class OptionViewSet(viewsets.ModelViewSet):
         question = get_object_or_404(
             Question,
             slide_id=self.kwargs['slide_pk'],
-            slide__quiz_id=self.kwargs['quiz_pk']
+            slide__quiz_id=self.kwargs['quiz_pk'],
+            slide__quiz__owner=self.request.user
         )
         try:
             serializer.save(question=question)
+            touch_quiz(question.slide.quiz_id)
         except Exception:
             logger.exception(
                 "Failed to create option for question slide_id=%s quiz_pk=%s",
                 self.kwargs['slide_pk'], self.kwargs['quiz_pk']
             )
             raise
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        touch_quiz(instance.question.slide.quiz_id)
+
+    def perform_destroy(self, instance):
+        quiz_id = instance.question.slide.quiz_id
+        instance.delete()
+        touch_quiz(quiz_id)
 
 
 class ContentViewSet(viewsets.ViewSet):
@@ -374,6 +562,7 @@ class ContentViewSet(viewsets.ViewSet):
             slide.content_image_url = request.data.get(
                 'content_image_url', slide.content_image_url)
             slide.save()
+            touch_quiz(slide.quiz_id)
         except Exception:
             logger.exception(
                 "Failed to update content slide_id=%s quiz_pk=%s", slide_pk, quiz_pk
@@ -401,6 +590,7 @@ class ContentViewSet(viewsets.ViewSet):
             slide.content_text = None
             slide.content_image_url = None
             slide.save()
+            touch_quiz(slide.quiz_id)
         except Exception:
             logger.exception(
                 "Failed to delete content slide_id=%s quiz_pk=%s", slide_pk, quiz_pk
@@ -465,7 +655,10 @@ class LeaderboardReceiveView(viewsets.ViewSet):
 
         # از روی slide_pk سوال مربوطه را پیدا می‌کنیم
         try:
-            question = Question.objects.get(slide_id=slide_pk)
+            question = Question.objects.get(
+                slide_id=slide_pk,
+                slide__quiz_id=quiz_pk
+            )
         except Question.DoesNotExist:
             return Response(
                 {'error': 'No question found for this slide'},
