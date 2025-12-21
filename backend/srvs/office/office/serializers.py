@@ -80,10 +80,35 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
-            'quiz_id', 'title', 'created_at', 'author', 'music_url',
+            'quiz_id', 'title', 'created_at', 'updated_at', 'author',
+            'access_code', 'participants_count', 'music_url',
             'background_color', 'background_image_url', 'slides'
         ]
-        read_only_fields = ['quiz_id', 'created_at']
+        read_only_fields = ['quiz_id', 'created_at', 'updated_at', 'participants_count']
+
+    def validate_access_code(self, value):
+        if not value:
+            return value
+        exists = Quiz.objects.filter(access_code=value)
+        if self.instance:
+            exists = exists.exclude(pk=self.instance.pk)
+        if exists.exists():
+            raise serializers.ValidationError('access_code already in use')
+        return value
+
+
+class QuizListSerializer(serializers.ModelSerializer):
+    quiz_id = serializers.IntegerField(source='id', read_only=True)
+    quiz_name = serializers.CharField(source='title', read_only=True)
+    last_update = serializers.DateTimeField(source='updated_at', read_only=True)
+    slides_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Quiz
+        fields = [
+            'quiz_id', 'quiz_name', 'last_update', 'created_at',
+            'access_code', 'participants_count', 'slides_count'
+        ]
 
 
 class ExportSerializer(serializers.ModelSerializer):

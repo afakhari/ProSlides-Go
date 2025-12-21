@@ -1,12 +1,36 @@
-from django.db import models, transaction
-from django.contrib.auth.models import User
+import secrets
+import string
+
+from django.db import IntegrityError, models, transaction
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
+
+
+ACCESS_CODE_ALPHABET = string.ascii_letters + string.digits
+
+
+def generate_access_code(length=6):
+    return ''.join(secrets.choice(ACCESS_CODE_ALPHABET) for _ in range(length))
 
 
 class Quiz(models.Model):
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     author = models.CharField(max_length=100, default="anonymous")
+    access_code = models.CharField(
+        max_length=16,
+        unique=True,
+        db_index=True,
+        blank=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Za-z0-9_-]{4,16}$',
+                message='access_code must be 4-16 chars and use letters, numbers, "_" or "-" only',
+            )
+        ],
+    )
+    participants_count = models.PositiveIntegerField(default=0)
     music_url = models.URLField(
         max_length=500, blank=True, null=True)
     background_color = models.CharField(max_length=7, default='#FFFFFF')
@@ -16,6 +40,26 @@ class Quiz(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def _generate_unique_access_code(self):
+        for _ in range(10):
+            code = generate_access_code()
+            if not Quiz.objects.filter(access_code=code).exists():
+                return code
+        raise ValidationError('Could not generate a unique access code')
+
+    def save(self, *args, **kwargs):
+        if self.access_code:
+            super().save(*args, **kwargs)
+            return
+
+        for _ in range(5):
+            self.access_code = self._generate_unique_access_code()
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError:
+                self.access_code = None
+        raise ValidationError('Could not generate a unique access code')
 
     def __str__(self):
         return self.title
