@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use actix::*;
 use uuid::Uuid;
 use std::collections::HashSet;
+use std::time::Instant;
+
 
 //
 // ==== Question struct ====
@@ -217,6 +219,7 @@ pub struct PlayerSession {
     pub session_id: String,
     pub redis_client: redis::Client,
     pub quiz_setup: Option<QuizSetup>,
+    pub hb: Instant,  // Add this field
 }
 
 #[derive(Deserialize)]
@@ -225,7 +228,7 @@ pub struct OptionPick {
     picked: bool,
 }
 
-// 
+//
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -243,11 +246,13 @@ pub struct UnregisterManager;
 #[rtype(result = "()")]
 pub struct BroadcastToPlayers(pub String);
 
+
 pub struct ManagerSession {
     pub room: Addr<Room>,
     pub session_id: String,
     pub redis_client: redis::Client,
     pub quiz_setup: QuizSetup,
+    pub hb: Instant,  // Add this field
 }
 
 #[derive(Message)]

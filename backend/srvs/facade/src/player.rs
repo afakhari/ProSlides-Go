@@ -10,22 +10,38 @@ use crate::models::{
     OptionResult, PlayerAnswer, PlayerInfo, PlayerOk, PlayerSession, PlayerText, QuestionResult, QuizSetup, RegisterPlayer, SendPlayerList, UnregisterPlayer
 };
 
+use std::time::{Duration, Instant};
+
+// Heartbeat interval and timeout
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+
+// ...existing code...
+
+impl PlayerSession {
+    /// Sends ping to client every HEARTBEAT_INTERVAL seconds.
+    fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+                println!("⚠️ Player heartbeat failed, disconnecting!");
+                act.room.do_send(UnregisterPlayer(ctx.address()));
+                ctx.stop();
+                return;
+            }
+            ctx.ping(b"");
+        });
+    }
+}
+
 
 impl Actor for PlayerSession {
     type Context = ws::WebsocketContext<Self>;
     fn started(&mut self, ctx: &mut Self::Context) {
-        let redis_client = self.redis_client.clone();
-        let session_id = self.session_id.clone();
-        actix_rt::spawn(async move {
-            if let Ok(mut con) = redis_client.get_multiplexed_async_connection().await {
-                let quiz_key = format!("quiz:{session_id}");
-
-            }
-
-        });
+        // Start heartbeat
+        self.hb(ctx);
         self.room.do_send(RegisterPlayer(ctx.address()));
     }
-    
+
     fn stopped(&mut self, ctx: &mut Self::Context) {
         self.room.do_send(UnregisterPlayer(ctx.address()));
     }
@@ -51,7 +67,14 @@ impl Handler<PlayerText> for PlayerSession {
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        if let Ok(ws::Message::Text(text)) = msg {
+        if let Ok(ws::Message::Ping(msg)) = msg {
+            self.hb = Instant::now();
+            ctx.pong(&msg);
+        }
+        else if let Ok(ws::Message::Pong(_)) = msg {
+            self.hb = Instant::now();
+        }
+        else if let Ok(ws::Message::Text(text)) = msg {
             if let Ok(player_info) = serde_json::from_str::<PlayerInfo>(&text) {
                 if player_info.r#type == 6 { // Player registration
                     let name = player_info.name.clone();
@@ -78,12 +101,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                         "type": 10,
                         "name": name,
                         "character": character,
-                        "user_id": user_id
+                        "user_id": user_id,
                     });
                     let user_data = serde_json::json!({
                         "name": name,
                         "character": character,
-                        "user_id": user_id
+                        "user_id": user_id,
                     });
                     let session_id = self.session_id.clone();
 
@@ -215,6 +238,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
                         let score = ratio * (max_point - min_point) + min_point;
                         let new_points = slope * score;
 
+                        let key = format!("leaderboard:{session_id}");
+                        let new_points_key = format!("new_points:{session_id}");
+
+                        con.zincr::<String, &str, f64, ()>(key, &user_id, new_points).await.expect("Error");
+                        con.hset::<String, &str, f64, ()>(new_points_key, &user_id, new_points).await.expect("Error");
                         // update player score
                         let pkey = format!("player:{session_id}:{user_id}");
                         let mut player: serde_json::Value = serde_json::from_str(&con.get::<_,String>(&pkey).await.unwrap()).unwrap();

@@ -1,16 +1,18 @@
 use actix::*;
-use actix_web::body::MessageBody;
+use actix_web::{body::MessageBody, web::Bytes};
 use actix_web_actors::ws;
 use serde_json::{Value, to_string};
 use redis::{AsyncCommands, Client, aio::MultiplexedConnection};
 use chrono::Utc;
 use serde_json::json;
-use std::{rc::Rc, time::{SystemTime, UNIX_EPOCH}};
+use std::{collections::{HashMap, HashSet}, rc::Rc, time::{SystemTime, UNIX_EPOCH}};
 use crate::utils::{
     save_slide_index,
     get_slide_index,
     save_quiz_setup,
     post_question_leaderboard,
+    cleanup_quiz_redis,
+    add_scores_batch,
 };
 use crate::models::{
     ManagerSession,
@@ -30,10 +32,40 @@ use crate::models::{
     LeaderboardEntry,
 };
 
+// TODO: Check the result. i think must remove new_points:13
+
+use std::time::{Duration, Instant};
+
+// Heartbeat interval and timeout
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+
+// ...existing code...
+
+impl ManagerSession {
+    /// Sends ping to client every HEARTBEAT_INTERVAL seconds.
+    /// Also checks if client has responded within CLIENT_TIMEOUT.
+    fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            // Check if client is still responsive
+            if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+                println!("⚠️ Manager heartbeat failed, disconnecting!");
+                act.room.do_send(UnregisterManager);
+                ctx.stop();
+                return;
+            }
+            ctx.ping(b"");
+        });
+    }
+}
+
 impl Actor for ManagerSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        // Start heartbeat
+        self.hb(ctx);
+
         let session_id = self.session_id.clone();
         let quiz_setup = self.quiz_setup.clone();
         let redis_client = self.redis_client.clone();
@@ -48,7 +80,8 @@ impl Actor for ManagerSession {
         let redis_client = self.redis_client.clone();
         let session_id = self.session_id.clone();
         actix_rt::spawn(async move {
-            save_slide_index(redis_client, session_id, -1);
+            save_slide_index(redis_client.clone(), session_id.clone(), -1);
+            cleanup_quiz_redis(&redis_client, &session_id).await;
         });
     }
 }
@@ -70,108 +103,127 @@ impl Handler<ManagerText> for ManagerSession {
     }
 }
 
-async fn send_leaderbaord(con: &mut MultiplexedConnection, session_id: String, slide: Slide, manager_addr: Addr<ManagerSession>, room_clone: Addr<Room>){
-                
-    // ==== AFTER sending type 8 to manager ====
-    let session_key = format!("players:{}", session_id);
-    
-    // Get all player keys for this session
-    let player_keys: Vec<String> = con.smembers(&session_key).await.unwrap_or_default();
-    
-    let mut players = Vec::new();
-    
-    for pkey in player_keys {
-        if let Ok(pjson) = con.get::<_, String>(&pkey).await {
-            if let Ok(pdata) = serde_json::from_str::<serde_json::Value>(&pjson) {
-                players.push(pdata);
-            }
+async fn send_leaderbaord(
+    con: &mut MultiplexedConnection,
+    session_id: String,
+    slide: Slide,
+    manager_addr: Addr<ManagerSession>,
+    room_clone: Addr<Room>,
+) {
+    // 1. Batch fetch player keys and values
+    let pattern = format!("player:{session_id}:*");
+    let player_keys: Vec<String> = match con.keys(&pattern).await {
+        Ok(keys) => keys,
+        Err(_) => return,
+    };
+
+    // Batch get all player JSONs
+    let player_jsons: Vec<Option<String>> = if player_keys.is_empty() {
+        vec![]
+    } else {
+        match con.get(player_keys.clone()).await {
+            Ok(vals) => vals,
+            Err(_) => return,
+        }
+    };
+
+    let mut players = Vec::with_capacity(player_jsons.len());
+    let mut dict_players: HashMap<String, serde_json::Value> = HashMap::with_capacity(player_jsons.len());
+
+    for player_json in player_jsons.into_iter().flatten() {
+        if let Ok(pdata) = serde_json::from_str::<serde_json::Value>(&player_json) {
+            let user_id = pdata.get("user_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            dict_players.insert(user_id.clone(), pdata.clone());
+            players.push(pdata);
         }
     }
-    
-    // Sort descending by total_points
-    players.sort_by(|a, b| {
-        b["total_points"].as_f64().partial_cmp(&a["total_points"].as_f64()).unwrap()
-    });
-    
-    // Assign ranking
-    let mut ranked = Vec::new();
-    for (i, p) in players.iter().enumerate() {
-        ranked.push(json!({
-            "user_id": p["user_id"],
-            "name": p["name"],
-            "character": p["character"],
-            "rank": i + 1,
-            "total_points": p["total_points"],
-            "new_points": p["new_points"]
-        }));
+
+    // 2. Update leaderboard entries in batch
+    let mut question_leaderboard = slide.leaderboard.clone();
+
+    // 3. Add leaderboard entries to dict_players BEFORE adding to Redis
+    // This ensures they're in the dict when we build the final leaderboard
+    for entry in &question_leaderboard {
+        // Normalize the ID - remove any quotes
+        let normalized_id = entry.rust_session_id.trim_matches('"').to_string();
+        dict_players.entry(normalized_id.clone()).or_insert_with(|| {
+            json!({
+                "user_id": normalized_id,
+                "name": entry.player_name,
+                "character": entry.avatar,
+                "rank": 0,
+                "total_points": 0,
+                "new_points": entry.score,
+            })
+        });
     }
 
-    /*
-    let leaderboard_after_key = format!("quiz:{}:leaderboard_after", session_id);
-    let leaderboard_after = serde_json::to_string(&ranked).ok().unwrap();
-    let _: () = con.set(leaderboard_after_key, leaderboard_after).await.expect("Error in sending leaderboard");
-    */
-    if slide.slide_type == 1 { // quesion slide
-        /*
-        let leaderboard_befor_key = format!("quiz:{}:leaderboard_befor", session_id);
-        let leaderboard_befor: Option<String> = con.get(&leaderboard_befor_key).await.ok();
-        if leaderboard_befor.is_none() {
-                
-        } else {
-            let mut result = Vec::new();
+    // Now add scores to Redis (after dict_players is populated)
+    add_scores_batch(con, &session_id, question_leaderboard.clone()).await;
 
-            for a in leaderboard_after {
-                if let Some(b) = before.iter().find(|x| x.user_id == a.user_id) {
-                    result.push(LeaderboardEntry {
-                        rust_session_id: a.user_id,
-                        player_name: a.name.clone(),
-                        character: a.character.clone(),
-                        new_points: a.total_points - b.total_points,
-                        total_points: a.total_points,
-                        rank: a.rank,
-                    });
-                }
-            }
-        }
-        */
-        let mut question_leaderboard = slide.leaderboard.clone();
-        let mut new_points = 0;
-        for p in players.iter() {
-            new_points = p["new_points"].to_string().parse::<f32>().expect("Error in numeric").round() as u32;
+    // 4. Fetch leaderboard from Redis
+    let key = format!("leaderboard:{session_id}");
+    let raw: Vec<(String, f64)> = match con.zrevrange_withscores(&key, 0, -1).await {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+
+    // 5. Build leaderboard JSON - track actual rank for filtered results
+    let mut rank = 0;
+    let leaderboard: Vec<Value> = raw
+        .into_iter()
+        .filter_map(|(player_id, score)| {
+            // Normalize the player_id from Redis (remove quotes if any)
+            let normalized_id = player_id.trim_matches('"').to_string();
+
+            dict_players.get(&normalized_id).map(|player| {
+                rank += 1;
+                json!({
+                    "user_id": normalized_id,
+                    "name": player["name"],
+                    "character": player["character"],
+                    "rank": rank,
+                    "total_points": score,
+                    "new_points": player["new_points"],
+                })
+            })
+        })
+        .collect();
+
+    // 6. Slide type handling
+    if slide.slide_type == 1 {
+        // For question slides, update leaderboard with new points
+        for p in &players {
+            let new_points = p["new_points"].as_f64().unwrap_or(0.0).round() as u32;
             question_leaderboard.push(LeaderboardEntry {
-                rust_session_id: p["user_id"].to_string(),
-                player_name: p["name"].to_string(),
-                avatar: p["character"].to_string(),
-                score: new_points.clone(),
+                rust_session_id: p["user_id"].as_str().unwrap_or_default().to_string(),
+                player_name: p["name"].as_str().unwrap_or_default().to_string(),
+                avatar: p["character"].as_str().unwrap_or_default().to_string(),
+                score: new_points,
                 time_taken: 0.,
                 rank: 0,
             });
         }
-        question_leaderboard.sort_by(|a, b| {
-            b.score.partial_cmp(&a.score).unwrap()
-        });
-        let mut index = 1;
-        for p in &mut question_leaderboard {
-            p.rank = index;
-            index += 1;
+        question_leaderboard.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        for (idx, p) in question_leaderboard.iter_mut().enumerate() {
+            p.rank = idx as u16 + 1;
         }
         post_question_leaderboard(&session_id, slide.slide_id, question_leaderboard.clone()).await.ok();
         let leaderboard_manager_json = json!({
             "type": 12,
-            "results": ranked,
+            "results": leaderboard,
         });
         manager_addr.do_send(ServerMessage(leaderboard_manager_json.to_string()));
-    }
-    else if slide.slide_type == 3 { // leaderboard slide
+    } else if slide.slide_type == 3 {
+        // For leaderboard slides, broadcast to all
         let leaderboard_manager_json = json!({
             "type": 1,
-            "results": ranked,
+            "results": leaderboard,
         });
         let leaderboard_player_json = json!({
             "type": 11,
-            "results": ranked,
+            "results": leaderboard,
         });
-        
         manager_addr.do_send(ServerMessage(leaderboard_manager_json.to_string()));
         room_clone.do_send(BroadcastToPlayers(leaderboard_player_json.to_string()));
     }
@@ -179,7 +231,15 @@ async fn send_leaderbaord(con: &mut MultiplexedConnection, session_id: String, s
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        if let Ok(ws::Message::Text(text)) = msg {
+        if let Ok(ws::Message::Ping(msg)) = msg {
+            self.hb = Instant::now();
+            ctx.pong(&msg);
+        }
+        else if let Ok(ws::Message::Pong(_)) = msg {
+            self.hb = Instant::now();
+        }
+        else if let Ok(ws::Message::Text(text)) = msg {
+            self.hb = Instant::now();
             println!("🧭 Manager sent: {}", text);
 
             // Try parsing as structured action
@@ -196,10 +256,15 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                             actix_rt::spawn(async move {
                                 let mut slide_index = get_slide_index(&redis_client, &session_id).await;
                                 slide_index = if slide_index+1 < slides.len() as i32 {slide_index+1} else {slides.len() as i32};
+                                if slide_index + 1 >= slides.len() as i32 { // end
+                                    cleanup_quiz_redis(&redis_client, &session_id).await;
+                                    save_slide_index(redis_client, session_id, -1);
+                                    return;
+                                }
                                 save_slide_index(redis_client.clone(), session_id.clone(), slide_index);
                                 let slide: Slide = slides[slide_index as usize].clone();
 
-                            
+
                                 if slide.slide_type == 3 { // Leaderboard Slide
                                     if let Ok(mut con) = redis_client.get_multiplexed_async_connection().await {
                                         send_leaderbaord(&mut con, session_id.clone(), slide.clone(), manager_addr.clone(), room_clone.clone()).await;
@@ -216,8 +281,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                     let mut answer_nums = 0;
                                     for option in _question.options.clone() {
                                         options.push(
-                                            OptionItem { 
-                                                option_id: option.option_id, 
+                                            OptionItem {
+                                                option_id: option.option_id,
                                                 option_text: option.text,
                                                 image: option.image_url,
                                             }
@@ -261,7 +326,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                         let _: () = con
                                             .set(format!("{qkey}:meta"), meta.to_string())
                                             .await
-                                            .unwrap(); 
+                                            .unwrap();
                                         let _: () = con
                                             .set(format!("{qkey}:start"), now)
                                             .await
@@ -295,19 +360,19 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                         let mut options: Vec<OptionResult> = Vec::new();
                                         for option in _question.options {
                                             options.push(
-                                                OptionResult { 
-                                                    option_id: option.option_id, 
+                                                OptionResult {
+                                                    option_id: option.option_id,
                                                     answer: option.is_correct,
                                                 }
                                             );
                                         }
-                                        
+
                                         let result = QuestionResult {
                                             r#type: 3,
                                             question_id: question.question_id,
                                             options_result: options,
                                         };
-                                        
+
                                         let result_json = serde_json::to_string(&result).unwrap();
                                         room_clone.do_send(BroadcastToPlayers(result_json));
                                         // Send leaderboard to manager
@@ -315,7 +380,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                     }
                                 }
                             });
-                            
+
                         }
 
                         "previous" => {
@@ -325,12 +390,31 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                             ));
                         }
 
+                        "end" => {
+                            let redis_client = self.redis_client.clone();
+                            let session_id = self.session_id.clone();
+                            actix_rt::spawn(async move {
+                                cleanup_quiz_redis(&redis_client, &session_id).await;
+                                save_slide_index(redis_client, session_id, -1);
+                            });
+                        }
+
                         _ => println!("⚠️ Unknown manager action: {}", cmd.action),
                     }
                 }
             } else {
                 println!("⚠️ Manager sent invalid JSON: {}", text);
             }
+        }
+        else if let Ok(ws::Message::Binary(bin)) = msg {
+            ctx.binary(bin);
+        }
+        else if let Ok(ws::Message::Close(reason)) = msg {
+            ctx.close(reason);
+            ctx.stop();
+        }
+        else {
+            ctx.stop();
         }
     }
 }

@@ -35,11 +35,11 @@ use models::{
     QuizOption,
     ManagerSession,
 };
+use std::time::Instant;
 
-// TODO: Fix end of quiz management: remove players, players list
-// TODO: Handle Players of setup quiz and add it into leaderboard of present
 
 pub const REDIS_URL: Option<&str> = Some("redis://127.0.0.1/");
+
 
 impl Room {
     pub fn new(session_id: String) -> Self {
@@ -95,22 +95,22 @@ impl Handler<SendPlayerList> for Room {
         let session_id = data.session_id.clone();
         let client = self.redis_client.clone();
         let new_player = data.new_player.clone();
-        
+
         // let redis_client = self.
         actix_rt::spawn(async move {
             if manager.is_none() { return; }
             if let Ok(mut con) = client.get_multiplexed_async_connection().await {
-                
+
                 // Get all player keys
-                let pattern = format!("player:{session_id}:*");
-                let keys: Vec<String> = con.keys(&pattern).await.unwrap();
-                
+                let pattern = format!("players:{session_id}");
+                let keys: Vec<String> = con.smembers(&pattern).await.unwrap();
+
                 let mut users = vec![];
-                
+
                 for key in keys {
                     // Try to get redis string
                     let json_str: Result<String, _> = con.get(&key).await;
-                    
+
                     if let Ok(json) = json_str {
                         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&json) {
                             if v.get("user_id").unwrap() != new_player.get("user_id").unwrap() {
@@ -121,13 +121,13 @@ impl Handler<SendPlayerList> for Room {
                 }
                 // Add new player manually
                 users.push(new_player);
-                
-                
+
+
                 let msg = PlayerListMsg {
                     r#type: 7,
                     users,
                 };
-                
+
                 let payload = serde_json::to_string(&msg).unwrap();
                 manager.unwrap().do_send(ManagerText(payload));
             }
@@ -206,23 +206,23 @@ impl Handler<PlayerOk> for Room {
         else if slide.slide_type == 1 { // question
         let question = slide.question.clone().unwrap();
                     let question_time = question.time_limit.clone();
-                    
+
                     let mut options: Vec<OptionResult> = Vec::new();
                     for option in question.options {
                         options.push(
-                            OptionResult { 
-                                option_id: option.option_id, 
+                            OptionResult {
+                                option_id: option.option_id,
                                 answer: option.is_correct,
                             }
                         );
                     }
-                    
+
                     let result = QuestionResult {
                         r#type: 3,
                         question_id: question.question_id,
                         options_result: options,
                     };
-                    
+
                     let result_json = serde_json::to_string(&result).unwrap();
                     tokio::time::sleep(std::time::Duration::from_secs(question_time as u64)).await;
                     println!("⏰ Sending result after {}s", question_time);
@@ -278,6 +278,7 @@ async fn ws_route(
                 session_id: session_id.clone(),
                 redis_client: redis_client,
                 quiz_setup: get_quiz_setup(&session_id).await.unwrap(),
+                hb: Instant::now(),  // Initialize heartbeat
             }, &req, stream),
         "player" => actix_web_actors::ws::start(
                 PlayerSession {
@@ -288,6 +289,7 @@ async fn ws_route(
                             session_id: session_id,
                             redis_client: redis_client,
                             quiz_setup: None,
+                            hb: Instant::now(),  // Initialize heartbeat
                         },
                         &req,
                         stream,

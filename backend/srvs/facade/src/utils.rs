@@ -273,7 +273,7 @@ pub async fn post_question_leaderboard(
 ) -> anyhow::Result<()> {
 
     let url = format!(
-        "https://api.proslides.ir/api/quizzes/{}/slides/{}/question/leaderboard/",
+        "http://87.107.165.177:8000/api/quizzes/{}/slides/{}/question/leaderboard/",
         session_id, slide_pk
     );
 
@@ -297,4 +297,83 @@ pub async fn post_question_leaderboard(
     }
 
     Ok(())
+}
+
+pub async fn cleanup_quiz_redis(
+    redis: &redis::Client,
+    session_id: &str,
+) {
+    if let Ok(mut con) = redis.get_multiplexed_async_connection().await {
+
+        // 1️⃣ Remove user quiz locks
+        let pattern = format!("player:{session_id}:*");
+        let keys: Vec<String> = con.keys(&pattern).await.unwrap();
+        // let mut players = Vec::new();
+
+        for pkey in keys {
+            let _: () = con.del(pkey.clone()).await.unwrap_or(());
+            /*if let Ok(pjson) = con.get::<_, String>(&pkey).await {
+                if let Ok(pdata) = serde_json::from_str::<serde_json::Value>(&pjson) {
+                    players.push(pdata);
+                }
+            }*/
+        }
+        /*
+        for user_id in &players {
+            let key = format!("player:{}:{}", session_id, user_id["user_id"]);
+            let _: () = con.del(key).await.unwrap_or(());
+        }
+        */
+
+        // 2️⃣ Remove players list
+        let key = format!("players:{}", session_id);
+        let _: () = con.del(key).await.unwrap_or(());
+        
+        /*
+        // 4️⃣ Remove question submits
+        let count_keys = format!("question:{}:*:option:*:count", session_id);
+        let submit_keys= format!("question:{}:*:submits", session_id);
+        let start_keys= format!("question:{}:*:start", session_id);
+        let meta_keys= format!("question:{}:*:meta", session_id);
+        let keys: Vec<String> = con.keys(&count_keys).await.unwrap();
+        for key in keys {
+            let _ = con.del(key).await.unwrap_or(());
+        }
+        let keys: Vec<String> = con.keys(&submit_keys).await.unwrap();
+        for key in keys {
+            let _ = con.del(key).await.unwrap_or(());
+        }
+        let keys: Vec<String> = con.keys(&start_keys).await.unwrap();
+        for key in keys {
+            let _ = con.del(key).await.unwrap_or(());
+        }
+        let keys: Vec<String> = con.keys(&meta_keys).await.unwrap();
+        for key in keys {
+            let _ = con.del(key).await.unwrap_or(());
+        }
+
+        // 5️⃣ Remove slide index & setup cache
+        let _: () = con.del(format!("quiz:{}:slide_index", session_id)).await.unwrap_or(());
+        let _: () = con.del(format!("quiz:{}:setup", session_id)).await.unwrap_or(());
+        */
+    }
+}
+
+pub async fn add_scores_batch(
+    con: &mut MultiplexedConnection,
+    session_id: &str,
+    updates: Vec<LeaderboardEntry>,
+) {
+    let key = &format!("leaderboard:{session_id}");
+    let new_points_key = format!("new_points:{session_id}");
+
+    let mut pipe = redis::pipe();
+    pipe.atomic();
+
+    for update in updates {
+        pipe.zincr(key, update.rust_session_id.clone(), update.score);
+        pipe.hset(new_points_key.clone(), update.rust_session_id, update.score);
+    }
+
+    let _: () = pipe.query_async(con).await.expect("Erorr");
 }
