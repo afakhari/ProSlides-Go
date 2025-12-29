@@ -102,8 +102,8 @@ pub struct Room {
     pub session_id: String,
 }
 
-//
 
+//
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QuizSetup {
     pub quiz_id: u32,
@@ -111,6 +111,7 @@ pub struct QuizSetup {
     pub background: Background,
     #[serde(default)]
     pub music_url: Option<String>,
+    pub access_code: String,
     pub slides: Vec<Slide>,
 }
 

@@ -37,6 +37,8 @@ use models::{
 };
 use std::time::Instant;
 
+// TODO: Add time_taken field in players
+// TODO: Fix the algorithm of scoring
 
 pub const REDIS_URL: Option<&str> = Some("redis://127.0.0.1/");
 

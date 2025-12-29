@@ -13,6 +13,7 @@ use crate::utils::{
     post_question_leaderboard,
     cleanup_quiz_redis,
     add_scores_batch,
+    post_options_result,
 };
 use crate::models::{
     ManagerSession,
@@ -208,12 +209,12 @@ async fn send_leaderbaord(
         for (idx, p) in question_leaderboard.iter_mut().enumerate() {
             p.rank = idx as u16 + 1;
         }
-        post_question_leaderboard(&session_id, slide.slide_id, question_leaderboard.clone()).await.ok();
         let leaderboard_manager_json = json!({
             "type": 12,
             "results": leaderboard,
         });
         manager_addr.do_send(ServerMessage(leaderboard_manager_json.to_string()));
+        post_question_leaderboard(&session_id, slide.slide_id, question_leaderboard.clone()).await.ok().expect("ERROR in backend: post leaderboard");
     } else if slide.slide_type == 3 {
         // For leaderboard slides, broadcast to all
         let leaderboard_manager_json = json!({
@@ -256,7 +257,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                             actix_rt::spawn(async move {
                                 let mut slide_index = get_slide_index(&redis_client, &session_id).await;
                                 slide_index = if slide_index+1 < slides.len() as i32 {slide_index+1} else {slides.len() as i32};
-                                if slide_index + 1 >= slides.len() as i32 { // end
+                                if slide_index >= slides.len() as i32 { // end
                                     cleanup_quiz_redis(&redis_client, &session_id).await;
                                     save_slide_index(redis_client, session_id, -1);
                                     return;
@@ -337,11 +338,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
 
                                         // Collect results
                                         let mut options_result = Vec::new();
-                                        for opt in question.options {
+                                        for (i, opt) in question.options.iter().enumerate() {
                                             let oid = opt.option_id;
                                             let key = format!("question:{}:{}:option:{}:count", session_id, question.question_id, oid);
-                                            let count: i64 = con.get(key).await.unwrap_or(0);
-
+                                            let mut count: u16 = con.get(key).await.unwrap_or(0);
+                                            count += _question.options[i].votes as u16;
                                             options_result.push(json!({
                                                 "option_id": oid,
                                                 "number_of_submits": count
@@ -377,6 +378,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ManagerSession {
                                         room_clone.do_send(BroadcastToPlayers(result_json));
                                         // Send leaderboard to manager
                                         send_leaderbaord(&mut con, session_id.clone(), slide.clone(), manager_addr.clone(), room_clone.clone()).await;
+                                        post_options_result(&session_id, slide.slide_id, options_result).await.ok().expect("ERROR in backend: post results");
                                     }
                                 }
                             });
