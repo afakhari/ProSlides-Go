@@ -64,7 +64,10 @@ export const WebSocketProvider = ({ children, role = "manager" }) => {
         } catch {
           // Handle non-JSON messages (like "OK count: X")
           console.log("📩 Text message:", event.data);
-          setLastMessage({ type: "text", content: event.data });
+          // Ignore "OK count" messages to prevent overwriting important JSON messages
+          if (!event.data.startsWith("OK")) {
+            setLastMessage({ type: "text", content: event.data });
+          }
         }
       };
 

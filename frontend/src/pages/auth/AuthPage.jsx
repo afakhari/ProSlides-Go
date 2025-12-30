@@ -314,7 +314,7 @@ export default function AuthPage() {
       throw new Error("Quiz created, but no ID was returned.");
     }
 
-    navigate(`/${quizId}/manager/panel/editor`);
+    navigate(`/manager/panel/${quizId}`);
   };
 
   const handleLogin = async () => {

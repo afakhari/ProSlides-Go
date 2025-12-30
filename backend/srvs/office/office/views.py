@@ -528,6 +528,9 @@ class QuizViewSet(viewsets.ModelViewSet):
     def reset_result(self, request, pk=None):
         quiz = self.get_object()
         with transaction.atomic():
+            Option.objects.filter(
+                question__slide__quiz=quiz
+            ).update(votes=0)
             leaderboard_deleted = Leaderboard.objects.filter(
                 question__slide__quiz=quiz
             ).delete()[0]

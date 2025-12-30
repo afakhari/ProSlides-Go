@@ -38,12 +38,12 @@ function ManagerPlayerLeaderBoard({
   };
 
   const maxScore = Math.max(...players.map((p) => p.total_points));
-  const minScore = Math.min(...players.map((p) => p.total_points));
+  const minScore = 0;
 
   const calcPercent = (score) => {
     if (maxScore === minScore) return 100;
     const percent = ((score - minScore) / (maxScore - minScore)) * 99 + 1;
-    return Math.max(percent, 1);
+    return percent;
   };
 
   useEffect(() => {

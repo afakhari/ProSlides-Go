@@ -9,6 +9,7 @@ export const ServerDataProvider = ({ children }) => {
     questionResults: null, // Type 8: نتایج سوال
     partialQuestionResults: null, // Type 3: partial/result for current question (options_result)
     leaderboardResults: null, // Type 1: نتایج لیدربورد
+    managerLastLeaderboard: null, // آخرین لیدربورد معتبر برای منیجر
     modalLeaderboardResults: null, // Type 12: نتایج لیدربورد برای modal
     currentQuestion: null, // Type 2: سوال فعلی
     lastMessageType: null, // آخرین type دریافتی
@@ -56,6 +57,7 @@ export const ServerDataProvider = ({ children }) => {
     setServerData((prev) => ({
       ...prev,
       leaderboardResults: results,
+      managerLastLeaderboard: results, // ذخیره آخرین لیدربورد معتبر
       currentQuestion: null, // پاک کردن سوال فعلی تا لیدربورد نمایش داده شود
       lastMessageType: 1,
       lastUpdateTime: new Date().toISOString(),
@@ -79,6 +81,7 @@ export const ServerDataProvider = ({ children }) => {
     setServerData((prev) => ({
       ...prev,
       currentQuestion: question,
+      leaderboardResults: null, // پاک کردن لیدربورد تا سوال نمایش داده شود
       // reset any partial results from previous question when a new question arrives
       partialQuestionResults: null,
       lastMessageType: 2,
@@ -175,6 +178,7 @@ export const ServerDataProvider = ({ children }) => {
       questionResults: null,
       partialQuestionResults: null,
       leaderboardResults: null,
+      managerLastLeaderboard: null,
       modalLeaderboardResults: null,
       currentQuestion: null,
       lastMessageType: null,
@@ -190,6 +194,7 @@ export const ServerDataProvider = ({ children }) => {
     questionResults: serverData.questionResults,
     partialQuestionResults: serverData.partialQuestionResults,
     leaderboardResults: serverData.leaderboardResults,
+    managerLastLeaderboard: serverData.managerLastLeaderboard,
     modalLeaderboardResults: serverData.modalLeaderboardResults,
     currentQuestion: serverData.currentQuestion,
     lastMessageType: serverData.lastMessageType,

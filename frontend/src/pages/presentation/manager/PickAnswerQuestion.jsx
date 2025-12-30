@@ -231,11 +231,8 @@ export default function ManagerPickAnswerQuestion({
           "[PickAnswerQuestion] Question IDs match! Updating votes..."
         );
 
-        // Combine mock data (previous results) with server results (new results)
+        // Use server results directly (do NOT add to mock/initial data)
         const newVotes = currentQuestion.options.map((option) => {
-          // Get mock data (if available)
-          const mockVote = option.number_of_submits ?? 0;
-
           // Get server data - use String comparison for option_id
           const serverResult = resultsArray.find(
             (s) => String(s.option_id) === String(option.option_id)
@@ -246,17 +243,15 @@ export default function ManagerPickAnswerQuestion({
               0
             : 0;
 
-          // Combine: mock + server
-          const combinedVote = mockVote + serverVote;
           console.log(
-            `[PickAnswerQuestion] Option ${option.option_id}: mock=${mockVote} + server=${serverVote} = ${combinedVote}`
+            `[PickAnswerQuestion] Option ${option.option_id}: server=${serverVote}`
           );
 
-          return combinedVote;
+          return serverVote;
         });
 
         console.log(
-          "[PickAnswerQuestion] Combined votes from questionResults:",
+          "[PickAnswerQuestion] Votes from questionResults:",
           newVotes
         );
         setVotes(newVotes);

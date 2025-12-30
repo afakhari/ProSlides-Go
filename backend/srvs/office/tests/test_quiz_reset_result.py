@@ -13,6 +13,8 @@ from backend.srvs.office.tests.factories import (
 def test_reset_result_clears_leaderboard_and_participants(api_client):
     quiz = QuizFactory()
     question = QuestionFactory(slide__quiz=quiz)
+    option1 = OptionFactory(question=question, votes=3)
+    option2 = OptionFactory(question=question, votes=7)
     player1 = PlayerSessionFactory(quiz=quiz)
     player2 = PlayerSessionFactory(quiz=quiz)
 
@@ -46,4 +48,4 @@ def test_reset_result_clears_leaderboard_and_participants(api_client):
 
     assert Leaderboard.objects.filter(question__slide__quiz=quiz).count() == 0
     assert PlayerSession.objects.filter(quiz=quiz).count() == 0
-    assert list(Option.objects.filter(question__slide__quiz=quiz).values_list("votes", flat=True)) == [0, 0]
+    assert Option.objects.filter(question__slide__quiz=quiz).exclude(votes=0).count() == 0

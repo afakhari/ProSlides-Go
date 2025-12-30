@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import ShareMenu from "./ShareMenu";
+import { getAuthHeaders } from "../utils/auth";
 
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
@@ -32,7 +33,8 @@ export default function QuizManager({ onNewPresentation }) {
       // Add a small delay for better UX
       await new Promise((resolve) => setTimeout(resolve, 100));
       const response = await fetch(
-        "https://api.proslides.ir/api/quizzes/list/"
+        "https://api.proslides.ir/api/quizzes/list/",
+        { headers: getAuthHeaders() }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch quizzes");
@@ -105,9 +107,7 @@ export default function QuizManager({ onNewPresentation }) {
       setCreatingQuiz(true);
       const response = await fetch("https://api.proslides.ir/api/quizzes/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           title: "Untitled Presentation",
         }),
@@ -248,9 +248,7 @@ export default function QuizManager({ onNewPresentation }) {
         `https://api.proslides.ir/api/quizzes/${quizId}/`,
         {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
         }
       );
 
@@ -279,9 +277,7 @@ export default function QuizManager({ onNewPresentation }) {
         `https://api.proslides.ir/api/quizzes/${quizId}/`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             title: newName.trim(),
           }),
@@ -318,6 +314,7 @@ export default function QuizManager({ onNewPresentation }) {
         `https://api.proslides.ir/api/quizzes/${quizId}/reset-result/`,
         {
           method: "POST",
+          headers: getAuthHeaders(),
           // headers: {
           //   "Content-Type": "application/json",
           // },
@@ -469,9 +466,7 @@ export default function QuizManager({ onNewPresentation }) {
         `https://api.proslides.ir/api/quizzes/${quiz.id}/duplicate/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             title: newName,
             author: quiz.createdBy,
@@ -1017,6 +1012,7 @@ export default function QuizManager({ onNewPresentation }) {
         <ShareMenu
           isOpen={true}
           onClose={() => setShowShareModal(null)}
+          quizId={showShareModal}
           accessCode={quizzes.find((q) => q.id === showShareModal)?.accessCode}
         />
       )}

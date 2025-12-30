@@ -31,7 +31,7 @@ export default function LeaderboardModal({ isOpen, onClose, players = [] }) {
 
   // Calculate percentage like in LeaderBoard.jsx
   const maxScore = Math.max(...sortedPlayers.map((p) => p.total_points));
-  const minScore = Math.min(...sortedPlayers.map((p) => p.total_points));
+  const minScore = 0;
 
   const calcPercent = (score) => {
     if (maxScore === minScore) return 100;

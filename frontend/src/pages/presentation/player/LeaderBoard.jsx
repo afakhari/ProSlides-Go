@@ -81,12 +81,16 @@ function PlayerLeaderBoard({ players, quiz }) {
     alert(`${action} clicked for ${name}`);
   };
 
-  const maxScore = Math.max(...players.map((p) => p.total_points));
-  const minScore = Math.min(...players.map((p) => p.total_points));
+  const maxScore = Math.max(
+    ...players.map((p) => parseFloat(p.total_points) || 0)
+  );
+  const minScore = 0;
 
   const calcPercent = (score) => {
-    if (maxScore === minScore) return 100;
-    const percent = ((score - minScore) / (maxScore - minScore)) * 99 + 1;
+    const val = parseFloat(score) || 0;
+    if (maxScore <= minScore) return 100;
+    // Calculate percentage relative to max score
+    const percent = (val / maxScore) * 100;
     return Math.max(percent, 1);
   };
 
@@ -98,28 +102,14 @@ function PlayerLeaderBoard({ players, quiz }) {
     }));
     setDisplayedPlayers(processedPlayers);
 
-    // Trigger animation
-    setAnimateBars(false);
-    const t = setTimeout(() => {
-      setAnimateBars(true);
-    }, 500);
-
-    // اسکرول به خودم با تاخیر
-    const scrollTimeout = setTimeout(() => {
-      const myElement = document.getElementById(`player-${currentUserId}`);
-      if (myElement) {
-        myElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }
-    }, 800);
-
-    return () => {
-      clearTimeout(t);
-      clearTimeout(scrollTimeout);
-    };
-  }, [players, currentUserId]);
+    // Trigger animation only if not already animated
+    if (!animateBars) {
+      const t = setTimeout(() => {
+        setAnimateBars(true);
+      }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [players, currentUserId, animateBars]);
 
   // Calculate dynamic background style from quiz data
   const backgroundStyle = {
@@ -161,10 +151,9 @@ function PlayerLeaderBoard({ players, quiz }) {
               <AnimatePresence>
                 {displayedPlayers.map((p) => {
                   const isHidden = hiddenNames.includes(p.rank);
-                  const hasScore = p.total_points > 0;
-                  const widthPercent = hasScore
-                    ? calcPercent(p.total_points)
-                    : 0;
+                  const scoreVal = parseFloat(p.total_points) || 0;
+                  const hasScore = scoreVal > 0;
+                  const widthPercent = hasScore ? calcPercent(scoreVal) : 0;
                   const isCurrentUser = p.user_id === currentUserId;
 
                   return (
@@ -237,7 +226,7 @@ function PlayerLeaderBoard({ players, quiz }) {
 
                       {/* Fixed-width translucent track */}
                       <div
-                        className={`relative overlay-hidden w-full mr-3 rounded-lg ${
+                        className={`relative overflow-hidden w-full mr-3 rounded-lg ${
                           isCurrentUser
                             ? "bg-white/20 h-16"
                             : "bg-white/10 h-14"

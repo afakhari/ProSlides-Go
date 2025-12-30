@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, LogOut, Home } from "lucide-react";
+import { getAuthHeaders } from "../../utils/auth";
 
 export default function SessionDetail() {
   const { quizId } = useParams();
@@ -19,7 +20,8 @@ export default function SessionDetail() {
       try {
         setLoading(true);
         const response = await fetch(
-          `https://api.proslides.ir/api/quizzes/${quizId}/final-leaderboard/`
+          `https://api.proslides.ir/api/quizzes/${quizId}/final-leaderboard/`,
+          { headers: getAuthHeaders() }
         );
 
         if (!response.ok) {

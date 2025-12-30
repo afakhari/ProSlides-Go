@@ -29,7 +29,6 @@ function ManagerLeaderBoard({
   const {
     managerLastLeaderboard,
     leaderboardResults,
-    cachedLeaderboardResults,
     modalLeaderboardResults,
     processMessage,
   } = useServerData();
@@ -53,27 +52,33 @@ function ManagerLeaderBoard({
     : null;
   // همیشه آخرین لیدربرد معتبر را نگه دار و اگر داده جدید نیامد، پاک نکن
   // اگر هیچ داده‌ای برای اسلاید فعلی نبود، آخرین لیدربرد معتبر را نمایش بده
-  let dataToUse =
-    leaderboardResults ||
-    leaderboardForThisQuestion ||
-    cachedLeaderboardResults;
+  let dataToUse = leaderboardResults || leaderboardForThisQuestion;
+
+  // اگر داده فعلی خالی است، از آخرین داده معتبر استفاده کن
   if (
     !dataToUse ||
     (Array.isArray(dataToUse) && dataToUse.length === 0) ||
     (dataToUse.results && dataToUse.results.length === 0)
   ) {
-    dataToUse = managerLastLeaderboard;
+    if (
+      managerLastLeaderboard &&
+      ((Array.isArray(managerLastLeaderboard) &&
+        managerLastLeaderboard.length > 0) ||
+        (managerLastLeaderboard.results &&
+          managerLastLeaderboard.results.length > 0))
+    ) {
+      dataToUse = managerLastLeaderboard;
+    }
   }
 
   // فقط داده را از context می‌گیریم و هیچ وقت setPlayers نمی‌زنیم
   const results = dataToUse?.results || dataToUse || [];
 
-  console.log(
-    "[ManagerLeaderBoard DEBUG] leaderboardResults:",
-    leaderboardResults
-  );
-  console.log("[ManagerLeaderBoard DEBUG] dataToUse:", dataToUse);
-  console.log("[ManagerLeaderBoard DEBUG] results:", results);
+  console.log("[ManagerLeaderBoard] Render Cycle:");
+  console.log("  - leaderboardResults:", leaderboardResults);
+  console.log("  - managerLastLeaderboard:", managerLastLeaderboard);
+  console.log("  - dataToUse:", dataToUse);
+  console.log("  - derived results:", results);
 
   // همیشه از rank سرور استفاده کن و هیچوقت index را جایگزین نکن
   const players = Array.isArray(results)
@@ -160,7 +165,7 @@ function ManagerLeaderBoard({
   };
 
   const maxScore = Math.max(...players.map((p) => p.total_points));
-  const minScore = Math.min(...players.map((p) => p.total_points));
+  const minScore = 0;
 
   const calcPercent = (score) => {
     if (maxScore === minScore) return 100;
@@ -233,7 +238,7 @@ function ManagerLeaderBoard({
             {/* Title and player count */}
             <div className="text-center w-full">
               <h2 className="text-6xl text-white font-bold mb-4">
-                Leaderboard - Question {questionNumber} of {totalQuestions}
+                Leaderboard
               </h2>
               <p className="text-white/70 text-lg mt-2">
                 {players.length} players
