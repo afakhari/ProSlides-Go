@@ -23,7 +23,6 @@ class QuizFactory(factory.django.DjangoModelFactory):
 
     title = factory.Faker("sentence")
     created_at = factory.LazyFunction(timezone.now)
-    author = factory.Faker("name")
     music_url = None
     background_color = "#FFFFFF"
     background_image_url = None

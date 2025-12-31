@@ -27,7 +27,7 @@ import { useServerData } from "./hooks/useServerData";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { AudioProvider, useAudio } from "./contexts/AudioContext";
 import SessionDetail from "./pages/report/SessionDetail";
-import { getAuthHeaders } from "./utils/auth";
+import { apiFetch } from "./utils/apiFetch";
 
 import HomePage from "./pages/quiz/manager/HomePage";
 import EditorPage from "./pages/quiz/manager/EditorPage";
@@ -69,9 +69,11 @@ export default function App() {
       let mounted = true;
       const resolveCode = async () => {
         try {
-          const res = await fetch(
-            `https://api.proslides.ir/api/quizzes/resolve-access-code/?access_code=${accessCode}`,
-            { headers: getAuthHeaders() }
+          const res = await apiFetch(
+            `/quizzes/resolve-access-code/?access_code=${encodeURIComponent(
+              accessCode
+            )}`,
+            { auth: false }
           );
           const data = await res.json();
 
@@ -149,10 +151,7 @@ export default function App() {
       const fetchQuiz = async () => {
         try {
           if (!roomId) return;
-          const res = await fetch(
-            `https://api.proslides.ir/api/quizzes/${roomId}/export/`,
-            { headers: getAuthHeaders() }
-          );
+          const res = await apiFetch(`/quizzes/${roomId}/export/`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           if (!mounted) return;

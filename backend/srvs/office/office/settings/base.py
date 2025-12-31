@@ -15,6 +15,7 @@ SECRET_KEY = env.str(
 DEBUG = env.bool("DEBUG", False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 EXPORT_SERVICE_TOKEN = env.str("EXPORT_SERVICE_TOKEN", default="")
+GOOGLE_CLIENT_ID = env.str("GOOGLE_CLIENT_ID", default="")
 
 # Application definition
 INSTALLED_APPS = [

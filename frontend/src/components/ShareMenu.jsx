@@ -213,7 +213,7 @@
 import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { X, Check, Loader2 } from "lucide-react";
-import { getAuthHeaders } from "../utils/auth";
+import { apiFetch } from "../utils/apiFetch";
 
 export default function ShareMenu({ quizId, isOpen, onClose, accessCode }) {
   const [section, setSection] = useState("invite");
@@ -246,12 +246,11 @@ export default function ShareMenu({ quizId, isOpen, onClose, accessCode }) {
     setSaveSuccess(false);
     
     try {
-      const response = await fetch(`https://api.proslides.ir/api/quizzes/${quizId}/`, {
-        method: 'PATCH',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          access_code: code
-        })
+      const response = await apiFetch(`/quizzes/${quizId}/`, {
+        method: "PATCH",
+        json: {
+          access_code: code,
+        },
       });
       
       if (!response.ok) {

@@ -19,8 +19,8 @@ def test_quiz_list_requires_authentication(api_client):
     assert resp.status_code == 401
 
     user = UserFactory()
-    owned_quiz = QuizFactory(owner=user, author=user.username)
-    QuizFactory(author="someone-else")
+    owned_quiz = QuizFactory(owner=user)
+    QuizFactory(owner=UserFactory())
 
     api_client.force_authenticate(user=user)
     resp = api_client.get("/api/quizzes/list/")

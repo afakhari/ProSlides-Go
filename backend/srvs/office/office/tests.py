@@ -34,8 +34,6 @@ class OfficeAPITests(TestCase):
 
         quiz_fields = {field.name for field in Quiz._meta.get_fields()}
         quiz_kwargs = {"title": "Test Quiz"}
-        if "author" in quiz_fields:
-            quiz_kwargs["author"] = self.user.username
         if "owner" in quiz_fields:
             quiz_kwargs["owner"] = self.user
         self.quiz = Quiz.objects.create(**quiz_kwargs)
@@ -73,7 +71,7 @@ class OfficeAPITests(TestCase):
         create_url = reverse("quiz-list")
         response = self.client.post(
             create_url,
-            {"title": "New Quiz", "author": self.user.username},
+            {"title": "New Quiz"},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

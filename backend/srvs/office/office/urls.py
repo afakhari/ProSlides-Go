@@ -96,6 +96,7 @@ urlpatterns = [
 
     # Auth
     re_path(r'^api/auth/register/?$', views.RegisterView.as_view(), name='auth-register'),
+    re_path(r'^api/auth/google/?$', views.GoogleAuthView.as_view(), name='auth-google'),
     re_path(r'^api/auth/verify/?$', views.VerifyEmailView.as_view(), name='auth-verify'),
     re_path(r'^api/auth/verify/resend/?$', views.ResendVerificationView.as_view(), name='auth-verify-resend'),
     re_path(r'^api/auth/password/reset/?$', views.PasswordResetRequestView.as_view(), name='auth-password-reset'),

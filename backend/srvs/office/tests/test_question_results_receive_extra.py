@@ -1,17 +1,17 @@
 import pytest
+from django.test import override_settings
 
 from backend.srvs.office.tests.factories import QuestionFactory, OptionFactory
 
 
 @pytest.mark.django_db
+@override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
 def test_question_results_rejects_option_from_other_question(api_client):
     question = QuestionFactory()
     other_question = QuestionFactory()
     opt1 = OptionFactory(question=question)
     opt2 = OptionFactory(question=question)
     foreign_option = OptionFactory(question=other_question)
-
-    api_client.force_authenticate(user=question.slide.quiz.owner)
     payload = {
         "options": [
             {"option_id": opt1.id, "number_of_submits": 1},
@@ -24,6 +24,7 @@ def test_question_results_rejects_option_from_other_question(api_client):
         f"/api/quizzes/{question.slide.quiz_id}/slides/{question.slide_id}/question/results/",
         payload,
         format="json",
+        HTTP_X_EXPORT_TOKEN="test-export-token",
     )
     assert resp.status_code == 400
     assert "unexpected_option_ids" in resp.data

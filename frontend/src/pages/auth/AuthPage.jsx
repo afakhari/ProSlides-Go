@@ -1,11 +1,18 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? "https://api.proslides.ir/api";
+import { apiFetch } from "../../utils/apiFetch";
 
 function formatError(payload) {
   if (!payload) return "Something went wrong. Please try again.";
+  if (payload.email) {
+    const message = Array.isArray(payload.email)
+      ? payload.email.join(", ")
+      : payload.email;
+    if (message.toLowerCase().includes("already")) {
+      return "Email already used";
+    }
+    return `email: ${message}`;
+  }
   if (payload.detail) return payload.detail;
   const keys = Object.keys(payload);
   if (!keys.length) return "Something went wrong. Please try again.";
@@ -274,62 +281,166 @@ export default function AuthPage() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const isSignup = mode === "signup";
-  const submitLabel = isSignup ? "Sign Up" : "Log In";
+  const isVerify = mode === "verify";
+  const submitLabel = isVerify ? "Verify" : isSignup ? "Sign Up" : "Log In";
 
   const isReady = useMemo(() => {
-    if (!email.trim() || !password.trim()) return false;
+    if (!email.trim()) return false;
+    if (isVerify) {
+      return verificationCode.trim().length === 6;
+    }
+    if (!password.trim()) return false;
     if (isSignup && !fullName.trim()) return false;
     return true;
-  }, [email, password, fullName, isSignup]);
+  }, [email, password, fullName, isSignup, isVerify, verificationCode]);
 
   const handleModeSwitch = () => {
-    setMode((prev) => (prev === "login" ? "signup" : "login"));
+    if (mode === "verify") {
+      setMode("login");
+    } else {
+      setMode((prev) => (prev === "login" ? "signup" : "login"));
+    }
     setStatus(null);
     setPassword("");
+    setVerificationCode("");
   };
 
-  const createQuizAndNavigate = async (accessToken) => {
-    const response = await fetch(`${API_BASE}/quizzes/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ title: "Untitled quiz" }),
-    });
+  const navigateToDashboard = useCallback(() => {
+    navigate("/manager/panel");
+  }, [navigate]);
 
-    const payload = await parseJson(response);
-    if (!response.ok) {
-      throw new Error(formatError(payload));
+  const handleGoogleResponse = useCallback(
+    async (response) => {
+      if (!response?.credential) {
+        setStatus({
+          type: "error",
+          message: "Google login did not return a credential.",
+        });
+        return;
+      }
+
+      setSubmitting(true);
+      setStatus(null);
+      try {
+        const googleResponse = await apiFetch("/auth/google/", {
+          method: "POST",
+          auth: false,
+          json: { token: response.credential },
+        });
+        const payload = await parseJson(googleResponse);
+        if (!googleResponse.ok) {
+          throw new Error(formatError(payload));
+        }
+
+        const { access, refresh, name } = payload || {};
+        if (!access) {
+          throw new Error("Google login succeeded, but no access token returned.");
+        }
+
+        localStorage.setItem("auth.access", access);
+        if (refresh) localStorage.setItem("auth.refresh", refresh);
+        if (name) localStorage.setItem("auth.name", name);
+
+        navigateToDashboard();
+      } catch (error) {
+        setStatus({
+          type: "error",
+          message: error.message || "Google login failed.",
+        });
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [navigateToDashboard]
+  );
+
+  useEffect(() => {
+    if (!googleClientId) return;
+    const scriptId = "google-identity";
+    const initialize = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleResponse,
+        ux_mode: "popup",
+      });
+      setGoogleReady(true);
+    };
+
+    const existingScript = document.getElementById(scriptId);
+    if (existingScript) {
+      if (window.google?.accounts?.id) {
+        initialize();
+      } else {
+        existingScript.addEventListener("load", initialize, { once: true });
+      }
+      return;
     }
 
-    const quizId = payload?.quiz_id ?? payload?.id;
-    if (!quizId) {
-      throw new Error("Quiz created, but no ID was returned.");
-    }
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initialize;
+    script.onerror = () => {
+      setStatus({
+        type: "error",
+        message: "Unable to load Google login right now.",
+      });
+    };
+    document.body.appendChild(script);
+  }, [googleClientId, handleGoogleResponse]);
 
-    navigate(`/manager/panel/${quizId}`);
+  const handleGoogleSignIn = () => {
+    if (!googleClientId) {
+      setStatus({
+        type: "error",
+        message: "Google login is not configured.",
+      });
+      return;
+    }
+    if (!googleReady || !window.google?.accounts?.id) {
+      setStatus({
+        type: "error",
+        message: "Google login is still loading. Please try again.",
+      });
+      return;
+    }
+    window.google.accounts.id.prompt();
   };
 
   const handleLogin = async () => {
-    const response = await fetch(`${API_BASE}/auth/token/`, {
+    const response = await apiFetch("/auth/token/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      auth: false,
+      json: {
         username: email.trim(),
         password: password.trim(),
-      }),
+      },
     });
 
     const payload = await parseJson(response);
     if (!response.ok) {
-      throw new Error(formatError(payload));
+      const message = formatError(payload);
+      if (message.toLowerCase().includes("no active account")) {
+        setMode("verify");
+        setStatus({
+          type: "info",
+          message: "Account not verified yet. Enter the verification code.",
+        });
+        return;
+      }
+      throw new Error(message);
     }
 
     const { access, refresh } = payload || {};
@@ -343,7 +454,7 @@ export default function AuthPage() {
       localStorage.setItem("auth.name", fullName.trim());
     }
 
-    await createQuizAndNavigate(access);
+    navigateToDashboard();
   };
 
   const handleForgotPassword = async () => {
@@ -358,10 +469,10 @@ export default function AuthPage() {
     setSubmitting(true);
     setStatus(null);
     try {
-      const response = await fetch(`${API_BASE}/auth/password/reset/`, {
+      const response = await apiFetch("/auth/password/reset/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        auth: false,
+        json: { email: email.trim() },
       });
       const payload = await parseJson(response);
       if (!response.ok) {
@@ -382,14 +493,14 @@ export default function AuthPage() {
   };
 
   const handleSignup = async () => {
-    const response = await fetch(`${API_BASE}/auth/register/`, {
+    const response = await apiFetch("/auth/register/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      auth: false,
+      json: {
         username: email.trim(),
         email: email.trim(),
         password: password.trim(),
-      }),
+      },
     });
 
     const payload = await parseJson(response);
@@ -408,10 +519,77 @@ export default function AuthPage() {
 
     setStatus({
       type: "info",
-      message:
-        "Check your email for a verification code, then log in to start designing.",
+      message: "Enter the verification code from the terminal to continue.",
     });
-    setMode("login");
+    setMode("verify");
+  };
+
+  const handleVerify = async () => {
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const response = await apiFetch("/auth/verify/", {
+        method: "POST",
+        auth: false,
+        json: {
+          email: email.trim(),
+          code: verificationCode.trim(),
+        },
+      });
+
+      const payload = await parseJson(response);
+      if (!response.ok) {
+        throw new Error(formatError(payload));
+      }
+
+      setStatus({
+        type: "info",
+        message: "Email verified. You can log in now.",
+      });
+      setMode("login");
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to verify email.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setStatus({
+        type: "error",
+        message: "Enter your email to resend the code.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const response = await apiFetch("/auth/verify/resend/", {
+        method: "POST",
+        auth: false,
+        json: { email: email.trim() },
+      });
+      const payload = await parseJson(response);
+      if (!response.ok) {
+        throw new Error(formatError(payload));
+      }
+      setStatus({
+        type: "info",
+        message: payload?.detail || "Verification code sent.",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to resend verification code.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -420,7 +598,9 @@ export default function AuthPage() {
     setSubmitting(true);
     setStatus(null);
     try {
-      if (isSignup) {
+      if (isVerify) {
+        await handleVerify();
+      } else if (isSignup) {
         await handleSignup();
       } else {
         await handleLogin();
@@ -491,41 +671,51 @@ export default function AuthPage() {
 
       <div className="relative z-[2] w-[min(92vw,430px)] animate-[auth-card-in_0.6s_ease-out_both] rounded-[28px] bg-white px-8 pb-8 pt-9 text-center shadow-[0_28px_60px_rgba(15,23,42,0.14)] md:px-6 md:pt-8">
         <h1 className="text-[26px] font-semibold text-[#1f2937]">
-          {isSignup ? "Sign up" : "Log in"}
+          {isVerify ? "Verify email" : isSignup ? "Sign up" : "Log in"}
         </h1>
         <p className="mt-1 text-sm text-[#6b7280]">
-          {isSignup ? "Or " : "No account? "}
+          {isVerify ? "Need a new code? " : isSignup ? "Or " : "No account? "}
           <button
             type="button"
-            onClick={handleModeSwitch}
-            className="font-semibold text-[#6c4cf5]"
+            onClick={isVerify ? handleResendVerification : handleModeSwitch}
+            className="font-semibold text-[#6c4cf5] transition hover:text-[#4f32e6] hover:underline cursor-pointer"
           >
-            {isSignup ? "Log in to your account" : "Sign up now"}
+            {isVerify
+              ? "Resend code"
+              : isSignup
+                ? "Log in to your account"
+                : "Sign up now"}
           </button>
         </p>
 
-        <div className="mt-5 flex flex-col gap-3">
-          <button
-            type="button"
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
-          >
-            <GoogleIcon />
-            {isSignup ? "Sign up with Google" : "Log in with Google"}
-          </button>
-          <button
-            type="button"
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
-          >
-            <MicrosoftIcon />
-            {isSignup ? "Sign up with Microsoft" : "Log in with Microsoft"}
-          </button>
-        </div>
+        {!isVerify && (
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={submitting}
+              className="flex items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <GoogleIcon />
+              {isSignup ? "Sign up with Google" : "Log in with Google"}
+            </button>
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
+            >
+              <MicrosoftIcon />
+              {isSignup ? "Sign up with Microsoft" : "Log in with Microsoft"}
+            </button>
+          </div>
+        )}
 
-        <div className="my-4 flex items-center gap-3 text-xs tracking-[0.2em] text-[#9ca3af]">
-          <span className="h-px flex-1 bg-[#e5e7eb]" />
-          OR
-          <span className="h-px flex-1 bg-[#e5e7eb]" />
-        </div>
+        {!isVerify && (
+          <div className="my-4 flex items-center gap-3 text-xs tracking-[0.2em] text-[#9ca3af]">
+            <span className="h-px flex-1 bg-[#e5e7eb]" />
+            OR
+            <span className="h-px flex-1 bg-[#e5e7eb]" />
+          </div>
+        )}
 
         <form className="flex flex-col" onSubmit={handleSubmit}>
           <label className="mb-3 flex items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
@@ -533,42 +723,63 @@ export default function AuthPage() {
               <MailIcon />
             </span>
             <input
-              className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+              className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af] ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+                }`}
               type="email"
               name="email"
               autoComplete="email"
               placeholder="Your email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={isVerify}
               required
             />
           </label>
 
-          <label className="mb-3 flex items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
-            <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
-              <LockIcon />
-            </span>
-            <input
-              className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
-              type={showPassword ? "text" : "password"}
-              name="password"
-              autoComplete={isSignup ? "new-password" : "current-password"}
-              placeholder="Your password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-            <button
-              type="button"
-              className="flex h-12 w-12 items-center justify-center text-[#6b7280]"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              <EyeIcon open={showPassword} />
-            </button>
-          </label>
+          {!isVerify && (
+            <label className="mb-3 flex items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
+              <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
+                <LockIcon />
+              </span>
+              <input
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                placeholder="Your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="flex h-12 w-12 items-center justify-center text-[#6b7280]"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </label>
+          )}
 
-          {isSignup ? (
+          {isVerify ? (
+            <label className="mb-3 flex items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
+              <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
+                <LockIcon />
+              </span>
+              <input
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+                type="text"
+                inputMode="numeric"
+                name="verification-code"
+                placeholder="Verification code"
+                maxLength={6}
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value)}
+                required
+              />
+            </label>
+          ) : isSignup ? (
             <label className="mb-1 flex items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
               <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
                 <UserIcon />
@@ -589,7 +800,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs text-[#9ca3af]"
+                className="text-xs text-[#9ca3af] transition hover:text-[#6b7280] hover:underline cursor-pointer"
               >
                 Forgot password?
               </button>
@@ -598,11 +809,10 @@ export default function AuthPage() {
 
           {status && (
             <div
-              className={`mb-3 rounded-xl px-3 py-2 text-left text-xs ${
-                status.type === "error"
+              className={`mb-3 rounded-xl px-3 py-2 text-left text-xs ${status.type === "error"
                   ? "bg-[#fee2e2] text-[#991b1b]"
                   : "bg-[#e0f2fe] text-[#0c4a6e]"
-              }`}
+                }`}
             >
               {status.message}
             </div>
@@ -617,12 +827,14 @@ export default function AuthPage() {
           </button>
         </form>
 
-        <button
-          type="button"
-          className="mt-4 text-sm font-semibold text-[#6c4cf5]"
-        >
-          {isSignup ? "Sign up with SSO" : "Log in with SSO"}
-        </button>
+        {!isVerify && (
+          <button
+            type="button"
+            className="mt-4 text-sm font-semibold text-[#6c4cf5] transition hover:text-[#4f32e6] hover:underline cursor-pointer"
+          >
+            {isSignup ? "Sign up with SSO" : "Log in with SSO"}
+          </button>
+        )}
       </div>
 
       <button

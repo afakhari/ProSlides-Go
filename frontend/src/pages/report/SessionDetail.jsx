@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, LogOut, Home } from "lucide-react";
-import { getAuthHeaders } from "../../utils/auth";
+import { apiFetch } from "../../utils/apiFetch";
+import { clearAuthStorage, getRefreshToken } from "../../utils/auth";
 
 export default function SessionDetail() {
   const { quizId } = useParams();
@@ -19,9 +20,8 @@ export default function SessionDetail() {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `https://api.proslides.ir/api/quizzes/${quizId}/final-leaderboard/`,
-          { headers: getAuthHeaders() }
+        const response = await apiFetch(
+          `/quizzes/${quizId}/final-leaderboard/`
         );
 
         if (!response.ok) {
@@ -54,6 +54,27 @@ export default function SessionDetail() {
     if (leaderboardData.length === 0) return 0;
     const maxScore = Math.max(...leaderboardData.map((p) => p.score));
     return maxScore > 0 ? (score / maxScore) * 100 : 0;
+  };
+
+  const handleLogout = async () => {
+    setShowProfileMenu(false);
+    try {
+      const refresh = getRefreshToken();
+      if (refresh) {
+        const response = await apiFetch("/auth/logout/", {
+          method: "POST",
+          json: { refresh },
+        });
+        if (!response.ok) {
+          console.warn("Logout request failed:", response.statusText);
+        }
+      }
+    } catch (err) {
+      console.warn("Logout error:", err);
+    } finally {
+      clearAuthStorage();
+      navigate("/auth");
+    }
   };
 
   return (
@@ -111,8 +132,7 @@ export default function SessionDetail() {
               <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-50">
                 <button
                   onClick={() => {
-                    setShowProfileMenu(false);
-                    // Add logout logic here
+                    handleLogout();
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                 >

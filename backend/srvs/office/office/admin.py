@@ -6,15 +6,15 @@ from .models import Quiz, Slide, Question, Option, PlayerSession, Leaderboard
 @admin.register(Quiz)
 class QuizAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'title', 'author', 'slides_count', 'created_at',
+        'id', 'title', 'owner', 'slides_count', 'created_at',
         'background_preview', 'music_preview'
     ]
-    list_filter = ['created_at', 'author']
-    search_fields = ['title', 'author']
+    list_filter = ['created_at', 'owner']
+    search_fields = ['title', 'owner__username', 'owner__email']
     readonly_fields = ['created_at', 'slides_count_display']
     fieldsets = (
         ('اطلاعات اصلی', {
-            'fields': ('title', 'author', 'created_at')
+            'fields': ('title', 'owner', 'created_at')
         }),
         ('ظاهر و صدا', {
             'fields': ('background_color', 'background_image_url', 'music_url')

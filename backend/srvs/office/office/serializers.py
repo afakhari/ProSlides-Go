@@ -89,15 +89,20 @@ class SlideSerializer(serializers.ModelSerializer):
 class QuizSerializer(serializers.ModelSerializer):
     quiz_id = serializers.IntegerField(source='id', read_only=True)
     slides = SlideSerializer(many=True, read_only=True)
+    owner_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = [
-            'quiz_id', 'title', 'created_at', 'updated_at', 'author',
+            'quiz_id', 'title', 'created_at', 'updated_at', 'owner_name',
             'access_code', 'participants_count', 'music_url',
             'background_color', 'background_image_url', 'slides'
         ]
         read_only_fields = ['quiz_id', 'created_at', 'updated_at', 'participants_count']
+
+    def get_owner_name(self, obj):
+        owner = getattr(obj, "owner", None)
+        return owner.username if owner else None
 
     def validate_access_code(self, value):
         if not value:
@@ -115,13 +120,18 @@ class QuizListSerializer(serializers.ModelSerializer):
     quiz_name = serializers.CharField(source='title', read_only=True)
     last_update = serializers.DateTimeField(source='updated_at', read_only=True)
     slides_count = serializers.IntegerField(read_only=True)
+    owner_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = [
             'quiz_id', 'quiz_name', 'last_update', 'created_at',
-            'access_code', 'participants_count', 'slides_count'
+            'access_code', 'participants_count', 'slides_count', 'owner_name'
         ]
+
+    def get_owner_name(self, obj):
+        owner = getattr(obj, "owner", None)
+        return owner.username if owner else None
 
 
 class ExportSerializer(serializers.ModelSerializer):
@@ -273,6 +283,10 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+class GoogleAuthSerializer(serializers.Serializer):
+    token = serializers.CharField()
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

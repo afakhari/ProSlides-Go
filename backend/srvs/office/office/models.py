@@ -19,7 +19,6 @@ class Quiz(models.Model):
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    author = models.CharField(max_length=100, default="anonymous")
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="quizzes", null=True, blank=True
     )

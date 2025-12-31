@@ -1,10 +1,12 @@
 import random
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from backend.srvs.office.office import models
 
@@ -32,6 +34,7 @@ CONTENT_SNIPPETS = [
 
 class Command(BaseCommand):
     help = "Generate bulk demo data (quizzes, slides, questions, options, players, leaderboards)."
+    default_password = "password123"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -44,6 +47,32 @@ class Command(BaseCommand):
             type=int,
             default=3,
             help="Number of demo owners to create (ignored if Quiz has no owner field).",
+        )
+        parser.add_argument(
+            "--single-owner",
+            action="store_true",
+            help="Assign all quizzes to the first owner created.",
+        )
+        parser.add_argument(
+            "--owner-username",
+            default=None,
+            help="Use a specific username as the only owner (overrides --owners).",
+        )
+        parser.add_argument(
+            "--owner-email",
+            default=None,
+            help="Email for the specific owner (used with --owner-username).",
+        )
+        parser.add_argument(
+            "--owner-password",
+            default=None,
+            help="Password for the specific owner if it is created.",
+        )
+        parser.add_argument(
+            "--verified-ratio",
+            type=float,
+            default=0.7,
+            help="Share of demo owners with verified email state (0-1).",
         )
         parser.add_argument(
             "--quizzes",
@@ -88,14 +117,40 @@ class Command(BaseCommand):
             help="Random seed for deterministic data.",
         )
 
-    def _create_owners(self, count, rng):
+    def _create_owners(self, options, rng):
         quiz_fields = {field.name for field in models.Quiz._meta.fields}
         if "owner" not in quiz_fields:
             return []
 
         User = get_user_model()
         owners = []
-        count = max(count, 1)
+        owner_username = options.get("owner_username")
+        owner_email = options.get("owner_email")
+        owner_password = options.get("owner_password") or self.default_password
+        if owner_username:
+            user, created = User.objects.get_or_create(
+                username=owner_username,
+                defaults={
+                    "email": owner_email or f"{owner_username}@example.com",
+                    "is_active": True,
+                },
+            )
+            if created:
+                user.set_password(owner_password)
+                user.save()
+            else:
+                updates = []
+                if owner_email and hasattr(user, "email") and user.email != owner_email:
+                    user.email = owner_email
+                    updates.append("email")
+                if hasattr(user, "is_active") and not user.is_active:
+                    user.is_active = True
+                    updates.append("is_active")
+                if updates:
+                    user.save(update_fields=updates)
+            return [user]
+
+        count = max(options["owners"], 1)
         for idx in range(count):
             username = f"demo_owner_{idx + 1}"
             email = f"owner{idx + 1}@example.com"
@@ -118,6 +173,25 @@ class Command(BaseCommand):
                     user.save(update_fields=updates)
             owners.append(user)
         return owners
+
+    def _ensure_email_verifications(self, owners, rng, verified_ratio):
+        if not owners:
+            return
+
+        now = timezone.now()
+        for owner in owners:
+            is_verified = rng.random() < verified_ratio
+            defaults = {
+                "code": None if is_verified else f"{rng.randint(0, 999999):06d}",
+                "attempts": rng.randint(0, 2),
+                "is_verified": is_verified,
+                "expires_at": now + timedelta(hours=2),
+                "verified_at": now if is_verified else None,
+            }
+            models.EmailVerification.objects.get_or_create(
+                user=owner,
+                defaults=defaults,
+            )
 
     def _random_color(self, rng):
         return f"#{rng.randint(0, 0xFFFFFF):06x}"
@@ -166,7 +240,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Database flushed."))
 
         rng = random.Random(options["seed"])
-        owners = self._create_owners(options["owners"], rng)
+        owners = self._create_owners(options, rng)
+        self._ensure_email_verifications(owners, rng, options["verified_ratio"])
+        single_owner = options["single_owner"] or bool(options["owner_username"])
 
         quizzes_created = 0
         slides_created = 0
@@ -188,11 +264,13 @@ class Command(BaseCommand):
             leaderboard_id_field = "user_id"
 
         for quiz_idx in range(options["quizzes"]):
-            owner = owners[quiz_idx % len(owners)] if owners else None
+            if owners:
+                owner = owners[0] if single_owner else owners[quiz_idx % len(owners)]
+            else:
+                owner = None
             title = f"Demo Quiz {quiz_idx + 1} - {rng.choice(TITLE_WORDS)}"
             quiz_kwargs = {
                 "title": title,
-                "author": owner.username if owner else f"author_{quiz_idx + 1}",
                 "music_url": "https://example.com/music.mp3",
                 "background_color": self._random_color(rng),
                 "background_image_url": "https://example.com/background.jpg",

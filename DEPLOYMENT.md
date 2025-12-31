@@ -33,6 +33,7 @@ SECRET_KEY=change-me
 ALLOWED_HOSTS=your.domain,api.your.domain
 DJANGO_SETTINGS_MODULE=backend.srvs.office.office.settings.prod
 EXPORT_SERVICE_TOKEN=change-me-export-token
+GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 Email + OTP (verification) settings:
@@ -61,6 +62,12 @@ Other optional production settings:
 CORS_ALLOW_ALL_ORIGINS=False
 CORS_ALLOW_CREDENTIALS=False
 LOG_LEVEL=INFO
+```
+
+Frontend build env (set in your frontend hosting):
+```
+VITE_API_BASE_URL=https://api.your.domain/api
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 ## Rust service token (export + leaderboard)
