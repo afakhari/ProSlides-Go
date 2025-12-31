@@ -643,7 +643,7 @@ class SlideViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
-        # برای Swagger
+        # O"OñOUO Swagger
         if getattr(self, 'swagger_fake_view', False):
             return Slide.objects.none()
         return Slide.objects.filter(quiz_id=self.kwargs['quiz_pk'], quiz__owner=self.request.user)
@@ -1424,7 +1424,7 @@ class LeaderboardReceiveView(viewsets.ViewSet):
         try:
             question = Question.objects.get(
                 slide_id=slide_pk,
-                slide__quiz_id=quiz_pk
+                slide__quiz_id=quiz_pk,
             )
         except Question.DoesNotExist:
             return Response(
