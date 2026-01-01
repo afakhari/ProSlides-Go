@@ -19,6 +19,7 @@ import PlayerLeaderBoard from "./pages/presentation/player/LeaderBoard";
 import Waiting from "./pages/loading/LoadingPage";
 
 import AuthPage from "./pages/auth/AuthPage";
+import LandingPage from "./pages/landing/LandingPage";
 
 import { QuizSetup } from "./data/mockData";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
@@ -38,11 +39,13 @@ export default function App() {
       <ServerDataProvider>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/signup" element={<AuthPage />} />
           <Route
             path="/:role/presentation/:roomId"
             element={<PresentationRouter />}
           />
-          <Route path="/" element={<AuthPage />} />
+          <Route path="/" element={<LandingPage />} />
           {/* Access code route - resolves access code to quiz_id and redirects to player presentation */}
           <Route path="/:accessCode" element={<AccessCodeResolver />} />
           {/* Manager/Role panel (supports both /manager and any role param) */}

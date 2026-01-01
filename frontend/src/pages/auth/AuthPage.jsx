@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../utils/apiFetch";
 
 function formatError(payload) {
@@ -157,24 +157,6 @@ function EyeIcon({ open }) {
   );
 }
 
-function SparkLogo() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" className="h-7 w-7">
-      <path
-        d="M15.9 3.5c.5-1 1.9-1 2.4 0l2.2 4.2a6 6 0 0 0 2.5 2.5l4.2 2.2c1 .5 1 1.9 0 2.4l-4.2 2.2a6 6 0 0 0-2.5 2.5l-2.2 4.2c-.5 1-1.9 1-2.4 0l-2.2-4.2a6 6 0 0 0-2.5-2.5l-4.2-2.2c-1-.5-1-1.9 0-2.4l4.2-2.2a6 6 0 0 0 2.5-2.5l2.2-4.2Z"
-        fill="url(#spark)"
-      />
-      <defs>
-        <linearGradient id="spark" x1="2" y1="2" x2="30" y2="30">
-          <stop offset="0" stopColor="#FF6FAE" />
-          <stop offset="0.5" stopColor="#FF7B54" />
-          <stop offset="1" stopColor="#6C5CE7" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
 function GlobeIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
@@ -207,20 +189,14 @@ function Cloud({ className }) {
   );
 }
 
-function Palette({ className }) {
+function ArcticStar({ className }) {
   return (
-    <svg viewBox="0 0 140 140" aria-hidden="true" className={className}>
-      <path
-        d="M70 10c-33 0-60 24-60 54 0 29 26 54 56 54h9c9 0 13-12 6-19-5-5-4-13 2-17 7-5 16 1 16 9v1c0 14 11 26 25 26 18 0 26-16 26-34C150 43 116 10 70 10Z"
-        fill="#FFE69C"
-        stroke="#F4C45D"
-        strokeWidth="4"
-      />
-      <circle cx="45" cy="55" r="8" fill="#FF6B6B" />
-      <circle cx="73" cy="45" r="8" fill="#6BCB77" />
-      <circle cx="55" cy="85" r="8" fill="#4D96FF" />
-      <circle cx="86" cy="82" r="8" fill="#845EC2" />
-    </svg>
+    <div
+      aria-hidden="true"
+      className={`${className} flex items-center justify-center text-[64px]`}
+    >
+      ❄️
+    </div>
   );
 }
 
@@ -278,7 +254,16 @@ function ChatBubble() {
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState("login");
+  const location = useLocation();
+  const initialMode = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const queryMode = params.get("mode");
+    if (queryMode === "signup" || queryMode === "login") return queryMode;
+    if (location.pathname === "/signup") return "signup";
+    if (location.pathname === "/login") return "login";
+    return "login";
+  }, [location.pathname, location.search]);
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -302,6 +287,10 @@ export default function AuthPage() {
     if (isSignup && !fullName.trim()) return false;
     return true;
   }, [email, password, fullName, isSignup, isVerify, verificationCode]);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const handleModeSwitch = () => {
     if (mode === "verify") {
@@ -632,13 +621,15 @@ export default function AuthPage() {
         }}
       />
 
-      <div className="absolute left-0 right-0 top-6 z-10 px-9 md:px-5">
+      <div className="absolute left-0 right-0 top-6 z-10 px-6 md:px-4">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="hidden md:block" />
-          <div className="inline-flex items-center justify-center gap-2 text-[20px] font-semibold text-[#1b2430]">
-            <SparkLogo />
-            <span>ProSlides</span>
-          </div>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-[#1b2430] font-semibold text-lg before:content-['✱'] before:text-xl"
+          >
+            ProSlides
+          </Link>
           <div className="flex justify-end">
             <button
               type="button"
@@ -658,7 +649,7 @@ export default function AuthPage() {
             className="absolute bottom-[18%] right-[8%] w-[200px] opacity-90 animate-[auth-float_6s_ease-in-out_infinite]"
             style={{ animationDelay: "1.2s" }}
           />
-          <Palette
+          <ArcticStar
             className="absolute bottom-[18%] left-[16%] w-[140px] animate-[auth-float_7s_ease-in-out_infinite]"
             style={{ animationDelay: "0.4s" }}
           />
