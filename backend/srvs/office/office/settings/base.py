@@ -1,4 +1,5 @@
 from pathlib import Path
+from email.utils import formataddr
 
 from environs import Env
 
@@ -93,6 +94,9 @@ EMAIL_BACKEND = env.str(
     default="django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
 )
 DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="no-reply@proslides.ir")
+SERVER_EMAIL = env.str("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+EMAIL_FROM_NAME = env.str("EMAIL_FROM_NAME", default="ProSlides")
+EMAIL_FROM_ADDRESS = formataddr((EMAIL_FROM_NAME, DEFAULT_FROM_EMAIL))
 EMAIL_HOST = env.str("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=25)
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")

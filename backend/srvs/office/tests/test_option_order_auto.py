@@ -81,3 +81,29 @@ def test_option_order_update_shifts_existing(api_client):
         .values_list("order", flat=True)
     )
     assert orders == [1, 2, 3]
+
+
+@pytest.mark.django_db
+def test_option_order_update_beyond_range_moves_to_end(api_client):
+    question = QuestionFactory()
+    api_client.force_authenticate(user=question.slide.quiz.owner)
+    url = f"/api/quizzes/{question.slide.quiz_id}/slides/{question.slide_id}/question/options/"
+
+    first = api_client.post(url, {"text": "A", "is_correct": False}, format="json")
+    api_client.post(url, {"text": "B", "is_correct": False}, format="json")
+    api_client.post(url, {"text": "C", "is_correct": False}, format="json")
+
+    resp = api_client.patch(
+        f"{url}{first.data['option_id']}/",
+        {"order": 10},
+        format="json",
+    )
+    assert resp.status_code == 200
+    assert resp.data["order"] == 10
+
+    orders = list(
+        Option.objects.filter(question=question)
+        .order_by("order")
+        .values_list("order", flat=True)
+    )
+    assert orders == [1, 2, 10]

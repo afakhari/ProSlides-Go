@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, LogOut, Home } from "lucide-react";
+import { LogOut, Home } from "lucide-react";
 import { apiFetch } from "../../utils/apiFetch";
 import { clearAuthStorage, getRefreshToken } from "../../utils/auth";
 
@@ -8,9 +8,8 @@ export default function SessionDetail() {
   const { quizId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("participants");
-  const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState("HesamAzmoun");
+  const [loggedInUser] = useState("HesamAzmoun");
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

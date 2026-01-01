@@ -750,7 +750,7 @@
 // }
 
 import { useState, useEffect } from "react";
-import { useLocation, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MiniResultsResultsOnly from "./MiniResultsResultsOnly";
 import LeaderboardPreview from "./LeaderboardPreview";
 import QuizHeader from "../../../components/QuizHeader";
@@ -762,10 +762,7 @@ import AudioPanel from "./AudioPanel";
 import { quizService } from "../../../services/quizService";
 
 export default function EditorPage() {
-  const location = useLocation();
-  const params = useParams();
-  const navigate = useNavigate();
-  const { roomId, role } = useParams();
+  const { roomId } = useParams();
   const quizId = parseInt(roomId, 10);
 
   const [quiz, setQuiz] = useState(null);
@@ -802,24 +799,12 @@ export default function EditorPage() {
     };
 
     fetchQuiz();
-  }, [quizId, navigate]);
+  }, [quizId]);
 
   const updateQuiz = (updatedQuiz) => {
     setQuiz(updatedQuiz);
   };
 
-  const saveQuiz = async () => {
-    if (!quiz) return;
-
-    try {
-      const savedQuiz = await quizService.updateQuiz(quiz.quiz_id, quiz);
-      setQuiz(savedQuiz);
-      alert("✅ Quiz saved successfully!");
-    } catch (err) {
-      alert("❌ Failed to save quiz");
-      console.error(err);
-    }
-  };
 
   if (loading) {
     return (
@@ -837,12 +822,10 @@ export default function EditorPage() {
     );
   }
 
-  return (
-    <QuestionEditor quiz={quiz} updateQuiz={updateQuiz} saveQuiz={saveQuiz} />
-  );
+  return <QuestionEditor quiz={quiz} updateQuiz={updateQuiz} />;
 }
 
-function QuestionEditor({ quiz, updateQuiz, saveQuiz }) {
+function QuestionEditor({ quiz, updateQuiz }) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const navigate = useNavigate();
 
@@ -1504,3 +1487,4 @@ function QuestionEditor({ quiz, updateQuiz, saveQuiz }) {
     </div>
   );
 }
+

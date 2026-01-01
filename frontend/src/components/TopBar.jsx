@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAudio } from "../contexts/AudioContext";
 
 export default function TopBar({
@@ -8,6 +9,7 @@ export default function TopBar({
   isQROpen = false,
 }) {
   const { isMuted, toggleMute } = useAudio();
+  const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
 
@@ -41,6 +43,7 @@ export default function TopBar({
     >
       <div className="flex items-center gap-2">
         <button
+          onClick={() => navigate("/manager/panel/")}
           className="w-9 h-9 pb-1 bg-black/15 rounded-full flex items-center justify-center text-white cursor-pointer border-none text-base hover:bg-black/25 transition-colors"
           aria-label="Back"
         >

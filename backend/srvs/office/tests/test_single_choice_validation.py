@@ -73,3 +73,21 @@ def test_switch_to_single_rejects_multiple_correct_options(api_client):
         format="json",
     )
     assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+def test_single_choice_update_rejects_second_correct_option(api_client):
+    owner = _create_owner()
+    quiz = _create_quiz(owner)
+    slide = SlideFactory(quiz=quiz, slide_type=1)
+    question = QuestionFactory(slide=slide, question_type="single")
+    OptionFactory(question=question, order=1, is_correct=True)
+    other_option = OptionFactory(question=question, order=2, is_correct=False)
+
+    if "owner" in {field.name for field in Quiz._meta.get_fields()}:
+        api_client.force_authenticate(user=owner)
+    update_url = (
+        f"/api/quizzes/{quiz.id}/slides/{slide.id}/question/options/{other_option.id}/"
+    )
+    resp = api_client.patch(update_url, {"is_correct": True}, format="json")
+    assert resp.status_code == 400

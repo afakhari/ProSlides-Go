@@ -139,3 +139,28 @@ def test_final_leaderboard_tie_ranking(api_client):
     assert leaderboard[p1.rust_session_id]["rank"] == 1
     assert leaderboard[p2.rust_session_id]["rank"] == 1
     assert leaderboard[p3.rust_session_id]["rank"] == 3
+
+
+@pytest.mark.django_db
+def test_final_leaderboard_falls_back_to_leaderboard_names(api_client):
+    owner = UserFactory()
+    quiz = QuizFactory(owner=owner)
+    question = QuestionFactory(slide=SlideFactory(quiz=quiz, slide_type=1))
+
+    Leaderboard.objects.create(
+        question=question,
+        rust_session_id="orphan",
+        player_name="Fallback",
+        avatar="F",
+        score=75,
+        time_taken=1.1,
+        rank=1,
+    )
+
+    api_client.force_authenticate(user=owner)
+    resp = api_client.get(f"/api/quizzes/{quiz.id}/final-leaderboard/")
+    assert resp.status_code == 200
+    entry = resp.data["leaderboard"][0]
+    assert entry["rust_session_id"] == "orphan"
+    assert entry["player_name"] == "Fallback"
+    assert entry["avatar"] == "F"

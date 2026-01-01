@@ -18,7 +18,6 @@ import { useWebSocket } from "./hooks/useWebSocket";
 export default function App() {
   // Start the app in the manager flow by default
   const [data, setData] = useState({ type: "ManagerJoinPage" });
-  const [currentPage, setCurrentPage] = useState("join"); // join | pollpage | leaderboard
   const [currentSlide, setCurrentSlide] = useState(1);
   const [totalSlides] = useState(QuizSetup.slides.length);
 

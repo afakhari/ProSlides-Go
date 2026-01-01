@@ -21,7 +21,6 @@ export default function Sidebar({
   setSlide, 
   onCreateLeaderboardSlide, 
   onDeleteLeaderboardSlide, 
-  slides, 
   onClose,
   onSlideUpdated
 }) {
@@ -337,9 +336,6 @@ export default function Sidebar({
   };
 
   // بررسی وجود اسلاید لیدربرد مرتبط
-  const hasLinkedLeaderboard = slides.some(
-    s => s.slide_type === 3 && s.order === safeSlide.order
-  );
 
   // مدیریت تغییرات فیلدها
   const handleFieldChange = (field, value) => {
@@ -530,7 +526,7 @@ export default function Sidebar({
             setLoading(false);
           }
         }, 5000);
-      } catch (err) {
+      } catch {
         setError("خطا در بررسی لینک");
         setLoading(false);
       }

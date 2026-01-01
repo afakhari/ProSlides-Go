@@ -12,4 +12,6 @@ export const clearAuthStorage = () => {
   localStorage.removeItem("auth.access");
   localStorage.removeItem("auth.refresh");
   localStorage.removeItem("auth.name");
+  localStorage.removeItem("auth.email");
+  localStorage.removeItem("auth.promptSetPassword");
 };

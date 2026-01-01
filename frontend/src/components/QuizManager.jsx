@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
@@ -21,16 +21,19 @@ import { clearAuthStorage, getRefreshToken } from "../utils/auth";
 
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
-  const [loggedInUser, setLoggedInUser] = useState(() =>
+  const [loggedInUser] = useState(() =>
     localStorage.getItem("auth.name") || "You"
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
+  const [passwordPromptStatus, setPasswordPromptStatus] = useState(null);
+  const [passwordPromptLoading, setPasswordPromptLoading] = useState(false);
 
   // Load quizzes from API on mount
   const [quizzes, setQuizzes] = useState([]);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     try {
       setLoading(true);
       // Add a small delay for better UX
@@ -49,7 +52,7 @@ export default function QuizManager({ onNewPresentation }) {
         slides: quiz.slides_count,
         participants: quiz.participants_count,
         members: "",
-        createdBy: quiz.owner_name || loggedInUser,
+        createdBy: quiz.owner_full_name || quiz.owner_name || loggedInUser,
         lastUpdated: new Date(quiz.last_update).toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
@@ -70,10 +73,18 @@ export default function QuizManager({ onNewPresentation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loggedInUser]);
 
   useEffect(() => {
     fetchQuizzes();
+  }, [fetchQuizzes]);
+
+  useEffect(() => {
+    const promptFlag = localStorage.getItem("auth.promptSetPassword");
+    const email = localStorage.getItem("auth.email");
+    if (promptFlag && email) {
+      setPasswordPromptVisible(true);
+    }
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +92,6 @@ export default function QuizManager({ onNewPresentation }) {
   const [showMenu, setShowMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState("bottom"); // 'top' or 'bottom'
   const [showShareModal, setShowShareModal] = useState(null);
-  const [templatesExpanded, setTemplatesExpanded] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [renamingQuiz, setRenamingQuiz] = useState(null);
   const [newQuizName, setNewQuizName] = useState("");
@@ -157,11 +167,6 @@ export default function QuizManager({ onNewPresentation }) {
       },
       onClose: () => setConfirmDialog((prev) => ({ ...prev, isOpen: false })),
     });
-  };
-
-  // Helper function to close confirmation dialog
-  const closeConfirmDialog = () => {
-    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
   };
 
   // Helper function to parse date strings in "DD Mon YYYY" format
@@ -518,6 +523,46 @@ export default function QuizManager({ onNewPresentation }) {
     }
   };
 
+  const dismissPasswordPrompt = () => {
+    localStorage.removeItem("auth.promptSetPassword");
+    setPasswordPromptVisible(false);
+  };
+
+  const sendPasswordSetupEmail = async () => {
+    const email = localStorage.getItem("auth.email");
+    if (!email) {
+      setPasswordPromptStatus({
+        type: "error",
+        message: "Email address not found. Please log in again.",
+      });
+      return;
+    }
+    setPasswordPromptLoading(true);
+    setPasswordPromptStatus(null);
+    try {
+      const response = await apiFetch("/auth/password/reset/", {
+        method: "POST",
+        auth: false,
+        json: { email },
+      });
+      if (!response.ok) {
+        throw new Error("Unable to send password setup email.");
+      }
+      setPasswordPromptStatus({
+        type: "success",
+        message: "Password setup link sent. Check your inbox.",
+      });
+      dismissPasswordPrompt();
+    } catch (err) {
+      setPasswordPromptStatus({
+        type: "error",
+        message: err.message || "Unable to send password setup email.",
+      });
+    } finally {
+      setPasswordPromptLoading(false);
+    }
+  };
+
   // Check menu position and adjust if needed
   const checkMenuPosition = (quizId, buttonElement) => {
     if (!buttonElement) return;
@@ -578,12 +623,12 @@ export default function QuizManager({ onNewPresentation }) {
       {/* Header */}
       <div className="min-h-screen mx-auto mb-8">
         {/* Top Navigation Bar with Search */}
-        <div className="bg-white fixed top-0 left-0 right-0 w-full h-16 flex items-center justify-between px-6 z-50 shadow-sm">
+        <div className="bg-white fixed top-0 left-0 right-0 w-full h-auto min-h-16 flex flex-col md:flex-row items-center justify-between px-4 md:px-6 py-2 md:py-0 z-50 shadow-sm gap-3 md:gap-0">
           <div className="text-black font-semibold text-lg flex items-center gap-1.5 before:content-['✱'] before:text-xl">
             ProSlides
           </div>
 
-          <div className="relative flex-1 max-w-md mx-8">
+          <div className="relative w-full md:flex-1 md:max-w-md md:mx-8 mb-2 md:mb-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
             <input
               type="text"
@@ -594,7 +639,7 @@ export default function QuizManager({ onNewPresentation }) {
             />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-3 md:gap-4">
             <button className="p-2 hover:bg-gray-100 rounded-lg transition">
               <span className="text-xl">🌐</span>
             </button>
@@ -637,6 +682,45 @@ export default function QuizManager({ onNewPresentation }) {
 
         {/* Content with top padding to account for fixed header */}
         <div className="pt-24 px-6">
+          {passwordPromptVisible && (
+            <div className="mb-6 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm text-purple-900 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-semibold">Set a password for your account</div>
+                  <div className="text-xs text-purple-700">
+                    You signed up with Google. Set a password to log in without Google.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={sendPasswordSetupEmail}
+                    disabled={passwordPromptLoading}
+                    className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {passwordPromptLoading ? "Sending..." : "Send link"}
+                  </button>
+                  <button
+                    onClick={dismissPasswordPrompt}
+                    className="rounded-md border border-purple-200 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-50"
+                  >
+                    Later
+                  </button>
+                </div>
+              </div>
+              {passwordPromptStatus && (
+                <div
+                  className={`mt-2 text-xs ${
+                    passwordPromptStatus.type === "error"
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  {passwordPromptStatus.message}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* My Presentations Section */}
           <div className="mb-6">
             {/* <h3 className="text-xs uppercase text-gray-500 mb-2">
@@ -647,12 +731,12 @@ export default function QuizManager({ onNewPresentation }) {
             </h2>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 md:gap-0">
+              <div className="flex gap-3 w-full md:w-auto">
                 <Button
                   onClick={handleNewPresentation}
                   disabled={creatingQuiz}
-                  className="bg-blue-800 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-purple-800 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 w-full md:w-auto"
                 >
                   {creatingQuiz ? (
                     <>
@@ -678,7 +762,7 @@ export default function QuizManager({ onNewPresentation }) {
                 </Button> */}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-3">
                 <span className="text-sm text-gray-500">Sort by</span>
                 <div className="relative">
                   <select
@@ -696,7 +780,8 @@ export default function QuizManager({ onNewPresentation }) {
             </div>
 
             {/* Quiz Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
               <table className="w-full ">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
@@ -982,6 +1067,115 @@ export default function QuizManager({ onNewPresentation }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {filteredQuizzes.map((quiz) => (
+                <div 
+                  key={quiz.id} 
+                  className={`bg-white rounded-lg p-5 shadow-sm border border-gray-200 relative transition-all ${selectedQuizzes.includes(quiz.id) ? "ring-2 ring-purple-500 bg-purple-50/30" : ""}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3.5 overflow-hidden">
+                      <input
+                        type="checkbox"
+                        className="rounded w-5 h-5 border-gray-300 text-purple-600 focus:ring-purple-500"
+                        checked={selectedQuizzes.includes(quiz.id)}
+                        onChange={() => handleQuizSelect(quiz.id)}
+                      />
+                      <div className="w-12 h-12 min-w-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xl shadow-sm">
+                        🎯
+                      </div>
+                      <div className="truncate min-w-0 flex-1">
+                        {renamingQuiz === quiz.id ? (
+                           <input
+                              type="text"
+                              value={newQuizName}
+                              onChange={(e) => setNewQuizName(e.target.value)}
+                              onBlur={async () => {
+                                if (newQuizName.trim() && newQuizName.trim() !== quiz.name) {
+                                  const success = await renameQuiz(quiz.id, newQuizName);
+                                  if (!success) setNewQuizName(quiz.name);
+                                }
+                                setRenamingQuiz(null);
+                              }}
+                              autoFocus
+                              className="w-full font-semibold text-gray-800 border border-purple-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                           />
+                        ) : (
+                           <h3 className="font-semibold text-gray-900 truncate text-lg leading-tight" onClick={() => handleEdit(quiz.id)}>{quiz.name}</h3>
+                        )}
+                         <div className="text-xs text-gray-500 flex items-center gap-3 mt-1">
+                            <span className="flex items-center gap-1">📄 {quiz.slides}</span>
+                            <span className="flex items-center gap-1">👥 {quiz.participants}</span>
+                         </div>
+                      </div>
+                    </div>
+                    
+                    <div className="relative ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMenu(showMenu === quiz.id ? null : quiz.id);
+                        }}
+                        className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                      >
+                        <MoreVertical className="w-5 h-5 text-gray-500" />
+                      </button>
+                      
+                      {showMenu === quiz.id && (
+                        <div className="absolute right-0 top-10 bg-white border border-gray-100 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] w-56 z-50 overflow-hidden flex flex-col py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right text-sm">
+                             <button onClick={() => { handlePresent(quiz.accessCode); setShowMenu(null); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-purple-600 font-medium">
+                               <Play className="w-4 h-4" /> Present
+                             </button>
+                             <button onClick={() => { setRenamingQuiz(quiz.id); setNewQuizName(quiz.name); setShowMenu(null); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                               <Pencil className="w-4 h-4" /> Rename
+                             </button>
+                             <button onClick={() => { setShowShareModal(quiz.id); setShowMenu(null); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                               <span className="w-4 h-4 flex items-center justify-center">🔗</span> Share
+                             </button>
+                             <button onClick={() => handleDuplicate(quiz)} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                               <Copy className="w-4 h-4" /> Duplicate
+                             </button>
+                             <div className="h-px bg-gray-100 my-1"></div>
+                             <button onClick={() => { 
+                                setShowMenu(null);
+                                showConfirmDialog({
+                                  title: "Reset Quiz Results",
+                                  description: "Are you sure you want to reset all results for this quiz? This action cannot be undone.",
+                                  confirmText: "Reset Results",
+                                  confirmVariant: "destructive",
+                                  onConfirm: async () => await resetQuizResults(quiz.id),
+                                });
+                             }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                               <Copy className="w-4 h-4" /> Reset results
+                             </button>
+                             <button onClick={() => { setShowMenu(null); handleDeleteQuiz(quiz.id); }} className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 flex items-center gap-3">
+                               <Trash2 className="w-4 h-4" /> Delete
+                             </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-5 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+                    <div>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">Access Code</span>
+                        <div onClick={() => setShowShareModal(quiz.id)} className="font-mono font-bold text-purple-600 bg-purple-100/50 px-2 py-1 rounded inline-block cursor-pointer border border-purple-100">{quiz.accessCode}</div>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">Last Updated</span>
+                        <span className="text-xs font-medium text-gray-600">{quiz.lastUpdated}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                     <Button onClick={() => handleEdit(quiz.id)} variant="outline" className="flex-1 h-10 text-sm border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium tracking-wide">Edit</Button>
+                     <Button onClick={() => handlePresent(quiz.accessCode)} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-10 text-sm shadow-sm shadow-purple-200 font-medium tracking-wide">Present</Button>
+                  </div>
+                </div>
+              ))}
             </div>
             {loading && (
               <div className="flex justify-center py-12">

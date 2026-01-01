@@ -26,7 +26,7 @@ export default function DataWatcher({ data }) {
       default:
         navigate("/", { replace: false });
     }
-  }, [data?.type]);
+  }, [data?.type, navigate]);
 
   return null;
 }

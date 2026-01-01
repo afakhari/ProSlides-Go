@@ -26,10 +26,10 @@ function calculatePlayersReady({ type, Users }) {
 export default function ManagerJoinPage({
   roomId,
   onNext,
-  onPrevious,
   currentSlide = 1,
   totalSlides = 3,
   quiz,
+  onEndGame,
 }) {
   const { isConnected, connect, sendNavigation, sendEnd, lastMessage } =
     useWebSocket();
@@ -44,7 +44,6 @@ export default function ManagerJoinPage({
   const [centerOffset, setCenterOffset] = useState({ x: 0, y: 0 });
   const [hiddenUsers, setHiddenUsers] = useState(new Set()); // Track which users have been clicked
   const [showQRModal, setShowQRModal] = useState(false); // State for QR modal
-  const [showLeaderboard, setShowLeaderboard] = useState(false); // State for leaderboard modal
   const [_navigationData, setNavigationData] = useState(
     createNextPrevious(5, null, null)
   ); // State for tracking navigation (to be sent to server)
@@ -54,9 +53,6 @@ export default function ManagerJoinPage({
   // استفاده از بازیکنان از سرور یا mock data
   const displayUsers = users.length > 0 ? users : User_adding.Users;
   const playersReady = users.length || calculatePlayersReady(User_adding);
-
-  // Game code (you can make this dynamic)
-  const gameCode = sessionId;
 
   // Calculate current question number and details from currentSlide
   const currentQuestionIndex = Math.floor(currentSlide / 2);
@@ -131,27 +127,10 @@ export default function ManagerJoinPage({
     if (onNext) onNext();
   };
 
-  const handlePrevious = () => {
-    const newNavigationData = createNextPrevious(
-      5,
-      "previous",
-      currentQuestionIndex
-    );
-    setNavigationData(newNavigationData);
-    console.log(
-      "[JoinPage2] Navigation data to send to server:",
-      newNavigationData
-    );
-
-    // Send navigation to WebSocket
-    sendNavigation("previous");
-
-    if (onPrevious) onPrevious();
-  };
-
   const handleEnd = () => {
     console.log("[JoinPage] Sending end command to server");
     sendEnd();
+    if (onEndGame) onEndGame();
   };
 
   const handleStart = () => {
@@ -198,7 +177,6 @@ export default function ManagerJoinPage({
     } else if (type === "scatter") {
       // Scatter randomly across the entire main section
       // Use golden ratio for better distribution
-      const goldenRatio = 1.618033988749;
       const seed = index * 2654435761;
 
       // Calculate grid dimensions based on total players
@@ -290,7 +268,7 @@ export default function ManagerJoinPage({
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
   };
 
@@ -443,7 +421,6 @@ export default function ManagerJoinPage({
           showQRButton={true}
           onQRToggle={setShowQRModal}
           isQROpen={showQRModal}
-          onShowLeaderboard={() => setShowLeaderboard(true)}
           onNext={handleNext}
           onEnd={handleEnd}
           // onPrevious=null

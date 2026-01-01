@@ -112,3 +112,40 @@ def test_leaderboard_receive_requires_service_token(api_client):
         format="json",
     )
     assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+@override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
+def test_leaderboard_receive_updates_player_session(api_client):
+    quiz = QuizFactory()
+    question = QuestionFactory(slide=SlideFactory(quiz=quiz, slide_type=1))
+    player = PlayerSessionFactory(
+        quiz=quiz,
+        player_name="Old Name",
+        avatar="O",
+    )
+
+    payload = {
+        "leaderboard": [
+            {
+                "rust_session_id": player.rust_session_id,
+                "player_name": "New Name",
+                "avatar": "N",
+                "score": 25,
+                "time_taken": 2.0,
+                "rank": 1,
+            }
+        ]
+    }
+
+    resp = api_client.post(
+        f"/api/quizzes/{quiz.id}/slides/{question.slide_id}/question/leaderboard/",
+        payload,
+        format="json",
+        HTTP_X_EXPORT_TOKEN="test-export-token",
+    )
+    assert resp.status_code == 200
+
+    player.refresh_from_db()
+    assert player.player_name == "New Name"
+    assert player.avatar == "N"

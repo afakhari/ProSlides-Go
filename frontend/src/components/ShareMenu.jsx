@@ -257,7 +257,7 @@ export default function ShareMenu({ quizId, isOpen, onClose, accessCode }) {
         throw new Error(`Failed to save: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      await response.json();
       setSaveSuccess(true);
       
       // پیام موفقیت بعد از 3 ثانیه پاک می‌شود

@@ -183,7 +183,6 @@ class Command(BaseCommand):
                 models.Option(question=q2, order=3, text="4", is_correct=False, votes=2),
                 models.Option(question=q2, order=4, text="5", is_correct=True, votes=3),
                 models.Option(question=q2, order=5, text="6", is_correct=False, votes=1),
-
             ]
         )
 

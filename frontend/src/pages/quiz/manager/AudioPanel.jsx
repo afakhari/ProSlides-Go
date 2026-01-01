@@ -304,7 +304,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, Music, Trash2, Play, Pause, Save } from "lucide-react";
 import { quizService } from "../../../services/quizService";
 
-export default function AudioPanel({ slide, setSlide, onClose, quiz, updateQuiz }) {
+export default function AudioPanel({ onClose, quiz, updateQuiz }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [localAudio, setLocalAudio] = useState(quiz?.music_url || ""); // تغییر به music_url

@@ -186,6 +186,7 @@ class OfficeAPITests(TestCase):
         self.assertIn("question", question_slide)
         self.assertEqual(len(question_slide["question"]["options"]), 2)
 
+    @override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
     def test_question_results_persists_votes(self):
         url = reverse(
             "question-results",
@@ -197,7 +198,12 @@ class OfficeAPITests(TestCase):
                 {"option_id": self.option2.id, "number_of_submits": 2},
             ]
         }
-        response = self.client.post(url, payload, format="json")
+        response = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_X_EXPORT_TOKEN="test-export-token",
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.option1.refresh_from_db()
@@ -205,6 +211,7 @@ class OfficeAPITests(TestCase):
         self.assertEqual(self.option1.votes, 5)
         self.assertEqual(self.option2.votes, 2)
 
+    @override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
     def test_question_results_requires_all_options(self):
         url = reverse(
             "question-results",
@@ -214,7 +221,12 @@ class OfficeAPITests(TestCase):
             "options": [{"option_id": self.option1.id, "number_of_submits": 1}]
         }
         with suppress_request_warnings():
-            response = self.client.post(url, payload, format="json")
+            response = self.client.post(
+                url,
+                payload,
+                format="json",
+                HTTP_X_EXPORT_TOKEN="test-export-token",
+            )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @override_settings(EXPORT_SERVICE_TOKEN="test-export-token")

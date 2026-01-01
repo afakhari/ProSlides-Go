@@ -3,23 +3,8 @@ import {
   Routes,
   Route,
   useParams,
-  useNavigate,
 } from "react-router-dom";
-import { useState, useEffect } from "react";
-
-import ManagerJoinPage from "./pages/presentation/manager/JoinPage";
-import ManagerPickAnswerQuestion from "./pages/presentation/manager/PickAnswerQuestion";
-import ManagerLeaderBoard from "./pages/presentation/manager/LeaderBoard";
-import ManagerPlayerLeaderBoard from "./pages/presentation/manager/PlayerLeaderBoard";
-
-import PlayerJoinPage from "./pages/presentation/player/JoinPage";
-import PlayerPickAnswerQuestion from "./pages/presentation/player/PickAnswerQuestion";
-import PlayerLeaderBoard from "./pages/presentation/player/LeaderBoard";
-
-import Waiting from "./pages/loading/LoadingPage";
-
-import AuthPage from "./pages/auth/AuthPage";
-import LandingPage from "./pages/landing/LandingPage";
+import { useState, useEffect, lazy, Suspense } from "react";
 
 import { QuizSetup } from "./data/mockData";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
@@ -27,37 +12,67 @@ import { ServerDataProvider } from "./contexts/ServerDataContext";
 import { useServerData } from "./hooks/useServerData";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { AudioProvider, useAudio } from "./contexts/AudioContext";
-import SessionDetail from "./pages/report/SessionDetail";
 import { apiFetch } from "./utils/apiFetch";
 
-import HomePage from "./pages/quiz/manager/HomePage";
-import EditorPage from "./pages/quiz/manager/EditorPage";
+import LandingPage from "./pages/landing/LandingPage";
+import Waiting from "./pages/loading/LoadingPage";
+
+const ManagerJoinPage = lazy(() =>
+  import("./pages/presentation/manager/JoinPage")
+);
+const ManagerPickAnswerQuestion = lazy(() =>
+  import("./pages/presentation/manager/PickAnswerQuestion")
+);
+const ManagerLeaderBoard = lazy(() =>
+  import("./pages/presentation/manager/LeaderBoard")
+);
+const FinalLeaderboard = lazy(() =>
+  import("./pages/presentation/manager/FinalLeaderboard")
+);
+
+const PlayerJoinPage = lazy(() =>
+  import("./pages/presentation/player/JoinPage")
+);
+const PlayerPickAnswerQuestion = lazy(() =>
+  import("./pages/presentation/player/PickAnswerQuestion")
+);
+const PlayerLeaderBoard = lazy(() =>
+  import("./pages/presentation/player/LeaderBoard")
+);
+
+const AuthPage = lazy(() => import("./pages/auth/AuthPage"));
+const SessionDetail = lazy(() => import("./pages/report/SessionDetail"));
+const HomePage = lazy(() => import("./pages/quiz/manager/HomePage"));
+const EditorPage = lazy(() => import("./pages/quiz/manager/EditorPage"));
 
 export default function App() {
   return (
     <Router>
       <ServerDataProvider>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/signup" element={<AuthPage />} />
-          <Route
-            path="/:role/presentation/:roomId"
-            element={<PresentationRouter />}
-          />
-          <Route path="/" element={<LandingPage />} />
-          {/* Access code route - resolves access code to quiz_id and redirects to player presentation */}
-          <Route path="/:accessCode" element={<AccessCodeResolver />} />
-          {/* Manager/Role panel (supports both /manager and any role param) */}
-          <Route path="/:role/panel" element={<HomePage />} />
-          <Route path="/:role/panel/:roomId" element={<EditorPage />} />
-          {/* Catch-all route for any undefined path */}
-          <Route path="*" element={<Waiting />} />
-          <Route
-            path="/:role/panel/:quizId/report"
-            element={<SessionDetail />}
-          />
-        </Routes>
+        <Suspense fallback={<Waiting />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/signup" element={<AuthPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/:role/presentation/:roomId"
+              element={<PresentationRouter />}
+            />
+            <Route path="/" element={<AuthPage />} />
+            {/* Access code route - resolves access code to quiz_id and redirects to player presentation */}
+            <Route path="/:accessCode" element={<AccessCodeResolver />} />
+            {/* Manager/Role panel (supports both /manager and any role param) */}
+            <Route path="/:role/panel" element={<HomePage />} />
+            <Route path="/:role/panel/:roomId" element={<EditorPage />} />
+            {/* Catch-all route for any undefined path */}
+            <Route path="*" element={<Waiting />} />
+            <Route
+              path="/:role/panel/:quizId/report"
+              element={<SessionDetail />}
+            />
+          </Routes>
+        </Suspense>
       </ServerDataProvider>
     </Router>
   );
@@ -66,7 +81,7 @@ export default function App() {
   function AccessCodeResolver() {
     const { accessCode } = useParams();
     const [status, setStatus] = useState("loading"); // loading | error | success
-    const [resolvedQuizId, setResolvedQuizId] = useState(null);
+    const [resolvedData, setResolvedData] = useState(null);
 
     useEffect(() => {
       let mounted = true;
@@ -79,12 +94,13 @@ export default function App() {
             { auth: false }
           );
           const data = await res.json();
+          console.log("[AccessCodeResolver] API Response:", data);
 
           if (!mounted) return;
 
           if (data.quiz_id) {
             // Access code valid - store quiz_id and show player presentation
-            setResolvedQuizId(data.quiz_id);
+            setResolvedData(data);
             setStatus("success");
           } else {
             // Invalid access code
@@ -113,11 +129,15 @@ export default function App() {
     }
 
     // Success - render player presentation directly (URL stays the same)
-    if (status === "success" && resolvedQuizId) {
+    if (status === "success" && resolvedData) {
       return (
         <AudioProvider>
           <WebSocketProvider role="player">
-            <AppPresentation roomId={String(resolvedQuizId)} role="player" />
+            <AppPresentation
+              roomId={String(resolvedData.quiz_id)}
+              role="player"
+              initialQuizData={resolvedData}
+            />
             <WSMessageHandler />
           </WebSocketProvider>
         </AudioProvider>
@@ -143,17 +163,58 @@ export default function App() {
   }
 
   /* ------------------------ Main Flow ------------------------ */
-  function AppPresentation({ roomId, role }) {
+  function AppPresentation({ roomId, role, initialQuizData }) {
     const [data, setData] = useState({ type: "ManagerJoinPage" });
     const [currentSlide, setCurrentSlide] = useState(1);
 
     // Fetch full quiz once at top-level and transform to internal shape
     const [remoteQuiz, setRemoteQuiz] = useState(null);
+
+    // Initialize remoteQuiz with initialQuizData if available (for player)
+    useEffect(() => {
+      if (initialQuizData && role === "player") {
+        console.log(
+          "[AppPresentation] Initializing player with:",
+          initialQuizData
+        );
+
+        // Handle potential flat structure or nested structure for background
+        const rawBg = initialQuizData.background || {};
+        const background = {
+          color: rawBg.color || initialQuizData.background_color || "#1e1e2e",
+          image:
+            rawBg.image ||
+            initialQuizData.background_image ||
+            initialQuizData.background_image_url ||
+            "",
+        };
+
+        setRemoteQuiz({
+          quiz_id: initialQuizData.quiz_id,
+          title: initialQuizData.title || "",
+          access_code: initialQuizData.access_code || "",
+          background: background,
+          music_url: initialQuizData.music_url || "",
+          slides: [], // Player doesn't need full slides initially
+        });
+      }
+    }, [initialQuizData, role]);
+
     useEffect(() => {
       let mounted = true;
       const fetchQuiz = async () => {
         try {
           if (!roomId) return;
+
+          // If we already have initial data for player, we might skip full fetch or do it in background
+          // But if user wants ONLY this API for player, we skip fetch for player
+          if (role === "player" && initialQuizData) {
+            console.log(
+              "[AppPresentation] Skipping full export fetch for player, using initial data"
+            );
+            return;
+          }
+
           const res = await apiFetch(`/quizzes/${roomId}/export/`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
@@ -243,6 +304,7 @@ export default function App() {
       leaderboardResults,
       questionResults,
       partialQuestionResults,
+      modalLeaderboardResults,
     } = useServerData();
 
     // 🟢 وقتی manager است و type:1 از سرور می‌رسد، به لیدربورد برو
@@ -280,6 +342,10 @@ export default function App() {
       }
     };
 
+    const handleEndGame = () => {
+      setData({ type: "ManagerFinalLeaderboard" });
+    };
+
     /* ---------------- Manager Rendering (EXACT LIKE ORIGINAL) ---------------- */
     const renderManager = () => {
       switch (data.type) {
@@ -292,6 +358,7 @@ export default function App() {
               currentSlide={currentSlide}
               totalSlides={totalSlides}
               quiz={quiz}
+              onEndGame={handleEndGame}
             />
           );
         case "ManagerPickAnswerQuestion":
@@ -304,6 +371,7 @@ export default function App() {
               totalSlides={totalSlides}
               quiz={quiz}
               isRemoteReady={isRemoteReady}
+              onEndGame={handleEndGame}
             />
           );
         case "ManagerLeaderBoard":
@@ -316,6 +384,14 @@ export default function App() {
               totalSlides={totalSlides}
               quiz={quiz}
               isRemoteReady={isRemoteReady}
+              onEndGame={handleEndGame}
+            />
+          );
+        case "ManagerFinalLeaderboard":
+          return (
+            <FinalLeaderboard
+              leaderboardData={modalLeaderboardResults || leaderboardResults}
+              onExit={() => (window.location.href = "/manager/panel")}
             />
           );
         default:

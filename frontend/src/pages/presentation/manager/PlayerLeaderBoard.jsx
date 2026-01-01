@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import TopBar from "../../../components/TopBar";
 import QRSidebar from "../../../components/QRSidebar";
 import Footer from "../../../components/Footer";
@@ -12,7 +12,9 @@ function ManagerPlayerLeaderBoard({
   currentSlide = 1,
   totalSlides = 3,
   roomId,
+  quiz = null,
   players = [],
+  quiz,
 }) {
   const [hovered, setHovered] = useState(null);
   const [hiddenNames, setHiddenNames] = useState([]);
@@ -63,22 +65,30 @@ function ManagerPlayerLeaderBoard({
     return () => clearTimeout(t);
   }, [players]);
 
-  const gameCode = roomId;
+  const accessCode = quiz?.access_code || roomId;
+
+  // Calculate dynamic background style from quiz data
+  const backgroundStyle = {
+    backgroundImage: quiz?.background?.image
+      ? `url('${quiz.background.image}')`
+      : "none",
+    backgroundColor: quiz?.background?.color || "#1e1e2e",
+  };
 
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col justify-around items-center font-semibold"
-      style={{ backgroundImage: "url('/bg.jpg')" }}
+      style={backgroundStyle}
     >
       <TopBar
-        accessCode={quiz?.access_code}
+        accessCode={accessCode}
         showQRButton={true}
         onQRToggle={setShowQRModal}
         isQROpen={showQRModal}
       />
 
       <QRSidebar
-        accessCode={quiz?.access_code}
+        accessCode={accessCode}
         isOpen={showQRModal}
         onClose={() => setShowQRModal(false)}
       />
@@ -130,7 +140,7 @@ function ManagerPlayerLeaderBoard({
                         const widthPercent = calcPercent(p.total_points);
 
                         return (
-                          <motion.li
+                          <Motion.li
                             key={p.user_id || p.rank}
                             layout
                             initial={{ opacity: 0, x: -20 }}
@@ -153,7 +163,7 @@ function ManagerPlayerLeaderBoard({
                             {/* Fixed-width translucent track */}
                             <div className="relative overlay-hidden bg-white/10 w-full h-14 mr-3">
                               {/* Colored fill */}
-                              <motion.div
+                              <Motion.div
                                 className={`absolute left-0 top-0 h-full z-10`}
                                 style={{ backgroundColor: p.color }}
                                 initial={{ width: 0 }}
@@ -218,7 +228,7 @@ function ManagerPlayerLeaderBoard({
                                 +{Math.round(p.new_points)}
                               </span>
                             </div>
-                          </motion.li>
+                          </Motion.li>
                         );
                       })}
                     </AnimatePresence>

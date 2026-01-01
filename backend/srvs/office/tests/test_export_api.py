@@ -1,5 +1,6 @@
 import pytest
 
+from backend.srvs.office.office.models import Leaderboard
 from backend.srvs.office.tests.factories import QuizFactory, QuestionFactory, OptionFactory
 
 
@@ -45,3 +46,34 @@ def test_export_includes_leaderboard_slide_after_question(api_client):
     assert leaderboard_slide["order"] == question_slide["order"]
     assert leaderboard_slide["question"] is None
     assert leaderboard_slide["leaderboard"] == []
+
+
+@pytest.mark.django_db
+def test_export_includes_leaderboard_entries_sorted(api_client):
+    quiz = QuizFactory()
+    question = QuestionFactory(slide__quiz=quiz)
+    Leaderboard.objects.create(
+        question=question,
+        rust_session_id="player-2",
+        player_name="Two",
+        avatar="T",
+        score=20,
+        time_taken=2.0,
+        rank=2,
+    )
+    Leaderboard.objects.create(
+        question=question,
+        rust_session_id="player-1",
+        player_name="One",
+        avatar="O",
+        score=30,
+        time_taken=1.5,
+        rank=1,
+    )
+
+    api_client.force_authenticate(user=quiz.owner)
+    resp = api_client.get(f"/api/quizzes/{quiz.id}/export/")
+    assert resp.status_code == 200
+
+    leaderboard = resp.data["slides"][0]["leaderboard"]
+    assert [entry["rank"] for entry in leaderboard] == [1, 2]

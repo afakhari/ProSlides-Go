@@ -1,8 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
-@import "tailwindcss/preflight" /* instead @tailwind base */ @tailwind utilities; /* Covers both @tailwind utilities & @tailwind components */
-
 /*
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

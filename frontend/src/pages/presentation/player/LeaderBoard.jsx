@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { getColorForUser } from "../../../lib/colorUtils";
 
 // const players = [
@@ -52,6 +51,15 @@ import { getColorForUser } from "../../../lib/colorUtils";
 // ];
 
 function PlayerLeaderBoard({ players, quiz }) {
+  // Ensure players is always an array to prevent crashes and filter out invalid entries
+  const validPlayers = useMemo(
+    () =>
+      (Array.isArray(players) ? players : []).filter(
+        (p) => p && typeof p === "object"
+      ),
+    [players]
+  );
+
   const [hovered, setHovered] = useState(null);
   const [hiddenNames, setHiddenNames] = useState([]);
   const [displayedPlayers, setDisplayedPlayers] = useState([]);
@@ -61,7 +69,7 @@ function PlayerLeaderBoard({ players, quiz }) {
 
   console.log(
     "[PlayerLeaderBoard] Rendering with",
-    players?.length || 0,
+    validPlayers.length,
     "players"
   );
 
@@ -82,7 +90,7 @@ function PlayerLeaderBoard({ players, quiz }) {
   };
 
   const maxScore = Math.max(
-    ...players.map((p) => parseFloat(p.total_points) || 0)
+    ...validPlayers.map((p) => parseFloat(p.total_points) || 0)
   );
   const minScore = 0;
 
@@ -96,26 +104,26 @@ function PlayerLeaderBoard({ players, quiz }) {
 
   useEffect(() => {
     // Ensure players have colors based on user_id
-    const processedPlayers = players.map((p) => ({
+    const processedPlayers = validPlayers.map((p) => ({
       ...p,
       color: getColorForUser(p.user_id),
     }));
     setDisplayedPlayers(processedPlayers);
+  }, [validPlayers, currentUserId]);
 
+  useEffect(() => {
     // Trigger animation only if not already animated
-    if (!animateBars) {
-      const t = setTimeout(() => {
-        setAnimateBars(true);
-      }, 500);
-      return () => clearTimeout(t);
-    }
-  }, [players, currentUserId, animateBars]);
+    const t = setTimeout(() => {
+      setAnimateBars(true);
+    }, 500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Calculate dynamic background style from quiz data
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
   };
 
@@ -138,7 +146,7 @@ function PlayerLeaderBoard({ players, quiz }) {
           <div className="text-center">
             <h1 className="text-white px-4 text-5xl font-bold">Leaderboard</h1>
             <p className="text-white/70 text-lg mt-2">
-              {players.length} players
+              {validPlayers.length} players
             </p>
           </div>
 
@@ -149,7 +157,7 @@ function PlayerLeaderBoard({ players, quiz }) {
           >
             <ul className="space-y-4 w-full flex flex-col items-stretch py-2">
               <AnimatePresence>
-                {displayedPlayers.map((p) => {
+                {displayedPlayers.map((p, index) => {
                   const isHidden = hiddenNames.includes(p.rank);
                   const scoreVal = parseFloat(p.total_points) || 0;
                   const hasScore = scoreVal > 0;
@@ -157,9 +165,9 @@ function PlayerLeaderBoard({ players, quiz }) {
                   const isCurrentUser = p.user_id === currentUserId;
 
                   return (
-                    <motion.li
-                      key={p.user_id || p.rank}
-                      id={`player-${p.user_id}`}
+                    <Motion.li
+                      key={p.user_id || p.rank || index}
+                      id={`player-${p.user_id || index}`}
                       layout
                       initial={{
                         opacity: 0,
@@ -195,7 +203,7 @@ function PlayerLeaderBoard({ players, quiz }) {
                     >
                       {/* Glow effect for current user */}
                       {isCurrentUser && (
-                        <motion.div
+                        <Motion.div
                           className="absolute inset-0 rounded-xl pointer-events-none"
                           animate={{
                             boxShadow: [
@@ -234,7 +242,7 @@ function PlayerLeaderBoard({ players, quiz }) {
                       >
                         {/* Colored fill - only show if score > 0 */}
                         {hasScore && (
-                          <motion.div
+                          <Motion.div
                             className={`absolute left-0 top-0 h-full z-10 rounded-lg`}
                             style={{
                               backgroundColor: p.color,
@@ -275,29 +283,6 @@ function PlayerLeaderBoard({ players, quiz }) {
                                 </span>
                               )}
                             </div>
-
-                            {hovered === p.rank && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleToggleBlur(p.rank)}
-                                  className="bg-white/90 text-gray-800 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                                >
-                                  👁️
-                                </button>
-                                <button
-                                  onClick={() => handleClick("✏️ Edit", p.name)}
-                                  className="bg-white/90 text-blue-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  onClick={() => handleClick("📞 Call", p.name)}
-                                  className="bg-white/90 text-green-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                                >
-                                  📞
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -309,7 +294,7 @@ function PlayerLeaderBoard({ players, quiz }) {
                           +{Math.round(p.new_points)}
                         </span>
                       </div>
-                    </motion.li>
+                    </Motion.li>
                   );
                 })}
               </AnimatePresence>

@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import TopBar from "../../../components/TopBar";
 import QRSidebar from "../../../components/QRSidebar";
 import Footer from "../../../components/Footer";
@@ -8,11 +7,7 @@ import { getColorForUser } from "../../../lib/colorUtils";
 // LeaderboardModal component was inlined into this page per request
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useServerData } from "../../../hooks/useServerData";
-import {
-  createNextPrevious,
-  DefaultFooterStats,
-  User_adding,
-} from "../../../data/mockData";
+import { createNextPrevious, DefaultFooterStats } from "../../../data/mockData";
 
 function ManagerLeaderBoard({
   onNext,
@@ -20,19 +15,16 @@ function ManagerLeaderBoard({
   currentSlide = 1,
   totalSlides = 3,
   quiz,
-  isRemoteReady,
-  roomId,
   getLeaderboardForQuestion,
+  onEndGame,
 }) {
   // فقط داده‌های سرور را از useServerData بگیر، و sendNavigation را از useWebSocket
-  const { isConnected, lastMessage } = useWebSocket();
+  const { isConnected, sendNavigation, sendEnd } = useWebSocket();
   const {
     managerLastLeaderboard,
     leaderboardResults,
     modalLeaderboardResults,
-    processMessage,
   } = useServerData();
-  const { sendNavigation, sendEnd } = useWebSocket();
 
   // حذف state داخلی و فقط استفاده از داده context
 
@@ -72,7 +64,10 @@ function ManagerLeaderBoard({
   }
 
   // فقط داده را از context می‌گیریم و هیچ وقت setPlayers نمی‌زنیم
-  const results = dataToUse?.results || dataToUse || [];
+  const results = useMemo(
+    () => dataToUse?.results || dataToUse || [],
+    [dataToUse]
+  );
 
   console.log("[ManagerLeaderBoard] Render Cycle:");
   console.log("  - leaderboardResults:", leaderboardResults);
@@ -81,24 +76,26 @@ function ManagerLeaderBoard({
   console.log("  - derived results:", results);
 
   // همیشه از rank سرور استفاده کن و هیچوقت index را جایگزین نکن
-  const players = Array.isArray(results)
-    ? results.map((user) => ({
-        user_id: user.user_id,
-        name: user.name,
-        character: user.character,
-        color: getColorForUser(user.user_id),
-        rank: user.rank,
-        total_points: user.total_points || 0,
-        new_points: user.new_points || 0,
-      }))
-    : [];
+  const players = useMemo(
+    () =>
+      Array.isArray(results)
+        ? results.map((user) => ({
+            user_id: user.user_id,
+            name: user.name,
+            character: user.character,
+            color: getColorForUser(user.user_id),
+            rank: user.rank,
+            total_points: user.total_points || 0,
+            new_points: user.new_points || 0,
+          }))
+        : [],
+    [results]
+  );
 
   console.log("[ManagerLeaderBoard DEBUG] players:", players);
 
   // Calculate current question number and details from currentSlide
   const currentQuestionIndex = currentSlide - 1;
-  const questionNumber = currentQuestionIndex - 1;
-  const totalQuestions = quiz?.slides?.length ?? 0;
   const [hovered, setHovered] = useState(null);
   const [hiddenNames, setHiddenNames] = useState([]);
   const [displayedPlayers, setDisplayedPlayers] = useState([]);
@@ -108,7 +105,6 @@ function ManagerLeaderBoard({
   const [_navigationData, setNavigationData] = useState(
     createNextPrevious(5, null, null)
   );
-  const gameCode = roomId;
 
   // هیچ پیام مستقیمی از سرور پردازش نمی‌شود، فقط داده context استفاده می‌شود
 
@@ -152,6 +148,7 @@ function ManagerLeaderBoard({
   const handleEnd = () => {
     console.log("[LeaderBoard] Sending end command to server");
     sendEnd();
+    if (onEndGame) onEndGame();
   };
 
   const handleToggleBlur = (id) => {
@@ -188,13 +185,13 @@ function ManagerLeaderBoard({
     }, 500);
 
     return () => clearTimeout(t);
-  }, [JSON.stringify(players)]);
+  }, [players]);
 
   // Calculate dynamic background style from quiz data
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
   };
 
@@ -267,7 +264,7 @@ function ManagerLeaderBoard({
                           : 0;
 
                         return (
-                          <motion.li
+                          <Motion.li
                             key={p.user_id}
                             layout
                             initial={{ opacity: 0, x: -20 }}
@@ -298,7 +295,7 @@ function ManagerLeaderBoard({
                             <div className="relative overlay-hidden bg-white/10 w-full h-14 mr-3 rounded-lg">
                               {/* Colored fill - only show if score > 0 */}
                               {hasScore && (
-                                <motion.div
+                                <Motion.div
                                   className={`absolute left-0 top-0 h-full z-10 rounded-lg`}
                                   style={{
                                     backgroundColor: p.color,
@@ -338,7 +335,7 @@ function ManagerLeaderBoard({
                                       >
                                         👁️
                                       </button>
-                                      <button
+                                      {/* <button
                                         onClick={() =>
                                           handleClick("✏️ Edit", p.name)
                                         }
@@ -353,7 +350,7 @@ function ManagerLeaderBoard({
                                         className="bg-white/90 text-green-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
                                       >
                                         📞
-                                      </button>
+                                      </button> */}
                                     </div>
                                   )}
                                 </div>
@@ -367,7 +364,7 @@ function ManagerLeaderBoard({
                                 +{Math.round(p.new_points)}
                               </span>
                             </div>
-                          </motion.li>
+                          </Motion.li>
                         );
                       })}
                     </AnimatePresence>

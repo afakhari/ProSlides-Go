@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useServerData } from "../../../hooks/useServerData";
 
-export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
+export default function PlayerJoinPage({ roomId, quiz }) {
   const [players, setPlayers] = useState([]);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("🧙");
@@ -98,16 +97,16 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
   };
 
   // Stay on "Get ready to play!" until server sends next command (no auto-exit)
   return !joined ? (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={backgroundStyle}
-    >
+    <div className="min-h-screen w-full" style={backgroundStyle}>
       <div className="flex flex-col items-center justify-center">
         <header>
           <div className="flex items-center justify-center text-white px-6 py-7 rounded-t-xl placeholder-gray-500">
@@ -173,10 +172,7 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
       </div>
     </div>
   ) : (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={backgroundStyle}
-    >
+    <div className="min-h-screen w-full" style={backgroundStyle}>
       <header>
         <div className="flex items-center justify-center text-white px-6 py-7 rounded-t-xl">
           <div className="shrink-0">

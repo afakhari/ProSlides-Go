@@ -10,7 +10,7 @@ export default function PlayerWSTest() {
   const [name, setName] = useState("TestPlayer");
   const [avatar, setAvatar] = useState("🙂");
   const [custom, setCustom] = useState("");
-  const [questionId, setQuestionId] = useState(45);
+  const [questionId] = useState(45);
 
   const sendJoin = () => {
     const msg = { type: 13, name: name, character: avatar };
@@ -23,7 +23,7 @@ export default function PlayerWSTest() {
       const parsed = JSON.parse(custom);
       const ok = sendMessage(parsed);
       console.log("Sent custom:", parsed, "ok:", ok);
-    } catch (e) {
+    } catch {
       console.warn("Invalid JSON in custom message");
     }
   };

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useContext,
@@ -13,7 +14,7 @@ export function useAudio() {
 }
 
 export function AudioProvider({ children }) {
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [musicUrl, setMusicUrl] = useState(null);
   const audioContextRef = useRef(null);
   const gainNodeRef = useRef(null);
@@ -45,7 +46,6 @@ export function AudioProvider({ children }) {
 
     const CHORD_DURATION = 2; // Faster tempo - 2 seconds per chord
     let currentChord = 0;
-    let beatCount = 0;
 
     const playChord = (time) => {
       const chord = chordProgression[currentChord];
@@ -215,7 +215,6 @@ export function AudioProvider({ children }) {
       }
 
       currentChord = (currentChord + 1) % chordProgression.length;
-      beatCount++;
     };
 
     // Schedule chord progression
@@ -289,13 +288,21 @@ export function AudioProvider({ children }) {
       audioElementRef.current = audio;
     }
 
-    audioElementRef.current.src = url;
+    // Only update src if it's different to avoid reloading
+    if (audioElementRef.current.src !== url) {
+      audioElementRef.current.src = url;
+    }
 
-    // If not muted, start playing
+    // Always try to play if not muted
     if (!isMuted) {
-      audioElementRef.current.play().catch((err) => {
-        console.warn("[Audio] Could not auto-play music:", err);
-      });
+      const playPromise = audioElementRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("[Audio] Could not auto-play music:", err);
+          // Auto-play policy might block this.
+          // We can try to resume AudioContext if we were using it, but here we use HTML5 Audio.
+        });
+      }
     }
 
     console.log("[Audio] Music URL set:", url);

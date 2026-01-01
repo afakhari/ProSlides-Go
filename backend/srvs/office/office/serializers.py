@@ -1,9 +1,8 @@
 import logging
 from django.db.models import Prefetch
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import Quiz, Slide, Question, Option, PlayerSession, Leaderboard
 
@@ -90,11 +89,13 @@ class QuizSerializer(serializers.ModelSerializer):
     quiz_id = serializers.IntegerField(source='id', read_only=True)
     slides = SlideSerializer(many=True, read_only=True)
     owner_name = serializers.SerializerMethodField()
+    owner_full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = [
             'quiz_id', 'title', 'created_at', 'updated_at', 'owner_name',
+            'owner_full_name',
             'access_code', 'participants_count', 'music_url',
             'background_color', 'background_image_url', 'slides'
         ]
@@ -103,6 +104,10 @@ class QuizSerializer(serializers.ModelSerializer):
     def get_owner_name(self, obj):
         owner = getattr(obj, "owner", None)
         return owner.username if owner else None
+
+    def get_owner_full_name(self, obj):
+        owner = getattr(obj, "owner", None)
+        return owner.first_name if owner else None
 
     def validate_access_code(self, value):
         if not value:
@@ -121,17 +126,23 @@ class QuizListSerializer(serializers.ModelSerializer):
     last_update = serializers.DateTimeField(source='updated_at', read_only=True)
     slides_count = serializers.IntegerField(read_only=True)
     owner_name = serializers.SerializerMethodField()
+    owner_full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = [
             'quiz_id', 'quiz_name', 'last_update', 'created_at',
-            'access_code', 'participants_count', 'slides_count', 'owner_name'
+            'access_code', 'participants_count', 'slides_count', 'owner_name',
+            'owner_full_name'
         ]
 
     def get_owner_name(self, obj):
         owner = getattr(obj, "owner", None)
         return owner.username if owner else None
+
+    def get_owner_full_name(self, obj):
+        owner = getattr(obj, "owner", None)
+        return owner.first_name if owner else None
 
 
 class ExportSerializer(serializers.ModelSerializer):
@@ -191,6 +202,9 @@ class PlayerSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlayerSession
         fields = ['rust_session_id', 'user_id', 'quiz', 'player_name', 'avatar']
+        extra_kwargs = {
+            'rust_session_id': {'required': False},
+        }
 
     def validate(self, attrs):
         session_id = attrs.get('rust_session_id') or attrs.get('user_id')
@@ -240,13 +254,24 @@ class QuestionResultsReceiveSerializer(serializers.Serializer):
 User = get_user_model()
 
 
+def validate_simple_password(value):
+    if not value:
+        raise serializers.ValidationError("Enter a password.")
+    if len(value) < 8:
+        raise serializers.ValidationError("Use at least 8 characters.")
+    if value.isdigit():
+        raise serializers.ValidationError("Password cannot be all numbers.")
+    return value
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField()
+    full_name = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ["username", "email", "password"]
+        fields = ["username", "email", "password", "full_name"]
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
@@ -259,18 +284,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages))
-        return value
+        return validate_simple_password(value)
 
     def create(self, validated_data):
+        full_name = validated_data.pop("full_name", "").strip()
         user = User(
             username=validated_data["username"],
             email=validated_data.get("email"),
             is_active=False,
         )
+        if full_name:
+            user.first_name = full_name
         user.set_password(validated_data["password"])
         user.save()
         return user
@@ -299,8 +323,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True)
 
     def validate_new_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages))
-        return value
+        return validate_simple_password(value)
+
+
+class TokenWithProfileSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        data["full_name"] = user.first_name
+        data["email"] = user.email
+        data["needs_password_setup"] = not user.has_usable_password()
+        return data

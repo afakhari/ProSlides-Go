@@ -155,7 +155,6 @@ export default function SlidesPanel({
   deleteSlide,
   reorderSlides,
   idKey = "slide_id",
-  titleKey = "title",
   getSlideTitle,
   quizId,
   quizBackground = "#ffffff",
@@ -276,7 +275,7 @@ export default function SlidesPanel({
   };
 
   // تابع برای دریافت پس‌زمینه اسلاید
-  const getSlideBackground = (slide) => {
+  const getSlideBackground = () => {
     // استفاده از بک‌گراند کوئیز به عنوان اولویت
     if (quizBackgroundImage) {
       return {
@@ -323,7 +322,7 @@ export default function SlidesPanel({
               className="space-y-4"
             >
               {slides.map((slide, index) => {
-                const slideBackground = getSlideBackground(slide);
+                const slideBackground = getSlideBackground();
                 const isLeaderboardSlide = slide.slide_type === 3;
                 const isQuestionSlide = slide.slide_type === 1;
                 const slideTitle = getSlideTitle(slide);

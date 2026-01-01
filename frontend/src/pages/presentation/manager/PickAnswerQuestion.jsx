@@ -21,7 +21,7 @@ export default function ManagerPickAnswerQuestion({
   totalSlides = 5,
   quiz,
   isRemoteReady,
-  roomId,
+  onEndGame,
 }) {
   const { isConnected, sendNavigation, sendEnd, lastMessage, type8Message } =
     useWebSocket();
@@ -53,8 +53,8 @@ export default function ManagerPickAnswerQuestion({
       return arr;
     }, []) ?? [];
 
-  const [selected, setSelected] = useState(null);
-  const [voted, setVoted] = useState(false);
+  const [selected] = useState(null);
+  const [voted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [timer, setTimer] = useState(currentQuestion.question_time);
   const [votes, setVotes] = useState(
@@ -66,7 +66,6 @@ export default function ManagerPickAnswerQuestion({
   const [_navigationData, setNavigationData] = useState(
     createNextPrevious(5, null, null)
   ); // State for tracking navigation (to be sent to server)
-  const gameCode = roomId;
   // const navigate = useNavigate();
 
   // Reset state when slide changes (new question)
@@ -305,6 +304,7 @@ export default function ManagerPickAnswerQuestion({
   const handleEnd = () => {
     console.log("[PickAnswerQuestion] Sending end command to server");
     sendEnd();
+    if (onEndGame) onEndGame();
   };
 
   // Debug: Log state changes
@@ -370,7 +370,7 @@ export default function ManagerPickAnswerQuestion({
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
   };
 
