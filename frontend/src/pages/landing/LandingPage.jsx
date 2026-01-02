@@ -39,8 +39,8 @@ export default function LandingPage() {
             onSubmit={handleJoin}
             className="flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3 py-1.5 shadow-[0_6px_14px_rgba(15,23,42,0.05)]"
           >
-            <span className="pl-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">
-              proslides/
+            <span className="pl-2 text-[11px] font-semibold tracking-[0.14em] text-[#9ca3af]">
+              proslides.ir/
             </span>
             <input
               type="text"
