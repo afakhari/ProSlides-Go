@@ -1,21 +1,25 @@
 import pytest
+from django.test import override_settings
 
 from backend.srvs.office.office.models import PlayerSession
 from backend.srvs.office.tests.factories import QuestionFactory, QuizFactory
 
 
 @pytest.mark.django_db
+@override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
 def test_leaderboard_receive_rejects_empty_list(api_client):
     question = QuestionFactory()
     resp = api_client.post(
         f"/api/quizzes/{question.slide.quiz_id}/slides/{question.slide_id}/question/leaderboard/",
         {"leaderboard": []},
         format="json",
+        HTTP_X_EXPORT_TOKEN="test-export-token",
     )
     assert resp.status_code == 400
 
 
 @pytest.mark.django_db
+@override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
 def test_leaderboard_receive_partial_errors_returns_207(api_client):
     question = QuestionFactory()
     other_quiz = QuizFactory()
@@ -49,6 +53,7 @@ def test_leaderboard_receive_partial_errors_returns_207(api_client):
         f"/api/quizzes/{question.slide.quiz_id}/slides/{question.slide_id}/question/leaderboard/",
         payload,
         format="json",
+        HTTP_X_EXPORT_TOKEN="test-export-token",
     )
     assert resp.status_code == 207
     assert resp.data["saved_entries"] == 1
@@ -57,6 +62,7 @@ def test_leaderboard_receive_partial_errors_returns_207(api_client):
 
 
 @pytest.mark.django_db
+@override_settings(EXPORT_SERVICE_TOKEN="test-export-token")
 def test_leaderboard_receive_rejects_session_from_other_quiz(api_client):
     quiz = QuizFactory()
     question = QuestionFactory()
@@ -82,6 +88,7 @@ def test_leaderboard_receive_rejects_session_from_other_quiz(api_client):
         f"/api/quizzes/{question.slide.quiz_id}/slides/{question.slide_id}/question/leaderboard/",
         payload,
         format="json",
+        HTTP_X_EXPORT_TOKEN="test-export-token",
     )
     assert resp.status_code == 207
     assert resp.data["saved_entries"] == 0

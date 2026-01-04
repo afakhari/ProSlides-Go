@@ -46,3 +46,33 @@ def test_player_sessions_require_auth(api_client):
         format="json",
     )
     assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_player_session_accepts_user_id_alias(api_client):
+    owner = UserFactory()
+    quiz = QuizFactory(owner=owner)
+    api_client.force_authenticate(user=owner)
+
+    resp = api_client.post(
+        "/api/player-sessions/",
+        {"user_id": "legacy-123", "quiz": quiz.id, "player_name": "Legacy", "avatar": "L"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.data["rust_session_id"] == "legacy-123"
+
+
+@pytest.mark.django_db
+def test_player_session_rejects_missing_session_id(api_client):
+    owner = UserFactory()
+    quiz = QuizFactory(owner=owner)
+    api_client.force_authenticate(user=owner)
+
+    resp = api_client.post(
+        "/api/player-sessions/",
+        {"quiz": quiz.id, "player_name": "NoId", "avatar": "N"},
+        format="json",
+    )
+    assert resp.status_code == 400
+    assert "rust_session_id" in resp.data

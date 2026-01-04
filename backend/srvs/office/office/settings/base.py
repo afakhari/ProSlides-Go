@@ -1,4 +1,5 @@
 from pathlib import Path
+from email.utils import formataddr
 
 from environs import Env
 
@@ -16,6 +17,10 @@ DEBUG = env.bool("DEBUG", False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 EXPORT_SERVICE_TOKEN = env.str("EXPORT_SERVICE_TOKEN", default="")
 GOOGLE_CLIENT_ID = env.str("GOOGLE_CLIENT_ID", default="")
+GOOGLE_OAUTH_CERTS_URL = env.str(
+    "GOOGLE_OAUTH_CERTS_URL",
+    default="https://www.googleapis.com/oauth2/v3/certs",
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -35,6 +40,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "backend.srvs.office.office.middleware.RequestIdMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -93,6 +99,9 @@ EMAIL_BACKEND = env.str(
     default="django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
 )
 DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="no-reply@proslides.ir")
+SERVER_EMAIL = env.str("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+EMAIL_FROM_NAME = env.str("EMAIL_FROM_NAME", default="ProSlides")
+EMAIL_FROM_ADDRESS = formataddr((EMAIL_FROM_NAME, DEFAULT_FROM_EMAIL))
 EMAIL_HOST = env.str("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=25)
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
@@ -160,31 +169,61 @@ if DEBUG:
 
 # Logging configuration: console-only by default; override handlers in env/prod
 LOG_LEVEL = env.str("LOG_LEVEL", "INFO")
+LOG_DIR = Path(env.str("LOG_DIR", default=str(BASE_DIR / "logs")))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_REQUEST_THRESHOLD_MS = env.int("LOG_REQUEST_THRESHOLD_MS", default=500)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[{levelname}] {asctime} {name}: {message}",
+            "format": "[{levelname}] {asctime} {name} ({request_id}): {message}",
             "style": "{",
         },
         "simple": {
-            "format": "[{levelname}] {name}: {message}",
+            "format": "[{levelname}] {name} ({request_id}): {message}",
             "style": "{",
+        },
+    },
+    "filters": {
+        "request_id": {
+            "()": "backend.srvs.office.office.logging_utils.RequestIdFilter",
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+            "filters": ["request_id"],
+        },
+        "app_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "verbose",
+            "filters": ["request_id"],
+            "filename": str(LOG_DIR / "app.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "level": LOG_LEVEL,
+        },
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "verbose",
+            "filters": ["request_id"],
+            "filename": str(LOG_DIR / "errors.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "level": "ERROR",
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "app_file", "error_file"],
         "level": LOG_LEVEL,
     },
     "loggers": {
-        "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "django": {"handlers": ["console", "app_file", "error_file"], "level": LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": ["error_file"], "level": "ERROR", "propagate": False},
+        "backend.request": {"handlers": ["console", "app_file"], "level": "INFO", "propagate": False},
     },
 }
 

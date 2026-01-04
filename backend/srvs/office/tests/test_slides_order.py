@@ -87,3 +87,49 @@ def test_invalid_order_rejected(api_client):
     )
     assert resp.status_code == 400
     assert "order" in resp.data
+
+
+@pytest.mark.django_db
+def test_update_slide_rejects_invalid_order(api_client):
+    quiz = QuizFactory()
+    api_client.force_authenticate(user=quiz.owner)
+    slide = SlideFactory(quiz=quiz, order=1)
+
+    resp = api_client.patch(
+        f"/api/quizzes/{quiz.id}/slides/{slide.id}/",
+        {"order": 0},
+        format="json",
+    )
+    assert resp.status_code == 400
+    assert "order" in resp.data
+
+
+@pytest.mark.django_db
+def test_non_owner_cannot_update_slide(api_client):
+    quiz = QuizFactory()
+    slide = SlideFactory(quiz=quiz, order=1)
+    other = QuizFactory().owner
+    api_client.force_authenticate(user=other)
+
+    resp = api_client.patch(
+        f"/api/quizzes/{quiz.id}/slides/{slide.id}/",
+        {"order": 2},
+        format="json",
+    )
+    assert resp.status_code in (403, 404)
+
+
+@pytest.mark.django_db
+def test_create_slide_without_order_assigns_next(api_client):
+    quiz = QuizFactory()
+    api_client.force_authenticate(user=quiz.owner)
+    SlideFactory(quiz=quiz, order=1)
+    SlideFactory(quiz=quiz, order=2)
+
+    resp = api_client.post(
+        f"/api/quizzes/{quiz.id}/slides/",
+        {"slide_type": 1},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.data["order"] == 3

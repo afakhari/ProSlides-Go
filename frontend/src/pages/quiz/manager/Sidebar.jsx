@@ -1,4 +1,4 @@
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+﻿import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useCallback, useEffect, useState } from "react";
 import {
   GripVertical,
@@ -19,13 +19,11 @@ export default function Sidebar({
   quizId,
   slide, 
   setSlide, 
-  onCreateLeaderboardSlide, 
-  onDeleteLeaderboardSlide, 
-  slides, 
+  activeSlideType,
   onClose,
   onSlideUpdated
 }) {
-  // Stateهای مدیریت تغییرات
+  // StateÙ‡Ø§ÛŒ Ù…Ø¯ÛŒØ±ÛŒØª ØªØºÛŒÛŒØ±Ø§Øª
   const [localSlide, setLocalSlide] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalSlide, setOriginalSlide] = useState(null);
@@ -37,15 +35,15 @@ export default function Sidebar({
     id: null,
   });
 
-  // تنظیم مقادیر اولیه هنگام بارگذاری
+  // ØªÙ†Ø¸ÛŒÙ… Ù…Ù‚Ø§Ø¯ÛŒØ± Ø§ÙˆÙ„ÛŒÙ‡ Ù‡Ù†Ú¯Ø§Ù… Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ
   useEffect(() => {
     if (slide) {
-      // ساخت داده محلی از slide
+      // Ø³Ø§Ø®Øª Ø¯Ø§Ø¯Ù‡ Ù…Ø­Ù„ÛŒ Ø§Ø² slide
       const slideData = {
         ...slide,
         question: slide.question ? {
           ...slide.question,
-          // نگاشت فیلدها به نام‌های مورد استفاده در کامپوننت
+          // Ù†Ú¯Ø§Ø´Øª ÙÛŒÙ„Ø¯Ù‡Ø§ Ø¨Ù‡ Ù†Ø§Ù…â€ŒÙ‡Ø§ÛŒ Ù…ÙˆØ±Ø¯ Ø§Ø³ØªÙØ§Ø¯Ù‡ Ø¯Ø± Ú©Ø§Ù…Ù¾ÙˆÙ†Ù†Øª
           question_text: slide.question.text || "",
           question_image: slide.question.image_url || "",
           question_type: slide.question.question_type || "single",
@@ -64,7 +62,7 @@ export default function Sidebar({
     }
   }, [slide]);
 
-  // جابه‌جایی گزینه‌ها (فقط در فرانت)
+  // Ø¬Ø§Ø¨Ù‡â€ŒØ¬Ø§ÛŒÛŒ Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§ (ÙÙ‚Ø· Ø¯Ø± ÙØ±Ø§Ù†Øª)
   const onDragEnd = useCallback(
     (result) => {
       if (!result.destination || !localSlide || !localSlide.question) return;
@@ -85,12 +83,12 @@ export default function Sidebar({
     [localSlide]
   );
 
-  // تشخیص تغییرات
+  // ØªØ´Ø®ÛŒØµ ØªØºÛŒÛŒØ±Ø§Øª
   useEffect(() => {
     if (!localSlide || !originalSlide) return;
 
     const hasChanged = () => {
-      // مقایسه فیلدهای اصلی slide
+      // Ù…Ù‚Ø§ÛŒØ³Ù‡ ÙÛŒÙ„Ø¯Ù‡Ø§ÛŒ Ø§ØµÙ„ÛŒ slide
       const slideFields = ['show_leaderboard_after'];
       
       for (const field of slideFields) {
@@ -99,7 +97,7 @@ export default function Sidebar({
         }
       }
 
-      // مقایسه فیلدهای question
+      // Ù…Ù‚Ø§ÛŒØ³Ù‡ ÙÛŒÙ„Ø¯Ù‡Ø§ÛŒ question
       if (localSlide.question && originalSlide.question) {
         const questionFields = [
           'question_text',
@@ -118,7 +116,7 @@ export default function Sidebar({
           }
         }
 
-        // مقایسه options
+        // Ù…Ù‚Ø§ÛŒØ³Ù‡ options
         const currentOptions = localSlide.question.options || [];
         const originalOpts = originalOptions;
 
@@ -145,7 +143,7 @@ export default function Sidebar({
     setHasChanges(hasChanged());
   }, [localSlide, originalSlide, originalOptions]);
 
-  // Effect برای اطمینان از حداقل یک گزینه صحیح در سوالات multiple
+  // Effect Ø¨Ø±Ø§ÛŒ Ø§Ø·Ù…ÛŒÙ†Ø§Ù† Ø§Ø² Ø­Ø¯Ø§Ù‚Ù„ ÛŒÚ© Ú¯Ø²ÛŒÙ†Ù‡ ØµØ­ÛŒØ­ Ø¯Ø± Ø³ÙˆØ§Ù„Ø§Øª multiple
   useEffect(() => {
     if (!localSlide || !localSlide.question) return;
     
@@ -170,7 +168,7 @@ export default function Sidebar({
     }
   }, [localSlide?.question?.question_type, localSlide?.question?.options?.length, localSlide]);
 
-  // اگر slide وجود ندارد، کامپوننت را رندر نکن
+  // Ø§Ú¯Ø± slide ÙˆØ¬ÙˆØ¯ Ù†Ø¯Ø§Ø±Ø¯ØŒ Ú©Ø§Ù…Ù¾ÙˆÙ†Ù†Øª Ø±Ø§ Ø±Ù†Ø¯Ø± Ù†Ú©Ù†
   if (!slide || !localSlide) {
     return <div className="h-full overflow-y-auto p-4">No Slide Selected</div>;
   }
@@ -180,7 +178,7 @@ export default function Sidebar({
   const options = question?.options || [];
   const questionType = question?.question_type || "";
 
-  // تغییر متن سوال
+  // ØªØºÛŒÛŒØ± Ù…ØªÙ† Ø³ÙˆØ§Ù„
   const handleQuestionChange = (value) => {
     setLocalSlide({
       ...safeSlide,
@@ -191,7 +189,7 @@ export default function Sidebar({
     });
   };
 
-  // اضافه کردن گزینه جدید
+  // Ø§Ø¶Ø§ÙÙ‡ Ú©Ø±Ø¯Ù† Ú¯Ø²ÛŒÙ†Ù‡ Ø¬Ø¯ÛŒØ¯
   const handleAddOption = async () => {
     const newId = options.length > 0
       ? Math.max(...options.map(o => o.option_id || 0)) + 1
@@ -214,14 +212,14 @@ export default function Sidebar({
     });
   };
 
-  // حذف گزینه
+  // Ø­Ø°Ù Ú¯Ø²ÛŒÙ†Ù‡
   const handleDeleteOption = async (id) => {
     if (!quizId || !slide.slide_id) return;
 
     const remainingOptions = options.filter((opt) => opt.option_id !== id);
     const hasCorrectAnswer = remainingOptions.some(opt => opt.is_correct);
     
-    // اگر هیچ گزینه صحیحی باقی نمانده و سوال multiple است، اولین گزینه را صحیح می‌کنیم
+    // Ø§Ú¯Ø± Ù‡ÛŒÚ† Ú¯Ø²ÛŒÙ†Ù‡ ØµØ­ÛŒØ­ÛŒ Ø¨Ø§Ù‚ÛŒ Ù†Ù…Ø§Ù†Ø¯Ù‡ Ùˆ Ø³ÙˆØ§Ù„ multiple Ø§Ø³ØªØŒ Ø§ÙˆÙ„ÛŒÙ† Ú¯Ø²ÛŒÙ†Ù‡ Ø±Ø§ ØµØ­ÛŒØ­ Ù…ÛŒâ€ŒÚ©Ù†ÛŒÙ…
     let updatedOptions = remainingOptions;
     if (!hasCorrectAnswer && questionType === "multiple" && remainingOptions.length > 0) {
       updatedOptions = remainingOptions.map((opt, index) => 
@@ -238,7 +236,7 @@ export default function Sidebar({
     });
   };
 
-  // تغییر مقدار گزینه
+  // ØªØºÛŒÛŒØ± Ù…Ù‚Ø¯Ø§Ø± Ú¯Ø²ÛŒÙ†Ù‡
   const handleOptionChange = (id, field, value) => {
     setLocalSlide({
       ...safeSlide,
@@ -251,10 +249,10 @@ export default function Sidebar({
     });
   };
 
-  // انتخاب گزینه درست
+  // Ø§Ù†ØªØ®Ø§Ø¨ Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ø±Ø³Øª
   const handleSelectCorrect = (id) => {
     if (questionType === "single") {
-      // برای Single Choice: فقط یک گزینه می‌تواند درست باشد
+      // Ø¨Ø±Ø§ÛŒ Single Choice: ÙÙ‚Ø· ÛŒÚ© Ú¯Ø²ÛŒÙ†Ù‡ Ù…ÛŒâ€ŒØªÙˆØ§Ù†Ø¯ Ø¯Ø±Ø³Øª Ø¨Ø§Ø´Ø¯
       setLocalSlide({
         ...safeSlide,
         question: {
@@ -266,12 +264,12 @@ export default function Sidebar({
         }
       });
     } else if (questionType === "multiple") {
-      // برای Multiple Choice: می‌توان چند گزینه را انتخاب کرد
+      // Ø¨Ø±Ø§ÛŒ Multiple Choice: Ù…ÛŒâ€ŒØªÙˆØ§Ù† Ú†Ù†Ø¯ Ú¯Ø²ÛŒÙ†Ù‡ Ø±Ø§ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ø±Ø¯
       const clickedOption = options.find(opt => opt.option_id === id);
       const isCurrentlyCorrect = clickedOption?.is_correct;
       const correctOptionsCount = options.filter(opt => opt.is_correct).length;
       
-      // اگر کاربر می‌خواهد آخرین گزینه صحیح را غیرفعال کند، اجازه نمی‌دهیم
+      // Ø§Ú¯Ø± Ú©Ø§Ø±Ø¨Ø± Ù…ÛŒâ€ŒØ®ÙˆØ§Ù‡Ø¯ Ø¢Ø®Ø±ÛŒÙ† Ú¯Ø²ÛŒÙ†Ù‡ ØµØ­ÛŒØ­ Ø±Ø§ ØºÛŒØ±ÙØ¹Ø§Ù„ Ú©Ù†Ø¯ØŒ Ø§Ø¬Ø§Ø²Ù‡ Ù†Ù…ÛŒâ€ŒØ¯Ù‡ÛŒÙ…
       if (isCurrentlyCorrect && correctOptionsCount === 1) {
         return;
       }
@@ -288,7 +286,7 @@ export default function Sidebar({
     }
   };
 
-  // تابع برای handle لینک تصویر
+  // ØªØ§Ø¨Ø¹ Ø¨Ø±Ø§ÛŒ handle Ù„ÛŒÙ†Ú© ØªØµÙˆÛŒØ±
   const handleImageLink = (link, type, id = null) => {
     if (type === "question") {
       setLocalSlide({
@@ -303,7 +301,7 @@ export default function Sidebar({
     }
   };
 
-  // باز کردن Modal
+  // Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Modal
   const openImageLinkModal = (type, id = null) => {
     setModalState({
       isOpen: true,
@@ -312,7 +310,7 @@ export default function Sidebar({
     });
   };
 
-  // بستن Modal
+  // Ø¨Ø³ØªÙ† Modal
   const closeImageLinkModal = () => {
     setModalState({
       isOpen: false,
@@ -321,7 +319,7 @@ export default function Sidebar({
     });
   };
 
-  // حذف تصویر
+  // Ø­Ø°Ù ØªØµÙˆÛŒØ±
   const handleRemoveImage = (type, id = null) => {
     if (type === "question") {
       setLocalSlide({
@@ -336,12 +334,8 @@ export default function Sidebar({
     }
   };
 
-  // بررسی وجود اسلاید لیدربرد مرتبط
-  const hasLinkedLeaderboard = slides.some(
-    s => s.slide_type === 3 && s.order === safeSlide.order
-  );
-
-  // مدیریت تغییرات فیلدها
+  // Ø¨Ø±Ø±Ø³ÛŒ ÙˆØ¬ÙˆØ¯ Ø§Ø³Ù„Ø§ÛŒØ¯ Ù„ÛŒØ¯Ø±Ø¨Ø±Ø¯ Ù…Ø±ØªØ¨Ø·
+  // Ù…Ø¯ÛŒØ±ÛŒØª ØªØºÛŒÛŒØ±Ø§Øª ÙÛŒÙ„Ø¯Ù‡Ø§
   const handleFieldChange = (field, value) => {
     setLocalSlide({
       ...safeSlide,
@@ -352,7 +346,7 @@ export default function Sidebar({
     });
   };
 
-  // مدیریت تغییرات slide fields
+  // Ù…Ø¯ÛŒØ±ÛŒØª ØªØºÛŒÛŒØ±Ø§Øª slide fields
   const handleSlideFieldChange = (field, value) => {
     setLocalSlide({
       ...safeSlide,
@@ -360,16 +354,16 @@ export default function Sidebar({
     });
   };
 
-  // ذخیره تغییرات به بک‌اند
+  // Ø°Ø®ÛŒØ±Ù‡ ØªØºÛŒÛŒØ±Ø§Øª Ø¨Ù‡ Ø¨Ú©â€ŒØ§Ù†Ø¯
   const handleSubmit = async () => {
     if (!hasChanges || !slide || !quizId || isSaving) return;
 
     setIsSaving(true);
     try {
-      // 1. به‌روزرسانی سوال
+      // 1. Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ø³ÙˆØ§Ù„
       if (safeSlide.question) {
         const questionData = {
-          title: "", // همیشه خالی
+          title: "", // Ù‡Ù…ÛŒØ´Ù‡ Ø®Ø§Ù„ÛŒ
           text: safeSlide.question.question_text || "",
           question_type: safeSlide.question.question_type,
           min_point: safeSlide.question.min_point || 0,
@@ -382,14 +376,14 @@ export default function Sidebar({
 
         let updatedQuestion;
         if (originalSlide.question) {
-          // سوال از قبل وجود دارد - update
+          // Ø³ÙˆØ§Ù„ Ø§Ø² Ù‚Ø¨Ù„ ÙˆØ¬ÙˆØ¯ Ø¯Ø§Ø±Ø¯ - update
           updatedQuestion = await quizService.updateQuestion(
             quizId,
             slide.slide_id,
             questionData
           );
         } else {
-          // سوال جدید - create
+          // Ø³ÙˆØ§Ù„ Ø¬Ø¯ÛŒØ¯ - create
           updatedQuestion = await quizService.createQuestion(
             quizId,
             slide.slide_id,
@@ -397,10 +391,10 @@ export default function Sidebar({
           );
         }
 
-        // 2. به‌روزرسانی گزینه‌ها
+        // 2. Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§
         const currentOptions = safeSlide.question.options || [];
         
-        // حذف گزینه‌هایی که در original بودند اما در current نیستند
+        // Ø­Ø°Ù Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§ÛŒÛŒ Ú©Ù‡ Ø¯Ø± original Ø¨ÙˆØ¯Ù†Ø¯ Ø§Ù…Ø§ Ø¯Ø± current Ù†ÛŒØ³ØªÙ†Ø¯
         for (const originalOption of originalOptions) {
           if (!currentOptions.find(opt => opt.option_id === originalOption.option_id)) {
             await quizService.deleteOption(
@@ -411,7 +405,7 @@ export default function Sidebar({
           }
         }
 
-        // ایجاد یا به‌روزرسانی گزینه‌ها
+        // Ø§ÛŒØ¬Ø§Ø¯ ÛŒØ§ Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§
         for (const option of currentOptions) {
           const optionData = {
             text: option.text,
@@ -419,7 +413,7 @@ export default function Sidebar({
             image_url: option.image_url || ""
           };
 
-          // اگر گزینه در original وجود داشت، update کن
+          // Ø§Ú¯Ø± Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ø± original ÙˆØ¬ÙˆØ¯ Ø¯Ø§Ø´ØªØŒ update Ú©Ù†
           const originalOption = originalOptions.find(opt => opt.option_id === option.option_id);
           if (originalOption) {
             await quizService.updateOption(
@@ -429,7 +423,7 @@ export default function Sidebar({
               optionData
             );
           } else {
-            // گزینه جدید
+            // Ú¯Ø²ÛŒÙ†Ù‡ Ø¬Ø¯ÛŒØ¯
             await quizService.createOption(
               quizId,
               slide.slide_id,
@@ -438,13 +432,13 @@ export default function Sidebar({
           }
         }
 
-        // 3. به‌روزرسانی show_leaderboard_after در اسلاید
+        // 3. Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ show_leaderboard_after Ø¯Ø± Ø§Ø³Ù„Ø§ÛŒØ¯
         await quizService.updateSlide(quizId, slide.slide_id, {
           show_leaderboard_after: safeSlide.show_leaderboard_after || false,
           slide_type: 1
         });
 
-        // به‌روزرسانی state اصلی
+        // Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ state Ø§ØµÙ„ÛŒ
         const updatedSlide = {
           ...slide,
           show_leaderboard_after: safeSlide.show_leaderboard_after,
@@ -458,7 +452,7 @@ export default function Sidebar({
         setOriginalSlide(safeSlide);
         setOriginalOptions([...currentOptions]);
 
-        // اطلاع به parent component
+        // Ø§Ø·Ù„Ø§Ø¹ Ø¨Ù‡ parent component
         if (onSlideUpdated) {
           onSlideUpdated(updatedSlide);
         }
@@ -466,7 +460,7 @@ export default function Sidebar({
         console.log("Changes saved successfully");
       }
 
-      // بستن پنل
+      // Ø¨Ø³ØªÙ† Ù¾Ù†Ù„
       onClose();
     } catch (error) {
       console.error("Error saving changes:", error);
@@ -476,7 +470,7 @@ export default function Sidebar({
     }
   };
 
-  // لغو تغییرات
+  // Ù„ØºÙˆ ØªØºÛŒÛŒØ±Ø§Øª
   const handleCancel = () => {
     if (hasChanges) {
       const confirmCancel = window.confirm(
@@ -485,12 +479,12 @@ export default function Sidebar({
       if (!confirmCancel) return;
     }
     
-    // برگرداندن به حالت اولیه
+    // Ø¨Ø±Ú¯Ø±Ø¯Ø§Ù†Ø¯Ù† Ø¨Ù‡ Ø­Ø§Ù„Øª Ø§ÙˆÙ„ÛŒÙ‡
     setLocalSlide(originalSlide);
     onClose();
   };
 
-  // Modal برای ورود لینک تصویر
+  // Modal Ø¨Ø±Ø§ÛŒ ÙˆØ±ÙˆØ¯ Ù„ÛŒÙ†Ú© ØªØµÙˆÛŒØ±
   const ImageLinkModal = ({ isOpen, onClose, onConfirm, type, id = null }) => {
     const [link, setLink] = useState("");
     const [preview, setPreview] = useState(null);
@@ -499,7 +493,7 @@ export default function Sidebar({
 
     const handlePreview = async () => {
       if (!link.trim()) {
-        setError("لطفا لینک را وارد کنید");
+        setError("Ù„Ø·ÙØ§ Ù„ÛŒÙ†Ú© Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯");
         return;
       }
 
@@ -518,7 +512,7 @@ export default function Sidebar({
           setLoading(false);
         };
         img.onerror = () => {
-          setError("لینک تصویر نامعتبر است یا قابل بارگیری نیست");
+          setError("Ù„ÛŒÙ†Ú© ØªØµÙˆÛŒØ± Ù†Ø§Ù…Ø¹ØªØ¨Ø± Ø§Ø³Øª ÛŒØ§ Ù‚Ø§Ø¨Ù„ Ø¨Ø§Ø±Ú¯ÛŒØ±ÛŒ Ù†ÛŒØ³Øª");
           setPreview(null);
           setLoading(false);
         };
@@ -526,12 +520,12 @@ export default function Sidebar({
 
         setTimeout(() => {
           if (!img.complete) {
-            setError("بارگیری تصویر زمان‌بر شد. لطفا لینک دیگری را امتحان کنید");
+            setError("Ø¨Ø§Ø±Ú¯ÛŒØ±ÛŒ ØªØµÙˆÛŒØ± Ø²Ù…Ø§Ù†â€ŒØ¨Ø± Ø´Ø¯. Ù„Ø·ÙØ§ Ù„ÛŒÙ†Ú© Ø¯ÛŒÚ¯Ø±ÛŒ Ø±Ø§ Ø§Ù…ØªØ­Ø§Ù† Ú©Ù†ÛŒØ¯");
             setLoading(false);
           }
         }, 5000);
-      } catch (err) {
-        setError("خطا در بررسی لینک");
+      } catch {
+        setError("Ø®Ø·Ø§ Ø¯Ø± Ø¨Ø±Ø±Ø³ÛŒ Ù„ÛŒÙ†Ú©");
         setLoading(false);
       }
     };
@@ -599,7 +593,7 @@ export default function Sidebar({
                     src={preview}
                     alt="Preview"
                     className="w-full h-48 object-contain rounded-lg bg-gray-50"
-                    onError={() => setError("خطا در نمایش تصویر")}
+                    onError={() => setError("Ø®Ø·Ø§ Ø¯Ø± Ù†Ù…Ø§ÛŒØ´ ØªØµÙˆÛŒØ±")}
                   />
                 </div>
               </div>
@@ -628,7 +622,7 @@ export default function Sidebar({
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      {/* هدر */}
+      {/* Ù‡Ø¯Ø± */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div>
@@ -660,7 +654,7 @@ export default function Sidebar({
                 type="text"
                 value={question.question_text || ""}
                 onChange={(e) => handleQuestionChange(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-center"
                 placeholder="Enter your question here..."
                 disabled={isSaving}
               />
@@ -668,7 +662,7 @@ export default function Sidebar({
                 <button
                   onClick={() => openImageLinkModal("question")}
                   className="p-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors border border-gray-200 flex items-center justify-center"
-                  title="افزودن لینک تصویر"
+                  title="Ø§ÙØ²ÙˆØ¯Ù† Ù„ÛŒÙ†Ú© ØªØµÙˆÛŒØ±"
                   disabled={isSaving}
                 >
                   <ImageIcon className="w-4 h-4 text-gray-600" />
@@ -773,7 +767,7 @@ export default function Sidebar({
                                     e.target.value
                                   )
                                 }
-                                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-center"
                                 placeholder="Option text..."
                                 disabled={isSaving}
                               />
@@ -807,7 +801,7 @@ export default function Sidebar({
                             <button
                               onClick={() => openImageLinkModal("option", opt.option_id)}
                               className="p-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors border border-gray-200"
-                              title="افزودن لینک تصویر"
+                              title="Ø§ÙØ²ÙˆØ¯Ù† Ù„ÛŒÙ†Ú© ØªØµÙˆÛŒØ±"
                               disabled={isSaving}
                             >
                               <ImageIcon className="w-4 h-4 text-gray-600" />
@@ -871,7 +865,7 @@ export default function Sidebar({
                 onChange={(e) =>
                   handleFieldChange("question_time", parseInt(e.target.value) || 10)
                 }
-                className="w-20 border border-gray-300 rounded-lg p-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-20 border border-gray-300 rounded-lg p-2 text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 disabled={isSaving}
               />
               <div>
@@ -895,7 +889,7 @@ export default function Sidebar({
                   onChange={(e) =>
                     handleFieldChange("max_point", parseInt(e.target.value) || 0)
                   }
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   disabled={isSaving}
                 />
                 <p className="text-xs text-gray-500 mt-1">Points for answering at the start</p>
@@ -909,7 +903,7 @@ export default function Sidebar({
                   onChange={(e) =>
                     handleFieldChange("min_point", parseInt(e.target.value) || 0)
                   }
-                  className={`w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
                     !question.faster_answers_more_points ? "bg-gray-100 cursor-not-allowed opacity-50" : ""
                   }`}
                   disabled={isSaving || !question.faster_answers_more_points}
@@ -972,12 +966,12 @@ export default function Sidebar({
                   const isChecked = e.target.checked;
                   handleSlideFieldChange("show_leaderboard_after", isChecked);
                   
-                  // ایجاد یا حذف اسلاید لیدربرد
-                  if (isChecked && onCreateLeaderboardSlide) {
-                    onCreateLeaderboardSlide(slide.order);
-                  } else if (!isChecked && onDeleteLeaderboardSlide) {
-                    onDeleteLeaderboardSlide(slide.order);
-                  }
+                  // Ø§ÛŒØ¬Ø§Ø¯ ÛŒØ§ Ø­Ø°Ù Ø§Ø³Ù„Ø§ÛŒØ¯ Ù„ÛŒØ¯Ø±Ø¨Ø±Ø¯
+                  // if (isChecked && onCreateLeaderboardSlide) {
+                  //   onCreateLeaderboardSlide(slide.order);
+                  // } else if (!isChecked && onDeleteLeaderboardSlide) {
+                  //   onDeleteLeaderboardSlide(slide.order);
+                  // }
                 }}
                 className="w-4 h-4 mt-0.5 rounded border-gray-300 cursor-pointer text-blue-600 focus:ring-blue-500"
                 disabled={isSaving}
@@ -992,7 +986,7 @@ export default function Sidebar({
       )}
 
       {/* Leaderboard Title (only for leaderboard slides) */}
-      {safeSlide.slide_type === 3 && (
+      {/* {safeSlide.slide_type === 3 && (
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Leaderboard Title</h3>
           <input
@@ -1006,9 +1000,24 @@ export default function Sidebar({
             disabled={isSaving}
           />
         </div>
+      )} */}
+
+
+      {activeSlideType === 3 && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Leaderboard Title</h3>
+          
+        </div>
       )}
 
-      {/* دکمه‌های Cancel و Save Changes */}
+
+
+
+
+
+
+
+      {/* Ø¯Ú©Ù…Ù‡â€ŒÙ‡Ø§ÛŒ Cancel Ùˆ Save Changes */}
       <div className="mt-8 pt-6 border-t border-gray-200">
         <div className="flex gap-3">
           <button
@@ -1052,3 +1061,4 @@ export default function Sidebar({
     </div>
   );
 }
+

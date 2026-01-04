@@ -213,3 +213,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 *.lock
+!uv.lock
+# Ignore root npm lockfile (frontend has its own lockfile)
+package-lock.json

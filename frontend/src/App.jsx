@@ -1,50 +1,35 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useParams,
-  useNavigate,
-} from "react-router-dom";
-import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
-import ManagerJoinPage from "./pages/presentation/manager/JoinPage";
-import ManagerPickAnswerQuestion from "./pages/presentation/manager/PickAnswerQuestion";
-import ManagerLeaderBoard from "./pages/presentation/manager/LeaderBoard";
-import ManagerPlayerLeaderBoard from "./pages/presentation/manager/PlayerLeaderBoard";
-
-import PlayerJoinPage from "./pages/presentation/player/JoinPage";
-import PlayerPickAnswerQuestion from "./pages/presentation/player/PickAnswerQuestion";
-import PlayerLeaderBoard from "./pages/presentation/player/LeaderBoard";
-
-import Waiting from "./pages/loading/LoadingPage";
-
-import AuthPage from "./pages/auth/AuthPage";
 import LandingPage from "./pages/landing/LandingPage";
 
-import { QuizSetup } from "./data/mockData";
-import { WebSocketProvider } from "./contexts/WebSocketContext";
-import { ServerDataProvider } from "./contexts/ServerDataContext";
-import { useServerData } from "./hooks/useServerData";
-import { useWebSocket } from "./hooks/useWebSocket";
-import { AudioProvider, useAudio } from "./contexts/AudioContext";
-import SessionDetail from "./pages/report/SessionDetail";
-import { apiFetch } from "./utils/apiFetch";
+const AuthPage = lazy(() => import("./pages/auth/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const TeamPage = lazy(() => import("./pages/team/TeamPage"));
+const SessionDetail = lazy(() => import("./pages/report/SessionDetail"));
+const HomePage = lazy(() => import("./pages/quiz/manager/HomePage"));
+const EditorPage = lazy(() => import("./pages/quiz/manager/EditorPage"));
+const WaitingPage = lazy(() => import("./pages/loading/LoadingPage"));
+const PresentationEntry = lazy(() => import("./routes/PresentationEntry"));
 
-import HomePage from "./pages/quiz/manager/HomePage";
-import EditorPage from "./pages/quiz/manager/EditorPage";
-import notFoundIllustration from "./assets/404.svg";
+function RouteFallback() {
+  return <div className="min-h-screen bg-white" aria-busy="true" />;
+}
 
 export default function App() {
   return (
     <Router>
-      <ServerDataProvider>
+      <Suspense fallback={<RouteFallback />}>
         <Routes>
-          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/signup" element={<AuthPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/:role/presentation/:roomId"
-            element={<PresentationRouter />}
+            element={<PresentationEntry mode="presentation" />}
           />
           <Route path="/" element={<LandingPage />} />
           {/* Access code route - resolves access code to quiz_id and redirects to player presentation */}
@@ -58,8 +43,9 @@ export default function App() {
             path="/:role/panel/:quizId/report"
             element={<SessionDetail />}
           />
+          <Route path="*" element={<WaitingPage />} />
         </Routes>
-      </ServerDataProvider>
+      </Suspense>
     </Router>
   );
 

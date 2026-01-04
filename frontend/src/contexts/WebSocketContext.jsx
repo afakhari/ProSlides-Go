@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useRef, useState } from "react";
 
 export const WebSocketContext = createContext(null);

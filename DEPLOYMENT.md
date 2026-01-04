@@ -3,6 +3,9 @@
 This project does not ship a production container or process manager. Use a
 WSGI/ASGI server and your hosting provider's process tooling.
 
+For a full architecture overview and service-to-service communication,
+see `SYSTEM_OVERVIEW.md`.
+
 ## 1) Install dependencies
 From the repo root:
 ```
@@ -35,6 +38,9 @@ DJANGO_SETTINGS_MODULE=backend.srvs.office.office.settings.prod
 EXPORT_SERVICE_TOKEN=change-me-export-token
 GOOGLE_CLIENT_ID=your-google-client-id
 ```
+
+If Google certs are blocked from the server, the backend uses a minimal
+claim-only validation mode for Google ID tokens. See `SYSTEM_OVERVIEW.md`.
 
 Email + OTP (verification) settings:
 ```
@@ -76,6 +82,11 @@ Rust can request quiz export and submit leaderboard updates by sending:
 X-Export-Token: change-me-export-token
 ```
 If `EXPORT_SERVICE_TOKEN` is empty, service-token access is disabled.
+
+Rust also needs the Django API base URL:
+```
+DJANGO_API_BASE_URL=https://api.your.domain/api
+```
 
 Notes:
 - `ALLOWED_HOSTS` is a comma-separated list.

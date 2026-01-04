@@ -8,6 +8,8 @@ use redis::{AsyncCommands, aio::MultiplexedConnection};
 use reqwest::Client;
 use serde_json::json;
 use actix_rt;
+use std::env;
+use reqwest::header::{HeaderMap, HeaderValue};
 
 pub async fn save_quiz_setup(
     session_id: &str,
@@ -59,10 +61,8 @@ pub async fn get_slide_index(
 }
 
 pub async fn get_quiz_setup(session_id: &str) -> Result<QuizSetup, Box<dyn std::error::Error>> {
-    // let url = format!("https://api.proslides.ir/api/quizzes/{}/export/", session_id);
-    let url = format!("http://87.107.165.177:8000/api/quizzes/{}/export/", session_id);
-
-    let client = Client::new();
+    let url = build_api_url(&format!("/quizzes/{}/export/", session_id));
+    let client = build_api_client();
 
     let response = client
         .get(&url)
@@ -80,14 +80,14 @@ pub async fn post_question_leaderboard(
     leaderboard: Vec<LeaderboardEntry>,
 ) -> anyhow::Result<()> {
 
-    let url = format!(
-        "http://87.107.165.177:8000/api/quizzes/{}/slides/{}/question/leaderboard/",
+    let url = build_api_url(&format!(
+        "/quizzes/{}/slides/{}/question/leaderboard/",
         session_id, slide_pk
-    );
+    ));
 
     let payload = LeaderboardUpdate { leaderboard };
 
-    let client = reqwest::Client::new();
+    let client = build_api_client();
 
     let response = client
         .post(&url)
@@ -112,12 +112,12 @@ pub async fn post_options_result(
     slide_id: u64,
     options_result: Vec<serde_json::Value>,
 ) -> anyhow::Result<()> {
-    let url = format!(
-        "http://87.107.165.177:8000/api/quizzes/{}/slides/{}/question/results/",
+    let url = build_api_url(&format!(
+        "/quizzes/{}/slides/{}/question/results/",
         session_id, slide_id
-    );
+    ));
 
-    let client = reqwest::Client::new();
+    let client = build_api_client();
 
     let data = json!({
         "options": options_result,
@@ -139,6 +139,31 @@ pub async fn post_options_result(
     }
 
     Ok(())
+}
+
+fn build_api_client() -> Client {
+    let mut headers = HeaderMap::new();
+    if let Ok(token) = env::var("EXPORT_SERVICE_TOKEN") {
+        let trimmed = token.trim();
+        if !trimmed.is_empty() {
+            if let Ok(value) = HeaderValue::from_str(trimmed) {
+                headers.insert("X-Export-Token", value);
+            }
+        }
+    }
+
+    Client::builder()
+        .default_headers(headers)
+        .build()
+        .expect("Failed to build HTTP client")
+}
+
+fn build_api_url(path: &str) -> String {
+    let base = env::var("DJANGO_API_BASE_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:8000/api".to_string());
+    let base = base.trim_end_matches('/');
+    let path = path.trim_start_matches('/');
+    format!("{}/{}", base, path)
 }
 
 pub async fn cleanup_quiz_redis(

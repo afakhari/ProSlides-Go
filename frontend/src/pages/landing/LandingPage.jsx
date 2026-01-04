@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import SiteHeader from "../../components/SiteHeader";
+import Seo from "../../components/Seo";
 function LogoMark() {
   return (
     <Link
@@ -11,6 +12,7 @@ function LogoMark() {
     </Link>
   );
 }
+
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -32,6 +34,11 @@ export default function LandingPage() {
           "radial-gradient(circle at 10% 15%, rgba(236, 253, 245, 0.7) 0%, transparent 55%), radial-gradient(circle at 90% 10%, rgba(239, 246, 255, 0.7) 0%, transparent 50%), linear-gradient(180deg, #ffffff 0%, #f7fafc 100%)",
       }}
     >
+      <Seo
+        title="پرو اسلایدز | ارائه‌های تعاملی و حرفه‌ای"
+        description="پرو اسلایدز پلتفرم ایرانی ارائه‌های تعاملی است؛ نظرسنجی زنده، کوییز، و اسلایدهای مشارکتی برای کلاس‌ها و تیم‌ها."
+        canonical="https://proslides.ir/"
+      />
       <div className="border-b border-[#e5e7eb] bg-[#f8fafc]">
         <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-4 py-2 text-sm text-[#1f2937]">
           <span className="text-[#374151]">Are you a participant?</span>
@@ -39,15 +46,17 @@ export default function LandingPage() {
             onSubmit={handleJoin}
             className="flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3 py-1.5 shadow-[0_6px_14px_rgba(15,23,42,0.05)]"
           >
-            <span className="pl-2 text-[11px] font-semibold tracking-[0.14em] text-[#9ca3af]">
-              proslides.ir/
+            <span className="pl-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9ca3af]">
+              proslides/
             </span>
             <input
               type="text"
               value={accessCode}
               onChange={(event) => setAccessCode(event.target.value)}
               placeholder="enter code"
-              className="w-24 border-none bg-transparent text-sm text-[#111827] outline-none placeholder:text-[#c0c6d0]"
+              className="w-24 border-none bg-transparent text-sm text-[#111827] placeholder:text-[#94a3b8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5b2ecf]/30"
+              autoComplete="off"
+              spellCheck="false"
               aria-label="Access code"
             />
             <button
@@ -85,7 +94,12 @@ export default function LandingPage() {
       <main className="mx-auto flex max-w-5xl flex-col items-center px-6 pb-28 pt-20 text-center">
         <h1 className="text-4xl font-semibold leading-tight text-[#111827] md:text-6xl">
           The all-in-one platform for{" "}
-          <span className="text-[#1bb783]">engaging</span> presentations
+          <span className="multi-text" data-longest="interactive">
+            <span className="status">interactive</span>
+            <span className="status">engaging</span>
+            <span className="status">impactful</span>
+          </span>{" "}
+          presentations
         </h1>
         <p className="mt-4 max-w-2xl text-base text-[#6b7280] md:text-lg">
           Bring every room into the conversation with live, interactive slides
@@ -102,3 +116,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

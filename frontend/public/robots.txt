@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /manager/
+Disallow: /player/
+Disallow: /panel/
+Disallow: /presentation/
+Disallow: /quiz/
+Disallow: /report/
+
+Sitemap: https://proslides.ir/sitemap.xml

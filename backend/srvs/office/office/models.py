@@ -1,7 +1,7 @@
 import secrets
 import string
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
@@ -20,7 +20,11 @@ class Quiz(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="quizzes", null=True, blank=True
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quizzes",
+        null=True,
+        blank=True,
     )
     access_code = models.CharField(
         max_length=16,
@@ -71,7 +75,9 @@ class Quiz(models.Model):
 
 class EmailVerification(models.Model):
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name='email_verification'
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_verification'
     )
     code = models.CharField(max_length=6, blank=True, null=True)
     attempts = models.PositiveSmallIntegerField(default=0)

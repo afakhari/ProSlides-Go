@@ -1,211 +1,4 @@
-// // services/quizService.js - اضافه کردن متدهای جدید
-
-
-// import axios from 'axios';
-
-// const API_BASE_URL = 'https://api.proslides.ir/api';
-
-
-// export const quizService = {
-//   createEmptyQuiz: async () => {
-//     try {
-//       const response = await axios.post(`${API_BASE_URL}/quizzes/`, {
-//         title: "Default",
-//         author: "anonymous",
-//         music_url: "",
-//         background_color: "#ffffff",
-//         background_image_url: ""
-//       });
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error creating quiz:', error);
-//       throw error;
-//     }
-//   },
-
-//   // دریافت کوئیز
-//   getQuiz: async (quizId) => {
-//     try {
-//       const response = await axios.get(`${API_BASE_URL}/quizzes/${quizId}/`);
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error fetching quiz:', error);
-//       throw error;
-//     }
-//   },
-
-//   // به‌روزرسانی کوئیز
-//   updateQuiz: async (quizId, quizData) => {
-//     try {
-//       const response = await axios.put(`${API_BASE_URL}/quizzes/${quizId}/`, quizData);
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error updating quiz:', error);
-//       throw error;
-//     }
-//   },
-
-//   // ایجاد اسلاید جدید
-  // createSlide: async (quizId, slideData) => {
-  //   try {
-  //     const response = await axios.post(
-  //       `${API_BASE_URL}/quizzes/${quizId}/slides/`, 
-  //       slideData
-  //     );
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error('Error creating slide:', error);
-  //     throw error;
-  //   }
-  // },
-
-//   // به‌روزرسانی اسلاید
-//   updateSlide: async (quizId, slideId, slideData) => {
-//     try {
-//       const response = await axios.put(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/`, 
-//         slideData
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error updating slide:', error);
-//       throw error;
-//     }
-//   },
-
-//   // حذف اسلاید
-//   deleteSlide: async (quizId, slideId) => {
-//     try {
-//       await axios.delete(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/`
-//       );
-//     } catch (error) {
-//       console.error('Error deleting slide:', error);
-//       throw error;
-//     }
-//   },
-  
-//   // مرتب‌سازی مجدد اسلایدها
-//   reorderSlides: async (quizId, slides) => {
-//     try {
-//       // ارسال آرایه‌ای از slide_idها با order جدید
-//       const reorderData = slides.map(slide => ({
-//         slide_id: slide.slide_id,
-//         order: slide.order
-//       }));
-      
-//       const response = await axios.put(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/`, 
-//         { slides: reorderData }
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error reordering slides:', error);
-//       throw error;
-//     }
-//   },
-
-//   // به‌روزرسانی order یک اسلاید
-//   updateSlideOrder: async (quizId, slideId, order) => {
-//     try {
-//       const response = await axios.patch(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/`, 
-//         { order }
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error updating slide order:', error);
-//       throw error;
-//     }
-//   },
-
-//   getQuestion: async (quizId, slideId) => {
-//     try {
-//       const response = await axios.get(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/question/`
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error fetching question:', error);
-//       throw error;
-//     }
-//   },
-  
-//   // ایجاد سوال جدید
-//   createQuestion: async (quizId, slideId, questionData) => {
-//     try {
-//       console.log('Creating new question:', { quizId, slideId, questionData });
-      
-//       const response = await axios.post(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/question/`,
-//         questionData
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error creating question:', error);
-//       if (error.response) {
-//         console.error('Server response:', error.response.data);
-//       }
-//       throw error;
-//     }
-//   },
-  
-//   // به‌روزرسانی سوال موجود
-//   updateQuestion: async (quizId, slideId, questionData) => {
-//     try {
-//       console.log('Updating question:', { quizId, slideId, questionData });
-      
-//       // معمولاً برای به‌روزرسانی سوال از PUT استفاده می‌شود
-//       // اگر endpoint متفاوت است، با بک‌اند چک کنید
-//       const response = await axios.put(
-//         `${API_BASE_URL}/quizzes/${quizId}/slides/${slideId}/question/`,
-//         questionData
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error updating question:', error);
-//       if (error.response) {
-//         console.error('Server response:', error.response.data);
-//       }
-//       throw error;
-//     }
-//   }
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// services/quizService.js
-import axios from "axios";
+import axios from 'axios';
 import { getApiBase } from "../utils/api";
 import { getAuthHeaders } from "../utils/auth";
 
@@ -216,12 +9,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// const API_BASE_URL = 'https://api.proslides.ir/api';
+
 export const quizService = {
   // ایجاد کوئیز خالی
   createEmptyQuiz: async () => {
     try {
       const response = await api.post(`/quizzes/`, {
         title: "Default",
+        author: "anonymous",
         music_url: "",
         background_color: "#ffffff",
         background_image_url: ""
@@ -428,5 +224,47 @@ export const quizService = {
       console.error('Error deleting slide:', error);
       throw error;
     }
-  }
+  },
+
+
+  // به‌روزرسانی order یک اسلاید
+  updateSlideOrder: async (quizId, slideId, order) => {
+    try {
+      const response = await api.patch(
+        `/quizzes/${quizId}/slides/${slideId}/`, 
+        { order }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating slide order:', error);
+      throw error;
+    }
+  },
+
+
+  getSlidesFromAPI : async (quizId) => {
+    try {
+      const response = await api.get(
+        `/quizzes/${quizId}/export/`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching slides from API:', error);
+      throw error;
+    }
+  },
+
+  deleteLeaderboardSlide : async (quizId, slideId) => {
+    try {
+        const response = await api.patch(
+          `/quizzes/${quizId}/slides/${slideId}/`,
+          {show_leaderboard_after: false}
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error updating slide:', error);
+        throw error;
+    }
+  },
+
 };

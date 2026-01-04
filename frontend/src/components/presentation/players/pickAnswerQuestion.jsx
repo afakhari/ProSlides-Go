@@ -7,8 +7,6 @@ import {
   createUserAnswer,
 } from "../../../data/mockData";
 
-const question2 = PickAnswerQuestion_EN;
-const result2 = PickAnswerResult_EN;
 const question = PickAnswerQuestion_FA;
 const result = PickAnswerResult_FA;
 

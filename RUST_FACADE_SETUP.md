@@ -3,7 +3,7 @@
 This service talks to Django over HTTP. It does not use Django WebSockets.
 
 ## 1) Service token
-Set a shared token in Django:
+Set a shared token in Django (and export it for the Rust process):
 ```
 EXPORT_SERVICE_TOKEN=your-export-token
 ```
@@ -14,13 +14,14 @@ X-Export-Token: your-export-token
 ```
 
 ## 2) Django API base URL
-Use your deployed API base, for example:
+Export the API base URL for the Rust process:
+```
+DJANGO_API_BASE_URL=https://api.proslides.ir/api
+```
+
+You can also use a local API base, for example:
 ```
 http://127.0.0.1:8000/api
-```
-or
-```
-https://api.proslides.ir/api
 ```
 
 ## 3) Endpoints used by Rust

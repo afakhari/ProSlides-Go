@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  DefaultFooterStats,
   DefaultChatMessages,
   FooterMenuItems,
   KeyboardShortcuts,
@@ -10,9 +9,6 @@ import ReactionEffects from "./ReactionEffects";
 
 export default function Footer({
   currentSlide = 1,
-  totalSlides = 3,
-  stats = DefaultFooterStats,
-  showQRButton = true,
   onQRToggle = null,
   isQROpen = false,
   onShowLeaderboard = null,
@@ -65,12 +61,12 @@ export default function Footer({
             onMouseEnter={() => setShowMenu(true)}
             onMouseLeave={() => setShowMenu(false)}
           >
-            <button
+            {/* <button
               className="w-10 h-10 hover:bg-white/30 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors"
               aria-label="Menu"
             >
               ☰
-            </button>
+            </button> */}
           </div>
 
           <button
@@ -89,20 +85,6 @@ export default function Footer({
             className="w-8 h-8 hover:bg-white/20 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors"
           >
             {">"}
-          </button>
-
-          <button
-            onClick={() => onEnd && onEnd()}
-            className="px-3 h-8 hover:bg-red-500/80 bg-red-600/70 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors text-sm font-semibold"
-          >
-            End
-          </button>
-
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="w-10 h-10 hover:bg-white/30 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors text-lg"
-          >
-            💬
           </button>
 
           <button
@@ -127,6 +109,12 @@ export default function Footer({
             className="w-10 h-10 hover:bg-white/30 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors text-lg"
           >
             🏆
+          </button>
+          <button
+            onClick={() => onEnd && onEnd()}
+            className="px-3 h-8 hover:bg-red-500/80 bg-red-600/70 rounded-full flex items-center justify-center text-white cursor-pointer border-none transition-colors text-sm font-semibold"
+          >
+            End
           </button>
         </div>
 

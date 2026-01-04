@@ -17,7 +17,14 @@ def test_resolve_access_code_not_found(api_client):
 
 @pytest.mark.django_db
 def test_resolve_access_code_returns_quiz_id(api_client):
-    quiz = QuizFactory()
+    quiz = QuizFactory(
+        background_color="#123456",
+        background_image_url="http://example.com/bg.png",
+        music_url="http://example.com/music.mp3",
+    )
     resp = api_client.get(f"/api/quizzes/resolve-access-code/?access_code={quiz.access_code}")
     assert resp.status_code == 200
     assert resp.data["quiz_id"] == quiz.id
+    assert resp.data["background_color"] == "#123456"
+    assert resp.data["background_image_url"] == "http://example.com/bg.png"
+    assert resp.data["music_url"] == "http://example.com/music.mp3"

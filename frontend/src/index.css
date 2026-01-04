@@ -1,7 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
-
-@import "tailwindcss/preflight" /* instead @tailwind base */ @tailwind utilities; /* Covers both @tailwind utilities & @tailwind components */
 
 /*
 :root {
@@ -187,4 +184,70 @@ body,
 
 .animate-sound-wave {
   animation: soundWave 0.8s ease-out forwards;
+}
+
+.multi-text {
+  display: inline-block;
+  position: relative;
+  height: 1em;
+  vertical-align: baseline;
+}
+
+.multi-text::after {
+  content: attr(data-longest);
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.multi-text .status {
+  position: absolute;
+  left: 0;
+  top: -3px;
+  opacity: 0;
+  display: block;
+  white-space: nowrap;
+  text-align: center;
+  animation: textChange 4.5s infinite;
+  transform: translateY(50%);
+}
+
+.multi-text .status:nth-child(1) {
+  animation-delay: 0s;
+  color: #7731c1;
+}
+
+.multi-text .status:nth-child(2) {
+  animation-delay: 1.5s;
+  color: #16c49a;
+}
+
+.multi-text .status:nth-child(3) {
+  animation-delay: 3s;
+  color: #ff4081;
+}
+
+@keyframes textChange {
+  0% {
+    opacity: 0;
+    transform: translateY(50%);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-5%);
+  }
+  15% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(5%);
+  }
+  40%,
+  100% {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
 }

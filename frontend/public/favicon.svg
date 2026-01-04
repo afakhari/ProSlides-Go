@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1205)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(1.953125,0,0,1.953125,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512"><svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9333ea"></stop>
+      <stop offset="100%" stop-color="#581c87"></stop>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"></feDropShadow>
+    </filter>
+  <clipPath id="SvgjsClipPath1205"><rect width="1000" height="1000" x="0" y="0" rx="0" ry="0"></rect></clipPath></defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"></rect>
+  <path d="M190 128 h90 c66 0 120 54 120 120 s-54 120-120 120 h-10 v74 h-80 V128 z" fill="white" filter="url(#shadow)"></path>
+  <circle cx="280" cy="248" r="45" fill="#14b8a6"></circle> 
+  <path d="M360 380 L420 420 L360 460 Z" fill="#14b8a6" opacity="0.8" transform="rotate(-15 390 420)"></path>
+</svg></svg></g></g></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1206)"><rect width="1000" height="1000" fill="#7929be"></rect><g transform="matrix(1.953125,0,0,1.953125,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512"><svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9333ea"></stop>
+      <stop offset="100%" stop-color="#581c87"></stop>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"></feDropShadow>
+    </filter>
+  <clipPath id="SvgjsClipPath1206"><rect width="1000" height="1000" x="0" y="0" rx="500" ry="500"></rect></clipPath></defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"></rect>
+  <path d="M190 128 h90 c66 0 120 54 120 120 s-54 120-120 120 h-10 v74 h-80 V128 z" fill="white" filter="url(#shadow)"></path>
+  <circle cx="280" cy="248" r="45" fill="#14b8a6"></circle> 
+  <path d="M360 380 L420 420 L360 460 Z" fill="#14b8a6" opacity="0.8" transform="rotate(-15 390 420)"></path>
+</svg></svg></g></g></svg></g></svg>

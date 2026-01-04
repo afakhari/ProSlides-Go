@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import "tailwindcss/preflight" /* instead @tailwind base */ @tailwind utilities; /* Covers both @tailwind utilities & @tailwind components */
-
 .custom-bg {
   background: radial-gradient(
       circle at 30% 20%,

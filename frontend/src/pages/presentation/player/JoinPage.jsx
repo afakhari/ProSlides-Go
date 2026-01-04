@@ -1,16 +1,138 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
+import { motion as Motion } from "framer-motion";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useServerData } from "../../../hooks/useServerData";
 
-export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
+// Animation configurations based on emoji categories
+const getEmojiAnimation = (emoji) => {
+  const robots = ["🤖", "👾", "🛸"];
+  const ghosts = ["👻", "🧙", "🧛", "🧚", "🧞"];
+  const animals = ["🐱", "🐶", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷"];
+  const food = ["🍕", "🍔", "🎂", "🍰", "🍩", "🍪", "🍦", "🍓", "🍌", "🍎"];
+  const celebration = ["🎉", "🎊", "⭐", "✨", "💫", "🌟", "🎈", "🎁"];
+  const faces = ["😊", "😂", "🥰", "😎", "🤩", "😍", "🤗", "😇"];
+  const royal = ["👑", "💎", "🏆", "🥇", "🎖️", "💍"];
+  const hearts = ["❤️", "💕", "💖", "💗", "💓", "💝"];
+
+  if (robots.includes(emoji)) {
+    return {
+      initial: { rotate: 0, scale: 1 },
+      animate: {
+        rotate: [0, -10, 10, -10, 10, 0],
+        scale: [1, 1.2, 1],
+        filter: ["brightness(1)", "brightness(1.5)", "brightness(1)"],
+      },
+      transition: { duration: 0.6, ease: "easeInOut" },
+    };
+  }
+
+  if (ghosts.includes(emoji)) {
+    return {
+      initial: { y: 0, opacity: 1 },
+      animate: {
+        y: [-10, -20, -10, 0],
+        opacity: [1, 0.7, 1],
+      },
+      transition: { duration: 0.8, ease: "easeInOut" },
+    };
+  }
+
+  if (animals.includes(emoji)) {
+    return {
+      initial: { y: 0, rotate: 0 },
+      animate: {
+        y: [0, -30, -10, 0],
+        rotate: [0, -5, 5, 0],
+      },
+      transition: { duration: 0.5, ease: "easeOut" },
+    };
+  }
+
+  if (food.includes(emoji)) {
+    return {
+      initial: { scale: 1, rotate: 0 },
+      animate: {
+        scale: [1, 1.3, 1.1, 1],
+        rotate: [0, 360],
+      },
+      transition: { duration: 0.7, ease: "easeInOut" },
+    };
+  }
+
+  if (celebration.includes(emoji)) {
+    return {
+      initial: { scale: 1, rotate: 0, filter: "brightness(1)" },
+      animate: {
+        scale: [1, 1.3, 1.2, 1],
+        rotate: [0, 180, 360],
+        filter: [
+          "brightness(1)",
+          "brightness(2)",
+          "brightness(1.5)",
+          "brightness(1)",
+        ],
+      },
+      transition: { duration: 0.8, ease: "easeInOut" },
+    };
+  }
+
+  if (faces.includes(emoji)) {
+    return {
+      initial: { scale: 1 },
+      animate: {
+        scale: [1, 1.4, 0.9, 1.2, 1],
+      },
+      transition: { duration: 0.6, type: "spring", bounce: 0.5 },
+    };
+  }
+
+  if (royal.includes(emoji)) {
+    return {
+      initial: { scale: 1, rotate: 0, y: 0 },
+      animate: {
+        scale: [1, 1.2, 1.1, 1],
+        rotate: [-10, 10, -10, 10, 0],
+        y: [0, -5, 0],
+        filter: [
+          "brightness(1)",
+          "brightness(1.8) drop-shadow(0 0 10px gold)",
+          "brightness(1)",
+        ],
+      },
+      transition: { duration: 0.9, ease: "easeInOut" },
+    };
+  }
+
+  if (hearts.includes(emoji)) {
+    return {
+      initial: { scale: 1 },
+      animate: {
+        scale: [1, 1.5, 1.3, 1.5, 1],
+      },
+      transition: { duration: 0.7, ease: "easeInOut" },
+    };
+  }
+
+  // Default animation for any other emoji
+  return {
+    initial: { scale: 1, rotate: 0 },
+    animate: {
+      scale: [1, 1.3, 1],
+      rotate: [0, 10, -10, 0],
+    },
+    transition: { duration: 0.5, ease: "easeInOut" },
+  };
+};
+
+export default function PlayerJoinPage({ roomId, quiz }) {
   const [players, setPlayers] = useState([]);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("🧙");
   const [showPicker, setShowPicker] = useState(false);
   const [joined, setJoined] = useState(false);
   const [joinSent, setJoinSent] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const { connect, sendMessage, isConnected, lastMessage } = useWebSocket();
   const { processMessage } = useServerData();
 
@@ -98,16 +220,16 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
       ? `url('${quiz.background.image}')`
-      : "url('/bg.jpg')",
+      : "none",
     backgroundColor: quiz?.background?.color || "#1e1e2e",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
   };
 
   // Stay on "Get ready to play!" until server sends next command (no auto-exit)
   return !joined ? (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={backgroundStyle}
-    >
+    <div className="min-h-screen w-full" style={backgroundStyle}>
       <div className="flex flex-col items-center justify-center">
         <header>
           <div className="flex items-center justify-center text-white px-6 py-7 rounded-t-xl placeholder-gray-500">
@@ -137,7 +259,22 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
             </h1>
           </div>
           <div className="flex flex-col items-center relative">
-            <div className="text-9xl mb-2">{avatar}</div>
+            <Motion.div
+              key={avatar} // Re-mount on avatar change to trigger animation
+              className="text-9xl mb-2 cursor-pointer select-none"
+              onClick={() => {
+                setIsAnimating(true);
+                setTimeout(() => setIsAnimating(false), 1000);
+              }}
+              {...getEmojiAnimation(avatar)}
+              animate={
+                isAnimating
+                  ? getEmojiAnimation(avatar).animate
+                  : getEmojiAnimation(avatar).initial
+              }
+            >
+              {avatar}
+            </Motion.div>
             <button
               onClick={() => setShowPicker(!showPicker)}
               className="text-white font-medium underline hover:text-purple-900 text-2xl"
@@ -173,10 +310,7 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
       </div>
     </div>
   ) : (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={backgroundStyle}
-    >
+    <div className="min-h-screen w-full" style={backgroundStyle}>
       <header>
         <div className="flex items-center justify-center text-white px-6 py-7 rounded-t-xl">
           <div className="shrink-0">
@@ -186,7 +320,21 @@ export default function PlayerJoinPage({ roomId, quiz, ...inp }) {
       </header>
       <div className="flex flex-col items-center justify-center h-full">
         <div className="flex items-center space-x-4 px-6 py-3 rounded-2xl m-4">
-          <span className="text-5xl">{players[players.length - 1].avatar}</span>
+          <Motion.span
+            className="text-5xl cursor-pointer select-none"
+            onClick={() => {
+              setIsAnimating(true);
+              setTimeout(() => setIsAnimating(false), 1000);
+            }}
+            {...getEmojiAnimation(players[players.length - 1].avatar)}
+            animate={
+              isAnimating
+                ? getEmojiAnimation(players[players.length - 1].avatar).animate
+                : getEmojiAnimation(players[players.length - 1].avatar).initial
+            }
+          >
+            {players[players.length - 1].avatar}
+          </Motion.span>
           <span className="text-2xl font-semibold">
             {players[players.length - 1].name}
           </span>
