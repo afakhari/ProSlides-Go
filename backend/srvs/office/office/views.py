@@ -579,6 +579,7 @@ class QuizViewSet(viewsets.ModelViewSet):
                 music_url=quiz.music_url,
                 background_color=quiz.background_color,
                 background_image_url=quiz.background_image_url,
+                text_color=quiz.text_color,
                 participants_count=0,
             )
 
