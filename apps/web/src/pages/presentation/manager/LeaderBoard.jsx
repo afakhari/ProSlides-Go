@@ -7,7 +7,7 @@ import { getColorForUser, isLightColor } from "../../../lib/colorUtils";
 // LeaderboardModal component was inlined into this page per request
 import { useLiveSession } from "../../../hooks/useLiveSession";
 import { useServerData } from "../../../hooks/useServerData";
-import { createNextPrevious, DefaultFooterStats } from "../../../data/mockData";
+import { createNavigationState, EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 
 const debugLog = (...args) => {
   if (import.meta.env.DEV) console.log(...args);
@@ -107,14 +107,14 @@ function ManagerLeaderBoard({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [_navigationData, setNavigationData] = useState(
-    createNextPrevious(5, null, null)
+    createNavigationState(5, null, null)
   );
 
   // Ù‡ÛŒÚ† Ù¾ÛŒØ§Ù… Ù…Ø³ØªÙ‚ÛŒÙ…ÛŒ Ø§Ø² Ø³Ø±ÙˆØ± Ù¾Ø±Ø¯Ø§Ø²Ø´ Ù†Ù…ÛŒâ€ŒØ´ÙˆØ¯ØŒ ÙÙ‚Ø· Ø¯Ø§Ø¯Ù‡ context Ø§Ø³ØªÙØ§Ø¯Ù‡ Ù…ÛŒâ€ŒØ´ÙˆØ¯
 
   // Handle navigation and update server data
   const handleNext = async () => {
-    const newNavigationData = createNextPrevious(
+    const newNavigationData = createNavigationState(
       5,
       "next",
       currentQuestionIndex
@@ -389,7 +389,7 @@ function ManagerLeaderBoard({
         <Footer
           currentSlide={currentSlide}
           totalSlides={totalSlides}
-          stats={DefaultFooterStats}
+          stats={EMPTY_FOOTER_STATS}
           showQRButton={true}
           onQRToggle={setShowQRModal}
           isQROpen={showQRModal}

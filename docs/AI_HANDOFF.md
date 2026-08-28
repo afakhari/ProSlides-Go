@@ -51,15 +51,14 @@ not complete. Never describe a design target as benchmark evidence.
   preceding Nginx 1k sample missed answer p95 (581.88 ms), so 1k
   production-like and all 5k/10k gates remain unmeasured. Use
   `docs/capacity-plan.md` and `docs/load-test-results.md` as the proof record.
-- Frontend truth: F1-F3 are verified. Presentation API/model, dashboard,
+- Frontend truth: F1-F4 are verified. Presentation API/model, dashboard,
   sharing, and editor UI are under `modules/presentations`; transport types are
   generated from OpenAPI, type-first slide creation avoids abandoned drafts,
   and unified dirty/save/conflict state exposes recovery. Most remaining UI is
-  JSX outside `tsc`; active routing still coexists with unreachable legacy
-  runtime and mock-era view models, and physical-direction debt remains.
-- Exact next task: remove the unreachable duplicated presentation runtime from
-  `App.jsx` and its dead imports while preserving active routes and live/report
-  behavior.
+  JSX outside `tsc`; `App.jsx` is now route composition only and production has
+  no mock-data imports. Numeric live projections and physical-direction debt remain.
+- Exact next task: begin F5 with a measured critical-flow accessibility and
+  route-bundle baseline before changing compatibility or chunk boundaries.
 - Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
   then resume the still-mandatory production-like TLS 1k gate. No capacity gate
   has been waived or passed by this reprioritization.
@@ -229,27 +228,26 @@ the eighth one-second probe. This is local, non-TLS evidence only.
 
 `docs/frontend-professionalization.md` owns UX sequencing;
 `docs/frontend-architecture.md` owns technical boundaries; ADR 0003 records the
-decision. F0, F1, and F2 are complete. The accepted target keeps React
+decision. F0-F4 are complete. The accepted target keeps React
 19 and Vite and migrates incrementally toward `app -> modules -> shared`, with
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is the first F4 cleanup: remove the
-unreachable duplicated presentation runtime from `App.jsx` and its dead
-imports while preserving active routes and live/report behavior. Capacity work
-remains independently required and resumes after F5.
+The owner-prioritized exact next task is the first F5 evidence slice: measure
+keyboard/accessibility behavior and route bundles across critical Persian and
+live/report flows before changing compatibility or chunk boundaries. Capacity
+work remains independently required and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
 - The 2026-08-28 post-foundation source had 54 JSX, 15 JS, 10 TS, and 4 TSX
   files. After F3 it has 54 JSX, 15 JS, 13 TS, and 4 TSX; `tsc` still verifies
   only the typed seam rather than most UI.
-- Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
-  table followed by unreachable legacy runtime whose static imports still
-  influence the bundle.
-- Production code imports mock-era models and maps typed HTTP/SSE data back to
-  numeric legacy view models; migrated modules must retire this compatibility
-  layer rather than copy it.
+- Four UI files exceed 1,000 nonblank lines. F4 reduced `App.jsx` from 567 lines
+  to a small route composition root and removed duplicate route branches.
+- Production no longer imports mock-era models or falls back to a demo quiz.
+  Typed HTTP/SSE data is still projected to numeric legacy view models; F5 must
+  retire that compatibility layer rather than copy it.
 - The original audit found roughly 381 direct color expressions, 75 inline
   objects, 169 physical-direction utilities, duplicate Tailwind imports, and no
   complete tokens. The F2 foundation removes the duplicate import and migrates
@@ -293,6 +291,10 @@ remains independently required and resumes after F5.
   sends no slide POST before selection and exactly one afterward. Drift check,
   lint, typecheck, 46 unit tests, build, and all three system-Chrome E2E flows
   pass.
+- F4 removes the unreachable duplicate App runtime, all production `mockData`
+  imports and demo quiz fallback, and two dead mock-era components. A typed
+  Persian 404/header boundary and structural regression gate were added. Lint,
+  typecheck, 47 unit tests, build, and all three system-Chrome E2E flows pass.
 
 ## Completed implementation: dependency adapters and readiness
 

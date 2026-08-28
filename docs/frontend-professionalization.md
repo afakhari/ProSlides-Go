@@ -26,18 +26,19 @@ A real-Chrome review at desktop and 390x844 reproduced the first critical flow:
 dashboard -> Creating button -> unrelated full-screen loader -> empty editor
 ```
 
-The F1-F3 work aligned dashboard/editor foundations, replaced the blank first
+The F1-F4 work aligned dashboard/editor foundations, replaced the blank first
 step with type-first creation, and added responsive editor navigation and
 status recovery. Remaining routes still vary in color, density, language, and
 spatial structure; the editor also retains untranslated detail copy.
 
 The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
-lines. After F3 the tree contains 54 JSX, 15 JS, 13 TS, and 4 TSX files.
+lines. After F4 the tree contains 51 JSX, 16 JS, 13 TS, and 6 TSX files.
 `tsconfig.json` checks TS/TSX, but the passing typecheck still
 excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
-files exceed 1,000 nonblank lines. `App.jsx` retains unreachable legacy runtime
-after the active route table, production paths still import mock-era view
-models, and the editor carries duplicate legacy/canonical fields.
+files exceed 1,000 nonblank lines. `App.jsx` is now a small route composition
+root and production has no `mockData` imports; the active live runtime still
+contains legacy numeric projections and the editor carries duplicate
+legacy/canonical fields for F5 migration.
 
 The initial styles contained roughly 381 direct color expressions, 75 inline
 style objects, and 169 physical-direction utilities. The first F2 slice now
@@ -172,6 +173,18 @@ and all three system-Chrome E2E flows passed.
 - Remove production mock-data dependencies.
 - Complete keyboard, contrast, focus, screen-reader, and reduced-motion audit.
 - Add screenshot/interaction regression coverage for critical Persian flows.
+
+Completed 2026-08-29: the 567-line `App.jsx` duplicate runtime and duplicate
+route branches were removed, leaving one route table and one catch-all. The
+typed Persian 404 route and shared header use semantic tokens, labels, visible
+focus, logical alignment, and explicit LTR access-code content. Production no
+longer imports `data/mockData`; live pages use empty bounded defaults and never
+fall back to a demo quiz. Two unreferenced mock-era components were removed and
+a unit gate prevents the router/runtime duplication and production mock imports
+from returning. Lint, typecheck, 47 unit tests, build, and the three existing
+system-Chrome interaction flows passed. The complete measured keyboard,
+screen-reader, contrast, RTL, reduced-motion, and performance audit remains the
+explicit F5 quality-closure gate.
 
 ### Phase F5 — measured accessibility and performance hardening
 

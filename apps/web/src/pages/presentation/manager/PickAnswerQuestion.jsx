@@ -7,12 +7,7 @@ import { resolveQuestionTimer } from "../utils/questionTimerSync";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
 import { useLiveSession } from "../../../hooks/useLiveSession";
 import { useServerData } from "../../../hooks/useServerData";
-import {
-  QuizSetup,
-  createNextPrevious,
-  DefaultFooterStats,
-  QuestionResult,
-} from "../../../data/mockData";
+import { createNavigationState, EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 // import { useLocation, useNavigate } from "react-router-dom";
 
 const debugLog = (...args) => {
@@ -129,7 +124,7 @@ export default function ManagerPickAnswerQuestion({
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [questionAnchorStartMs, setQuestionAnchorStartMs] = useState(Date.now());
   const [_navigationData, setNavigationData] = useState(
-    createNextPrevious(5, null, null)
+    createNavigationState(5, null, null)
   ); // State for tracking navigation (to be sent to server)
   // const navigate = useNavigate();
 
@@ -346,7 +341,7 @@ export default function ManagerPickAnswerQuestion({
 
   // Handle navigation and update server data
   const handleNext = async () => {
-    const newNavigationData = createNextPrevious(
+    const newNavigationData = createNavigationState(
       5,
       "next",
       currentQuestionIndex
@@ -613,7 +608,7 @@ export default function ManagerPickAnswerQuestion({
       <Footer
         currentSlide={currentSlide}
         totalSlides={totalSlides}
-        stats={DefaultFooterStats}
+        stats={EMPTY_FOOTER_STATS}
         showQRButton={true}
         onQRToggle={setShowQRModal}
         isQROpen={showQRModal}

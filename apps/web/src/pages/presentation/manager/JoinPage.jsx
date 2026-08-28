@@ -6,10 +6,10 @@ import { useLiveSession } from "../../../hooks/useLiveSession";
 import { useServerData } from "../../../hooks/useServerData";
 import { isLightColor } from "../../../lib/colorUtils";
 import {
-  User_adding,
-  createNextPrevious,
-  UserColorList,
-} from "../../../data/mockData";
+  EMPTY_ROSTER,
+  createNavigationState,
+  USER_COLORS,
+} from "../../../modules/live/model/runtimeDefaults";
 
 const debugLog = (...args) => {
   if (import.meta.env.DEV) console.log(...args);
@@ -24,7 +24,7 @@ const hashToColorIndex = (value, modulo) => {
   return modulo > 0 ? hash % modulo : 0;
 };
 
-// Calculate players ready based on the User_adding.type
+// Calculate the ready count from the bounded roster projection.
 function calculatePlayersReady({ type, Users }) {
   // Extendable rule-set; for now, type 1 => count all users
   switch (type) {
@@ -64,7 +64,7 @@ export default function ManagerJoinPage({
   const [startError, setStartError] = useState("");
   const [newUserId, setNewUserId] = useState(null);
   const [previousUserCount, setPreviousUserCount] = useState(
-    User_adding.Users.length
+    EMPTY_ROSTER.Users.length
   );
   const [layoutType, setLayoutType] = useState("circle"); // 'circle', 'diagonalCircle', 'triangle', 'scatter'
   const [centerOffset, setCenterOffset] = useState({ x: 0, y: 0 });
@@ -72,16 +72,16 @@ export default function ManagerJoinPage({
   const [showQRModal, setShowQRModal] = useState(false); // State for QR modal
   const [hasSyncedState, setHasSyncedState] = useState(false);
   const [_navigationData, setNavigationData] = useState(
-    createNextPrevious(5, null, null)
+    createNavigationState(5, null, null)
   ); // State for tracking navigation (to be sent to server)
-  const [_userCount, setUserCount] = useState(User_adding.Users.length); // Track user count for reactivity
+  const [_userCount, setUserCount] = useState(EMPTY_ROSTER.Users.length); // Track user count for reactivity
   const [sessionId] = useState(roomId); // Session ID from route
 
   // استفاده از بازیکنان از سرور یا mock data
-  const displayUsers = snapshot ? users : User_adding.Users;
+  const displayUsers = snapshot ? users : EMPTY_ROSTER.Users;
   const playersReady = snapshot
     ? participantCount
-    : users.length || calculatePlayersReady(User_adding);
+    : users.length || calculatePlayersReady(EMPTY_ROSTER);
   const currentQuestionIndex = Math.floor(currentSlide / 2);
   const hasLeaderboard =
     Array.isArray(leaderboardResults) ?
@@ -109,7 +109,7 @@ export default function ManagerJoinPage({
   }, [hasSyncedState, isConnected]);
 
   // List of 10 vibrant colors for user names
-  const colorList = UserColorList;
+  const colorList = USER_COLORS;
 
   // Function to get color for a user based on their user_id
   const getUserColor = (userId) => {
@@ -182,7 +182,7 @@ export default function ManagerJoinPage({
       setStartError("Connection is not ready. Please wait and try again.");
       return;
     }
-    const newNavigationData = createNextPrevious(
+    const newNavigationData = createNavigationState(
       5,
       "start",
       currentQuestionIndex

@@ -1,6 +1,10 @@
 
 import React, { useEffect, useState } from "react";
-import { DefaultChatMessages, FooterMenuItems, Reactions } from "../data/mockData";
+import {
+  FOOTER_CHAT_MESSAGES,
+  FOOTER_MENU_ITEMS,
+  FOOTER_REACTIONS,
+} from "../modules/live/model/runtimeDefaults";
 import ReactionEffects from "./ReactionEffects";
 
 export default function Footer({
@@ -18,12 +22,12 @@ export default function Footer({
   const [showChat, setShowChat] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [chatMessages] = useState(DefaultChatMessages);
+  const [chatMessages] = useState(FOOTER_CHAT_MESSAGES);
   const [activeEffect, setActiveEffect] = useState(null);
   const [reactionCloseTimer, setReactionCloseTimer] = useState(null);
 
-  const menuItems = FooterMenuItems;
-  const reactions = Reactions;
+  const menuItems = FOOTER_MENU_ITEMS;
+  const reactions = FOOTER_REACTIONS;
 
   const qrOpen = onQRToggle ? isQROpen : false;
   const labels = {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import test from "node:test";
 
 const source = (relativePath) =>
@@ -88,4 +89,23 @@ test("F3 owns presentation UI and creates slides only after type selection", () 
   assert.match(route, /isCreatingSlide/);
   assert.doesNotMatch(addFlow, /quizService\.createSlide/);
   assert.match(route, /await quizService\.createSlide\(quiz\.quiz_id, newSlideData, quiz\.revision\)/);
+});
+
+test("F4 keeps the app router compositional and mock fixtures out of production", () => {
+  const app = source("src/App.jsx");
+  const productionFiles = readdirSync(new URL("../src", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter((entry) => entry.isFile() && /\.[jt]sx?$/.test(entry.name))
+    .filter((entry) => !entry.parentPath.endsWith("data"));
+  const productionSource = productionFiles
+    .map((entry) => readFileSync(`${entry.parentPath}/${entry.name}`, "utf8"))
+    .join("\n");
+
+  assert.ok(app.split("\n").length < 100);
+  assert.equal((app.match(/path="\*"/g) || []).length, 1);
+  assert.doesNotMatch(app, /AppPresentation|AccessCodeResolver|LiveMessageAdapter/);
+  assert.doesNotMatch(productionSource, /from\s+["'][^"']*data\/mockData["']/);
+  assert.match(source("src/routes/PresentationEntry.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
 });

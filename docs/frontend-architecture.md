@@ -24,14 +24,13 @@ The measured source facts are:
   not validate most components or routes;
 - several components have more than 1,000 non-blank lines, including the
   dashboard, auth screen, editor, and editor sidebar;
-- `App.jsx` contains the active route table plus an unreachable legacy
-  presentation runtime after the component return; its static imports still
-  affect the production bundle;
+- F4 reduced `App.jsx` to the active route composition root and removed its
+  unreachable presentation runtime, duplicate routes, and dead static imports;
 - the active live route is snapshot/SSE based, but `ServerDataContext` and
   `live/protocol.js` project typed state back into retired numeric-message and
   legacy quiz view models;
-- production components still import `src/data/mockData.js`, contrary to the
-  documented mock-only rule;
+- production components no longer import `src/data/mockData.js`; bounded empty
+  runtime defaults now live under the live module and demo quiz fallback is gone;
 - the editor domain duplicates legacy and canonical field names such as
   `title`/`quiz_name`, `text`/`question_text`, and
   `time_limit`/`question_time`;
@@ -419,12 +418,15 @@ request. Responsive slide navigation retains mobile safe-area behavior, and a
 single dirty/save/conflict model exposes reload recovery without changing
 revision or validation semantics.
 
-### F4 — live runtime and role UI
+### F4 — maintainability, accessibility, and product cleanup — complete
 
-- Replace legacy projections with typed reducer/selectors.
-- Remove production mock fallback and numeric message handling.
-- Keep role-specific manager/participant containers and storage adapters.
-- Verify recovery, event ordering, timers, final results, and non-disclosure.
+- Reduced `App.jsx` to route composition and isolated the typed 404 route.
+- Removed production mock dependencies, the demo live fallback, and two dead
+  mock-era components while retaining role-specific manager/participant flows.
+- Added a structural regression gate for route duplication and mock imports;
+  preserved the existing protocol recovery, ordering, timer, and disclosure tests.
+- Kept the deeper typed live reducer migration and measured accessibility audit
+  in F5, reconciling this section with `frontend-professionalization.md`.
 
 ### F5 — quality closure
 

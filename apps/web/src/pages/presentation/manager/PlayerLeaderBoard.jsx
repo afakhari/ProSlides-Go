@@ -124,7 +124,7 @@ import { useLiveSession } from "../../../hooks/useLiveSession";
 
 
 
-import { DefaultFooterStats } from "../../../data/mockData";
+import { EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 
 
 
@@ -5105,7 +5105,7 @@ function ManagerPlayerLeaderBoard({
 
 
 
-          stats={DefaultFooterStats}
+          stats={EMPTY_FOOTER_STATS}
 
 
 

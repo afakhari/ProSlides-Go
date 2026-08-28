@@ -61,10 +61,11 @@ The established login/register/recovery presentation was preserved. The main
 `AuthPage.jsx` remains the large, custom-designed screen; migration work changed
 its transport and provider integration rather than replacing the design.
 
-Frontend professionalization is not complete, but F1-F3 are verified. The
-partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 13 TS, and 4 TSX
-files; most UI remains outside `tsc`, and oversized components, unreachable
-legacy runtime, production mock-era adapters, and styling debt remain.
+Frontend professionalization is not complete, but F1-F4 are verified. The
+partial JavaScript-to-TypeScript migration has 51 JSX, 16 JS, 13 TS, and 6 TSX
+files; most UI remains outside `tsc`, and oversized components, typed live
+projection work, accessibility measurement, and styling debt remain. The
+unreachable App runtime and production mock-data imports are removed.
 Presentation API/model, dashboard, sharing, and editor UI now follow the
 incremental `app -> modules -> shared` target. Detailed constraints and F0-F5
 gates are in [frontend-architecture.md](frontend-architecture.md); UX
@@ -99,10 +100,9 @@ a stale metadata overwrite with 409. No browser run was used for this change.
 
 ## Remaining work, in order
 
-1. Complete frontend F4: remove unreachable duplicated runtime and remaining
-   production mock-era dependencies, then extend enforceable TS/lint/test
-   boundaries over migrated UI.
-2. Complete frontend F5 measured accessibility and performance hardening.
+1. Complete frontend F5 measured accessibility and performance hardening,
+   including the remaining typed live compatibility boundary and evidence-based
+   regression budgets.
 3. Provision production SMTP, Google, database, Redis, origin, and TLS secrets
    through the deployment platform; never commit them.
 4. Repeat the locally successful two-run 1k HTTP/SSE protocol on named

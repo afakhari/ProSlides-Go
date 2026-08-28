@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, lazy } from "react";
 import { useParams } from "react-router-dom";
 
-import { QuizSetup } from "../data/mockData";
 import { LiveSessionProvider } from "../contexts/LiveSessionContext";
 import { ServerDataProvider } from "../contexts/ServerDataContext";
 import { useServerData } from "../hooks/useServerData";
@@ -302,11 +301,11 @@ function AppPresentation({ roomId, role, initialQuizData }) {
     void connect(roomId);
   }, [role, roomId, liveSessionId, connect]);
   const quiz = React.useMemo(() => {
-    const baseQuiz = remoteQuiz ?? (role === "player" ? QuizSetup : EMPTY_PRESENTATION);
+    const baseQuiz = remoteQuiz ?? EMPTY_PRESENTATION;
     return snapshot?.role === "manager"
       ? { ...baseQuiz, access_code: snapshot.session.join_code }
       : baseQuiz;
-  }, [remoteQuiz, role, snapshot]);
+  }, [remoteQuiz, snapshot]);
   const isRemoteReady = role === "player" || !!remoteQuiz;
   const totalSlides = quiz.slides.length;
 
