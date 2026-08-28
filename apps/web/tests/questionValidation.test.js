@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getPresentationValidationError, getQuestionValidationError } from "../src/pages/quiz/manager/questionValidation.js";
+import { getPresentationValidationError, getQuestionValidationError } from "../src/modules/presentations/editor/model/validation.js";
 
 const validQuestion = {
   question_text: "Choose",

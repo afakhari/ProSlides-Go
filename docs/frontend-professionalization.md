@@ -150,12 +150,20 @@ mutations use one typed shared JSON/API-error boundary with preserved CSRF,
 abort, revision, request-count, conflict, and auth-expiry behavior. Lint,
 typecheck, 42 unit tests, build, and all three system-Chrome E2E flows passed.
 
-### Phase F3 — editor information architecture and responsive refinement
+### Phase F3 — editor information architecture and responsive refinement — complete
 
 - Simplify editor navigation and clarify canvas/panel hierarchy.
 - Make slide creation type-first and avoid abandoned draft slides.
 - Refine mobile header, bottom toolbar, sheets, and safe-area behavior.
 - Add consistent save state, dirty state, and conflict recovery affordances.
+
+Completed 2026-08-29: dashboard, sharing, canonical editor model/API, and the
+editor route were migrated under the presentation module. Canvas, slide list,
+inspectors, and toolbar have explicit directories; the existing responsive
+mobile sheet/bottom toolbar keeps safe-area handling. New slides are persisted
+only after type selection, and a unified status model shows saved, dirty, and
+conflict states with reload recovery. Lint, typecheck, 46 unit tests, build,
+and all three system-Chrome E2E flows passed.
 
 ### Phase F4 — maintainability, accessibility, and product cleanup
 

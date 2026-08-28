@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { quizService } from "../services/quizService.ts";
-import ShareMenu from "./ShareMenu";
-import { fa } from "../shared/i18n/fa";
+import { quizService } from "../../api/presentationRepository.ts";
+import ShareMenu from "../../sharing/ShareDialog";
+import { fa } from "../../../../shared/i18n/fa";
 
 
 export default function QuizHeader({
@@ -15,6 +15,7 @@ export default function QuizHeader({
   onQuizUpdated,
   onConflict,
   onAccessCodeSaved,
+  saveState = "saved",
 }) {
 
   const navigate = useNavigate();
@@ -22,6 +23,11 @@ export default function QuizHeader({
   const [isEditing, setIsEditing] = useState(false);
   const [newQuizTitle, setNewQuizTitle] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const saveStateLabel = saveState === "conflict"
+    ? "تعارض ویرایش"
+    : saveState === "dirty"
+      ? "ذخیره‌نشده"
+      : "ذخیره‌شده";
 
 
   // 
@@ -191,6 +197,20 @@ export default function QuizHeader({
             </div>
           )}
 
+
+          <span
+            className={`hidden rounded-full px-2.5 py-1 text-xs font-bold sm:inline-flex ${
+              saveState === "conflict"
+                ? "bg-danger-soft text-danger"
+                : saveState === "dirty"
+                  ? "bg-warning-soft text-warning-ink"
+                  : "bg-success-soft text-success"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {saveStateLabel}
+          </span>
 
           {/* --------------- Share Button --------------- */}
           <button

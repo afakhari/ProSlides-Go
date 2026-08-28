@@ -27,19 +27,19 @@ test("shared notice exposes assertive errors and polite pending or success state
 
 test("F2 dashboard editor and share slice has no native alerts and owns direction boundaries", () => {
   const paths = [
-    "src/components/QuizHeader.jsx",
-    "src/components/ShareMenu.jsx",
-    "src/components/QuizManager.jsx",
-    "src/pages/quiz/manager/EditorPage.jsx",
-    "src/pages/quiz/manager/Sidebar.jsx",
-    "src/pages/quiz/manager/SlidesPanel.jsx",
+    "src/modules/presentations/editor/toolbar/EditorHeader.jsx",
+    "src/modules/presentations/sharing/ShareDialog.jsx",
+    "src/modules/presentations/dashboard/PresentationDashboard.jsx",
+    "src/modules/presentations/editor/routes/EditorRoute.jsx",
+    "src/modules/presentations/editor/inspector/QuestionInspector.jsx",
+    "src/modules/presentations/editor/slide-list/SlideList.jsx",
   ];
   const combined = paths.map(source).join("\n");
 
   assert.doesNotMatch(combined, /(?:window\.)?alert\s*\(/);
-  assert.match(source("src/components/QuizHeader.jsx"), /dir="auto"/);
-  assert.match(source("src/components/ShareMenu.jsx"), /dir="ltr"/);
-  assert.match(source("src/components/QuizManager.jsx"), /dir="auto"/);
+  assert.match(source("src/modules/presentations/editor/toolbar/EditorHeader.jsx"), /dir="auto"/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /dir="ltr"/);
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /dir="auto"/);
 });
 
 test("protected manager routes share one persistent shell and recoverable error boundary", () => {
@@ -58,13 +58,13 @@ test("typed Persian catalog is consumed by manager dashboard editor and share", 
 
   assert.match(catalog, /export const fa =/);
   assert.match(catalog, /as const/);
-  assert.match(source("src/components/QuizManager.jsx"), /fa\.dashboard\.title/);
-  assert.match(source("src/pages/quiz/manager/EditorPage.jsx"), /fa\.managerShell\.backToDashboard/);
-  assert.match(source("src/components/ShareMenu.jsx"), /fa\.share\.title/);
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /fa\.dashboard\.title/);
+  assert.match(source("src/modules/presentations/editor/routes/EditorRoute.jsx"), /fa\.managerShell\.backToDashboard/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /fa\.share\.title/);
 });
 
 test("presentation transport types come from the checked-in OpenAPI output", () => {
-  const service = source("src/services/quizService.ts");
+  const service = source("src/modules/presentations/api/presentationRepository.ts");
   const liveTypes = source("src/live/types.ts");
   const generated = source("src/shared/api/generated/openapi.ts");
 
@@ -74,4 +74,18 @@ test("presentation transport types come from the checked-in OpenAPI output", () 
   assert.match(liveTypes, /components\["schemas"\]\["Presentation"\]/);
   assert.doesNotMatch(service, /interface PresentationDTO/);
   assert.doesNotMatch(service, /interface SlideDTO/);
+});
+
+test("F3 owns presentation UI and creates slides only after type selection", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const addStart = route.indexOf("const addNewSlide");
+  const deleteStart = route.indexOf("const deleteSlide", addStart);
+  const addFlow = route.slice(addStart, deleteStart);
+
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /\.\.\/api\/presentationRepository/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /\.\.\/api\/presentationRepository/);
+  assert.match(route, /useEditorStatus/);
+  assert.match(route, /isCreatingSlide/);
+  assert.doesNotMatch(addFlow, /quizService\.createSlide/);
+  assert.match(route, /await quizService\.createSlide\(quiz\.quiz_id, newSlideData, quiz\.revision\)/);
 });

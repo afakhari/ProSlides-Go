@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { getColorForUser } from "../../../lib/colorUtils";
+import { getColorForUser } from "../../../../lib/colorUtils";
 
 
 export default function LeaderboardPreview({

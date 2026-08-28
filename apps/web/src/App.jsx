@@ -19,7 +19,7 @@ import notFoundIllustration from "./assets/404.svg";
 import accessDeniedIllustration from "./assets/access_denied.png";
 import RequireSession from "./components/RequireSession.tsx";
 import { QuizSetup } from "./data/mockData";
-import EditorRouteSkeleton from "./modules/presentations/ui/EditorRouteSkeleton";
+import EditorRouteSkeleton from "./modules/presentations/editor/routes/EditorRouteSkeleton";
 import ProtectedManagerShell from "./app/layouts/ProtectedManagerShell";
 
 import ManagerJoinPage from "./pages/presentation/manager/JoinPage";
@@ -35,7 +35,7 @@ const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
 const TeamPage = lazy(() => import("./pages/team/TeamPage"));
 const SessionDetail = lazy(() => import("./pages/report/SessionDetail"));
 const HomePage = lazy(() => import("./pages/quiz/manager/HomePage"));
-const EditorPage = lazy(() => import("./pages/quiz/manager/EditorPage"));
+const EditorPage = lazy(() => import("./modules/presentations/editor/routes/EditorRoute"));
 const WaitingPage = lazy(() => import("./pages/loading/LoadingPage"));
 const PresentationEntry = lazy(() => import("./routes/PresentationEntry"));
 

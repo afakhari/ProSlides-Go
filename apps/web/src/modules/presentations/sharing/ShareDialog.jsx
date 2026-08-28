@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { X, Check, Loader2 } from "lucide-react";
-import { quizService } from "../services/quizService.ts";
-import Notice from "../shared/ui/Notice";
-import { fa } from "../shared/i18n/fa";
+import { quizService } from "../api/presentationRepository.ts";
+import Notice from "../../../shared/ui/Notice";
+import { fa } from "../../../shared/i18n/fa";
 
 
 export default function ShareMenu({

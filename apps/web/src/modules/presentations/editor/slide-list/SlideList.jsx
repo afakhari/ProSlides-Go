@@ -1,8 +1,8 @@
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { GripVertical, Trash2, Trophy } from "lucide-react";
-import { quizService } from "../../../services/quizService.ts";
+import { quizService } from "../../api/presentationRepository.ts";
 import { useState, useEffect, useMemo } from "react";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
 
 
 const buildDisplaySlides = (slidesData) => {

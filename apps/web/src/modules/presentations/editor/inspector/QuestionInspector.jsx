@@ -12,9 +12,9 @@ import {
   Loader2
 } from "lucide-react";
 
-import { quizService } from "../../../services/quizService.ts";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
-import { getQuestionValidationError } from "./questionValidation";
+import { quizService } from "../../api/presentationRepository.ts";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { getQuestionValidationError } from "../model/validation";
 
 
 export default function Sidebar({

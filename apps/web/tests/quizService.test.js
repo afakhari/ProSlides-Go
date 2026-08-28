@@ -5,7 +5,7 @@ import {
   editorSlideToDefinition,
   presentationToEditor,
   quizService,
-} from "../src/services/quizService.ts";
+} from "../src/modules/presentations/api/presentationRepository.ts";
 
 const presentationDTO = {
   id: "presentation-1",

@@ -1,22 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import MiniResultsResultsOnly from "./MiniResultsResultsOnly";
-import LeaderboardPreview from "./LeaderboardPreview";
-import QuizHeader from "../../../components/QuizHeader";
-import Sidebar from "./Sidebar";
-import SlidesPanel from "./SlidesPanel";
-import RightToolbar from "./RightToolbar";
-import DesignPanel from "./DesignPanel";
-import AudioPanel from "./AudioPanel";
-import ContentSidebar from "./ContentSidebar";
-import { quizService } from "../../../services/quizService.ts";
-import { getPresentationValidationError } from "./questionValidation";
-import { UNSAVED_CHANGES_KEY } from "../../../utils/auth";
+import MiniResultsResultsOnly from "../canvas/QuestionCanvas";
+import LeaderboardPreview from "../canvas/LeaderboardCanvas";
+import QuizHeader from "../toolbar/EditorHeader";
+import Sidebar from "../inspector/QuestionInspector";
+import SlidesPanel from "../slide-list/SlideList";
+import RightToolbar from "../toolbar/EditorToolbar";
+import DesignPanel from "../inspector/DesignInspector";
+import AudioPanel from "../inspector/AudioInspector";
+import ContentSidebar from "../inspector/ContentInspector";
+import { quizService } from "../../api/presentationRepository.ts";
+import { getPresentationValidationError } from "../model/validation";
+import { UNSAVED_CHANGES_KEY } from "../../../../utils/auth";
 import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
-import EditorRouteSkeleton from "../../../modules/presentations/ui/EditorRouteSkeleton";
-import Notice from "../../../shared/ui/Notice";
-import { fa } from "../../../shared/i18n/fa";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import EditorRouteSkeleton from "./EditorRouteSkeleton";
+import Notice from "../../../../shared/ui/Notice";
+import { fa } from "../../../../shared/i18n/fa";
+import { useEditorStatus } from "../model/useEditorStatus.ts";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -112,11 +113,16 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const [leaderboardPreviewData, setLeaderboardPreviewData] = useState({});
   const [leaderboardError, setLeaderboardError] = useState(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState({});
-  const [hasSidebarChanges, setHasSidebarChanges] = useState(false);
-  const [hasAudioChanges, setHasAudioChanges] = useState(false);
-  const [hasDesignChanges, setHasDesignChanges] = useState(false);
+  const editorStatus = useEditorStatus();
+  const hasSidebarChanges = editorStatus.dirty.content;
+  const hasAudioChanges = editorStatus.dirty.audio;
+  const hasDesignChanges = editorStatus.dirty.design;
+  const setHasSidebarChanges = (dirty) => editorStatus.setDirty("content", Boolean(dirty));
+  const setHasAudioChanges = (dirty) => editorStatus.setDirty("audio", Boolean(dirty));
+  const setHasDesignChanges = (dirty) => editorStatus.setDirty("design", Boolean(dirty));
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [isAddingSlide, setIsAddingSlide] = useState(false);
+  const [isCreatingSlide, setIsCreatingSlide] = useState(false);
   const addSlideGateRef = useRef(false);
   const [typeSelectionError, setTypeSelectionError] = useState(null);
   const [typeSelectionNotice, setTypeSelectionNotice] = useState(null);
@@ -126,7 +132,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const noticeTimeoutRef = useRef(null);
   const [audioSaveNotice, setAudioSaveNotice] = useState(null);
   const [backgroundSaveNotice, setBackgroundSaveNotice] = useState(null);
-  const hasUnsavedChanges = hasSidebarChanges || hasAudioChanges || hasDesignChanges;
+  const hasUnsavedChanges = editorStatus.hasUnsavedChanges;
 
   const slides = quiz.slides;
   const activeSlide = slides.find((slide) => slide.slide_id === activeSlideId) || slides[0] || null;
@@ -208,6 +214,12 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       }, 3000);
     }
   }, []);
+
+  const recoverConflict = useCallback(async () => {
+    const message = "نسخه جدیدتری روی سرور وجود داشت؛ آخرین نسخه بارگذاری شد.";
+    editorStatus.reportConflict(message);
+    await refreshQuiz();
+  }, [editorStatus, refreshQuiz]);
 
   useEffect(() => {
     return () => {
@@ -553,52 +565,15 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   };
 
   // ????? ?????? ????
-  const addNewSlide = async () => {
+  const addNewSlide = () => {
     if (addSlideGateRef.current) return null;
     addSlideGateRef.current = true;
     setIsAddingSlide(true);
-    try {
-      const newSlideData = {
-        slide_id: globalThis.crypto.randomUUID(),
-        revision: 1,
-        order: slides.length,
-        slide_type: 1,
-        // order: 1,
-        show_leaderboard_after: false,
-        title: "",
-        content_text: "",
-        content_image_url: "",
-        question: null,
-      };
-
-      // ????? ?? ???? ???? ????? ?????? ????
-      const createdSlide = await quizService.createSlide(
-        quiz.quiz_id,
-        newSlideData,
-        quiz.revision
-      );
-
-      // ??????????? quiz ?? ?????? ????
-      const updatedSlides = [...slides, createdSlide];
-      updateQuiz({
-        ...quiz,
-        revision: quiz.revision + 1,
-        slides: updatedSlides,
-      });
-
-      // ?????? ?????? ????
-      setActiveSlideId(createdSlide.slide_id);
-      setActiveSlideType(createdSlide.slide_type);
-      setShowTypeBox(true);
-      return createdSlide;
-    } catch (error) {
-      console.error("Failed to create new slide:", error);
-      showNotice("ساخت اسلاید انجام نشد. دوباره تلاش کنید.", "error");
-      return null;
-    } finally {
-      addSlideGateRef.current = false;
-      setIsAddingSlide(false);
-    }
+    setIsCreatingSlide(true);
+    setTypeSelectionError(null);
+    setTypeSelectionMode(null);
+    setShowTypeBox(true);
+    return null;
   };
 
 
@@ -652,6 +627,16 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     setTypeSelectionMode(null);
     setShowSlidesPanel(false);
     setShowTypeBox(true);
+  };
+
+  const cancelTypeSelection = () => {
+    setShowTypeBox(false);
+    setTypeSelectionError(null);
+    if (isCreatingSlide) {
+      setIsCreatingSlide(false);
+      setIsAddingSlide(false);
+      addSlideGateRef.current = false;
+    }
   };
 
   const applyQuestionTypeChange = async ({
@@ -754,7 +739,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       console.error("Error changing question type:", error);
 
       if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
-        await refreshQuiz();
+        await recoverConflict();
         setTypeSelectionError("This question changed elsewhere. The latest version has been loaded.");
       } else if (error.response?.status === 409 && error.response?.data?.error === "slide_has_results") {
         setTypeSelectionError("This slide has live results. Reset the presentation results before changing its type.");
@@ -774,6 +759,67 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   };
 
   const handleSelectType = async (type) => {
+    if (isCreatingSlide) {
+      if (isSelectingType) return;
+      const isContent = type === "Content Slide";
+      const questionType = type === "Single Choice" ? "single" : "multiple";
+      const slideId = globalThis.crypto.randomUUID();
+      const question = isContent ? null : {
+        question_id: slideId,
+        title: "",
+        text: "New Question",
+        question_text: "New Question",
+        question_type: questionType,
+        min_point: 0,
+        max_point: 100,
+        time_limit: 10,
+        question_time: 10,
+        image_url: "",
+        question_image: "",
+        faster_answers_more_points: false,
+        partial_scoring: false,
+        options: [
+          { option_id: globalThis.crypto.randomUUID(), text: "Option 1", is_correct: true, image_url: "", order: 1 },
+          { option_id: globalThis.crypto.randomUUID(), text: "Option 2", is_correct: false, image_url: "", order: 2 },
+        ],
+      };
+      const newSlideData = {
+        slide_id: slideId,
+        revision: 1,
+        order: slides.length,
+        slide_type: isContent ? 2 : 1,
+        show_leaderboard_after: false,
+        title: isContent ? "New content slide" : "",
+        content_text: "",
+        content_image_url: "",
+        question,
+      };
+      try {
+        setIsSelectingType(true);
+        setTypeSelectionMode(isContent ? "content" : questionType);
+        const createdSlide = await quizService.createSlide(quiz.quiz_id, newSlideData, quiz.revision);
+        updateQuiz({ ...quiz, revision: quiz.revision + 1, slides: [...slides, createdSlide] });
+        setActiveSlideId(createdSlide.slide_id);
+        setActiveSlideType(createdSlide.slide_type);
+        setShowTypeBox(false);
+        setShowSidebar(true);
+        setActiveTab("content");
+        setIsCreatingSlide(false);
+        setIsAddingSlide(false);
+        addSlideGateRef.current = false;
+        showNotice("اسلاید ساخته شد.", "success");
+      } catch (error) {
+        if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
+          await recoverConflict();
+          setTypeSelectionError("ارائه تغییر کرده بود؛ آخرین نسخه بارگذاری شد.");
+        } else {
+          setTypeSelectionError("ساخت اسلاید انجام نشد. دوباره تلاش کنید.");
+        }
+      } finally {
+        setIsSelectingType(false);
+      }
+      return;
+    }
     if (!activeSlide || ![1, 2].includes(activeSlide.slide_type)) return;
     if (isSelectingType) return;
 
@@ -808,7 +854,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
           setActiveTab("content");
         } catch (error) {
           if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
-            await refreshQuiz();
+            await recoverConflict();
             setTypeSelectionError("This slide changed elsewhere. The latest version has been loaded.");
           } else if (error.response?.status === 409 && error.response?.data?.error === "slide_has_results") {
             setTypeSelectionError("This slide has live results. Reset the presentation results before changing its type.");
@@ -966,7 +1012,8 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         onBack={handleExitPanel}
         onQuizUpdated={updateQuiz}
         onAccessCodeSaved={(accessCode) => updateQuiz({ ...quiz, access_code: accessCode })}
-        onConflict={refreshQuiz}
+        onConflict={recoverConflict}
+        saveState={editorStatus.saveState}
       />
 
       {/* ----- Main Layout ----- */}
@@ -1144,7 +1191,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
               <>
                 <div
                   className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10"
-                  onClick={() => setShowTypeBox(false)}
+                  onClick={cancelTypeSelection}
                 ></div>
 
                 <div className="absolute inset-x-3 z-20 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl sm:inset-x-auto sm:w-[440px]" role="dialog" aria-modal="true" aria-labelledby="slide-type-title">
@@ -1190,7 +1237,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                   })}
 
                   <button
-                    onClick={() => setShowTypeBox(false)}
+                    onClick={cancelTypeSelection}
                     className="text-gray-500 text-sm hover:underline"
                   >
                     انصراف
@@ -1226,7 +1273,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 onClose={handleCloseSidebarPanel}
                 onDirtyChange={setHasSidebarChanges}
                 onSlideUpdated={handleSlideUpdated}
-                onConflict={refreshQuiz}
+                onConflict={recoverConflict}
                 onNotify={showNotice}
               />
             ) : activeSlideType === 3 ? (
@@ -1323,7 +1370,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                       onClose={handleCloseSidebarPanel}
                       onDirtyChange={setHasSidebarChanges}
                       onSlideUpdated={handleSlideUpdated}
-                      onConflict={refreshQuiz}
+                      onConflict={recoverConflict}
                       onNotify={showNotice}
                   />
                 );
@@ -1353,7 +1400,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 onClose={handleCloseDesignPanel}
                 setBackgroundSaveNotice={setBackgroundSaveNotice}
                 onDirtyChange={setHasDesignChanges}
-                onConflict={refreshQuiz}
+                onConflict={recoverConflict}
               />
             )}
           </div>
@@ -1385,7 +1432,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 updateQuiz={updateQuiz}
                 setAudioSaveNotice={setAudioSaveNotice}
                 onDirtyChange={setHasAudioChanges}
-                onConflict={refreshQuiz}
+                onConflict={recoverConflict}
               />
             )}
           </div>
@@ -1461,6 +1508,28 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         >
           <Notice tone={notice.tone} pending={notice.pending} className="shadow-lg">
             {notice.message}
+          </Notice>
+        </div>
+      )}
+      {editorStatus.conflictMessage && (
+        <div className="fixed inset-x-4 top-20 z-50 mx-auto max-w-xl">
+          <Notice
+            tone="warning"
+            className="shadow-lg"
+            action={(
+              <button
+                type="button"
+                onClick={async () => {
+                  await refreshQuiz();
+                  editorStatus.clearConflict();
+                }}
+                className="rounded-control border border-warning-border px-3 py-1.5 text-xs font-bold hover:bg-warning-soft"
+              >
+                بارگذاری دوباره
+              </button>
+            )}
+          >
+            {editorStatus.conflictMessage}
           </Notice>
         </div>
       )}

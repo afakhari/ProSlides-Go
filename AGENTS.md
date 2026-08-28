@@ -46,7 +46,7 @@ a shortcut.
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | Functional React 19/Vite SPA. F1 and F2 are verified: semantic tokens/accessible feedback, protected-manager shell/catalog, typed HTTP errors, and checked OpenAPI-generated presentation transport types with CI drift detection. Editor domain types remain separate. | Begin F3 presentation/editor module extraction without changing auth, request counts, revision conflicts, idempotent retries, or live/report consumers. |
+| `apps/web` | Functional React 19/Vite SPA. F1-F3 are verified. Presentation API/model, dashboard, sharing, and editor UI now live under `modules/presentations`; editor canvas, slide list, inspectors, toolbar, routes, and status model have explicit boundaries. Type-first creation avoids abandoned draft slides, and one dirty/save/conflict model drives visible recovery state. | Begin F4 by removing the unreachable duplicated presentation runtime from `App.jsx` while preserving active routes and live/report behavior. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
@@ -206,10 +206,9 @@ load tests. Long-lived JWTs in an SSE query string are prohibited.
 
 ## Single exact next task
 
-Begin F3 by extracting the manager presentation repository and adapters into
-`modules/presentations` while preserving the current editor domain boundary,
-request counts, revisions, conflicts, and idempotent retries. Do not touch live
-or report consumers.
+Begin F4 by removing the unreachable duplicated presentation runtime from
+`App.jsx`, then remove imports that become dead. Preserve active routing,
+manager/participant live behavior, and report consumers.
 
 The production-like TLS 1k proof remains mandatory and unchanged, but is queued
 after the owner-prioritized frontend F1-F5 sequence. It is not completed or
@@ -245,8 +244,8 @@ Frontend modernization is a separate ordered track:
   onboarding, responsive editor chrome, and real-browser acceptance.
 - [x] Phase F2: tokens/feedback, manager shell/catalog, typed HTTP errors, and
   checked OpenAPI-generated presentation transport types with CI drift checks.
-- [ ] Phase F3: presentation/editor module extraction and responsive editor
-  information architecture.
+- [x] Phase F3: presentation/editor module extraction, type-first creation,
+  responsive navigation, and unified dirty/save/conflict state.
 - [ ] Phase F4: remove legacy runtime/mock production dependencies and extend
   TypeScript, lint, and tests over migrated UI.
 - [ ] Phase F5: performance/accessibility hardening and measured regression
@@ -299,6 +298,7 @@ Frontend modernization is a separate ordered track:
 | 2026-08-28 | Completed the second frontend F2 foundation slice | Dashboard/editor now share one authenticated manager shell with a route-local Suspense fallback and recoverable Persian render-error boundary. A typed Persian catalog is consumed by dashboard/editor/share, and session guarding moved behind a typed TSX boundary without changing auth behavior. Lint, expanded typecheck, 39 unit tests, build, and all three system-Chrome E2E flows passed. F2 remains in progress. |
 | 2026-08-28 | Completed the third frontend F2 foundation slice | `shared/api/http.ts` now owns JSON parsing, stable typed API errors, CSRF/credential transport reuse, abort propagation, and auth-expiry notices for manager presentation flows; `quizService` retains request counts, revisions, and conflict behavior. Lint, expanded typecheck, 42 unit tests, build, and all three system-Chrome E2E flows passed. F2 remains in progress. |
 | 2026-08-29 | Completed frontend F2 | Presentation and slide transport types are generated reproducibly from checked-in OpenAPI, consumed at presentation boundaries, and checked for drift in CI while editor domain types remain separate. Drift check, lint, typecheck, 43 unit tests, build, and all three system-Chrome E2E flows passed. |
+| 2026-08-29 | Completed frontend F3 | Presentation dashboard/sharing/API/model and editor route/canvas/slide-list/inspector/toolbar code moved under `modules/presentations`. Type-first slide creation sends no request before selection and one request afterward; unified dirty/save/conflict state provides visible recovery. Drift check, lint, typecheck, 46 unit tests, build, and all three system-Chrome E2E flows passed. |
 
 ## References
 

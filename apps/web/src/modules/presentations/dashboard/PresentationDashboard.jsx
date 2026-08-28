@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "./ui/button";
-import { ConfirmDialog } from "./ui/confirm-dialog";
-import { ErrorModal } from "../pages/quiz/manager/ErrorModal";
-import { quizService } from "../services/quizService.ts";
+import { Button } from "../../../components/ui/button";
+import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { ErrorModal } from "../../../pages/quiz/manager/ErrorModal";
+import { quizService } from "../api/presentationRepository.ts";
 import {
   Search,
   MoreVertical,
@@ -17,13 +17,13 @@ import {
   LoaderCircle,
   Plus,
 } from "lucide-react";
-import ShareMenu from "./ShareMenu";
-import { apiFetch } from "../utils/apiFetch";
-import { clearAuthStorage } from "../utils/auth";
-import { getPresentationValidationError } from "../pages/quiz/manager/questionValidation";
-import { createPresentationOnce } from "../modules/presentations/model/createPresentationFlow.ts";
-import Notice from "../shared/ui/Notice";
-import { fa } from "../shared/i18n/fa";
+import ShareMenu from "../sharing/ShareDialog";
+import { apiFetch } from "../../../utils/apiFetch";
+import { clearAuthStorage } from "../../../utils/auth";
+import { getPresentationValidationError } from "../editor/model/validation";
+import { createPresentationOnce } from "../model/createPresentationFlow.ts";
+import Notice from "../../../shared/ui/Notice";
+import { fa } from "../../../shared/i18n/fa";
 
 const safeTimestamp = (value) => {
   const time = Date.parse(value);

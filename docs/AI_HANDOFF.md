@@ -235,10 +235,10 @@ decision. F0, F1, and F2 are complete. The accepted target keeps React
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is the first F3 extraction: move the
-manager presentation repository and adapters into `modules/presentations`
-without changing request/revision/conflict behavior or live/report consumers.
-Capacity work remains independently required and resumes after F5.
+The owner-prioritized exact next task is the first F4 cleanup: remove the
+unreachable duplicated presentation runtime from `App.jsx` and its dead
+imports while preserving active routes and live/report behavior. Capacity work
+remains independently required and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
@@ -287,6 +287,12 @@ Capacity work remains independently required and resumes after F5.
   OpenAPI and uses them at presentation boundaries. A deterministic CI check
   detects drift while editor domain types stay separate. Drift check, lint,
   typecheck, 43 unit tests, build, and all three system-Chrome E2E flows pass.
+- F3 moves presentation API/model, dashboard, sharing, and editor UI under
+  `modules/presentations`, with route/canvas/slide-list/inspector/toolbar
+  boundaries and one dirty/save/conflict status model. Type-first creation
+  sends no slide POST before selection and exactly one afterward. Drift check,
+  lint, typecheck, 46 unit tests, build, and all three system-Chrome E2E flows
+  pass.
 
 ## Completed implementation: dependency adapters and readiness
 

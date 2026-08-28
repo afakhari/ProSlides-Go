@@ -1,7 +1,7 @@
 import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import RequireSession from "../../components/RequireSession.tsx";
-import EditorRouteSkeleton from "../../modules/presentations/ui/EditorRouteSkeleton";
+import EditorRouteSkeleton from "../../modules/presentations/editor/routes/EditorRouteSkeleton";
 import { fa } from "../../shared/i18n/fa";
 import Notice from "../../shared/ui/Notice";
 

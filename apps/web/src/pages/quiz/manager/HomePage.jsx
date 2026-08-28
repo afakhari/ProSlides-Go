@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import QuizManager from "../../../components/QuizManager";
+import QuizManager from "../../../modules/presentations/dashboard/PresentationDashboard";
 
 
 // Rendering the "QuizManager" component, related to the home page of the site

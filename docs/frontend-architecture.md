@@ -403,13 +403,21 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - Continue strict TypeScript at shared/module boundaries.
 - Keep any future REST query-cache decision separate from transport generation.
 
-### F3 — presentations and editor
+### F3 — presentations and editor — complete
 
 - Migrate dashboard, sharing, canonical presentation models, and editor UI into
   the presentation module.
 - Split editor canvas, slide list, inspector, and toolbar.
 - Expose one save/dirty/conflict model and one responsive slide navigator.
 - Preserve revision and validation behavior throughout.
+
+Completed 2026-08-29: presentation API/model, dashboard, sharing, and editor
+UI are owned by `modules/presentations`. Editor routes, canvas, slide list,
+inspectors, toolbar, and status model are separated. Creation is type-first,
+so canceling selection creates no durable draft; choosing a type sends one
+request. Responsive slide navigation retains mobile safe-area behavior, and a
+single dirty/save/conflict model exposes reload recovery without changing
+revision or validation semantics.
 
 ### F4 — live runtime and role UI
 

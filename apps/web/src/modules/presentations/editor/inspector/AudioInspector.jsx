@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Music, Trash2, Play, Pause, Save } from "lucide-react";
-import { quizService } from "../../../services/quizService.ts";
-import { ErrorModal } from "./ErrorModal";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { quizService } from "../../api/presentationRepository.ts";
+import { ErrorModal } from "../../../../pages/quiz/manager/ErrorModal";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
 
 
 export default function AudioPanel({
