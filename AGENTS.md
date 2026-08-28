@@ -41,20 +41,19 @@ The historical Django/Rust implementation was intentionally removed from this
 branch. Its history remains in Git and `master`; do not restore legacy code as
 a shortcut.
 
-## Current repository state — 2026-08-28
+## Current repository state — 2026-08-29
 
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | Functional React 19/Vite SPA. F1 and three F2 foundation slices are verified: semantic tokens/accessible feedback, protected-manager shell/catalog, and one typed HTTP/API-error boundary for manager presentation flows. Migration remains partial: 54 JSX, 15 JS, 10 TS, and 4 TSX files; most UI is still outside `tsc`, legacy runtime/mock adapters remain, and presentation transport DTOs are handwritten. | Continue incrementally toward `app -> modules -> shared` using `docs/frontend-architecture.md`; the next F2 slice must generate checked OpenAPI transport types for presentation DTOs and add drift verification without adding a query cache or touching live/report routes. Preserve auth behavior, live ordering/recovery, participant non-disclosure, revision conflicts, and idempotent command retries. |
+| `apps/web` | Functional React 19/Vite SPA. F1 and F2 are verified: semantic tokens/accessible feedback, protected-manager shell/catalog, typed HTTP errors, and checked OpenAPI-generated presentation transport types with CI drift detection. Editor domain types remain separate. | Begin F3 presentation/editor module extraction without changing auth, request counts, revision conflicts, idempotent retries, or live/report consumers. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
 | Tests | Web lint/current partial TS+TSX typecheck/34 unit tests/build, 3 passing Playwright system-Chrome E2E flows, real-Chrome F1 desktop/mobile snapshots, request audit, no-overflow/no-console-error and reduced-motion checks, Go tests/vet, Compose matrices, image smoke, and the prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
 
-The working branch is `feat/go-platform-foundation`. It uses a separate Git
-worktree, so `master` remains available to teammates. Do not merge, force-push,
-or modify `master` without explicit owner approval.
+The working branch is `main` in a separate Git worktree. Do not merge,
+force-push, or modify `master` without explicit owner approval.
 
 ## Repository map
 
@@ -207,15 +206,10 @@ load tests. Long-lived JWTs in an SSE query string are prohibited.
 
 ## Single exact next task
 
-Implement the fourth frontend F2 foundation slice: generate presentation
-transport types from checked-in OpenAPI, replace handwritten presentation/slide
-DTOs at the shared/module boundary, and add a deterministic drift check to CI.
-Do not introduce a query cache or touch live/report consumers.
-
-Acceptance: generation is reproducible from `apps/api/openapi/openapi.yaml`;
-CI fails on drift; editor domain types remain separate from transport types;
-request counts/revisions/conflicts do not change; lint, typecheck, 42+ unit
-tests, build, and the three real-Chrome E2E flows pass.
+Begin F3 by extracting the manager presentation repository and adapters into
+`modules/presentations` while preserving the current editor domain boundary,
+request counts, revisions, conflicts, and idempotent retries. Do not touch live
+or report consumers.
 
 The production-like TLS 1k proof remains mandatory and unchanged, but is queued
 after the owner-prioritized frontend F1-F5 sequence. It is not completed or
@@ -249,9 +243,8 @@ Frontend modernization is a separate ordered track:
   browser flow; accept ADR 0003 and document the target architecture.
 - [x] Phase F1: creation-to-editor continuity, guarded mutations, Persian RTL
   onboarding, responsive editor chrome, and real-browser acceptance.
-- [ ] **Phase F2 — in progress:** tokens/feedback and the protected-manager
-  shell/catalog and typed shared HTTP/API-error boundary are implemented; the
-  generated OpenAPI presentation types/drift check are the exact next slice.
+- [x] Phase F2: tokens/feedback, manager shell/catalog, typed HTTP errors, and
+  checked OpenAPI-generated presentation transport types with CI drift checks.
 - [ ] Phase F3: presentation/editor module extraction and responsive editor
   information architecture.
 - [ ] Phase F4: remove legacy runtime/mock production dependencies and extend
@@ -305,6 +298,7 @@ Frontend modernization is a separate ordered track:
 | 2026-08-28 | Completed the first frontend F2 foundation slice | `index.css` now owns Tailwind and CSS-first semantic tokens; typed `shared/ui/Notice.tsx` owns pending/success/warning/error live-region behavior. Dashboard/editor/share use the shared feedback and brand/feedback tokens, native alerts in that slice are removed, Persian share copy and explicit `auto`/LTR boundaries are present, and the duplicate Tailwind import is gone. Lint, expanded TS/TSX typecheck, 37 unit tests, build, and real Chrome at 1440x900/390x844 passed with no horizontal overflow or console errors. F2 remains in progress. |
 | 2026-08-28 | Completed the second frontend F2 foundation slice | Dashboard/editor now share one authenticated manager shell with a route-local Suspense fallback and recoverable Persian render-error boundary. A typed Persian catalog is consumed by dashboard/editor/share, and session guarding moved behind a typed TSX boundary without changing auth behavior. Lint, expanded typecheck, 39 unit tests, build, and all three system-Chrome E2E flows passed. F2 remains in progress. |
 | 2026-08-28 | Completed the third frontend F2 foundation slice | `shared/api/http.ts` now owns JSON parsing, stable typed API errors, CSRF/credential transport reuse, abort propagation, and auth-expiry notices for manager presentation flows; `quizService` retains request counts, revisions, and conflict behavior. Lint, expanded typecheck, 42 unit tests, build, and all three system-Chrome E2E flows passed. F2 remains in progress. |
+| 2026-08-29 | Completed frontend F2 | Presentation and slide transport types are generated reproducibly from checked-in OpenAPI, consumed at presentation boundaries, and checked for drift in CI while editor domain types remain separate. Drift check, lint, typecheck, 43 unit tests, build, and all three system-Chrome E2E flows passed. |
 
 ## References
 

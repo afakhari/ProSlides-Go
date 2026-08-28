@@ -230,15 +230,15 @@ the eighth one-second probe. This is local, non-TLS evidence only.
 
 `docs/frontend-professionalization.md` owns UX sequencing;
 `docs/frontend-architecture.md` owns technical boundaries; ADR 0003 records the
-decision. F0, F1, and the first F2 foundation slice are complete. The accepted target keeps React
+decision. F0, F1, and F2 are complete. The accepted target keeps React
 19 and Vite and migrates incrementally toward `app -> modules -> shared`, with
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is generated OpenAPI presentation types
-plus a CI drift check. Do not expand it into a query cache or unrelated live/
-report transport. Capacity work remains independently required
-and resumes after F5.
+The owner-prioritized exact next task is the first F3 extraction: move the
+manager presentation repository and adapters into `modules/presentations`
+without changing request/revision/conflict behavior or live/report consumers.
+Capacity work remains independently required and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
@@ -283,6 +283,10 @@ and resumes after F5.
   pass through; 401 emits the shell notice; CSRF, revisions, and request counts
   remain covered. Lint, typecheck, 42 unit tests, build, and all three
   system-Chrome E2E flows pass.
+- The fourth slice generates checked presentation/slide transport types from
+  OpenAPI and uses them at presentation boundaries. A deterministic CI check
+  detects drift while editor domain types stay separate. Drift check, lint,
+  typecheck, 43 unit tests, build, and all three system-Chrome E2E flows pass.
 
 ## Completed implementation: dependency adapters and readiness
 

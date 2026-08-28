@@ -112,7 +112,7 @@ Acceptance:
 - Unit, lint, typecheck, build, and real-Chrome flow checks pass.
 - The browser trace or test proves the request and navigation counts.
 
-### Phase F2 — Persian app shell and design system — in progress
+### Phase F2 — Persian app shell and design system — complete
 
 Completed first foundation slice on 2026-08-28:
 
@@ -128,10 +128,11 @@ Completed first foundation slice on 2026-08-28:
 - Lint, TS/TSX typecheck, 37 unit tests, build, real-Chrome desktop/mobile
   screenshots, no-overflow measurement, and zero console errors passed.
 
-Remaining ordered F2 work:
+The fourth foundation slice completed on 2026-08-29: presentation/slide
+transport types are generated from checked-in OpenAPI and CI detects drift;
+editor domain types remain separate and no query cache was added.
 
-- Generate OpenAPI presentation transport types and add a deterministic CI
-  drift check as the exact next slice.
+Remaining UX work moves forward with the ordered later phases:
 - Translate remaining editor/common-dialog copy after the catalog exists;
   report and live translation remain outside the current narrow slice.
 - Finish keyboard focus containment/restoration for migrated dialogs and move

@@ -1,24 +1,11 @@
 import type { EditorOption, EditorPresentation, EditorQuestion, EditorSlide, QuestionType } from "../editor/domain";
 import { ApiError, requestJson, type ApiRequestOptions } from "../shared/api/http.ts";
+import type { components } from "../shared/api/generated/openapi.ts";
 
-interface SlideDTO {
-  id: string;
-  revision: number;
-  position: number;
-  kind: "question" | "question_draft" | "content" | "leaderboard";
-  content: Record<string, unknown>;
-}
-
-interface PresentationDTO {
-  id: string;
-  revision: number;
-  title: string;
-  access_code: string | null;
-  settings: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-  slides: SlideDTO[];
-}
+type SlideDTO = components["schemas"]["Slide"];
+type PresentationDTO = components["schemas"]["Presentation"];
+type PresentationSummaryDTO = components["schemas"]["PresentationSummary"];
+type AccessCodeResultDTO = components["schemas"]["AccessCodeResult"];
 
 export { ApiError as QuizServiceError } from "../shared/api/http.ts";
 
@@ -184,7 +171,7 @@ const updatePresentation = async (quizID: string, data: PresentationUpdate): Pro
 };
 
 export const quizService = {
-  listPresentations: (options?: RequestOptions) => request<Array<Record<string, unknown>>>("/presentations", options),
+  listPresentations: (options?: RequestOptions) => request<PresentationSummaryDTO[]>("/presentations", options),
   createPresentation: (title = "Untitled Presentation") => request<PresentationDTO>("/presentations", { method: "POST", json: { title, settings: {} } }),
   deletePresentation: (id: string) => request<void>(`/presentations/${id}`, { method: "DELETE" }),
   duplicatePresentation: (id: string, title: string) => request<PresentationDTO>(`/presentations/${id}/duplicate`, { method: "POST", json: { title } }),
@@ -196,7 +183,7 @@ export const quizService = {
   updateQuiz: updatePresentation,
   updateQuizMusic: (quizID: string, musicURL: string, revision?: number) => updatePresentation(quizID, { music_url: musicURL || "", revision }),
   updateQuizBackground: (quizID: string, data: PresentationUpdate, revision?: number) => updatePresentation(quizID, { ...data, revision: revision ?? data.revision }),
-  setAccessCode: (quizID: string, accessCode: string) => request<{ access_code: string }>(`/presentations/${quizID}/access-code`, {
+  setAccessCode: (quizID: string, accessCode: string) => request<AccessCodeResultDTO>(`/presentations/${quizID}/access-code`, {
     method: "PUT",
     json: { access_code: accessCode },
   }),

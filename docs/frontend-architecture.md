@@ -385,7 +385,7 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - Continue directly into slide-type selection after the first draft creation.
 - Cover failure, reduced motion, 1440x900, 390x844, and exact API request count.
 
-### F2 — application foundation — in progress
+### F2 — application foundation — complete
 
 - **Completed first slice 2026-08-28:** one CSS-first semantic token source,
   typed accessible `Notice`, Persian dashboard/editor/share feedback, explicit
@@ -397,11 +397,11 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - **Completed third slice 2026-08-28:** typed shared HTTP/API-error boundary for
   manager presentation reads/mutations with preserved CSRF, abort, revision,
   request-count, conflict, and auth-expiry behavior.
-- **Exact next slice:** generate OpenAPI presentation transport types and add a
-  deterministic CI drift check; do not add the optional query cache yet.
+- **Completed fourth slice 2026-08-29:** checked OpenAPI-generated presentation
+  and slide transport types with a deterministic CI drift check; editor domain
+  types remain separate and no query cache was added.
 - Continue strict TypeScript at shared/module boundaries.
-- Generate OpenAPI transport types and add the one REST query cache only after
-  the boundary is ready.
+- Keep any future REST query-cache decision separate from transport generation.
 
 ### F3 — presentations and editor
 

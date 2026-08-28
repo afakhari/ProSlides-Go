@@ -1,3 +1,5 @@
+import type { components } from "../shared/api/generated/openapi.ts";
+
 export type LiveState = "draft" | "lobby" | "content" | "question_open" | "question_closed" | "leaderboard" | "ended";
 
 export interface PublicLiveSession {
@@ -79,13 +81,5 @@ export interface LiveSessionResult extends ManagerLiveSession {}
 export interface ParticipantResult { id: string; display_name: string; avatar?: string }
 export interface AnswerResult { answer_id: string; score_delta: number; duplicate: boolean }
 export interface LiveSessionLocator { session_id: string; presentation_id: string }
-export interface PresentationSlide { id: string; position: number; kind: string; content: Record<string, unknown> }
-export interface Presentation {
-  id: string;
-  title: string;
-  access_code: string | null;
-  settings: Record<string, string>;
-  created_at: string;
-  updated_at: string;
-  slides: PresentationSlide[];
-}
+export type PresentationSlide = components["schemas"]["Slide"];
+export type Presentation = components["schemas"]["Presentation"];
