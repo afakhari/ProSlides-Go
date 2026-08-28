@@ -32,7 +32,7 @@ blank canvas with weak first-action guidance. Responsive authentication works,
 but the editor header is crowded and English labels wrap.
 
 The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
-lines. After F1 and the first two F2 slices the tree contains 54 JSX, 15 JS, 9
+lines. After F1 and the first three F2 slices the tree contains 54 JSX, 15 JS, 10
 TS, and 4 TSX files. `tsconfig.json` checks TS/TSX, but the passing typecheck still
 excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
 files exceed 1,000 nonblank lines. `App.jsx` retains unreachable legacy runtime
@@ -130,8 +130,8 @@ Completed first foundation slice on 2026-08-28:
 
 Remaining ordered F2 work:
 
-- Introduce the typed shared HTTP/API-error boundary for manager presentation
-  reads/mutations as the exact next slice.
+- Generate OpenAPI presentation transport types and add a deterministic CI
+  drift check as the exact next slice.
 - Translate remaining editor/common-dialog copy after the catalog exists;
   report and live translation remain outside the current narrow slice.
 - Finish keyboard focus containment/restoration for migrated dialogs and move
@@ -143,6 +143,11 @@ persistent authenticated manager shell with route-local pending UI and a
 recoverable Persian error boundary. The typed Persian catalog is consumed by
 dashboard/editor/share. Lint, expanded typecheck, 39 unit tests, build, and all
 three system-Chrome E2E flows passed.
+
+Completed third foundation slice on 2026-08-28: manager presentation reads and
+mutations use one typed shared JSON/API-error boundary with preserved CSRF,
+abort, revision, request-count, conflict, and auth-expiry behavior. Lint,
+typecheck, 42 unit tests, build, and all three system-Chrome E2E flows passed.
 
 ### Phase F3 — editor information architecture and responsive refinement
 

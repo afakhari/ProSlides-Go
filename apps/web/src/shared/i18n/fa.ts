@@ -5,6 +5,7 @@ export const fa = {
     routeErrorBody: "اطلاعات شما حفظ شده است. دوباره تلاش کنید یا به فهرست ارائه‌ها برگردید.",
     retry: "تلاش دوباره",
     backToDashboard: "بازگشت به ارائه‌ها",
+    sessionExpired: "نشست شما منقضی شده است. برای ادامه دوباره وارد شوید.",
   },
   dashboard: {
     eyebrow: "فضای کاری شما",

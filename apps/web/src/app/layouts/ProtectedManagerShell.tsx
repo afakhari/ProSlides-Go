@@ -1,4 +1,4 @@
-import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import RequireSession from "../../components/RequireSession.tsx";
 import EditorRouteSkeleton from "../../modules/presentations/ui/EditorRouteSkeleton";
@@ -82,9 +82,26 @@ export default function ProtectedManagerShell() {
   const location = useLocation();
   const { role = "manager" } = useParams();
   const dashboardPath = `/${role}/panel`;
+  const [appNotice, setAppNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleNotice = (event: Event) => {
+      const code = (event as CustomEvent<{ code?: string }>).detail?.code;
+      if (code === "session-expired" || code === "session-revoked") {
+        setAppNotice(fa.managerShell.sessionExpired);
+      }
+    };
+    window.addEventListener("app:notice", handleNotice);
+    return () => window.removeEventListener("app:notice", handleNotice);
+  }, []);
 
   return (
     <div data-manager-shell="protected" className="min-h-screen bg-canvas">
+      {appNotice && (
+        <div className="fixed inset-x-4 top-4 z-[120] mx-auto max-w-xl" dir="rtl">
+          <Notice tone="warning">{appNotice}</Notice>
+        </div>
+      )}
       <RequireSession>
         <ManagerRouteErrorBoundary dashboardPath={dashboardPath} resetKey={location.pathname}>
           <Suspense fallback={<ManagerRouteFallback />}>

@@ -61,8 +61,8 @@ runtime settings. Frontend changes must also follow the audited
 [Persian-first delivery plan](docs/frontend-professionalization.md), and
 [ADR 0003](docs/decisions/0003-modular-react-frontend.md).
 
-F1 and the first two F2 foundation slices are complete. The current exact next
-task is a typed shared HTTP/API-error boundary for manager presentation flows. The
+F1 and the first three F2 foundation slices are complete. The current exact next
+task is generated OpenAPI presentation transport types with a CI drift check. The
 production-like TLS 1k capacity gate remains mandatory and queued after the
 owner-prioritized frontend F1-F5 sequence; local 1k results are not production
 capacity certification.

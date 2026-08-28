@@ -1,5 +1,5 @@
-import { apiFetch } from "../utils/apiFetch.ts";
 import type { EditorOption, EditorPresentation, EditorQuestion, EditorSlide, QuestionType } from "../editor/domain";
+import { ApiError, requestJson, type ApiRequestOptions } from "../shared/api/http.ts";
 
 interface SlideDTO {
   id: string;
@@ -20,34 +20,10 @@ interface PresentationDTO {
   slides: SlideDTO[];
 }
 
-interface RequestOptions extends RequestInit {
-  json?: unknown;
-  auth?: boolean;
-}
+export { ApiError as QuizServiceError } from "../shared/api/http.ts";
 
-export class QuizServiceError extends Error {
-  response: { status: number; data: Record<string, unknown> | null };
-
-  constructor(status: number, payload: Record<string, unknown> | null) {
-    super(String(payload?.error || `HTTP ${status}`));
-    this.name = "QuizServiceError";
-    this.response = { status, data: payload };
-  }
-
-  get isConflict(): boolean {
-    return this.response.status === 409 && this.response.data?.error === "edit_conflict";
-  }
-}
-
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  if (response.status === 204) return undefined as T;
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
-  if (!response.ok) throw new QuizServiceError(response.status, payload);
-  return payload as T;
-};
-
-const request = async <T>(path: string, options?: RequestOptions): Promise<T> =>
-  parseResponse<T>(await apiFetch(path, options));
+type RequestOptions = ApiRequestOptions;
+const request = requestJson;
 
 const revisionHeaders = (revision?: number): Record<string, string> =>
   Number.isInteger(revision) && Number(revision) > 0 ? { "If-Match": String(revision) } : {};
@@ -251,7 +227,7 @@ export const quizService = {
       const locator = await request<{ session_id: string }>(`/presentations/${quizID}/latest-session`);
       return await request<Record<string, unknown>>(`/presentations/${quizID}/sessions/${locator.session_id}/questions/${slideID}/results?limit=${limit}`);
     } catch (error) {
-      if (error instanceof QuizServiceError && error.response.status === 404) return null;
+      if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
   },

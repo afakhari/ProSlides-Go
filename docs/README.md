@@ -45,8 +45,9 @@ the present priority.
   partial TypeScript with inconsistent architecture/styles.
 - Frontend F0 and F1 are complete. F2 is in progress: semantic tokens/feedback
   and the protected-manager shell/error boundary plus typed Persian catalog are
-  verified. The typed shared HTTP/API-error boundary for manager presentation
-  flows is the one exact next task; F3-F5 follow in order.
+  verified, as is the typed shared HTTP/API-error boundary. Generated OpenAPI
+  presentation transport types with a CI drift check are the one exact next
+  task; F3-F5 follow in order.
 - The production-like TLS 1k gate remains mandatory and is queued after F5.
 
 This priority order is scheduling, not a capacity or production waiver.

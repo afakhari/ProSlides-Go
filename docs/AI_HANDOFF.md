@@ -58,10 +58,9 @@ not complete. Never describe a design target as benchmark evidence.
   slice are verified: one semantic token source and one accessible notice
   primitive now cover dashboard/editor/share. The audited baseline and target
   are in `docs/frontend-architecture.md`.
-- Exact next task: implement one typed shared HTTP client and stable API-error
-  type for manager presentation reads/mutations. Preserve credentials, CSRF,
-  aborts, revisions, request counts, and conflicts; do not add a query cache or
-  touch live/report routes.
+- Exact next task: generate presentation transport types from checked-in
+  OpenAPI and add a deterministic CI drift check. Keep editor domain types
+  separate; do not add a query cache or touch live/report routes.
 - Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
   then resume the still-mandatory production-like TLS 1k gate. No capacity gate
   has been waived or passed by this reprioritization.
@@ -236,14 +235,14 @@ decision. F0, F1, and the first F2 foundation slice are complete. The accepted t
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is the typed shared HTTP/API-error boundary
-for manager presentation reads/mutations. Do not expand it into a query cache or
-unrelated live/report transport. Capacity work remains independently required
+The owner-prioritized exact next task is generated OpenAPI presentation types
+plus a CI drift check. Do not expand it into a query cache or unrelated live/
+report transport. Capacity work remains independently required
 and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
-- The post-foundation source has 54 JSX, 15 JS, 9 TS, and 4 TSX files; current
+- The post-foundation source has 54 JSX, 15 JS, 10 TS, and 4 TSX files; current
   `tsc` still verifies only the typed seam rather than most UI.
 - Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
   table followed by unreachable legacy runtime whose static imports still
@@ -278,6 +277,11 @@ and resumes after F5.
   pending UI, recoverable Persian render-error boundary, and typed Persian
   catalog consumed by dashboard/editor/share. `RequireSession` now has a typed
   TSX boundary. Expanded typecheck, lint, 39 unit tests, build, and all three
+  system-Chrome E2E flows pass.
+- The third slice adds `shared/api/http.ts` as the manager presentation JSON/
+  error boundary. Stable errors retain status/code/compatibility data; aborts
+  pass through; 401 emits the shell notice; CSRF, revisions, and request counts
+  remain covered. Lint, typecheck, 42 unit tests, build, and all three
   system-Chrome E2E flows pass.
 
 ## Completed implementation: dependency adapters and readiness

@@ -19,7 +19,7 @@ The measured source facts are:
 
 - the pre-F1 audit counted 78 JavaScript/TypeScript/CSS source files and about
   18,300 non-blank lines; the post-F2-foundation tree has 54 `.jsx`, 15 `.js`,
-  9 `.ts`, and 4 `.tsx` files;
+  10 `.ts`, and 4 `.tsx` files;
 - `tsconfig.json` includes `src/**/*.ts` and `src/**/*.tsx`, so the successful typecheck still does
   not validate most components or routes;
 - several components have more than 1,000 non-blank lines, including the
@@ -394,8 +394,11 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - **Completed second slice 2026-08-28:** persistent authenticated manager shell,
   route-local pending/error recovery, and typed Persian catalog consumed by
   dashboard/editor/share.
-- **Exact next slice:** introduce the typed shared HTTP/API-error boundary for
-  manager presentation reads/mutations; do not add the optional query cache yet.
+- **Completed third slice 2026-08-28:** typed shared HTTP/API-error boundary for
+  manager presentation reads/mutations with preserved CSRF, abort, revision,
+  request-count, conflict, and auth-expiry behavior.
+- **Exact next slice:** generate OpenAPI presentation transport types and add a
+  deterministic CI drift check; do not add the optional query cache yet.
 - Continue strict TypeScript at shared/module boundaries.
 - Generate OpenAPI transport types and add the one REST query cache only after
   the boundary is ready.
