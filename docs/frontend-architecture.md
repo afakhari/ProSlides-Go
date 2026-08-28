@@ -17,9 +17,10 @@ weaken idempotency, revision conflicts, role-scoped snapshots, or recovery.
 The active UI is functional, but it is not yet a modular TypeScript frontend.
 The measured source facts are:
 
-- 78 JavaScript/TypeScript/CSS source files and about 18,300 non-blank lines;
-- 54 `.jsx`, 15 `.js`, 7 `.ts`, and no `.tsx` files;
-- `tsconfig.json` includes only `src/**/*.ts`, so the successful typecheck does
+- the pre-F1 audit counted 78 JavaScript/TypeScript/CSS source files and about
+  18,300 non-blank lines; the post-F2-foundation tree has 54 `.jsx`, 15 `.js`,
+  8 `.ts`, and 2 `.tsx` files;
+- `tsconfig.json` includes `src/**/*.ts` and `src/**/*.tsx`, so the successful typecheck still does
   not validate most components or routes;
 - several components have more than 1,000 non-blank lines, including the
   dashboard, auth screen, editor, and editor sidebar;
@@ -34,25 +35,25 @@ The measured source facts are:
 - the editor domain duplicates legacy and canonical field names such as
   `title`/`quiz_name`, `text`/`question_text`, and
   `time_limit`/`question_time`;
-- the stylesheet contains duplicate Tailwind imports, direct visual values,
-  and no complete semantic token definition for the existing shadcn-style
-  primitives;
+- the first F2 slice removed the duplicate Tailwind import and introduced a
+  complete CSS-first semantic token source for migrated surfaces; direct visual
+  values remain in routes outside dashboard/editor/share and migrate by phase;
 - static inspection found 381 direct color expressions, 75 inline style
   objects, and 169 physical direction utilities. Inline runtime presentation
   theming is legitimate; repeated brand/layout values are not;
 - product chrome mixes Persian and English, and dashboard, loading, editor,
   auth, and public-join screens do not yet share one visual system;
-- lint, the current partial typecheck, 32 unit tests, and a production Vite
+- lint, the current partial typecheck, 37 unit tests, and a production Vite
   build pass.
 
 ### Browser and bundle evidence
 
-A 2026-08-28 system-Chrome run confirmed the responsive landing/auth route.
-The remaining smoke flows could not reach application behavior because the
-running four-day-old Web container failed to resolve the API service on startup
-and returned ingress 500 responses. The checked-in Nginx source contains
-dynamic Docker DNS; rebuild/recreate the current image before using that run as
-frontend evidence.
+A 2026-08-28 system-Chrome F2 run against the current Vite source completed
+registration, dashboard creation, editor loading, access-code save, and share
+at 1440x900 and 390x844. Dashboard/editor/share screenshots were inspected;
+mobile document/client widths matched, computed title/code directions were
+RTL/LTR, and the browser reported zero console errors. This supersedes the
+earlier authenticated run blocked by a stale Web image for these surfaces only.
 
 The checked-in manual chunk rules produce an initial HTML preload of roughly
 252 KiB gzip across the entry, React, DnD, motion, and miscellaneous chunks.
@@ -374,7 +375,7 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - Deferred enforceable production-mock-import and bundle checks to F4/F5, when
   their active consumers and accepted baselines are migrated.
 
-### F1 — creation-to-editor continuity (exact next implementation task)
+### F1 — creation-to-editor continuity — complete 2026-08-28
 
 - Keep mutation progress in the dashboard and prevent duplicate creation.
 - Remove artificial loading delay from the affected flow.
@@ -384,12 +385,16 @@ and bundle budgets from real Chrome evidence on the supported topology.
 - Continue directly into slide-type selection after the first draft creation.
 - Cover failure, reduced motion, 1440x900, 390x844, and exact API request count.
 
-### F2 — application foundation
+### F2 — application foundation — in progress
 
-- Introduce router/layout/error boundaries and the shared HTTP/error boundary.
-- Introduce CSS-first tokens, RTL-safe primitives, and the typed Persian
-  message catalog.
-- Begin strict TypeScript at shared/module boundaries.
+- **Completed first slice 2026-08-28:** one CSS-first semantic token source,
+  typed accessible `Notice`, Persian dashboard/editor/share feedback, explicit
+  title/access-code direction boundaries, and removal of native alerts plus the
+  duplicate Tailwind import in that slice.
+- **Exact next slice:** introduce the protected-manager shell/route error
+  boundary and typed Persian message catalog for dashboard/editor/share.
+- Later in F2, introduce the shared HTTP/error boundary after the shell is stable.
+- Continue strict TypeScript at shared/module boundaries.
 - Generate OpenAPI transport types and add the one REST query cache only after
   the boundary is ready.
 

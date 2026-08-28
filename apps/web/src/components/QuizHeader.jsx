@@ -9,7 +9,7 @@ export default function QuizHeader({
   quizTitle = "", 
   quizId,
   quizRevision,
-  setNameSelectionNotice,
+  onNotify,
   onBack,
   onQuizUpdated,
   onConflict,
@@ -31,13 +31,13 @@ export default function QuizHeader({
 
   const handleUpdateQuizName = async () => {
     if (!quizId) {
-      alert("شناسه ارائه معتبر نیست.");
+      onNotify?.("شناسه ارائه معتبر نیست.", "error");
       setIsEditing(false);
       return;
     }
 
     if (!newQuizTitle || typeof newQuizTitle !== "string") {
-      alert("یک نام معتبر وارد کنید.");
+      onNotify?.("یک نام معتبر وارد کنید.", "error");
       return;
     }
 
@@ -49,21 +49,15 @@ export default function QuizHeader({
     }
 
     setIsUpdating(true);
+    onNotify?.("در حال ذخیره نام ارائه…", "info", true);
     try {
       const updatedQuiz = await quizService.updateQuiz(quizId, { title: trimmedTitle, revision: quizRevision });
       if (onQuizUpdated) onQuizUpdated(updatedQuiz);
-      if (setNameSelectionNotice) {
-        setNameSelectionNotice("نام ارائه ذخیره شد.");
-        setTimeout(() => {
-          setNameSelectionNotice(null);
-        }, 2500);
-      } else {
-        alert("نام ارائه ذخیره شد.");
-      }
+      onNotify?.("نام ارائه ذخیره شد.", "success");
     } catch (error) {
       if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
         if (onConflict) await onConflict();
-        alert("این ارائه جای دیگری تغییر کرده است. آخرین نسخه بارگذاری شد.");
+        onNotify?.("این ارائه جای دیگری تغییر کرده است. آخرین نسخه بارگذاری شد.", "warning");
         return;
       }
       // Return to previous name
@@ -71,15 +65,16 @@ export default function QuizHeader({
 
       // Display an error message to the user
       if (error.response) {
-        alert(
+        onNotify?.(
           `خطای ذخیره: ${
             error.response.data?.message || "ذخیره نام انجام نشد."
-          }`
+          }`,
+          "error"
         );
       } else if (error.request) {
-        alert("ارتباط با سرور برقرار نشد.");
+        onNotify?.("ارتباط با سرور برقرار نشد.", "error");
       } else {
-        alert("خطای پیش‌بینی‌نشده‌ای رخ داد.");
+        onNotify?.("خطای پیش‌بینی‌نشده‌ای رخ داد.", "error");
       }
     } finally {
       setIsUpdating(false);
@@ -104,14 +99,14 @@ export default function QuizHeader({
   return (
     <>
       <header
-        className="fixed inset-x-0 top-0 z-50 flex h-16 w-full items-center justify-between gap-2 border-b border-violet-100 bg-white/95 px-3 shadow-sm backdrop-blur md:px-5"
+        className="fixed inset-x-0 top-0 z-50 flex h-16 w-full items-center justify-between gap-2 border-b border-brand-border bg-surface/95 px-3 shadow-sm backdrop-blur md:px-5"
         dir="rtl"
         style={{ fontFamily: '"Vazirmatn", "Segoe UI", sans-serif' }}
       >
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           <button
             onClick={() => (onBack ? onBack() : navigate("/manager/panel"))}
-            className="rounded-xl p-2 text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="rounded-xl p-2 text-content-muted transition hover:bg-brand-soft hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             title="بازگشت به ارائه‌ها"
             aria-label="بازگشت به ارائه‌ها"
           >
@@ -130,7 +125,7 @@ export default function QuizHeader({
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
           </button>
-          <div className="hidden items-center gap-1.5 text-base font-bold text-violet-950 before:text-xl before:text-violet-600 before:content-['✱'] sm:flex" dir="ltr">
+          <div className="hidden items-center gap-1.5 font-brand text-base font-bold text-brand-ink before:text-xl before:text-brand before:content-['✱'] sm:flex" dir="ltr">
             ProSlides
           </div>
         </div>
@@ -139,14 +134,15 @@ export default function QuizHeader({
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="max-w-[42vw] truncate rounded-xl px-3 py-2 text-sm font-bold text-slate-800 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 sm:max-w-sm sm:px-4"
+              className="max-w-[42vw] truncate rounded-xl px-3 py-2 text-sm font-bold text-content transition hover:bg-brand-soft hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:max-w-sm sm:px-4"
               title="تغییر نام ارائه"
+              dir="auto"
             >
               {quizTitle || "ارائه بدون عنوان"}
             </button>
           ) : (
             // Quiz name editing space
-            <div className="flex items-center gap-1 rounded-xl border border-violet-200 bg-white p-1 shadow-lg shadow-violet-100 sm:gap-2 sm:px-2">
+            <div className="flex items-center gap-1 rounded-xl border border-brand-border bg-surface p-1 shadow-lg sm:gap-2 sm:px-2">
               <input
                 type="text"
                 value={newQuizTitle || ""} 
@@ -157,8 +153,9 @@ export default function QuizHeader({
                 }}
                 autoFocus
                 disabled={isUpdating}
-                className="px-3 py-1 mb-1 mt-1 rounded-lg border border-gray-300 
-                        focus:outline-none focus:ring-2 focus:ring-pink-500 
+                dir="auto"
+                className="px-3 py-1 mb-1 mt-1 rounded-lg border border-gray-300
+                        focus:outline-none focus:ring-2 focus:ring-focus
                         focus:border-transparent bg-white text-gray-800 w-28 sm:w-56"
                 placeholder="نام ارائه"
               />
@@ -166,8 +163,8 @@ export default function QuizHeader({
               <button
                 onClick={handleUpdateQuizName}
                 disabled={isUpdating || !newQuizTitle || !newQuizTitle.trim()}
-                className="flex items-center justify-center w-8 h-8 
-                        bg-green-500 hover:bg-green-600 text-white 
+                className="flex items-center justify-center w-8 h-8
+                        bg-success hover:brightness-90 text-content-inverse
                         rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                 title="ذخیره نام"
                 aria-label="ذخیره نام"
@@ -198,7 +195,7 @@ export default function QuizHeader({
           <button
             onClick={() => setShowShareModal(true)}
             title="تنظیم یا اشتراک‌گذاری کد ورود"
-            className="rounded-xl bg-violet-700 px-3 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
+            className="rounded-xl bg-brand px-3 py-2.5 text-sm font-bold text-content-inverse shadow-lg transition hover:bg-brand-strong active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
           >
             اشتراک‌گذاری
           </button>

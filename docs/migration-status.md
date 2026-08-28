@@ -61,10 +61,11 @@ The established login/register/recovery presentation was preserved. The main
 `AuthPage.jsx` remains the large, custom-designed screen; migration work changed
 its transport and provider integration rather than replacing the design.
 
-Frontend professionalization is not complete. The 2026-08-28 audit found a
-partial JavaScript-to-TypeScript migration (54 JSX, 15 JS, 7 TS, no TSX), with
-most UI outside `tsc`, oversized route components, unreachable legacy runtime,
-production mock-era adapters, and inconsistent token/RTL styles. The accepted
+Frontend professionalization is not complete. After F1 and the first F2 slice,
+the partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 8 TS, and 2
+TSX files, with most UI outside `tsc`, oversized route components, unreachable
+legacy runtime, and production mock-era adapters. One token/feedback foundation
+now covers dashboard/editor/share; other routes retain styling debt. The accepted
 incremental `app -> modules -> shared` target, constraints, and F0-F5 gates are
 in [frontend-architecture.md](frontend-architecture.md); UX acceptance is in
 [frontend-professionalization.md](frontend-professionalization.md).
@@ -98,10 +99,10 @@ a stale metadata overwrite with 409. No browser run was used for this change.
 
 ## Remaining work, in order
 
-1. Implement frontend F1 creation-to-editor continuity. This is the exact next
-   task: one create request, one navigation, Persian pending/error/onboarding,
-   stable editor skeleton, reduced motion, and desktop/mobile browser evidence.
-2. Complete frontend F2-F5 in order: semantic Persian/RTL shell; modular editor;
+1. Complete frontend F2. Its first semantic-token/accessible-feedback slice is
+   verified; the exact next task is a protected-manager shell/error boundary
+   and typed Persian message catalog for dashboard/editor/share.
+2. Complete frontend F3-F5 in order: modular editor;
    legacy/mock cleanup with enforceable TS/lint/test boundaries; then measured
    accessibility and performance hardening.
 3. Provision production SMTP, Google, database, Redis, origin, and TLS secrets

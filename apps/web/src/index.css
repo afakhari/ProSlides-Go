@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Vazirmatn", "Segoe UI", sans-serif;
+  --font-brand: "Outfit", "Segoe UI", sans-serif;
+
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border-subtle: #e2e8f0;
+  --color-content: #0f172a;
+  --color-content-muted: #64748b;
+  --color-content-inverse: #ffffff;
+
+  --color-brand: #6d28d9;
+  --color-brand-strong: #5b21b6;
+  --color-brand-soft: #f5f3ff;
+  --color-brand-muted: #ede9fe;
+  --color-brand-border: #ddd6fe;
+  --color-brand-ink: #2e1065;
+
+  --color-success: #059669;
+  --color-success-soft: #ecfdf5;
+  --color-success-border: #a7f3d0;
+  --color-success-ink: #065f46;
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-ink: #92400e;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-danger-ink: #991b1b;
+  --color-info: #2563eb;
+  --color-info-soft: #eff6ff;
+  --color-info-border: #bfdbfe;
+  --color-info-ink: #1e40af;
+
+  --color-focus: #7c3aed;
+  --radius-control: 0.75rem;
+  --radius-panel: 1rem;
+  --shadow-panel: 0 16px 40px rgb(15 23 42 / 0.12);
+  --ease-interface: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  color: var(--color-content);
+  background: var(--color-canvas);
+  font-family: var(--font-sans);
+}
+
 @font-face {
   font-family: "Outfit";
   font-style: normal;
@@ -143,6 +192,17 @@ h1 {
 
 .animate-custom-pulse {
   animation: customPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-custom-pulse,
+  .animate-confetti-fall,
+  .animate-applause-pop,
+  .animate-drum-shake,
+  .animate-sound-wave,
+  .multi-text .status {
+    animation: none !important;
+  }
 }
 
 /* Ensure full-height layout so h-screen works reliably and inner flex scrolling behaves correctly */

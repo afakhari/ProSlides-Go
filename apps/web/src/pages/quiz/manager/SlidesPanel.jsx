@@ -61,11 +61,7 @@ export default function SlidesPanel({
   });
 
   const notify = (message, tone = "error") => {
-    if (onNotify) {
-      onNotify(message, tone);
-    } else {
-      alert(message);
-    }
+    onNotify?.(message, tone);
   };
 
   // ???? ???? ?????? ????????

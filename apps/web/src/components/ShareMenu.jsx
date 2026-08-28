@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { X, Check, Loader2 } from "lucide-react";
 import { quizService } from "../services/quizService.ts";
+import Notice from "../shared/ui/Notice";
 
 
 export default function ShareMenu({
@@ -33,13 +34,13 @@ export default function ShareMenu({
       return "";
     }
     if (input.length < 5) {
-      return "The code must be at least 5 characters.";
+      return "کد ورود باید حداقل ۵ نویسه باشد.";
     }
     if (input.length > 12) {
-      return "The code must be a maximum of 12 characters.";
+      return "کد ورود باید حداکثر ۱۲ نویسه باشد.";
     }
     if (!/^[A-Za-z0-9]*$/.test(input)) {
-      return "Only English letters and numbers are allowed.";
+      return "فقط حروف انگلیسی و عدد مجاز است.";
     }
     return "";
   };
@@ -50,7 +51,7 @@ export default function ShareMenu({
     if (!code || inputError || code.length < 5) return false;
 
     if (!quizId) {
-      setSaveError("Quiz is unavailable.");
+      setSaveError("این ارائه در دسترس نیست.");
       return false;
     }
     setIsSaving(true);
@@ -75,9 +76,9 @@ export default function ShareMenu({
       return true;
     } catch (error) {
       if (error?.response?.status === 409) {
-        setSaveError("This access code is already in use.");
+        setSaveError("این کد ورود قبلاً استفاده شده است.");
       } else {
-        setSaveError(error.message || 'Failed to save access code');
+        setSaveError("ذخیره کد ورود انجام نشد. دوباره تلاش کنید.");
       }
       return false;
     } finally {
@@ -160,21 +161,27 @@ export default function ShareMenu({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
-        <div className="bg-white w-[90vw] max-w-[900px] max-h-[90vh] h-auto md:h-[500px] rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden relative">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" dir="rtl">
+        <div
+          className="relative flex h-auto max-h-[90vh] w-[90vw] max-w-[900px] flex-col overflow-hidden rounded-panel bg-surface shadow-panel md:h-[500px] md:flex-row"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-dialog-title"
+        >
           <button
             onClick={onClose}
-            className="absolute right-5 top-5 text-gray-500 hover:text-black"
+            className="absolute end-5 top-5 z-10 rounded-control p-1 text-content-muted hover:bg-brand-soft hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            aria-label="بستن پنجره اشتراک‌گذاری"
           >
             <X className="w-6 h-6" />
           </button>
 
-          <div className="w-full md:w-1/3 bg-pink-50 border-b md:border-b-0 md:border-r p-5 flex flex-col gap-3">
-            <h2 className="text-lg font-semibold text-pink-700 mb-2">
-              Share options
+          <div className="flex w-full flex-col gap-3 border-b border-brand-border bg-brand-soft p-5 md:w-1/3 md:border-b-0 md:border-e">
+            <h2 id="share-dialog-title" className="mb-2 text-lg font-semibold text-brand-strong">
+              اشتراک‌گذاری ارائه
             </h2>
             <MenuItem
-              label="Invite audience"
+              label="دعوت از مخاطبان"
               active={section === "invite"}
               onClick={() => setSection("invite")}
             />
@@ -211,11 +218,11 @@ export default function ShareMenu({
 function MenuItem({ label, active, onClick }) {
   return (
     <button
-      className={`w-full text-left px-3 py-2 rounded-lg font-medium transition
+      className={`w-full rounded-control px-3 py-2 text-start font-medium transition
         ${
           active
-            ? "bg-pink-200 text-pink-700"
-            : "hover:bg-pink-100 text-gray-700"
+            ? "bg-brand-muted text-brand-strong"
+            : "text-content-muted hover:bg-brand-muted"
         }`}
       onClick={onClick}
     >
@@ -263,114 +270,114 @@ function InviteAudienceUI({
   // Checking the validity of the code to enable/disable the save button
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-800 mb-3">
-        Invite audience
+      <h2 className="mb-3 text-xl font-semibold text-content">
+        دعوت از مخاطبان
       </h2>
 
-      <p className="text-gray-600 text-sm">Audience can join at :</p>
+      <p className="text-sm text-content-muted">مخاطبان از این نشانی وارد می‌شوند:</p>
 
       {/* --------------- Code Entry Section --------------- */}
       <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-        <span className="text-gray-500">{BASE}</span>
+        <bdi className="text-content-muted" dir="ltr">{BASE}</bdi>
         <div className="flex flex-1 flex-wrap items-center gap-2">
           <input
-            className={`w-full sm:w-[16ch] md:w-[18ch] flex-none border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-500 ${
-              inputError ? "border-pink-500" : "border-gray-300"
+            className={`w-full sm:w-[16ch] md:w-[18ch] flex-none rounded-control border px-3 py-2 text-sm focus:ring-2 focus:ring-focus ${
+              inputError ? "border-danger" : "border-border-subtle"
             }`}
-            placeholder="room1"
+            placeholder="ROOM1"
             value={code}
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             maxLength={12}
             aria-describedby="access-code-help access-code-error"
+            aria-invalid={Boolean(inputError)}
+            dir="ltr"
           />
           <button
             onClick={onSave}
             disabled={!isCodeValid || !hasChanges || isSaving}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
               !isCodeValid || !hasChanges || isSaving
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-pink-600 text-white hover:bg-pink-700"
+                ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                : "bg-brand text-content-inverse hover:bg-brand-strong"
             }`}
           >
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                در حال ذخیره…
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                Save
+                ذخیره
               </>
             )}
           </button>
         </div>
       </div>
 
-      <p id="access-code-help" className="text-xs text-gray-500 mt-2">
-        5-12 characters, letters and numbers only.
+      <p id="access-code-help" className="mt-2 text-xs text-content-muted">
+        بین ۵ تا ۱۲ نویسه؛ فقط حروف انگلیسی و عدد.
       </p>
 
 
       {/* --------------- Display Validation Error Message --------------- */}
       {inputError && (
-        <p id="access-code-error" className="text-red-500 text-sm mt-3">
+        <p id="access-code-error" className="mt-3 text-sm text-danger" role="alert">
           {inputError}
         </p>
       )}
 
-      {/* --------------- Display A Success Or Error Message When Saving --------------- */}
+      {isSaving && <Notice pending className="mt-3">در حال ذخیره کد ورود…</Notice>}
+
       {saveSuccess && (
-        <p className="text-green-600 text-sm mt-3">
-          Access code saved successfully!
-        </p>
+        <Notice tone="success" className="mt-3">کد ورود ذخیره شد.</Notice>
       )}
 
       {saveError && (
-        <p className="text-red-500 text-sm mt-3">Error: {saveError}</p>
+        <Notice tone="error" className="mt-3">{saveError}</Notice>
       )}
 
       {confirmingSave && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Changing the access code will disable the previous link. Do you want
-          to continue?
+        <Notice tone="warning" className="mt-4 flex-col items-stretch">
+          تغییر کد ورود، لینک قبلی را غیرفعال می‌کند. ادامه می‌دهید؟
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onConfirmSave}
               disabled={isSaving}
-              className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:cursor-not-allowed"
+              className="rounded-control bg-warning px-3 py-1.5 text-xs font-semibold text-content-inverse hover:brightness-90 disabled:cursor-not-allowed"
             >
-              Confirm and save
+              تأیید و ذخیره
             </button>
             <button
               type="button"
               onClick={onCancelConfirm}
-              className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+              className="rounded-control border border-warning-border px-3 py-1.5 text-xs font-semibold text-warning-ink hover:bg-warning-soft"
             >
-              Cancel
+              انصراف
             </button>
           </div>
-        </div>
+        </Notice>
       )}
 
       {/* --------------- Display QR Code Only If The Code Is Valid And There Are No Errors --------------- */}
       {qr && !inputError && code.length >= 5 && (
         <div className="mt-6 flex flex-col items-center">
-          <p className="text-sm text-gray-600 mb-2">scan QR or</p>
+          <p className="mb-2 text-sm text-content-muted">کد QR را اسکن کنید</p>
           <img
             src={qr}
-            alt="qr"
+            alt="کد QR لینک ورود به ارائه"
             className="w-44 h-44 border rounded-xl shadow"
           />
 
           <a
             download="qr.png"
             href={qr}
-            className="mt-3 px-4 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm shadow transition"
+            className="mt-3 rounded-control bg-brand px-4 py-1.5 text-sm text-content-inverse shadow transition hover:bg-brand-strong"
           >
-            Download QR
+            دریافت کد QR
           </a>
         </div>
       )}

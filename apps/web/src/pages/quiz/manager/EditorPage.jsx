@@ -15,6 +15,7 @@ import { UNSAVED_CHANGES_KEY } from "../../../utils/auth";
 import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import EditorRouteSkeleton from "../../../modules/presentations/ui/EditorRouteSkeleton";
+import Notice from "../../../shared/ui/Notice";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -66,9 +67,9 @@ export default function EditorPage() {
 
   if (error || !quiz) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-violet-50 px-4" dir="rtl">
-        <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-white p-8 text-center shadow-xl shadow-violet-100/60">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+      <div className="flex min-h-screen items-center justify-center bg-brand-soft px-4" dir="rtl">
+        <div className="w-full max-w-md rounded-3xl border border-danger-border bg-surface p-8 text-center shadow-panel">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-soft text-danger">
             <RefreshCw className="h-6 w-6" aria-hidden="true" />
           </div>
           <h1 className="mt-5 text-xl font-black text-slate-900">ویرایشگر بارگذاری نشد</h1>
@@ -76,7 +77,7 @@ export default function EditorPage() {
             اتصال را بررسی کنید و دوباره تلاش کنید. تغییر ذخیره‌نشده‌ای در این صفحه ایجاد نشده است.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button type="button" onClick={fetchQuiz} className="rounded-xl bg-violet-700 px-5 py-3 font-bold text-white hover:bg-violet-800">
+            <button type="button" onClick={fetchQuiz} className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               تلاش دوباره
             </button>
             <button type="button" onClick={() => navigate("/manager/panel")} className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50">
@@ -122,7 +123,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const [isMobile, setIsMobile] = useState(false);
   const [notice, setNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
-  const [nameSelectionNotice, setNameSelectionNotice] = useState(null);
   const [audioSaveNotice, setAudioSaveNotice] = useState(null);
   const [backgroundSaveNotice, setBackgroundSaveNotice] = useState(null);
   const hasUnsavedChanges = hasSidebarChanges || hasAudioChanges || hasDesignChanges;
@@ -196,14 +196,16 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     }
   }, [activeSlide, activeSlideType]);
 
-  const showNotice = useCallback((message, tone = "info") => {
-    setNotice({ message, tone });
+  const showNotice = useCallback((message, tone = "info", pending = false) => {
+    setNotice({ message, tone, pending });
     if (noticeTimeoutRef.current) {
       clearTimeout(noticeTimeoutRef.current);
     }
-    noticeTimeoutRef.current = setTimeout(() => {
-      setNotice(null);
-    }, 3000);
+    if (!pending) {
+      noticeTimeoutRef.current = setTimeout(() => {
+        setNotice(null);
+      }, 3000);
+    }
   }, []);
 
   useEffect(() => {
@@ -949,7 +951,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
   return (
     <div
-      className="relative flex h-full flex-col bg-[linear-gradient(180deg,#f8f7ff_0%,#f3f4f8_100%)] pb-20 pt-16 text-slate-900 md:pb-0"
+      className="relative flex h-full flex-col bg-gradient-to-b from-brand-soft to-canvas pb-20 pt-16 text-content md:pb-0"
       dir="rtl"
       style={{ fontFamily: '"Vazirmatn", "Segoe UI", sans-serif' }}
     >
@@ -959,24 +961,18 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         quizTitle={quiz.title}
         quizId={quiz.quiz_id}
         quizRevision={quiz.revision}
-        setNameSelectionNotice={setNameSelectionNotice}
+        onNotify={showNotice}
         onBack={handleExitPanel}
         onQuizUpdated={updateQuiz}
         onAccessCodeSaved={(accessCode) => updateQuiz({ ...quiz, access_code: accessCode })}
         onConflict={refreshQuiz}
       />
 
-      {nameSelectionNotice && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-          {nameSelectionNotice}
-        </div>
-      )}
-
       {/* ----- Main Layout ----- */}
       <div className="flex flex-1 flex-col gap-4 overflow-hidden p-3 md:flex-row md:p-4">
         {/* ----- Left Panel (Slides Panel) ----- */}
         {!isMobile && (
-          <aside className="w-full max-h-[40vh] overflow-y-auto rounded-2xl border border-violet-100 bg-white p-4 shadow-sm md:h-full md:max-h-none md:w-1/4 lg:w-1/5">
+          <aside className="w-full max-h-[40vh] overflow-y-auto rounded-2xl border border-brand-border bg-surface p-4 shadow-sm md:h-full md:max-h-none md:w-1/4 lg:w-1/5">
             <SlidesPanel
               slides={slides}
               activeSlideId={activeSlide?.slide_id}
@@ -1005,13 +1001,13 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
         {/* ----- Middle panel ----- */}
         <main className="relative flex-1">
-          <div className="relative flex h-full min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-violet-100 bg-white p-3 shadow-sm">
+          <div className="relative flex h-full min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-brand-border bg-surface p-3 shadow-sm">
             {/* ----- Present Button ----- */}
             <button
               onClick={handlePresent}
               disabled={!presentStatus.ready}
               title={presentStatus.reason}
-              className="absolute left-3 top-3 z-10 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800
+              className="absolute left-3 top-3 z-10 rounded-control bg-brand px-4 py-2.5 text-sm font-bold text-content-inverse shadow-lg transition hover:bg-brand-strong
                         disabled:opacity-60 disabled:cursor-not-allowed"
             >
               اجرا
@@ -1032,7 +1028,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 <div className="w-full h-full flex justify-center items-center">
                   <div className="w-full h-full flex flex-col items-center justify-center">
                     {leaderboardError && (
-                      <div className="text-sm text-red-500 mb-2">
+                      <div className="mb-2 text-sm text-danger">
                         {leaderboardError}
                       </div>
                     )}
@@ -1093,14 +1089,14 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 </div>
               ) : (
                 <div className="max-w-md text-center text-slate-500">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-muted text-brand">
                     <Sparkles className="h-7 w-7" aria-hidden="true" />
                   </div>
                   <h1 className="mt-5 text-xl font-black text-slate-900">نوع این اسلاید را انتخاب کنید</h1>
                   <p className="mb-5 mt-2 text-sm leading-7">سؤال تک‌گزینه‌ای، چندگزینه‌ای یا یک اسلاید محتوایی بسازید.</p>
                   <button
                     onClick={handleTypeChangeClick}
-                    className="rounded-xl bg-violet-700 px-5 py-3 font-bold text-white hover:bg-violet-800"
+                    className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong"
                   >
                     انتخاب نوع اسلاید
                   </button>
@@ -1108,10 +1104,10 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
               )
             ) : (
               <div className="mx-auto max-w-lg px-5 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-muted text-brand">
                   <Sparkles className="h-8 w-8" aria-hidden="true" />
                 </div>
-                <p className="mt-3 text-sm font-bold text-violet-700">
+                <p className="mt-3 text-sm font-bold text-brand">
                   {createdPresentation ? "ارائه شما آماده است" : "شروع یک ارائه تازه"}
                 </p>
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">اولین اسلاید را بسازید</h1>
@@ -1123,7 +1119,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                   onClick={addNewSlide}
                   disabled={isAddingSlide}
                   autoFocus={createdPresentation}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-6 inline-flex items-center gap-2 rounded-control bg-brand px-6 py-3 font-bold text-content-inverse shadow-lg transition hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isAddingSlide ? (
                     <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
@@ -1151,16 +1147,16 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 ></div>
 
                 <div className="absolute inset-x-3 z-20 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl sm:inset-x-auto sm:w-[440px]" role="dialog" aria-modal="true" aria-labelledby="slide-type-title">
-                  <h2 id="slide-type-title" className="text-xl font-black text-violet-800">
+                  <h2 id="slide-type-title" className="text-xl font-black text-brand-strong">
                     نوع اسلاید را انتخاب کنید
                   </h2>
                   <p className="text-sm text-slate-500 text-center">
                     بعداً می‌توانید نوع اسلاید را تغییر دهید.
                   </p>
                   {typeSelectionError && (
-                    <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 text-center">
+                    <Notice tone="error" className="w-full justify-center text-center">
                       {typeSelectionError}
-                    </div>
+                    </Notice>
                   )}
 
                   {["Single Choice", "Multiple Choice", "Content Slide"].map((type) => {
@@ -1178,13 +1174,13 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                         key={type}
                         onClick={() => handleSelectType(type)}
                         disabled={isSelectingType}
-                        className="w-full rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-violet-950 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-2xl border border-brand-border bg-brand-soft px-4 py-3 text-brand-ink transition hover:border-brand hover:bg-brand-muted disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <div className="flex flex-col items-center">
                           <span className="font-semibold">
                             {isBusy ? "در حال اعمال…" : label}
                           </span>
-                          <span className="text-xs text-violet-700">
+                          <span className="text-xs text-brand">
                             {description}
                           </span>
                         </div>
@@ -1203,9 +1199,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
             )}
           </div>
           {typeSelectionNotice && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+            <Notice tone="success" className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 shadow-lg">
               {typeSelectionNotice}
-            </div>
+            </Notice>
           )}
         </main>
 
@@ -1238,7 +1234,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 <div className="w-full flex justify-end mb-4">
                   <button
                     onClick={handleCloseSidebarPanel}
-                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                    className="rounded-lg p-2 transition-colors hover:bg-danger-soft"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -1278,7 +1274,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                       </p>
                       <button
                         onClick={handleTypeChangeClick}
-                        className="mt-4 bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition"
+                        className="mt-4 rounded-control bg-brand px-4 py-2 text-content-inverse transition hover:bg-brand-strong"
                       >
                         Select Type
                       </button>
@@ -1294,7 +1290,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 ) {
                   return (
                     <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                      <div className="text-red-500 mb-2">
+                      <div className="mb-2 text-danger">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-12 w-12"
@@ -1363,9 +1359,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         )}
 
         {backgroundSaveNotice && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          <Notice tone="success" className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 shadow-lg">
             {backgroundSaveNotice}
-          </div>
+          </Notice>
         )}
 
         {showAudioPanel && (
@@ -1395,9 +1391,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         )}
 
         {audioSaveNotice && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          <Notice tone="success" className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 shadow-lg">
             {audioSaveNotice}
-          </div>
+          </Notice>
         )}
 
         {/* ----- RightToolbar ----- */}
@@ -1459,22 +1455,12 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       )}
       {notice && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-50 px-4"
+          className="fixed left-1/2 z-50 -translate-x-1/2 px-4"
           style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
         >
-          <div
-            className={`rounded-full px-4 py-2 text-sm font-semibold shadow-lg ${
-              notice.tone === "success"
-                ? "bg-emerald-500 text-white"
-                : notice.tone === "error"
-                ? "bg-red-500 text-white"
-                : notice.tone === "warning"
-                ? "bg-amber-500 text-white"
-                : "bg-slate-700 text-white"
-            }`}
-          >
+          <Notice tone={notice.tone} pending={notice.pending} className="shadow-lg">
             {notice.message}
-          </div>
+          </Notice>
         </div>
       )}
 

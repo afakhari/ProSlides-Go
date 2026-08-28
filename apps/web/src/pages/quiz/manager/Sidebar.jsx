@@ -51,11 +51,7 @@ export default function Sidebar({
 
   const notify = useCallback(
     (message, tone = "error") => {
-      if (onNotify) {
-        onNotify(message, tone);
-      } else {
-        alert(message);
-      }
+      onNotify?.(message, tone);
     },
     [onNotify]
   );

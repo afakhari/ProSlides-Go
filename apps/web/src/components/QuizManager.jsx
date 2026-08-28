@@ -12,9 +12,7 @@ import {
   Copy,
   Trash2,
   ChevronDown,
-  ChevronRight,
   LogOut,
-  Folder,
   X,
   LoaderCircle,
   Plus,
@@ -24,6 +22,7 @@ import { apiFetch } from "../utils/apiFetch";
 import { clearAuthStorage } from "../utils/auth";
 import { getPresentationValidationError } from "../pages/quiz/manager/questionValidation";
 import { createPresentationOnce } from "../modules/presentations/model/createPresentationFlow.ts";
+import Notice from "../shared/ui/Notice";
 
 const safeTimestamp = (value) => {
   const time = Date.parse(value);
@@ -39,13 +38,64 @@ const formatDate = (timestamp) =>
       })
     : "-";
 
+const formatNumber = (value) =>
+  new Intl.NumberFormat("fa-IR").format(Number(value) || 0);
+
+const normalizePersianText = (value = "") =>
+  String(value)
+    .normalize("NFKC")
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[‌\s]+/g, " ")
+    .trim()
+    .toLocaleLowerCase("fa-IR");
+
+const persianCollator = new Intl.Collator("fa-IR", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+const localizeSystemTitle = (title) => {
+  const value = String(title || "").trim();
+  if (!value) return "ارائه بدون عنوان";
+  if (value === "Untitled Presentation") return "ارائه بدون عنوان";
+
+  const untitledCopyMatch = value.match(/^Untitled Presentation \(copy (\d+)\)$/i);
+  if (untitledCopyMatch) {
+    return `ارائه بدون عنوان - نسخه ${Number(untitledCopyMatch[1]) + 1}`;
+  }
+
+  return value;
+};
+
+const getDuplicateTitle = (quiz, allQuizzes) => {
+  const versionPattern = /\s*-\s*نسخه\s+(\d+)$/;
+  const baseName = quiz.name.replace(versionPattern, "").trim() || "ارائه بدون عنوان";
+  let maxVersion = 1;
+
+  allQuizzes.forEach((item) => {
+    if (item.name === baseName) {
+      maxVersion = Math.max(maxVersion, 1);
+      return;
+    }
+    const match = item.name.match(versionPattern);
+    if (match && item.name.replace(versionPattern, "").trim() === baseName) {
+      maxVersion = Math.max(maxVersion, Number(match[1]) || 1);
+    }
+  });
+
+  return `${baseName} - نسخه ${maxVersion + 1}`;
+};
+
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
   const [loggedInUser] = useState(
     () => localStorage.getItem("auth.name") || "شما"
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [statusMessage, setStatusMessage] = useState(null);
   const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
   const [passwordPromptStatus, setPasswordPromptStatus] = useState(null);
@@ -60,22 +110,21 @@ export default function QuizManager({ onNewPresentation }) {
   // Load quizzes from API on mount
   const [quizzes, setQuizzes] = useState([]);
 
-  const fetchQuizzes = useCallback(async (signal) => {
+  const fetchQuizzes = useCallback(async (signal, { silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await quizService.listPresentations({ signal });
 
-      // Map API response to local quiz structure
-      const mappedQuizzes = data.map((quiz) => {
+      const mappedQuizzes = (Array.isArray(data) ? data : []).map((quiz) => {
         const updatedAt = safeTimestamp(quiz.updated_at);
         const createdAt = safeTimestamp(quiz.created_at);
         return {
           id: quiz.id,
           revision: Number(quiz.revision || 1),
-          name: quiz.title,
+          name: localizeSystemTitle(quiz.title),
           accessCode: quiz.access_code || "",
-          slides: quiz.slide_count,
-          participants: quiz.participant_count,
+          slides: Number(quiz.slide_count) || 0,
+          participants: Number(quiz.participant_count) || 0,
           members: "",
           createdBy: quiz.owner_full_name || quiz.owner_name || loggedInUser,
           lastUpdated: formatDate(updatedAt),
@@ -86,13 +135,24 @@ export default function QuizManager({ onNewPresentation }) {
       });
 
       setQuizzes(mappedQuizzes);
-      setError(null);
+      setSelectedQuizzes((prev) => {
+        const validIds = new Set(mappedQuizzes.map((quiz) => quiz.id));
+        return prev.filter((id) => validIds.has(id));
+      });
+      if (!silent) setLoadError(null);
     } catch (err) {
       if (err.name === "AbortError") return;
-      console.error("Error fetching quizzes:", err);
-      setError(err.message);
+      console.error("Error fetching presentations:", err);
+      if (silent) {
+        setStatusMessage({
+          type: "error",
+          message: "به‌روزرسانی فهرست ارائه‌ها انجام نشد.",
+        });
+      } else {
+        setLoadError("بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [loggedInUser]);
 
@@ -117,7 +177,7 @@ export default function QuizManager({ onNewPresentation }) {
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("Recently updated");
+  const [sortBy, setSortBy] = useState("updated");
   const [showMenu, setShowMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState("bottom"); // 'top' or 'bottom'
   const [showShareModal, setShowShareModal] = useState(null);
@@ -131,16 +191,17 @@ export default function QuizManager({ onNewPresentation }) {
     isOpen: false,
     title: "",
     description: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
+    confirmText: "تأیید",
+    cancelText: "انصراف",
     confirmVariant: "default",
     isLoading: false,
     onConfirm: null,
     onClose: null,
   });
-  const menuButtonRefs = useRef({});
+  const activeMenuButtonRef = useRef(null);
   const [creatingQuiz, setCreatingQuiz] = useState(false);
   const [creationError, setCreationError] = useState(null);
+  const [duplicatingQuizIds, setDuplicatingQuizIds] = useState([]);
   const creationGateRef = useRef(false);
 
   // Create a new quiz via API and navigate to editor
@@ -168,10 +229,10 @@ export default function QuizManager({ onNewPresentation }) {
   const showConfirmDialog = (config) => {
     setConfirmDialog({
       isOpen: true,
-      title: config.title || "Confirm Action",
+      title: config.title || "تأیید عملیات",
       description: config.description || "",
-      confirmText: config.confirmText || "Confirm",
-      cancelText: config.cancelText || "Cancel",
+      confirmText: config.confirmText || "تأیید",
+      cancelText: config.cancelText || "انصراف",
       confirmVariant: config.confirmVariant || "default",
       isLoading: false,
       onConfirm: async () => {
@@ -190,48 +251,43 @@ export default function QuizManager({ onNewPresentation }) {
     });
   };
 
-  // Helper function to parse date strings in "DD Mon YYYY" format
+  const normalizedSearchQuery = normalizePersianText(searchQuery);
   const filteredQuizzes = quizzes
     .filter((quiz) =>
-      quiz.name.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizePersianText(quiz.name).includes(normalizedSearchQuery)
     )
     .sort((a, b) => {
       switch (sortBy) {
-        case "Recently updated":
-          // Sort by lastUpdated descending (newest first)
+        case "updated":
           return b.updatedAt - a.updatedAt;
-        case "Name":
-          // Sort by name ascending (A-Z)
-          return a.name.localeCompare(b.name);
-        case "Created date":
-          // Sort by created descending (newest first)
+        case "name":
+          return persianCollator.compare(a.name, b.name);
+        case "created":
           return b.createdAt - a.createdAt;
         default:
           return 0;
       }
     });
 
-  // Check if all quizzes are selected
   const selectedInFilterCount = filteredQuizzes.filter((quiz) =>
     selectedQuizzes.includes(quiz.id)
   ).length;
 
-  // Check if all quizzes are selected within the current filter
   const allSelected =
     filteredQuizzes.length > 0 &&
     selectedInFilterCount === filteredQuizzes.length;
-
-  // Check if some quizzes are selected within the current filter
   const someSelected = selectedInFilterCount > 0 && !allSelected;
-  const showEmptyState = !loading && !error && filteredQuizzes.length === 0;
+  const showEmptyState =
+    !loading && !loadError && filteredQuizzes.length === 0;
 
-  // Handle select all checkbox
   const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedQuizzes([]);
-    } else {
-      setSelectedQuizzes(filteredQuizzes.map((q) => q.id));
-    }
+    const filteredIds = new Set(filteredQuizzes.map((quiz) => quiz.id));
+    setSelectedQuizzes((prev) => {
+      if (allSelected) {
+        return prev.filter((id) => !filteredIds.has(id));
+      }
+      return Array.from(new Set([...prev, ...filteredIds]));
+    });
   };
 
   // Handle individual quiz selection
@@ -245,21 +301,19 @@ export default function QuizManager({ onNewPresentation }) {
     });
   };
 
-  // Delete a single quiz via API
+  // Delete a single presentation via API
   const deleteQuiz = async (quizId, manageLoadingState = true) => {
     try {
       if (manageLoadingState) {
-        setDeletingQuizIds((prev) => [...prev, quizId]);
+        setDeletingQuizIds((prev) => [...new Set([...prev, quizId])]);
       }
 
       await quizService.deletePresentation(quizId);
-
-      // Remove from local state immediately
-      setQuizzes((prevQuizzes) => prevQuizzes.filter((q) => q.id !== quizId));
+      setQuizzes((prev) => prev.filter((quiz) => quiz.id !== quizId));
+      setSelectedQuizzes((prev) => prev.filter((id) => id !== quizId));
       return true;
     } catch (err) {
-      console.error("Error deleting quiz:", err);
-      setError(err.message);
+      console.error("Error deleting presentation:", err);
       return false;
     } finally {
       if (manageLoadingState) {
@@ -268,195 +322,173 @@ export default function QuizManager({ onNewPresentation }) {
     }
   };
 
-  // Rename a quiz via API
   const renameQuiz = async (quizId, newName) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) return false;
+
     try {
       const currentQuiz = quizzes.find((quiz) => quiz.id === quizId);
       const updated = await quizService.updateQuiz(quizId, {
-        title: newName.trim(),
+        title: trimmedName,
         revision: currentQuiz?.revision,
       });
 
-      // Update local state on success
-      const now = Date.now();
-      setQuizzes((prevQuizzes) =>
-        prevQuizzes.map((q) =>
-          q.id === quizId
+      const updatedAt = safeTimestamp(updated.updated_at) || Date.now();
+      setQuizzes((prev) =>
+        prev.map((quiz) =>
+          quiz.id === quizId
             ? {
-                ...q,
-                name: newName.trim(),
-                revision: updated.revision,
-                updatedAt: now,
-                lastUpdated: formatDate(now),
+                ...quiz,
+                name: trimmedName,
+                revision: Number(updated.revision || quiz.revision),
+                updatedAt,
+                lastUpdated: formatDate(updatedAt),
               }
-            : q
+            : quiz
         )
       );
+      setStatusMessage({ type: "success", message: "نام ارائه تغییر کرد." });
       return true;
     } catch (err) {
-      console.error("Error renaming quiz:", err);
+      console.error("Error renaming presentation:", err);
       if (err.response?.status === 409 && err.response?.data?.error === "edit_conflict") {
-        await fetchQuizzes();
-        setError("This presentation changed elsewhere. The latest version has been loaded.");
+        await fetchQuizzes(undefined, { silent: true });
+        setStatusMessage({
+          type: "error",
+          message: "این ارائه در جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
+        });
       } else {
-        setError(err.message);
+        setStatusMessage({
+          type: "error",
+          message: "تغییر نام ارائه انجام نشد. دوباره تلاش کنید.",
+        });
       }
       return false;
     }
   };
 
-  // Reset quiz results via API
   const resetQuizResults = async (quizId) => {
     try {
-      const quiz = quizzes.find((q) => q.id === quizId);
-      if (!quiz) {
-        throw new Error("Quiz not found");
-      }
+      const quiz = quizzes.find((item) => item.id === quizId);
+      if (!quiz) throw new Error("presentation_not_found");
 
       await quizService.resetPresentationResults(quizId);
-
+      setQuizzes((prev) =>
+        prev.map((item) =>
+          item.id === quizId ? { ...item, participants: 0 } : item
+        )
+      );
       setStatusMessage({
         type: "success",
-        message: "Quiz results have been reset successfully.",
+        message: "نتایج ارائه با موفقیت پاک شد.",
       });
       return true;
     } catch (err) {
-      console.error("Error resetting quiz results:", err);
-      setError(err.message);
+      console.error("Error resetting presentation results:", err);
+      setStatusMessage({
+        type: "error",
+        message: "پاک‌کردن نتایج انجام نشد. دوباره تلاش کنید.",
+      });
       return false;
     }
   };
 
-  // Handle move to trash (delete multiple quizzes)
   const handleMoveToTrash = async () => {
     if (selectedQuizzes.length === 0) return;
 
+    const selectedCount = selectedQuizzes.length;
     showConfirmDialog({
       title: "حذف ارائه‌ها",
-      description: `آیا از حذف ${selectedQuizzes.length} ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.`,
+      description: `آیا از حذف ${formatNumber(selectedCount)} ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.`,
       confirmText: "حذف",
+      cancelText: "انصراف",
       confirmVariant: "destructive",
       onConfirm: async () => {
-        setLoading(true);
-        setDeletingQuizIds([...selectedQuizzes]);
+        const idsToDelete = [...selectedQuizzes];
+        setDeletingQuizIds(idsToDelete);
         try {
-          // Delete all selected quizzes (don't manage loading state individually)
-          const deletePromises = selectedQuizzes.map((quizId) =>
-            deleteQuiz(quizId, false)
-          );
-          const results = await Promise.all(deletePromises);
+          const results = await Promise.all(idsToDelete.map((id) => deleteQuiz(id, false)));
+          const failedCount = results.filter((result) => !result).length;
+          await fetchQuizzes(undefined, { silent: true });
 
-          // Check if all deletions were successful
-          const allSucceeded = results.every((result) => result === true);
-
-          if (allSucceeded) {
+          if (failedCount === 0) {
             setSelectedQuizzes([]);
-            setError(null);
-            // Refresh the quiz list to ensure consistency
-            await fetchQuizzes();
+            setStatusMessage({
+              type: "success",
+              message: `${formatNumber(selectedCount)} ارائه حذف شد.`,
+            });
           } else {
-            setError("Some quizzes could not be deleted. Please try again.");
-            // Refresh the quiz list to sync with server
-            await fetchQuizzes();
+            setStatusMessage({
+              type: "error",
+              message: `حذف ${formatNumber(failedCount)} ارائه انجام نشد.`,
+            });
           }
-        } catch (err) {
-          console.error("Error deleting quizzes:", err);
-          setError(err.message);
-          // Refresh the quiz list even on error to sync with server
-          await fetchQuizzes();
         } finally {
-          setLoading(false);
           setDeletingQuizIds([]);
         }
       },
     });
   };
 
-  // Handle delete single quiz from hamburger menu
   const handleDeleteQuiz = async (quizId) => {
+    setShowMenu(null);
     showConfirmDialog({
       title: "حذف ارائه",
-      description:
-        "آیا از حذف این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
+      description: "آیا از حذف این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
       confirmText: "حذف",
+      cancelText: "انصراف",
       confirmVariant: "destructive",
       onConfirm: async () => {
         setShowMenu(null);
-        setLoading(true);
-        try {
-          const success = await deleteQuiz(quizId);
-          if (success) {
-            setError(null);
-            // Refresh the quiz list to ensure consistency
-            await fetchQuizzes();
-          } else {
-            setError("Failed to delete quiz. Please try again.");
-          }
-        } catch (err) {
-          console.error("Error deleting quiz:", err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
+        const success = await deleteQuiz(quizId);
+        setStatusMessage(
+          success
+            ? { type: "success", message: "ارائه حذف شد." }
+            : { type: "error", message: "حذف ارائه انجام نشد. دوباره تلاش کنید." }
+        );
       },
     });
   };
 
-  // Handle select all from bottom bar
   const handleBottomBarSelectAll = () => {
-    setSelectedQuizzes(filteredQuizzes.map((q) => q.id));
+    const filteredIds = filteredQuizzes.map((quiz) => quiz.id);
+    setSelectedQuizzes((prev) => Array.from(new Set([...prev, ...filteredIds])));
   };
 
-  // Handle duplicate quiz via API
   const handleDuplicate = async (quiz) => {
+    if (duplicatingQuizIds.includes(quiz.id)) return;
+
     try {
-      // Find how many copies already exist to generate appropriate name
-      const copyRegex = new RegExp(
-        `^${quiz.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(copy (\\d+)\\)$`
-      );
-      let maxCopyNumber = 0;
-
-      quizzes.forEach((q) => {
-        const match = q.name.match(copyRegex);
-        if (match) {
-          const copyNum = parseInt(match[1]);
-          if (copyNum > maxCopyNumber) {
-            maxCopyNumber = copyNum;
-          }
-        }
-      });
-
-      const newName = `${quiz.name} (copy ${maxCopyNumber + 1})`;
-
-      const duplicatedQuizData = await quizService.duplicatePresentation(quiz.id, newName);
-
-      // Add the duplicated quiz to local state
-      // Assuming the API returns the new quiz data, map it to our local format
-      const now = Date.now();
+      setDuplicatingQuizIds((prev) => [...new Set([...prev, quiz.id])]);
+      const newName = getDuplicateTitle(quiz, quizzes);
+      const duplicated = await quizService.duplicatePresentation(quiz.id, newName);
+      const updatedAt = safeTimestamp(duplicated.updated_at) || Date.now();
+      const createdAt = safeTimestamp(duplicated.created_at) || updatedAt;
       const newQuiz = {
-        id: duplicatedQuizData.id,
-        revision: Number(duplicatedQuizData.revision || 1),
-        name: duplicatedQuizData.title,
-        accessCode: duplicatedQuizData.access_code || "",
-        slides: duplicatedQuizData.slides?.length ?? quiz.slides,
+        id: duplicated.id,
+        revision: Number(duplicated.revision || 1),
+        name: localizeSystemTitle(duplicated.title || newName),
+        accessCode: duplicated.access_code || "",
+        slides: Number(duplicated.slide_count ?? duplicated.slides?.length ?? quiz.slides) || 0,
         participants: 0,
         members: "",
-        createdBy: quiz.createdBy,
-        lastUpdated: formatDate(now),
-        created: formatDate(now),
-        updatedAt: now,
-        createdAt: now,
+        createdBy: duplicated.owner_full_name || duplicated.owner_name || quiz.createdBy,
+        lastUpdated: formatDate(updatedAt),
+        created: formatDate(createdAt),
+        updatedAt,
+        createdAt,
       };
 
-      setQuizzes([...quizzes, newQuiz]);
-      setStatusMessage({
-        type: "success",
-        message: "Quiz duplicated successfully.",
-      });
+      setQuizzes((prev) => [...prev, newQuiz]);
+      setStatusMessage({ type: "success", message: "یک نسخه از ارائه ساخته شد." });
     } catch (err) {
-      console.error("Error duplicating quiz:", err);
-      setError(err.message);
+      console.error("Error duplicating presentation:", err);
+      setStatusMessage({
+        type: "error",
+        message: "تکثیر ارائه انجام نشد. دوباره تلاش کنید.",
+      });
     } finally {
+      setDuplicatingQuizIds((prev) => prev.filter((id) => id !== quiz.id));
       setShowMenu(null);
     }
   };
@@ -467,21 +499,21 @@ export default function QuizManager({ onNewPresentation }) {
       const quiz = await quizService.getQuiz(quizId);
 
       if (!quiz.slides || quiz.slides.length === 0) {
-        setErrorForModal("Quiz has no slides.");
+        setErrorForModal("این ارائه هنوز اسلایدی ندارد.");
         setErrorModalOpen(true);
         return;
       }
 
       const validationError = getPresentationValidationError(quiz);
       if (validationError) {
-        setErrorForModal(validationError);
+        setErrorForModal(validationError || "اطلاعات ارائه کامل نیست.");
         setErrorModalOpen(true);
         return;
       }
 
       navigate(`/manager/presentation/${quizId}/`);
     } catch {
-      setErrorForModal("Failed to load quiz.");
+      setErrorForModal("بارگذاری ارائه انجام نشد. دوباره تلاش کنید.");
       setErrorModalOpen(true);
     }
   };
@@ -505,7 +537,11 @@ export default function QuizManager({ onNewPresentation }) {
     }
   };
 
-  const dismissPasswordPrompt = () => {
+  const postponePasswordPrompt = () => {
+    setPasswordPromptVisible(false);
+  };
+
+  const clearPasswordPrompt = () => {
     localStorage.removeItem("auth.promptSetPassword");
     setPasswordPromptVisible(false);
   };
@@ -515,7 +551,7 @@ export default function QuizManager({ onNewPresentation }) {
     if (!email) {
       setPasswordPromptStatus({
         type: "error",
-        message: "Email address not found. Please log in again.",
+        message: "نشانی ایمیل پیدا نشد. لطفاً دوباره وارد حساب شوید.",
       });
       return;
     }
@@ -530,95 +566,77 @@ export default function QuizManager({ onNewPresentation }) {
       if (!response.ok) {
         throw new Error(
           response.status === 503
-            ? "Password recovery email delivery is not configured yet."
-            : "Unable to send password setup email."
+            ? "سامانه ارسال ایمیل در حال حاضر در دسترس نیست."
+            : "ارسال لینک تعیین رمز عبور انجام نشد."
         );
       }
-      setPasswordPromptStatus({
+      clearPasswordPrompt();
+      setStatusMessage({
         type: "success",
-        message: "Password setup link sent. Check your inbox.",
+        message: "لینک تعیین رمز عبور ارسال شد. صندوق ورودی ایمیل خود را بررسی کنید.",
       });
-      dismissPasswordPrompt();
     } catch (err) {
       setPasswordPromptStatus({
         type: "error",
-        message: err.message || "Unable to send password setup email.",
+        message: err.message || "ارسال لینک تعیین رمز عبور انجام نشد.",
       });
     } finally {
       setPasswordPromptLoading(false);
     }
   };
 
-  // Check menu position and adjust if needed
-  const checkMenuPosition = (quizId, buttonElement) => {
+  const checkMenuPosition = (buttonElement) => {
     if (!buttonElement) return;
 
     const rect = buttonElement.getBoundingClientRect();
-    const menuHeight = 350; // Approximate height of menu in pixels
+    const menuHeight = 320;
     const spaceAbove = rect.top;
     const spaceBelow = window.innerHeight - rect.bottom;
-
-    // If there's more space below, show menu below; otherwise show above
-    if (spaceBelow >= menuHeight || spaceAbove < spaceBelow) {
-      setMenuPosition("bottom");
-    } else {
-      setMenuPosition("top");
-    }
+    setMenuPosition(spaceBelow >= menuHeight || spaceBelow >= spaceAbove ? "bottom" : "top");
   };
 
-  // Handle menu toggle with position check
-  const handleMenuToggle = (quizId, e) => {
-    e.stopPropagation();
-    const buttonElement = menuButtonRefs.current[quizId];
+  const handleMenuToggle = (quizId, event) => {
+    event.stopPropagation();
 
     if (showMenu === quizId) {
       setShowMenu(null);
-    } else {
-      setShowMenu(quizId);
-      // Use requestAnimationFrame to ensure DOM is ready before checking position
-      requestAnimationFrame(() => {
-        if (buttonElement) {
-          checkMenuPosition(quizId, buttonElement);
-        }
-      });
+      activeMenuButtonRef.current = null;
+      return;
     }
+
+    activeMenuButtonRef.current = event.currentTarget;
+    setShowMenu(quizId);
+    requestAnimationFrame(() => checkMenuPosition(activeMenuButtonRef.current));
   };
 
-  // Recalculate menu position on scroll and resize
   useEffect(() => {
-    if (showMenu) {
-      const handlePositionUpdate = () => {
-        const buttonElement = menuButtonRefs.current[showMenu];
-        if (buttonElement) {
-          checkMenuPosition(showMenu, buttonElement);
-        }
-      };
+    if (!showMenu) return undefined;
 
-      window.addEventListener("scroll", handlePositionUpdate, true);
-      window.addEventListener("resize", handlePositionUpdate);
+    const handlePositionUpdate = () => checkMenuPosition(activeMenuButtonRef.current);
+    window.addEventListener("scroll", handlePositionUpdate, true);
+    window.addEventListener("resize", handlePositionUpdate);
 
-      return () => {
-        window.removeEventListener("scroll", handlePositionUpdate, true);
-        window.removeEventListener("resize", handlePositionUpdate);
-      };
-    }
+    return () => {
+      window.removeEventListener("scroll", handlePositionUpdate, true);
+      window.removeEventListener("resize", handlePositionUpdate);
+    };
   }, [showMenu]);
 
   return (
     <div
-      className="min-h-screen bg-[linear-gradient(180deg,#faf9ff_0%,#f5f7fb_100%)] pb-24 text-slate-900 md:pb-28"
+      className="min-h-screen bg-gradient-to-b from-brand-soft to-canvas pb-24 text-content md:pb-28"
       dir="rtl"
       style={{ fontFamily: '"Vazirmatn", "Segoe UI", sans-serif' }}
     >
       {/* Header */}
       <div className="min-h-screen mx-auto mb-8">
         {/* Top Navigation Bar with Search */}
-        <div className="fixed inset-x-0 top-0 z-50 w-full border-b border-violet-100/80 bg-white/95 shadow-sm backdrop-blur">
+        <div className="fixed inset-x-0 top-0 z-50 w-full border-b border-brand-border bg-surface/95 shadow-sm backdrop-blur">
           {/* Mobile Header */}
           <div className="md:hidden">
             {/* Single Row: Logo + Icons */}
             <div className="flex items-center justify-between px-4 py-2.5">
-              <div className="flex items-center gap-1.5 text-lg font-bold text-violet-950 before:text-xl before:text-violet-600 before:content-['✱']" dir="ltr">
+              <div className="flex items-center gap-1.5 font-brand text-lg font-bold text-brand-ink before:text-xl before:text-brand before:content-['✱']" dir="ltr">
                 ProSlides
               </div>
               <div className="flex items-center gap-1">
@@ -630,7 +648,7 @@ export default function QuizManager({ onNewPresentation }) {
                   }}
                   className={`p-1.5 rounded-lg transition ${
                     showMobileSearch
-                      ? "bg-purple-100 text-purple-600"
+                      ? "bg-brand-muted text-brand"
                       : "hover:bg-gray-100 text-gray-600"
                   }`}
                   aria-label="نمایش جست‌وجو"
@@ -642,13 +660,13 @@ export default function QuizManager({ onNewPresentation }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-violet-700 text-sm font-semibold text-white transition hover:bg-violet-800"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-brand text-sm font-semibold text-content-inverse transition hover:bg-brand-strong"
                     aria-label="باز کردن منوی حساب"
                   >
                     {loggedInUser.charAt(0).toUpperCase()}
                   </button>
                   {showProfileMenu && (
-                    <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
+                    <div className="absolute start-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                       <button
                         onClick={() => handleLogout()}
                         className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
@@ -665,19 +683,19 @@ export default function QuizManager({ onNewPresentation }) {
             {showMobileSearch && (
               <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 animate-in slide-in-from-top duration-200">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     placeholder="جست‌وجوی ارائه‌ها"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    className="w-full rounded-xl border border-gray-200 bg-white py-2 pe-10 ps-10 text-sm text-gray-700 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full rounded-control border border-border-subtle bg-surface py-2 pe-10 ps-10 text-sm text-content transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-focus"
                   />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         aria-label="پاک کردن جست‌وجو"
                         title="پاک کردن جست‌وجو"
                       >
@@ -691,18 +709,18 @@ export default function QuizManager({ onNewPresentation }) {
 
           {/* Desktop Header */}
           <div className="hidden md:flex items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-1.5 text-lg font-bold text-violet-950 before:text-xl before:text-violet-600 before:content-['✱']" dir="ltr">
+            <div className="flex items-center gap-1.5 font-brand text-lg font-bold text-brand-ink before:text-xl before:text-brand before:content-['✱']" dir="ltr">
               ProSlides
             </div>
 
             <div className="relative flex-1 max-w-md mx-8">
-              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <Search className="pointer-events-none absolute end-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="جست‌وجوی ارائه‌ها"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pe-12 ps-4 text-gray-700 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-control border border-border-subtle bg-canvas py-2.5 pe-12 ps-4 text-content transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-focus"
               />
             </div>
 
@@ -711,7 +729,7 @@ export default function QuizManager({ onNewPresentation }) {
               <div className="relative">
                   <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-violet-700 font-semibold text-white transition hover:bg-violet-800"
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-brand font-semibold text-content-inverse transition hover:bg-brand-strong"
                     aria-label="باز کردن منوی حساب"
                     title="حساب کاربری"
                   >
@@ -719,7 +737,7 @@ export default function QuizManager({ onNewPresentation }) {
                 </button>
 
                 {showProfileMenu && (
-                  <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
+                  <div className="absolute start-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                     <button
                       onClick={() => handleLogout()}
                       className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
@@ -737,13 +755,13 @@ export default function QuizManager({ onNewPresentation }) {
         {/* Content with top padding to account for fixed header */}
         <main className="mx-auto max-w-[1500px] px-4 pt-20 md:px-8 md:pt-24">
           {passwordPromptVisible && (
-            <div className="mb-6 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm text-purple-900 shadow-sm">
+            <div className="mb-6 rounded-control border border-brand-border bg-surface px-4 py-3 text-sm text-brand-ink shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-semibold">
                     برای حساب خود رمز عبور تعیین کنید
                   </div>
-                  <div className="text-xs text-purple-700">
+                  <div className="text-xs text-brand-strong">
                     با گوگل ثبت‌نام کرده‌اید. با تعیین رمز عبور، بدون گوگل هم وارد شوید.
                   </div>
                 </div>
@@ -751,51 +769,41 @@ export default function QuizManager({ onNewPresentation }) {
                   <button
                     onClick={sendPasswordSetupEmail}
                     disabled={passwordPromptLoading}
-                    className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="rounded-control bg-brand px-3 py-1.5 text-xs font-semibold text-content-inverse hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {passwordPromptLoading ? "در حال ارسال…" : "ارسال لینک"}
                   </button>
                   <button
-                    onClick={dismissPasswordPrompt}
-                    className="rounded-md border border-purple-200 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-50"
+                    onClick={postponePasswordPrompt}
+                    className="rounded-control border border-brand-border px-3 py-1.5 text-xs font-semibold text-brand-strong hover:bg-brand-soft"
                   >
                     بعداً
                   </button>
                 </div>
               </div>
               {passwordPromptStatus && (
-                <div
-                  className={`mt-2 text-xs ${
-                    passwordPromptStatus.type === "error"
-                      ? "text-red-600"
-                      : "text-green-600"
-                  }`}
+                <Notice
+                  tone={passwordPromptStatus.type === "error" ? "error" : "success"}
+                  className="mt-2 text-xs"
                 >
                   {passwordPromptStatus.message}
-                </div>
+                </Notice>
               )}
             </div>
           )}
           {statusMessage && (
-            <div
-              className={`mb-6 rounded-xl border px-4 py-3 text-sm shadow-sm ${
-                statusMessage.type === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-red-200 bg-red-50 text-red-700"
-              }`}
-              role="status"
+            <Notice
+              tone={statusMessage.type === "error" ? "error" : "success"}
+              className="mb-6"
             >
               {statusMessage.message}
-            </div>
+            </Notice>
           )}
 
           {/* My Presentations Section */}
           <div className="mb-6">
-            {/* <h3 className="text-xs uppercase text-gray-500 mb-2">
-              MY PRESENTATIONS
-            </h3> */}
             <div className="mb-7 max-w-2xl">
-              <p className="mb-2 text-sm font-semibold text-violet-700">فضای کاری شما</p>
+              <p className="mb-2 text-sm font-semibold text-brand">فضای کاری شما</p>
               <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
                 ارائه‌های من
               </h1>
@@ -811,7 +819,7 @@ export default function QuizManager({ onNewPresentation }) {
                   onClick={handleNewPresentation}
                   disabled={creatingQuiz}
                   aria-describedby={creationError ? "presentation-creation-error" : undefined}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800 focus-visible:ring-violet-500 md:w-auto"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-control bg-brand px-6 text-content-inverse shadow-lg transition hover:bg-brand-strong focus-visible:ring-focus md:w-auto"
                 >
                   {creatingQuiz ? (
                     <>
@@ -825,18 +833,6 @@ export default function QuizManager({ onNewPresentation }) {
                     </>
                   )}
                 </Button>
-                {/* <Button
-                  variant="outline"
-                  className="border-gray-300 bg-white text-gray-700 px-6 py-2.5 rounded-lg"
-                >
-                  Import
-                </Button> */}
-                {/* <Button
-                  variant="outline"
-                  className="border-gray-300 bg-white text-gray-700 px-6 py-2.5 rounded-lg"
-                >
-                  New folder
-                </Button> */}
               </div>
 
               <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-3">
@@ -846,43 +842,43 @@ export default function QuizManager({ onNewPresentation }) {
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     aria-label="مرتب‌سازی ارائه‌ها"
-                    className="cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pe-4 ps-10 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="cursor-pointer appearance-none rounded-control border border-border-subtle bg-surface py-2.5 pe-4 ps-10 text-sm text-content focus:outline-none focus:ring-2 focus:ring-focus"
                   >
-                    <option value="Recently updated">آخرین ویرایش</option>
-                    <option value="Name">نام</option>
-                    <option value="Created date">تاریخ ساخت</option>
+                    <option value="updated">آخرین ویرایش</option>
+                    <option value="name">نام</option>
+                    <option value="created">تاریخ ساخت</option>
                   </select>
-                  <ChevronDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                  <ChevronDown className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
                 </div>
               </div>
             </div>
 
             {creatingQuiz && (
-              <p className="sr-only" role="status" aria-live="polite">
+              <Notice pending className="sr-only">
                 در حال ساخت ارائه و انتقال به ویرایشگر
-              </p>
+              </Notice>
             )}
             {creationError && (
-              <div
+              <Notice
                 id="presentation-creation-error"
-                className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
-                role="alert"
-              >
-                <span>{creationError}</span>
-                <button
+                tone="error"
+                className="mb-6 flex-wrap"
+                action={<button
                   type="button"
                   onClick={handleNewPresentation}
                   disabled={creatingQuiz}
-                  className="rounded-lg bg-white px-3 py-2 font-bold text-rose-700 shadow-sm ring-1 ring-rose-200 hover:bg-rose-100"
+                  className="rounded-control bg-surface px-3 py-2 font-bold text-danger-ink shadow-sm ring-1 ring-danger-border hover:bg-danger-soft"
                 >
                   تلاش دوباره
-                </button>
-              </div>
+                </button>}
+              >
+                {creationError}
+              </Notice>
             )}
 
             {showEmptyState && (
-              <div className="mb-6 rounded-3xl border border-dashed border-violet-200 bg-white px-6 py-14 text-center shadow-sm">
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+              <div className="mb-6 rounded-3xl border border-dashed border-brand-border bg-surface px-6 py-14 text-center shadow-sm">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-muted text-brand">
                   <Plus className="h-7 w-7" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -906,7 +902,7 @@ export default function QuizManager({ onNewPresentation }) {
                   <Button
                     onClick={handleNewPresentation}
                     disabled={creatingQuiz}
-                    className="rounded-xl bg-violet-700 px-6 py-2.5 text-white hover:bg-violet-800"
+                    className="rounded-control bg-brand px-6 py-2.5 text-content-inverse hover:bg-brand-strong"
                   >
                     {creatingQuiz ? "در حال ساخت…" : "ساخت اولین ارائه"}
                   </Button>
@@ -915,14 +911,14 @@ export default function QuizManager({ onNewPresentation }) {
             )}
 
             {/* Quiz Table */}
-            {!showEmptyState && (
+            {!loading && !loadError && !showEmptyState && (
               <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                   <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       <input
                         type="checkbox"
                         className="rounded"
@@ -931,24 +927,25 @@ export default function QuizManager({ onNewPresentation }) {
                           if (el) el.indeterminate = someSelected;
                         }}
                         onChange={handleSelectAll}
+                        aria-label="انتخاب همه ارائه‌های نمایش‌داده‌شده"
                       />
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       نام
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       کد ورود
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       سازنده
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       آخرین ویرایش
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       تاریخ ساخت
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-600"></th>
+                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600"></th>
                   </tr>
                 </thead>
 
@@ -957,7 +954,7 @@ export default function QuizManager({ onNewPresentation }) {
                     <tr
                       key={quiz.id}
                       className={`border-b border-gray-100 hover:bg-gray-50 transition relative group ${
-                        selectedQuizzes.includes(quiz.id) ? "bg-blue-50" : ""
+                        selectedQuizzes.includes(quiz.id) ? "bg-info-soft" : ""
                       } ${
                         deletingQuizIds.includes(quiz.id)
                           ? "opacity-50 pointer-events-none"
@@ -970,11 +967,12 @@ export default function QuizManager({ onNewPresentation }) {
                           className="rounded"
                           checked={selectedQuizzes.includes(quiz.id)}
                           onChange={() => handleQuizSelect(quiz.id)}
+                          aria-label={`انتخاب ارائه ${quiz.name}`}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-16 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded flex items-center justify-center text-white text-2xl">
+                          <div className="flex h-12 w-16 items-center justify-center rounded bg-gradient-to-br from-brand to-brand-strong text-2xl text-content-inverse">
                             🎯
                           </div>
                           <div>
@@ -997,7 +995,9 @@ export default function QuizManager({ onNewPresentation }) {
                                       setNewQuizName(quiz.name);
                                     }
                                   }
-                                  setRenamingQuiz(null);
+                                  setRenamingQuiz((current) =>
+                                    current === quiz.id ? null : current
+                                  );
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
@@ -1007,38 +1007,39 @@ export default function QuizManager({ onNewPresentation }) {
                                   }
                                 }}
                                 autoFocus
-                                className="font-semibold text-gray-800 border border-purple-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                dir="auto"
+                                className="rounded border border-brand px-2 py-1 font-semibold text-content focus:outline-none focus:ring-2 focus:ring-focus"
                               />
                             ) : (
-                              <div className="font-semibold text-gray-800">
+                              <div className="font-semibold text-content" dir="auto">
                                 {quiz.name}
                               </div>
                             )}
                             <div className="text-xs text-gray-500 flex items-center gap-2">
                               <span
                                 className="relative inline-flex items-center gap-1 group/tooltip"
-                                aria-label={`Slides: ${quiz.slides}`}
+                                aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}
                               >
                                 <span aria-hidden="true">📄</span>
-                                {quiz.slides}
+                                {formatNumber(quiz.slides)}
                                 <span
                                   role="tooltip"
                                   className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
                                 >
-                                  Slides count
+                                  تعداد اسلایدها
                                 </span>
                               </span>
                               <span
                                 className="relative inline-flex items-center gap-1 group/tooltip"
-                                aria-label={`Participants: ${quiz.participants}`}
+                                aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}
                               >
                                 <span aria-hidden="true">👥</span>
-                                {quiz.participants}
+                                {formatNumber(quiz.participants)}
                                 <span
                                   role="tooltip"
                                   className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
                                 >
-                                  Participants count
+                                  تعداد شرکت‌کنندگان
                                 </span>
                               </span>
                               <span className="text-gray-400">
@@ -1048,7 +1049,7 @@ export default function QuizManager({ onNewPresentation }) {
                                 onClick={() =>
                                   navigate(`/manager/panel/${quiz.id}/report`)
                                 }
-                                className="mt-2 mb-1 inline-flex items-center bg-purple-100 hover:bg-purple-600 text-[#6D28D9] hover:text-white px-2 py-1 rounded text-xs font-medium transition-colors"
+                                className="mb-1 mt-2 inline-flex items-center rounded bg-brand-muted px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand hover:text-content-inverse"
                               >
                                 <svg
                                   className="w-4 h-4 mr-0.5 flex-shrink-0"
@@ -1078,7 +1079,8 @@ export default function QuizManager({ onNewPresentation }) {
                                     width="6"
                                     height="13"
                                     rx="0.5"
-                                    fill="#C4B5FD"
+                                    fill="currentColor"
+                                    className="text-brand-border"
                                   />
                                 </svg>
                                 گزارش
@@ -1089,15 +1091,19 @@ export default function QuizManager({ onNewPresentation }) {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 group/access">
-                          <span
+                          <button
+                            type="button"
                             onClick={() => setShowShareModal(quiz.id)}
-                            className="text-purple-600 font-semibold cursor-pointer hover:text-purple-700 transition"
+                            className="font-mono font-semibold text-brand transition hover:text-brand-strong"
+                            dir="ltr"
+                            aria-label={`مدیریت کد ورود ${quiz.accessCode || "بدون کد"}`}
                           >
-                            {quiz.accessCode}
-                          </span>
+                            {quiz.accessCode || "—"}
+                          </button>
                           <button
                             onClick={() => setShowShareModal(quiz.id)}
-                            className="p-1 hover:bg-gray-200 rounded transition opacity-0 group-hover/access:opacity-100"
+                            className="p-1 hover:bg-gray-200 rounded transition opacity-0 group-hover/access:opacity-100 focus:opacity-100"
+                            aria-label={`ویرایش یا اشتراک کد ورود ${quiz.name}`}
                           >
                             <Pencil className="w-4 h-4 text-gray-500" />
                           </button>
@@ -1106,9 +1112,11 @@ export default function QuizManager({ onNewPresentation }) {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                            {quiz.createdBy
-                              .split(" ")
-                              .map((n) => n[0])
+                            {String(quiz.createdBy || "شما")
+                              .split(/\s+/)
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((name) => name[0])
                               .join("")}
                           </div>
                           <span className="text-gray-700">
@@ -1126,37 +1134,39 @@ export default function QuizManager({ onNewPresentation }) {
                         <div className="flex items-center gap-2 justify-end">
                           <Button
                             onClick={() => handleEdit(quiz.id)}
-                            className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                            className="rounded-control bg-info px-4 py-2 text-sm text-content-inverse hover:brightness-90"
                           >
                             ویرایش
                           </Button>
                           <Button
                             onClick={() => handlePresent(quiz.id)}
-                            className="bg-purple-800 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm"
+                            className="rounded-control bg-brand-strong px-4 py-2 text-sm text-content-inverse hover:bg-brand"
                           >
                             اجرا
                           </Button>
                           <div className="relative">
                             <button
-                              ref={(el) =>
-                                (menuButtonRefs.current[quiz.id] = el)
-                              }
                               onClick={(e) => handleMenuToggle(quiz.id, e)}
                               className="p-2 hover:bg-gray-200 rounded transition"
+                              aria-label={`باز کردن منوی عملیات ${quiz.name}`}
+                              aria-expanded={showMenu === quiz.id}
                             >
                               <MoreVertical className="w-5 h-5 text-gray-600" />
                             </button>
                             {showMenu === quiz.id && (
                               <div
-                                className={`absolute right-0 ${
+                                className={`absolute end-0 ${
                                   menuPosition === "top"
                                     ? "bottom-full mb-2"
                                     : "top-full mt-2"
                                 } bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-[60] max-h-[80vh] overflow-y-auto`}
                               >
                                 <button
-                                  onClick={() => handlePresent(quiz.id)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-purple-600 font-medium"
+                                  onClick={() => {
+                                    setShowMenu(null);
+                                    handlePresent(quiz.id);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-3 text-start font-medium text-brand hover:bg-brand-soft"
                                 >
                                   <Play className="w-4 h-4" />
                                   اجرا
@@ -1167,18 +1177,19 @@ export default function QuizManager({ onNewPresentation }) {
                                     setNewQuizName(quiz.name);
                                     setShowMenu(null);
                                   }}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <Pencil className="w-4 h-4" />
-                                  Rename
+                                  تغییر نام
                                 </button>
                                 <button
                                   onClick={() => {
+                                    setShowMenu(null);
                                     showConfirmDialog({
-                                      title: "Reset Quiz Results",
+                                      title: "پاک‌کردن نتایج ارائه",
                                       description:
-                                        "Are you sure you want to reset all results for this quiz? This action cannot be undone.",
-                                      confirmText: "Reset Results",
+                                        "آیا از پاک‌کردن همه نتایج این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
+                                      confirmText: "پاک‌کردن نتایج",
                                       confirmVariant: "destructive",
                                       onConfirm: async () => {
                                         await resetQuizResults(quiz.id);
@@ -1186,38 +1197,39 @@ export default function QuizManager({ onNewPresentation }) {
                                       },
                                     });
                                   }}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <Copy className="w-4 h-4" />
                                   پاک‌کردن نتایج
                                 </button>
                                 <button
                                   onClick={() => handleDuplicate(quiz)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                                  disabled={duplicatingQuizIds.includes(quiz.id)}
+                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                  <Copy className="w-4 h-4" />
-                                  تکثیر
+                                  {duplicatingQuizIds.includes(quiz.id) ? (
+                                    <LoaderCircle className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Copy className="w-4 h-4" />
+                                  )}
+                                  {duplicatingQuizIds.includes(quiz.id) ? "در حال تکثیر…" : "تکثیر"}
                                 </button>
                                 <button
                                   onClick={() => {
                                     setShowShareModal(quiz.id);
                                     setShowMenu(null);
                                   }}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <span className="w-4 h-4 pb-5">🔗</span>
                                   اشتراک‌گذاری
                                 </button>
-                                {/* <button className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3">
-                                  <span className="w-4 h-4">📁</span>
-                                  Move to
-                                </button> */}
                                 <button
                                   onClick={() => handleDeleteQuiz(quiz.id)}
-                                  className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-50 flex items-center gap-3  border-t border-gray-200"
+                                  className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-start text-danger hover:bg-danger-soft"
                                 >
                                   <Trash2 className="w-4 h-4" />
-                                  Move to Trash
+                                  حذف
                                 </button>
                               </div>
                             )}
@@ -1237,7 +1249,7 @@ export default function QuizManager({ onNewPresentation }) {
                   key={quiz.id}
                   className={`bg-white rounded-lg p-5 shadow-sm border border-gray-200 relative transition-all ${
                     selectedQuizzes.includes(quiz.id)
-                      ? "ring-2 ring-purple-500 bg-purple-50/30"
+                      ? "bg-brand-soft ring-2 ring-brand"
                       : ""
                   }`}
                 >
@@ -1245,11 +1257,12 @@ export default function QuizManager({ onNewPresentation }) {
                     <div className="flex items-center gap-3.5 overflow-hidden">
                       <input
                         type="checkbox"
-                        className="rounded w-5 h-5 border-gray-300 text-purple-600 focus:ring-purple-500"
+                        className="h-5 w-5 rounded border-border-subtle text-brand focus:ring-focus"
                         checked={selectedQuizzes.includes(quiz.id)}
                         onChange={() => handleQuizSelect(quiz.id)}
+                        aria-label={`انتخاب ارائه ${quiz.name}`}
                       />
-                      <div className="w-12 h-12 min-w-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xl shadow-sm">
+                      <div className="flex h-12 min-w-12 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-brand-strong text-xl text-content-inverse shadow-sm">
                         🎯
                       </div>
                       <div className="truncate min-w-0 flex-1">
@@ -1269,44 +1282,56 @@ export default function QuizManager({ onNewPresentation }) {
                                 );
                                 if (!success) setNewQuizName(quiz.name);
                               }
-                              setRenamingQuiz(null);
+                              setRenamingQuiz((current) =>
+                                current === quiz.id ? null : current
+                              );
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") event.currentTarget.blur();
+                              if (event.key === "Escape") {
+                                setNewQuizName(quiz.name);
+                                setRenamingQuiz(null);
+                              }
                             }}
                             autoFocus
-                            className="w-full font-semibold text-gray-800 border border-purple-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                            dir="auto"
+                            className="w-full rounded border border-brand px-2 py-1 font-semibold text-content focus:outline-none focus:ring-2 focus:ring-focus"
                           />
                         ) : (
-                          <h3
-                            className="font-semibold text-gray-900 truncate text-lg leading-tight"
+                          <button
+                            type="button"
+                            className="block w-full truncate text-start text-lg font-semibold leading-tight text-content hover:text-brand-strong"
                             onClick={() => handleEdit(quiz.id)}
+                            dir="auto"
                           >
                             {quiz.name}
-                          </h3>
+                          </button>
                         )}
                         <div className="text-xs text-gray-500 flex items-center gap-3 mt-1">
                           <span
                             className="relative inline-flex items-center gap-1 group/tooltip"
-                            aria-label={`Slides: ${quiz.slides}`}
+                            aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}
                           >
                             <span aria-hidden="true">📄</span>
-                            {quiz.slides}
+                            {formatNumber(quiz.slides)}
                             <span
                               role="tooltip"
                               className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
                             >
-                              Slides count
+                              تعداد اسلایدها
                             </span>
                           </span>
                           <span
                             className="relative inline-flex items-center gap-1 group/tooltip"
-                            aria-label={`Participants: ${quiz.participants}`}
+                            aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}
                           >
                             <span aria-hidden="true">👥</span>
-                            {quiz.participants}
+                            {formatNumber(quiz.participants)}
                             <span
                               role="tooltip"
                               className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
                             >
-                              Participants count
+                              تعداد شرکت‌کنندگان
                             </span>
                           </span>
                         </div>
@@ -1315,23 +1340,22 @@ export default function QuizManager({ onNewPresentation }) {
 
                     <div className="relative ml-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowMenu(showMenu === quiz.id ? null : quiz.id);
-                        }}
+                        onClick={(e) => handleMenuToggle(quiz.id, e)}
                         className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                        aria-label={`باز کردن منوی عملیات ${quiz.name}`}
+                        aria-expanded={showMenu === quiz.id}
                       >
                         <MoreVertical className="w-5 h-5 text-gray-500" />
                       </button>
 
                       {showMenu === quiz.id && (
-                        <div className="absolute right-0 top-10 bg-white border border-gray-100 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] w-56 z-50 overflow-hidden flex flex-col py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right text-sm">
+                        <div className={`absolute end-0 ${menuPosition === "top" ? "bottom-10" : "top-10"} max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-gray-100 bg-white py-1 text-sm shadow-[0_4px_20px_rgba(0,0,0,0.1)] z-50 animate-in fade-in zoom-in-95 duration-100`}>
                           <button
                             onClick={() => {
                               handlePresent(quiz.id);
                               setShowMenu(null);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-purple-600 font-medium"
+                            className="flex w-full items-center gap-3 px-4 py-3 text-start font-medium text-brand hover:bg-brand-soft"
                           >
                             <Play className="w-4 h-4" /> اجرا
                           </button>
@@ -1341,7 +1365,7 @@ export default function QuizManager({ onNewPresentation }) {
                               setNewQuizName(quiz.name);
                               setShowMenu(null);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
                             <Pencil className="w-4 h-4" /> تغییر نام
                           </button>
@@ -1350,7 +1374,7 @@ export default function QuizManager({ onNewPresentation }) {
                               setShowShareModal(quiz.id);
                               setShowMenu(null);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
                             <span className="w-4 h-4 flex items-center justify-center">
                               🔗
@@ -1359,25 +1383,31 @@ export default function QuizManager({ onNewPresentation }) {
                           </button>
                           <button
                             onClick={() => handleDuplicate(quiz)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                            disabled={duplicatingQuizIds.includes(quiz.id)}
+                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            <Copy className="w-4 h-4" /> تکثیر
+                            {duplicatingQuizIds.includes(quiz.id) ? (
+                              <LoaderCircle className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                            {duplicatingQuizIds.includes(quiz.id) ? "در حال تکثیر…" : "تکثیر"}
                           </button>
                           <div className="h-px bg-gray-100 my-1"></div>
                           <button
                             onClick={() => {
                               setShowMenu(null);
                               showConfirmDialog({
-                                title: "Reset Quiz Results",
+                                title: "پاک‌کردن نتایج ارائه",
                                 description:
-                                  "Are you sure you want to reset all results for this quiz? This action cannot be undone.",
-                                confirmText: "Reset Results",
+                                  "آیا از پاک‌کردن همه نتایج این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
+                                confirmText: "پاک‌کردن نتایج",
                                 confirmVariant: "destructive",
                                 onConfirm: async () =>
                                   await resetQuizResults(quiz.id),
                               });
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
                             <Copy className="w-4 h-4" /> پاک‌کردن نتایج
                           </button>
@@ -1386,7 +1416,7 @@ export default function QuizManager({ onNewPresentation }) {
                               setShowMenu(null);
                               handleDeleteQuiz(quiz.id);
                             }}
-                            className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 flex items-center gap-3"
+                            className="flex w-full items-center gap-3 px-4 py-3 text-start text-danger hover:bg-danger-soft"
                           >
                             <Trash2 className="w-4 h-4" /> حذف
                           </button>
@@ -1400,12 +1430,15 @@ export default function QuizManager({ onNewPresentation }) {
                       <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
                         کد ورود
                       </span>
-                      <div
+                      <button
+                        type="button"
                         onClick={() => setShowShareModal(quiz.id)}
-                        className="font-mono font-bold text-purple-600 bg-purple-100/50 px-2 py-1 rounded inline-block cursor-pointer border border-purple-100"
+                        className="inline-block rounded border border-brand-border bg-brand-soft px-2 py-1 font-mono font-bold text-brand"
+                        dir="ltr"
+                        aria-label={`مدیریت کد ورود ${quiz.accessCode || "بدون کد"}`}
                       >
-                        {quiz.accessCode}
-                      </div>
+                        {quiz.accessCode || "—"}
+                      </button>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
@@ -1434,7 +1467,7 @@ export default function QuizManager({ onNewPresentation }) {
                     </Button>
                     <Button
                       onClick={() => handlePresent(quiz.id)}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-10 text-sm shadow-sm shadow-purple-200 font-medium tracking-wide"
+                      className="h-10 flex-1 bg-brand text-sm font-medium tracking-wide text-content-inverse shadow-sm hover:bg-brand-strong"
                     >
                       اجرا
                     </Button>
@@ -1447,15 +1480,25 @@ export default function QuizManager({ onNewPresentation }) {
             {loading && (
               <div className="grid gap-4 py-4 md:grid-cols-2 xl:grid-cols-3" aria-label="در حال بارگذاری ارائه‌ها" aria-busy="true">
                 {[0, 1, 2].map((item) => (
-                  <div key={item} className="h-44 animate-pulse rounded-2xl border border-violet-100 bg-white motion-reduce:animate-none" />
+                  <div key={item} className="h-44 animate-pulse rounded-2xl border border-brand-border bg-surface motion-reduce:animate-none" />
                 ))}
               </div>
             )}
 
-            {error && (
-              <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
-                بارگذاری ارائه‌ها انجام نشد. لطفاً صفحه را دوباره بارگذاری کنید.
-              </div>
+            {loadError && (
+              <Notice
+                tone="error"
+                className="mb-6 flex-wrap"
+                action={<Button
+                  variant="outline"
+                  onClick={() => fetchQuizzes()}
+                  className="border-danger-border bg-surface text-danger-ink hover:bg-danger-soft"
+                >
+                  تلاش دوباره
+                </Button>}
+              >
+                {loadError}
+              </Notice>
             )}
           </div>
         </main>
@@ -1483,10 +1526,10 @@ export default function QuizManager({ onNewPresentation }) {
       {/* Bottom Action Bar */}
       {selectedQuizzes.length > 0 && (
         <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 mb-8 z-50">
-          <div className="bg-[#4A5568] text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-6">
+          <div className="flex items-center gap-6 rounded-lg bg-content px-6 py-4 text-content-inverse shadow-2xl">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">
-                {selectedQuizzes.length} انتخاب‌شده
+                {formatNumber(selectedQuizzes.length)} انتخاب‌شده
               </span>
               {!allSelected && (
                 <button
@@ -1497,13 +1540,9 @@ export default function QuizManager({ onNewPresentation }) {
                   انتخاب همه
                 </button>
               )}
-              {/* <button className="text-sm hover:text-gray-300 transition flex items-center gap-2">
-                <Folder className="w-4 h-4" />
-                Move to
-              </button> */}
               <button
                 onClick={handleMoveToTrash}
-                className="text-sm text-red-400 hover:text-red-200 transition flex items-center gap-2"
+                className="flex items-center gap-2 text-sm text-danger-border transition hover:text-content-inverse"
               >
                 <Trash2 className="w-4 h-4" />
                 حذف ارائه‌ها
@@ -1511,7 +1550,8 @@ export default function QuizManager({ onNewPresentation }) {
             </div>
             <button
               onClick={() => setSelectedQuizzes([])}
-              className="ml-4 hover:bg-gray-600 rounded p-1 transition"
+              className="ms-4 hover:bg-gray-600 rounded p-1 transition"
+              aria-label="لغو انتخاب ارائه‌ها"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1525,6 +1565,7 @@ export default function QuizManager({ onNewPresentation }) {
           className="fixed inset-0 z-40"
           onClick={() => {
             setShowMenu(null);
+            activeMenuButtonRef.current = null;
             setShowProfileMenu(false);
             setShowMobileSearch(false);
           }}

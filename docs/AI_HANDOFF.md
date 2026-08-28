@@ -54,12 +54,14 @@ not complete. Never describe a design target as benchmark evidence.
 - Frontend truth: the UI is functionally integrated but not yet professionally
   modularized. Most components are JSX outside `tsc`; active routing coexists
   with unreachable legacy runtime, production code still imports mock-era view
-  models, and styles lack one enforced semantic token/RTL system. The audited
-  baseline and target are in `docs/frontend-architecture.md`.
-- Exact next task: implement frontend F1 creation-to-editor continuity with one
-  create request, one navigation, Persian pending/error/onboarding states, an
-  editor-shaped skeleton, reduced-motion support, and desktop/mobile browser
-  evidence.
+  models, and physical-direction debt remains. F1 and the first F2 foundation
+  slice are verified: one semantic token source and one accessible notice
+  primitive now cover dashboard/editor/share. The audited baseline and target
+  are in `docs/frontend-architecture.md`.
+- Exact next task: implement the second F2 slice: one protected-manager app
+  shell and route error boundary for dashboard/editor plus one typed Persian
+  message catalog used by those routes and share. Do not change HTTP behavior,
+  add a query cache, or touch live/report routes.
 - Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
   then resume the still-mandatory production-like TLS 1k gate. No capacity gate
   has been waived or passed by this reprioritization.
@@ -229,35 +231,51 @@ the eighth one-second probe. This is local, non-TLS evidence only.
 
 `docs/frontend-professionalization.md` owns UX sequencing;
 `docs/frontend-architecture.md` owns technical boundaries; ADR 0003 records the
-decision. F0 documentation/audit is complete. The accepted target keeps React
+decision. F0, F1, and the first F2 foundation slice are complete. The accepted target keeps React
 19 and Vite and migrates incrementally toward `app -> modules -> shared`, with
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is F1. It replaces the abrupt
-dashboard-to-generic-loader-to-empty-editor flow with one idempotent UI action,
-dashboard mutation feedback, an editor-shaped skeleton, reduced-motion-safe
-entry, and Persian first-slide onboarding. Do not expand F1 into the complete
-design-system, translation, state-library, or framework migration. F2-F5 cover
-those ordered quality boundaries. Capacity work remains independently required
-and resumes after F5.
+The owner-prioritized exact next task is the second F2 foundation slice: add a
+protected-manager shell/route error boundary and typed Persian message catalog
+for dashboard/editor/share. Reuse the current token and feedback foundations;
+do not expand this slice into the HTTP/query-cache boundary or unrelated live/
+report translation. Capacity work remains independently required and resumes
+after F5.
 
 ### 2026-08-28 audit evidence
 
-- 78 JS/TS/CSS files and about 18,300 nonblank lines: 54 JSX, 15 JS, 7 TS,
-  and no TSX files; current `tsc` therefore verifies only a small typed seam.
+- The post-foundation source has 54 JSX, 15 JS, 8 TS, and 2 TSX files; current
+  `tsc` still verifies only the typed seam rather than most UI.
 - Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
   table followed by unreachable legacy runtime whose static imports still
   influence the bundle.
 - Production code imports mock-era models and maps typed HTTP/SSE data back to
   numeric legacy view models; migrated modules must retire this compatibility
   layer rather than copy it.
-- Styling has roughly 381 direct color expressions, 75 inline objects, and 169
-  physical-direction utilities; Tailwind is imported twice and semantic UI
-  classes are not backed by a complete token set.
-- Responsive auth passed in real Chrome. Authenticated E2E was blocked before
-  frontend assertions by a stale running Web image returning API proxy 500s.
-  Rebuild/recreate API and Web without deleting volumes before F1 browser QA.
+- The original audit found roughly 381 direct color expressions, 75 inline
+  objects, 169 physical-direction utilities, duplicate Tailwind imports, and no
+  complete tokens. The F2 foundation removes the duplicate import and migrates
+  dashboard/editor/share brand and feedback colors; unrelated routes retain
+  measured styling debt for their ordered phase.
+
+### 2026-08-28 F2 foundation evidence
+
+- `src/index.css` is the one Tailwind/CSS-first theme source; it defines brand,
+  surface, content, feedback, focus, typography, radius, shadow, and motion
+  tokens. `App.css` no longer imports Tailwind.
+- Typed `src/shared/ui/Notice.tsx` exposes polite status, assertive error,
+  atomic announcements, and `aria-busy` pending behavior. Dashboard/editor/
+  share use it instead of competing notices, and native alerts are absent from
+  that slice.
+- Share copy is Persian; presentation titles use `dir="auto"`; codes and URLs
+  use explicit LTR boundaries. The share surface has dialog semantics and an
+  accessible close name.
+- Web lint, expanded typecheck, 37 unit tests, and production build pass. Real
+  system Chrome exercised register -> dashboard -> create -> editor -> share on
+  the current Vite source at 1440x900 and 390x844. Screenshots were inspected;
+  mobile document width equaled client width, computed title/code directions
+  were RTL/LTR, and the browser reported zero console errors.
 
 ## Completed implementation: dependency adapters and readiness
 

@@ -43,8 +43,10 @@ the present priority.
   Nginx, but no production-like TLS 1k/5k/10k gate has passed.
 - The frontend is functional but still mixes legacy JavaScript/view models and
   partial TypeScript with inconsistent architecture/styles.
-- Frontend F0 audit/documentation is complete. F1 creation-to-editor continuity
-  is the one exact next task; F2-F5 follow in order.
+- Frontend F0 and F1 are complete. F2 is in progress: its first semantic-token
+  and accessible-feedback slice is implemented and verified. The protected-
+  manager shell/error boundary plus typed Persian message catalog is the one
+  exact next task; F3-F5 follow in order.
 - The production-like TLS 1k gate remains mandatory and is queued after F5.
 
 This priority order is scheduling, not a capacity or production waiver.

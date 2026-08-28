@@ -31,25 +31,28 @@ language, and spatial structure at once. The editor initially shows a mostly
 blank canvas with weak first-action guidance. Responsive authentication works,
 but the editor header is crowded and English labels wrap.
 
-The source audit found 78 JS/TS/CSS files and about 18,300 nonblank lines: 54
-JSX, 15 JS, 7 TS, and no TSX files. `tsconfig.json` checks only TS, so the
-passing typecheck excludes most UI; ESLint checks JS/JSX but not TS. Four UI
+The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
+lines. After F1 and the first F2 slice the tree contains 54 JSX, 15 JS, 8 TS,
+and 2 TSX files. `tsconfig.json` checks TS/TSX, but the passing typecheck still
+excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
 files exceed 1,000 nonblank lines. `App.jsx` retains unreachable legacy runtime
 after the active route table, production paths still import mock-era view
 models, and the editor carries duplicate legacy/canonical fields.
 
-Styles contain roughly 381 direct color expressions, 75 inline style objects,
-and 169 physical-direction utilities. Tailwind is imported twice and several
-semantic component classes have no defined token. Static legacy imports also
+The initial styles contained roughly 381 direct color expressions, 75 inline
+style objects, and 169 physical-direction utilities. The first F2 slice now
+provides one semantic theme and one Tailwind import for dashboard/editor/share;
+unrelated routes retain direct/style-direction debt for their ordered phase.
+Static legacy imports also
 preload DnD and motion on the landing route (about 252 KiB gzip). Blindly
 removing manual chunks produced a 736 KiB raw entry in an experiment, so dead
 code removal and route isolation must precede chunk tuning.
 
-The browser rerun passed responsive auth. Authenticated E2E could not be
-repeated against the four-day-old running Web image because its old Nginx
-startup state returned API proxy 500s. This is environment drift rather than a
-frontend assertion failure; rebuild/recreate API and Web before the next
-browser gate without deleting volumes.
+The latest real-Chrome run against the current Vite source completed register,
+dashboard creation, editor loading, access-code save, and share at 1440x900 and
+390x844. Inspected screenshots showed no visual regression; mobile document
+and client widths matched, title/code computed directions were RTL/LTR, and
+the browser reported zero console errors.
 
 ## Experience rules for all frontend work
 
@@ -82,7 +85,7 @@ browser gate without deleting volumes.
 
 F0 changed documentation only; it does not claim the runtime has been migrated.
 
-### Phase F1 — creation-to-editor continuity
+### Phase F1 — creation-to-editor continuity — complete 2026-08-28
 
 Objective: make `ارائه جدید` feel like one continuous Persian workflow while
 establishing the first narrow `modules/presentations` and `shared/ui` seam.
@@ -109,15 +112,31 @@ Acceptance:
 - Unit, lint, typecheck, build, and real-Chrome flow checks pass.
 - The browser trace or test proves the request and navigation counts.
 
-### Phase F2 — Persian app shell and design system
+### Phase F2 — Persian app shell and design system — in progress
 
-- Introduce shared application shell, tokens, typography, and semantic colors.
-- Translate dashboard, editor chrome, share flow, reports, and common dialogs.
-- Establish one RTL/LTR boundary for content such as URLs and access codes.
-- Replace mixed alerts/toasts with one accessible feedback system.
-- Remove or mark non-functional header/editor controls.
-- Remove the duplicate Tailwind import and replace touched direct colors and
-  physical-direction styles with semantic tokens and logical properties.
+Completed first foundation slice on 2026-08-28:
+
+- `index.css` owns Tailwind plus brand, surface, content, semantic feedback,
+  focus, typography, radius, shadow, and motion tokens.
+- Typed `shared/ui/Notice.tsx` owns pending, success, warning, and error
+  announcements with polite/assertive live-region behavior.
+- Dashboard, editor, route skeleton, header, and share use the tokens and
+  shared notice; native alerts and the duplicate Tailwind import are removed
+  from that slice.
+- Share copy is Persian, its dialog has an accessible name, user-authored
+  titles use `dir="auto"`, and access codes/URLs use explicit LTR boundaries.
+- Lint, TS/TSX typecheck, 37 unit tests, build, real-Chrome desktop/mobile
+  screenshots, no-overflow measurement, and zero console errors passed.
+
+Remaining ordered F2 work:
+
+- Introduce the protected-manager shell/route error boundary and typed Persian
+  message catalog for dashboard/editor/share as the exact next slice.
+- Translate remaining editor/common-dialog copy after the catalog exists;
+  report and live translation remain outside the current narrow slice.
+- Finish keyboard focus containment/restoration for migrated dialogs and move
+  remaining dashboard/editor physical-direction styles to logical properties.
+- Continue hiding or explicitly marking non-functional editor controls.
 
 ### Phase F3 — editor information architecture and responsive refinement
 
