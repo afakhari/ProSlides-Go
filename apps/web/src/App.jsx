@@ -17,9 +17,10 @@ import { ServerDataProvider } from "./contexts/ServerDataContext";
 import { useServerData } from "./hooks/useServerData";
 import notFoundIllustration from "./assets/404.svg";
 import accessDeniedIllustration from "./assets/access_denied.png";
-import RequireSession from "./components/RequireSession";
+import RequireSession from "./components/RequireSession.tsx";
 import { QuizSetup } from "./data/mockData";
 import EditorRouteSkeleton from "./modules/presentations/ui/EditorRouteSkeleton";
+import ProtectedManagerShell from "./app/layouts/ProtectedManagerShell";
 
 import ManagerJoinPage from "./pages/presentation/manager/JoinPage";
 import ManagerPickAnswerQuestion from "./pages/presentation/manager/PickAnswerQuestion";
@@ -76,9 +77,11 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           {/* Access code route resolves the active Go live session for a player. */}
           <Route path="/:accessCode" element={<PresentationEntry mode="accessCode" />} />
-          {/* Manager/Role panel (supports both /manager and any role param) */}
-          <Route path="/:role/panel" element={<RequireSession><HomePage /></RequireSession>} />
-          <Route path="/:role/panel/:roomId" element={<RequireSession><EditorPage /></RequireSession>} />
+          {/* Stable authenticated shell for the dashboard/editor slice. */}
+          <Route element={<ProtectedManagerShell />}>
+            <Route path="/:role/panel" element={<HomePage />} />
+            <Route path="/:role/panel/:roomId" element={<EditorPage />} />
+          </Route>
           {/* Catch-all route for any undefined path */}
           <Route path="*" element={<NotFoundPage />} />
           <Route

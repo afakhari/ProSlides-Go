@@ -58,10 +58,10 @@ not complete. Never describe a design target as benchmark evidence.
   slice are verified: one semantic token source and one accessible notice
   primitive now cover dashboard/editor/share. The audited baseline and target
   are in `docs/frontend-architecture.md`.
-- Exact next task: implement the second F2 slice: one protected-manager app
-  shell and route error boundary for dashboard/editor plus one typed Persian
-  message catalog used by those routes and share. Do not change HTTP behavior,
-  add a query cache, or touch live/report routes.
+- Exact next task: implement one typed shared HTTP client and stable API-error
+  type for manager presentation reads/mutations. Preserve credentials, CSRF,
+  aborts, revisions, request counts, and conflicts; do not add a query cache or
+  touch live/report routes.
 - Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
   then resume the still-mandatory production-like TLS 1k gate. No capacity gate
   has been waived or passed by this reprioritization.
@@ -236,16 +236,14 @@ decision. F0, F1, and the first F2 foundation slice are complete. The accepted t
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is the second F2 foundation slice: add a
-protected-manager shell/route error boundary and typed Persian message catalog
-for dashboard/editor/share. Reuse the current token and feedback foundations;
-do not expand this slice into the HTTP/query-cache boundary or unrelated live/
-report translation. Capacity work remains independently required and resumes
-after F5.
+The owner-prioritized exact next task is the typed shared HTTP/API-error boundary
+for manager presentation reads/mutations. Do not expand it into a query cache or
+unrelated live/report transport. Capacity work remains independently required
+and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
-- The post-foundation source has 54 JSX, 15 JS, 8 TS, and 2 TSX files; current
+- The post-foundation source has 54 JSX, 15 JS, 9 TS, and 4 TSX files; current
   `tsc` still verifies only the typed seam rather than most UI.
 - Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
   table followed by unreachable legacy runtime whose static imports still
@@ -276,6 +274,11 @@ after F5.
   the current Vite source at 1440x900 and 390x844. Screenshots were inspected;
   mobile document width equaled client width, computed title/code directions
   were RTL/LTR, and the browser reported zero console errors.
+- The second slice adds a persistent authenticated manager shell, route-local
+  pending UI, recoverable Persian render-error boundary, and typed Persian
+  catalog consumed by dashboard/editor/share. `RequireSession` now has a typed
+  TSX boundary. Expanded typecheck, lint, 39 unit tests, build, and all three
+  system-Chrome E2E flows pass.
 
 ## Completed implementation: dependency adapters and readiness
 

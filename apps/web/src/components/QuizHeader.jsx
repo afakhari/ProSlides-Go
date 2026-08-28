@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { quizService } from "../services/quizService.ts";
 import ShareMenu from "./ShareMenu";
+import { fa } from "../shared/i18n/fa";
 
 
 export default function QuizHeader({
@@ -138,7 +139,7 @@ export default function QuizHeader({
               title="تغییر نام ارائه"
               dir="auto"
             >
-              {quizTitle || "ارائه بدون عنوان"}
+              {quizTitle || fa.editor.untitledPresentation}
             </button>
           ) : (
             // Quiz name editing space
@@ -194,10 +195,10 @@ export default function QuizHeader({
           {/* --------------- Share Button --------------- */}
           <button
             onClick={() => setShowShareModal(true)}
-            title="تنظیم یا اشتراک‌گذاری کد ورود"
+            title={fa.editor.openShare}
             className="rounded-xl bg-brand px-3 py-2.5 text-sm font-bold text-content-inverse shadow-lg transition hover:bg-brand-strong active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
           >
-            اشتراک‌گذاری
+            {fa.editor.share}
           </button>
         </div>
       </header>

@@ -41,3 +41,24 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
   assert.match(source("src/components/ShareMenu.jsx"), /dir="ltr"/);
   assert.match(source("src/components/QuizManager.jsx"), /dir="auto"/);
 });
+
+test("protected manager routes share one persistent shell and recoverable error boundary", () => {
+  const app = source("src/App.jsx");
+  const shell = source("src/app/layouts/ProtectedManagerShell.tsx");
+
+  assert.match(app, /<Route element={<ProtectedManagerShell \/>}>/);
+  assert.match(shell, /<Outlet \/>/);
+  assert.match(shell, /ManagerRouteErrorBoundary/);
+  assert.match(shell, /previousProps\.resetKey !== this\.props\.resetKey/);
+  assert.match(shell, /fa\.managerShell\.routeErrorTitle/);
+});
+
+test("typed Persian catalog is consumed by manager dashboard editor and share", () => {
+  const catalog = source("src/shared/i18n/fa.ts");
+
+  assert.match(catalog, /export const fa =/);
+  assert.match(catalog, /as const/);
+  assert.match(source("src/components/QuizManager.jsx"), /fa\.dashboard\.title/);
+  assert.match(source("src/pages/quiz/manager/EditorPage.jsx"), /fa\.managerShell\.backToDashboard/);
+  assert.match(source("src/components/ShareMenu.jsx"), /fa\.share\.title/);
+});

@@ -61,8 +61,8 @@ The established login/register/recovery presentation was preserved. The main
 `AuthPage.jsx` remains the large, custom-designed screen; migration work changed
 its transport and provider integration rather than replacing the design.
 
-Frontend professionalization is not complete. After F1 and the first F2 slice,
-the partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 8 TS, and 2
+Frontend professionalization is not complete. After F1 and the first two F2 slices,
+the partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 9 TS, and 4
 TSX files, with most UI outside `tsc`, oversized route components, unreachable
 legacy runtime, and production mock-era adapters. One token/feedback foundation
 now covers dashboard/editor/share; other routes retain styling debt. The accepted
@@ -99,9 +99,9 @@ a stale metadata overwrite with 409. No browser run was used for this change.
 
 ## Remaining work, in order
 
-1. Complete frontend F2. Its first semantic-token/accessible-feedback slice is
-   verified; the exact next task is a protected-manager shell/error boundary
-   and typed Persian message catalog for dashboard/editor/share.
+1. Complete frontend F2. Its token/feedback and protected-manager shell/catalog
+   slices are verified; the exact next task is a typed shared HTTP/API-error
+   boundary for manager presentation reads and mutations.
 2. Complete frontend F3-F5 in order: modular editor;
    legacy/mock cleanup with enforceable TS/lint/test boundaries; then measured
    accessibility and performance hardening.

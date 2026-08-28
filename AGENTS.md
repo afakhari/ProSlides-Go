@@ -46,7 +46,7 @@ a shortcut.
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | Functional React 19/Vite SPA. F1 provides the verified Persian/RTL creation-to-editor flow. The first F2 foundation slice now provides one CSS-first semantic token source, one typed accessible notice primitive, Persian dashboard/editor/share feedback, explicit title/access-code direction boundaries, and no native alerts in that slice. Migration remains partial: 54 JSX, 15 JS, 8 TS, and 2 TSX files; most UI is still outside `tsc`, legacy runtime/mock adapters remain, and the shared app shell/message catalog are not yet implemented. | Continue incrementally toward `app -> modules -> shared` using `docs/frontend-architecture.md`; the next F2 slice must introduce the protected-manager shell/error boundary and typed Persian message catalog without rewriting working domains or touching live/report routes. Preserve auth behavior, live ordering/recovery, participant non-disclosure, revision conflicts, and idempotent command retries. |
+| `apps/web` | Functional React 19/Vite SPA. F1 and two F2 foundation slices are verified: semantic tokens/accessible feedback plus a persistent protected-manager shell, recoverable route error boundary, and typed Persian catalog consumed by dashboard/editor/share. Migration remains partial: 54 JSX, 15 JS, 9 TS, and 4 TSX files; most UI is still outside `tsc`, legacy runtime/mock adapters remain, and HTTP transport is duplicated. | Continue incrementally toward `app -> modules -> shared` using `docs/frontend-architecture.md`; the next F2 slice must create one typed shared HTTP/API-error boundary for manager presentation reads/mutations without changing HTTP contracts or touching live/report routes. Preserve auth behavior, live ordering/recovery, participant non-disclosure, revision conflicts, and idempotent command retries. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
@@ -207,17 +207,17 @@ load tests. Long-lived JWTs in an SSE query string are prohibited.
 
 ## Single exact next task
 
-Implement the second frontend F2 foundation slice: introduce one protected-
-manager app shell and route error boundary for the existing dashboard/editor
-routes, plus one typed Persian message catalog consumed by those routes and the
-share dialog. Reuse the semantic tokens and `Notice` primitive; do not change
-HTTP behavior, add a query cache, or translate/refactor live/report routes.
+Implement the third frontend F2 foundation slice: create one typed shared HTTP
+client and stable API-error type, then migrate only manager presentation reads/
+mutations used by dashboard/editor/share to it. Preserve credentials, CSRF,
+`AbortSignal`, `If-Match`, request counts, and existing error codes; do not add
+a query cache or touch live/report routes.
 
-Acceptance: dashboard-to-editor navigation preserves the current shell and
-focus context; route failures render a Persian recoverable error inside that
-shell; newly touched strings come from the typed catalog; no second notice,
-token, or routing system appears; 1440x900 and 390x844 remain overflow-free;
-lint, expanded typecheck, 37+ unit tests, build, and real-Chrome checks pass.
+Acceptance: migrated code has one base-URL/JSON/error implementation; auth
+expiry is surfaced through the existing notice path; creation remains one
+request/navigation and editor writes retain revisions; cancellation and 409
+conflicts remain distinguishable; lint, expanded typecheck, 39+ unit tests,
+build, and the three real-Chrome E2E flows pass.
 
 The production-like TLS 1k proof remains mandatory and unchanged, but is queued
 after the owner-prioritized frontend F1-F5 sequence. It is not completed or
@@ -251,8 +251,9 @@ Frontend modernization is a separate ordered track:
   browser flow; accept ADR 0003 and document the target architecture.
 - [x] Phase F1: creation-to-editor continuity, guarded mutations, Persian RTL
   onboarding, responsive editor chrome, and real-browser acceptance.
-- [ ] **Phase F2 — in progress:** semantic tokens and shared accessible feedback are implemented;
-  the protected-manager shell/error boundary and typed Persian catalog are the exact next slice.
+- [ ] **Phase F2 — in progress:** tokens/feedback and the protected-manager
+  shell/error boundary plus typed Persian catalog are implemented; the typed
+  shared HTTP/API-error boundary is the exact next slice.
 - [ ] Phase F3: presentation/editor module extraction and responsive editor
   information architecture.
 - [ ] Phase F4: remove legacy runtime/mock production dependencies and extend
@@ -304,6 +305,7 @@ Frontend modernization is a separate ordered track:
 | 2026-08-28 | Audited and fixed the frontend modernization documentation | ADR 0003 and `docs/frontend-architecture.md` define the incremental React/Vite `app -> modules -> shared` target, routing/state/style/type/test boundaries, measured current debt, and F0-F5 gates. Conflicting next-task statements were resolved in favor of owner-prioritized F1; the independent production-like TLS 1k gate remains queued and unproven. No runtime code changed. |
 | 2026-08-28 | Completed frontend F1 creation-to-editor continuity | Dashboard creation is guarded to one request/navigation with Persian pending/retry feedback; route and data loading use an editor-shaped TSX skeleton; empty presentations provide focused first-slide onboarding and open responsive Persian type selection after the intentional create action. Dashboard/editor chrome is RTL, fake controls were removed, and the toolbar exposes only working features. Lint, TS/TSX typecheck, 34 unit tests, build, healthy rebuilt API/Web images, three system-Chrome E2E flows, real-Chrome request audit, 1440x900/390x844 screenshots, no overflow/console errors, and reduced motion passed. |
 | 2026-08-28 | Completed the first frontend F2 foundation slice | `index.css` now owns Tailwind and CSS-first semantic tokens; typed `shared/ui/Notice.tsx` owns pending/success/warning/error live-region behavior. Dashboard/editor/share use the shared feedback and brand/feedback tokens, native alerts in that slice are removed, Persian share copy and explicit `auto`/LTR boundaries are present, and the duplicate Tailwind import is gone. Lint, expanded TS/TSX typecheck, 37 unit tests, build, and real Chrome at 1440x900/390x844 passed with no horizontal overflow or console errors. F2 remains in progress. |
+| 2026-08-28 | Completed the second frontend F2 foundation slice | Dashboard/editor now share one authenticated manager shell with a route-local Suspense fallback and recoverable Persian render-error boundary. A typed Persian catalog is consumed by dashboard/editor/share, and session guarding moved behind a typed TSX boundary without changing auth behavior. Lint, expanded typecheck, 39 unit tests, build, and all three system-Chrome E2E flows passed. F2 remains in progress. |
 
 ## References
 

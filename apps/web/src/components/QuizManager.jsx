@@ -23,6 +23,7 @@ import { clearAuthStorage } from "../utils/auth";
 import { getPresentationValidationError } from "../pages/quiz/manager/questionValidation";
 import { createPresentationOnce } from "../modules/presentations/model/createPresentationFlow.ts";
 import Notice from "../shared/ui/Notice";
+import { fa } from "../shared/i18n/fa";
 
 const safeTimestamp = (value) => {
   const time = Date.parse(value);
@@ -803,9 +804,9 @@ export default function QuizManager({ onNewPresentation }) {
           {/* My Presentations Section */}
           <div className="mb-6">
             <div className="mb-7 max-w-2xl">
-              <p className="mb-2 text-sm font-semibold text-brand">فضای کاری شما</p>
+              <p className="mb-2 text-sm font-semibold text-brand">{fa.dashboard.eyebrow}</p>
               <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-                ارائه‌های من
+                {fa.dashboard.title}
               </h1>
               <p className="mt-2 text-sm leading-7 text-slate-500">
                 ارائه تازه بسازید، اسلایدها را ویرایش کنید و برای اجرای زنده آماده شوید.
@@ -829,7 +830,7 @@ export default function QuizManager({ onNewPresentation }) {
                   ) : (
                     <>
                       <Plus className="h-5 w-5" aria-hidden="true" />
-                      ارائه جدید
+                      {fa.dashboard.newPresentation}
                     </>
                   )}
                 </Button>
@@ -904,7 +905,7 @@ export default function QuizManager({ onNewPresentation }) {
                     disabled={creatingQuiz}
                     className="rounded-control bg-brand px-6 py-2.5 text-content-inverse hover:bg-brand-strong"
                   >
-                    {creatingQuiz ? "در حال ساخت…" : "ساخت اولین ارائه"}
+                    {creatingQuiz ? "در حال ساخت…" : fa.dashboard.createFirstPresentation}
                   </Button>
                 </div>
               </div>

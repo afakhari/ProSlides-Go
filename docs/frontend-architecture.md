@@ -19,7 +19,7 @@ The measured source facts are:
 
 - the pre-F1 audit counted 78 JavaScript/TypeScript/CSS source files and about
   18,300 non-blank lines; the post-F2-foundation tree has 54 `.jsx`, 15 `.js`,
-  8 `.ts`, and 2 `.tsx` files;
+  9 `.ts`, and 4 `.tsx` files;
 - `tsconfig.json` includes `src/**/*.ts` and `src/**/*.tsx`, so the successful typecheck still does
   not validate most components or routes;
 - several components have more than 1,000 non-blank lines, including the
@@ -391,9 +391,11 @@ and bundle budgets from real Chrome evidence on the supported topology.
   typed accessible `Notice`, Persian dashboard/editor/share feedback, explicit
   title/access-code direction boundaries, and removal of native alerts plus the
   duplicate Tailwind import in that slice.
-- **Exact next slice:** introduce the protected-manager shell/route error
-  boundary and typed Persian message catalog for dashboard/editor/share.
-- Later in F2, introduce the shared HTTP/error boundary after the shell is stable.
+- **Completed second slice 2026-08-28:** persistent authenticated manager shell,
+  route-local pending/error recovery, and typed Persian catalog consumed by
+  dashboard/editor/share.
+- **Exact next slice:** introduce the typed shared HTTP/API-error boundary for
+  manager presentation reads/mutations; do not add the optional query cache yet.
 - Continue strict TypeScript at shared/module boundaries.
 - Generate OpenAPI transport types and add the one REST query cache only after
   the boundary is ready.

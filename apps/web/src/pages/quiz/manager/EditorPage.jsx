@@ -16,6 +16,7 @@ import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import EditorRouteSkeleton from "../../../modules/presentations/ui/EditorRouteSkeleton";
 import Notice from "../../../shared/ui/Notice";
+import { fa } from "../../../shared/i18n/fa";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -81,7 +82,7 @@ export default function EditorPage() {
               تلاش دوباره
             </button>
             <button type="button" onClick={() => navigate("/manager/panel")} className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50">
-              بازگشت به ارائه‌ها
+              {fa.managerShell.backToDashboard}
             </button>
           </div>
           <span className="sr-only">{error || "ارائه پیدا نشد"}</span>
@@ -1134,7 +1135,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                   className="mx-auto mt-4 flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                 >
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  بازگشت به ارائه‌ها
+                  {fa.managerShell.backToDashboard}
                 </button>
               </div>
             )}

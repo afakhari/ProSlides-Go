@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { X, Check, Loader2 } from "lucide-react";
 import { quizService } from "../services/quizService.ts";
 import Notice from "../shared/ui/Notice";
+import { fa } from "../shared/i18n/fa";
 
 
 export default function ShareMenu({
@@ -171,17 +172,17 @@ export default function ShareMenu({
           <button
             onClick={onClose}
             className="absolute end-5 top-5 z-10 rounded-control p-1 text-content-muted hover:bg-brand-soft hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            aria-label="بستن پنجره اشتراک‌گذاری"
+            aria-label={fa.share.close}
           >
             <X className="w-6 h-6" />
           </button>
 
           <div className="flex w-full flex-col gap-3 border-b border-brand-border bg-brand-soft p-5 md:w-1/3 md:border-b-0 md:border-e">
             <h2 id="share-dialog-title" className="mb-2 text-lg font-semibold text-brand-strong">
-              اشتراک‌گذاری ارائه
+              {fa.share.title}
             </h2>
             <MenuItem
-              label="دعوت از مخاطبان"
+              label={fa.share.inviteAudience}
               active={section === "invite"}
               onClick={() => setSection("invite")}
             />
@@ -271,7 +272,7 @@ function InviteAudienceUI({
   return (
     <div>
       <h2 className="mb-3 text-xl font-semibold text-content">
-        دعوت از مخاطبان
+        {fa.share.inviteAudience}
       </h2>
 
       <p className="text-sm text-content-muted">مخاطبان از این نشانی وارد می‌شوند:</p>

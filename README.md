@@ -61,9 +61,8 @@ runtime settings. Frontend changes must also follow the audited
 [Persian-first delivery plan](docs/frontend-professionalization.md), and
 [ADR 0003](docs/decisions/0003-modular-react-frontend.md).
 
-F1 and the first F2 semantic-token/accessible-feedback slice are complete. The
-current exact next task is the second F2 slice: a protected-manager shell/error
-boundary and typed Persian message catalog for dashboard/editor/share. The
+F1 and the first two F2 foundation slices are complete. The current exact next
+task is a typed shared HTTP/API-error boundary for manager presentation flows. The
 production-like TLS 1k capacity gate remains mandatory and queued after the
 owner-prioritized frontend F1-F5 sequence; local 1k results are not production
 capacity certification.
