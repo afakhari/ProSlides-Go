@@ -26,14 +26,14 @@ A real-Chrome review at desktop and 390x844 reproduced the first critical flow:
 dashboard -> Creating button -> unrelated full-screen loader -> empty editor
 ```
 
-The dashboard, loader, and editor currently change color system, density,
-language, and spatial structure at once. The editor initially shows a mostly
-blank canvas with weak first-action guidance. Responsive authentication works,
-but the editor header is crowded and English labels wrap.
+The F1-F3 work aligned dashboard/editor foundations, replaced the blank first
+step with type-first creation, and added responsive editor navigation and
+status recovery. Remaining routes still vary in color, density, language, and
+spatial structure; the editor also retains untranslated detail copy.
 
 The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
-lines. After F1 and the first three F2 slices the tree contains 54 JSX, 15 JS, 10
-TS, and 4 TSX files. `tsconfig.json` checks TS/TSX, but the passing typecheck still
+lines. After F3 the tree contains 54 JSX, 15 JS, 13 TS, and 4 TSX files.
+`tsconfig.json` checks TS/TSX, but the passing typecheck still
 excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
 files exceed 1,000 nonblank lines. `App.jsx` retains unreachable legacy runtime
 after the active route table, production paths still import mock-era view

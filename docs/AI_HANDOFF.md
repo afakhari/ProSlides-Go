@@ -51,16 +51,15 @@ not complete. Never describe a design target as benchmark evidence.
   preceding Nginx 1k sample missed answer p95 (581.88 ms), so 1k
   production-like and all 5k/10k gates remain unmeasured. Use
   `docs/capacity-plan.md` and `docs/load-test-results.md` as the proof record.
-- Frontend truth: the UI is functionally integrated but not yet professionally
-  modularized. Most components are JSX outside `tsc`; active routing coexists
-  with unreachable legacy runtime, production code still imports mock-era view
-  models, and physical-direction debt remains. F1 and the first F2 foundation
-  slice are verified: one semantic token source and one accessible notice
-  primitive now cover dashboard/editor/share. The audited baseline and target
-  are in `docs/frontend-architecture.md`.
-- Exact next task: generate presentation transport types from checked-in
-  OpenAPI and add a deterministic CI drift check. Keep editor domain types
-  separate; do not add a query cache or touch live/report routes.
+- Frontend truth: F1-F3 are verified. Presentation API/model, dashboard,
+  sharing, and editor UI are under `modules/presentations`; transport types are
+  generated from OpenAPI, type-first slide creation avoids abandoned drafts,
+  and unified dirty/save/conflict state exposes recovery. Most remaining UI is
+  JSX outside `tsc`; active routing still coexists with unreachable legacy
+  runtime and mock-era view models, and physical-direction debt remains.
+- Exact next task: remove the unreachable duplicated presentation runtime from
+  `App.jsx` and its dead imports while preserving active routes and live/report
+  behavior.
 - Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
   then resume the still-mandatory production-like TLS 1k gate. No capacity gate
   has been waived or passed by this reprioritization.
@@ -69,8 +68,8 @@ not complete. Never describe a design target as benchmark evidence.
 
 ## Branch and collaboration boundary
 
-- Work only in `D:\projs\software proj\ProSlides-go-platform` on
-  `feat/go-platform-foundation` unless the owner directs otherwise.
+- Work only in `D:\projs\software proj\ProSlides-go-platform` on `main` unless
+  the owner directs otherwise.
 - `D:\projs\software proj\ProSlides` / `master` is the colleagues' legacy workspace.
   Never modify, rebase, reset, or clean it as part of this project.
 - Commit focused changes to the feature branch and push normally. Do not merge
@@ -242,8 +241,9 @@ remains independently required and resumes after F5.
 
 ### 2026-08-28 audit evidence
 
-- The post-foundation source has 54 JSX, 15 JS, 10 TS, and 4 TSX files; current
-  `tsc` still verifies only the typed seam rather than most UI.
+- The 2026-08-28 post-foundation source had 54 JSX, 15 JS, 10 TS, and 4 TSX
+  files. After F3 it has 54 JSX, 15 JS, 13 TS, and 4 TSX; `tsc` still verifies
+  only the typed seam rather than most UI.
 - Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
   table followed by unreachable legacy runtime whose static imports still
   influence the bundle.

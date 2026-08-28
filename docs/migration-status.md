@@ -61,14 +61,14 @@ The established login/register/recovery presentation was preserved. The main
 `AuthPage.jsx` remains the large, custom-designed screen; migration work changed
 its transport and provider integration rather than replacing the design.
 
-Frontend professionalization is not complete. After F1 and the first two F2 slices,
-the partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 10 TS, and 4
-TSX files, with most UI outside `tsc`, oversized route components, unreachable
-legacy runtime, and production mock-era adapters. One token/feedback foundation
-now covers dashboard/editor/share; other routes retain styling debt. The accepted
-incremental `app -> modules -> shared` target, constraints, and F0-F5 gates are
-in [frontend-architecture.md](frontend-architecture.md); UX acceptance is in
-[frontend-professionalization.md](frontend-professionalization.md).
+Frontend professionalization is not complete, but F1-F3 are verified. The
+partial JavaScript-to-TypeScript migration has 54 JSX, 15 JS, 13 TS, and 4 TSX
+files; most UI remains outside `tsc`, and oversized components, unreachable
+legacy runtime, production mock-era adapters, and styling debt remain.
+Presentation API/model, dashboard, sharing, and editor UI now follow the
+incremental `app -> modules -> shared` target. Detailed constraints and F0-F5
+gates are in [frontend-architecture.md](frontend-architecture.md); UX
+acceptance is in [frontend-professionalization.md](frontend-professionalization.md).
 
 ## Verification evidence
 
@@ -99,12 +99,10 @@ a stale metadata overwrite with 409. No browser run was used for this change.
 
 ## Remaining work, in order
 
-1. Complete frontend F2. Its token/feedback, shell/catalog, and typed shared HTTP
-   slices are verified; the exact next task is generated OpenAPI presentation
-   types with a deterministic CI drift check.
-2. Complete frontend F3-F5 in order: modular editor;
-   legacy/mock cleanup with enforceable TS/lint/test boundaries; then measured
-   accessibility and performance hardening.
+1. Complete frontend F4: remove unreachable duplicated runtime and remaining
+   production mock-era dependencies, then extend enforceable TS/lint/test
+   boundaries over migrated UI.
+2. Complete frontend F5 measured accessibility and performance hardening.
 3. Provision production SMTP, Google, database, Redis, origin, and TLS secrets
    through the deployment platform; never commit them.
 4. Repeat the locally successful two-run 1k HTTP/SSE protocol on named

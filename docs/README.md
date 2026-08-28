@@ -35,7 +35,7 @@ ADRs explain durable decisions; they do not replace current-state or execution
 documents. Historical change-log statements are evidence from their date, not
 the present priority.
 
-## Current position — 2026-08-28
+## Current position — 2026-08-29
 
 - Backend product/API parity is functionally implemented in the Go modular
   monolith; production certification is incomplete.
@@ -43,11 +43,11 @@ the present priority.
   Nginx, but no production-like TLS 1k/5k/10k gate has passed.
 - The frontend is functional but still mixes legacy JavaScript/view models and
   partial TypeScript with inconsistent architecture/styles.
-- Frontend F0 and F1 are complete. F2 is in progress: semantic tokens/feedback
-  and the protected-manager shell/error boundary plus typed Persian catalog are
-  verified, as is the typed shared HTTP/API-error boundary. Generated OpenAPI
-  presentation transport types with a CI drift check are the one exact next
-  task; F3-F5 follow in order.
+- Frontend F0-F3 are complete. Presentation API/model, dashboard, sharing, and
+  editor UI are owned by `modules/presentations`; OpenAPI transport generation,
+  CI drift checks, type-first slide creation, responsive editor navigation, and
+  unified dirty/save/conflict state are verified. F4 cleanup is the exact next
+  task, followed by F5 hardening.
 - The production-like TLS 1k gate remains mandatory and is queued after F5.
 
 This priority order is scheduling, not a capacity or production waiver.
