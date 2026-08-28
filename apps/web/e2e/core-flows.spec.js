@@ -68,26 +68,36 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await page.locator('button[type="submit"]').click();
   expect((await registration).status()).toBe(201);
   await expect(page).toHaveURL(/\/manager\/panel$/);
-  await expect(page.getByRole("heading", { name: "My presentations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ارائه‌های من" })).toBeVisible();
 
-  const createRequest = page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/api/v1/presentations") &&
-      response.request().method() === "POST",
+  let createRequestCount = 0;
+  page.on("request", (request) => {
+    if (
+      request.url().endsWith("/api/v1/presentations") &&
+      request.method() === "POST"
+    ) {
+      createRequestCount += 1;
+    }
+  });
+  const createRequest = page.waitForResponse((response) =>
+    response.url().endsWith("/api/v1/presentations") &&
+    response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "New presentation" }).first().click();
+  await page.getByRole("button", { name: "ارائه جدید" }).click();
   expect((await createRequest).status()).toBe(201);
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
-  await expect(page.getByRole("button", { name: "Present", exact: true })).toBeVisible();
+  expect(createRequestCount).toBe(1);
+  await expect(page.getByRole("heading", { name: "اولین اسلاید را بسازید" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "اجرا", exact: true })).toBeVisible();
 
   const createSlideRequest = page.waitForResponse(
     (response) =>
       /\/api\/v1\/presentations\/[^/]+\/slides$/.test(new URL(response.url()).pathname) &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: /Add Slide/ }).click();
+  await page.getByRole("button", { name: "ساخت اولین اسلاید" }).click();
   expect((await createSlideRequest).status()).toBe(201);
-  await expect(page.getByRole("button", { name: "Select Question Type" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "نوع اسلاید را انتخاب کنید" })).toBeVisible();
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
   await page.goto(`/manager/panel/${presentationId}/report`);
@@ -99,15 +109,15 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByLabel("Back to manager panel")).toBeVisible();
 
   await page.goto("/manager/panel");
-  await page.locator('button[aria-label="Open profile menu"]:visible').click();
-  await page.getByRole("button", { name: "Logout" }).click();
+  await page.locator('button[aria-label="باز کردن منوی حساب"]:visible').click();
+  await page.getByRole("button", { name: "خروج از حساب" }).click();
   await expect(page).toHaveURL(/\/auth$/);
 
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("BrowserPass!42");
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/manager\/panel$/);
-  await expect(page.getByRole("heading", { name: "My presentations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ارائه‌های من" })).toBeVisible();
   expect(failures).toEqual([]);
 });
 
@@ -117,7 +127,8 @@ test("an unknown join code shows the access-denied state", async ({ page }) => {
     response.url().includes("/api/v1/live/sessions/resolve"),
   );
 
-  await page.goto(`/missing-${Date.now()}`);
+  const validButUnknownCode = `MISS${Date.now().toString().slice(-8)}`;
+  await page.goto(`/${validButUnknownCode}`);
   expect((await resolution).status()).toBe(404);
   await expect(page.getByText("Invalid access code")).toBeVisible();
   expect(failures).toEqual([]);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import MiniResultsResultsOnly from "./MiniResultsResultsOnly";
 import LeaderboardPreview from "./LeaderboardPreview";
 import QuizHeader from "../../../components/QuizHeader";
@@ -12,12 +12,14 @@ import ContentSidebar from "./ContentSidebar";
 import { quizService } from "../../../services/quizService.ts";
 import { getPresentationValidationError } from "./questionValidation";
 import { UNSAVED_CHANGES_KEY } from "../../../utils/auth";
-import Waiting from "../../loading/LoadingPage";
-import { X } from "lucide-react";
+import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import EditorRouteSkeleton from "../../../modules/presentations/ui/EditorRouteSkeleton";
 
 export default function EditorPage() {
   const { roomId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const quizId = roomId?.trim() || "";
 
   const [quiz, setQuiz] = useState(null);
@@ -59,22 +61,46 @@ export default function EditorPage() {
   };
 
   if (loading) {
-    return <Waiting />;
+    return <EditorRouteSkeleton />;
   }
 
   if (error || !quiz) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-xl text-red-500">{error || "Quiz not found"}</div>
+      <div className="flex min-h-screen items-center justify-center bg-violet-50 px-4" dir="rtl">
+        <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-white p-8 text-center shadow-xl shadow-violet-100/60">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <RefreshCw className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <h1 className="mt-5 text-xl font-black text-slate-900">ویرایشگر بارگذاری نشد</h1>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            اتصال را بررسی کنید و دوباره تلاش کنید. تغییر ذخیره‌نشده‌ای در این صفحه ایجاد نشده است.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button type="button" onClick={fetchQuiz} className="rounded-xl bg-violet-700 px-5 py-3 font-bold text-white hover:bg-violet-800">
+              تلاش دوباره
+            </button>
+            <button type="button" onClick={() => navigate("/manager/panel")} className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50">
+              بازگشت به ارائه‌ها
+            </button>
+          </div>
+          <span className="sr-only">{error || "ارائه پیدا نشد"}</span>
+        </div>
       </div>
     );
   }
 
-  return <QuestionEditor quiz={quiz} updateQuiz={updateQuiz} refreshQuiz={fetchQuiz} />;
+  return (
+    <QuestionEditor
+      quiz={quiz}
+      updateQuiz={updateQuiz}
+      refreshQuiz={fetchQuiz}
+      createdPresentation={location.state?.createdPresentation === true}
+    />
+  );
 }
 
 
-function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
+function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) {
 
   const [activeSlideId, setActiveSlideId] = useState(
     () => quiz.slides?.[0]?.slide_id || null
@@ -88,6 +114,8 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
   const [hasAudioChanges, setHasAudioChanges] = useState(false);
   const [hasDesignChanges, setHasDesignChanges] = useState(false);
   const [isSelectingType, setIsSelectingType] = useState(false);
+  const [isAddingSlide, setIsAddingSlide] = useState(false);
+  const addSlideGateRef = useRef(false);
   const [typeSelectionError, setTypeSelectionError] = useState(null);
   const [typeSelectionNotice, setTypeSelectionNotice] = useState(null);
   const [typeSelectionMode, setTypeSelectionMode] = useState(null);
@@ -523,6 +551,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
 
   // ????? ?????? ????
   const addNewSlide = async () => {
+    if (addSlideGateRef.current) return null;
+    addSlideGateRef.current = true;
+    setIsAddingSlide(true);
     try {
       const newSlideData = {
         slide_id: globalThis.crypto.randomUUID(),
@@ -554,9 +585,16 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
 
       // ?????? ?????? ????
       setActiveSlideId(createdSlide.slide_id);
+      setActiveSlideType(createdSlide.slide_type);
+      setShowTypeBox(true);
+      return createdSlide;
     } catch (error) {
       console.error("Failed to create new slide:", error);
-      showNotice("Failed to create new slide.", "error");
+      showNotice("ساخت اسلاید انجام نشد. دوباره تلاش کنید.", "error");
+      return null;
+    } finally {
+      addSlideGateRef.current = false;
+      setIsAddingSlide(false);
     }
   };
 
@@ -910,7 +948,11 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
 
 
   return (
-    <div className="h-full flex flex-col relative pt-14 pb-20 md:pb-0">
+    <div
+      className="relative flex h-full flex-col bg-[linear-gradient(180deg,#f8f7ff_0%,#f3f4f8_100%)] pb-20 pt-16 text-slate-900 md:pb-0"
+      dir="rtl"
+      style={{ fontFamily: '"Vazirmatn", "Segoe UI", sans-serif' }}
+    >
       {/* ----- Header -----*/}
       <QuizHeader
         accessCode={quiz.access_code}
@@ -931,10 +973,10 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
       )}
 
       {/* ----- Main Layout ----- */}
-      <div className="flex flex-1 overflow-hidden flex-col md:flex-row gap-4 md:gap-4 lg:gap-0">
+      <div className="flex flex-1 flex-col gap-4 overflow-hidden p-3 md:flex-row md:p-4">
         {/* ----- Left Panel (Slides Panel) ----- */}
         {!isMobile && (
-          <div className="bg-white rounded-xl shadow p-4 overflow-y-auto w-full max-h-[40vh] md:max-h-none md:h-full md:w-1/4 lg:w-1/5">
+          <aside className="w-full max-h-[40vh] overflow-y-auto rounded-2xl border border-violet-100 bg-white p-4 shadow-sm md:h-full md:max-h-none md:w-1/4 lg:w-1/5">
             <SlidesPanel
               slides={slides}
               activeSlideId={activeSlide?.slide_id}
@@ -958,30 +1000,29 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
             quizBackgroundImage={quiz.background_image_url}
             onNotify={showNotice}
           />
-        </div>
+        </aside>
         )}
 
         {/* ----- Middle panel ----- */}
-        <div className="flex-1 relative md:mx-4 mx-0">
-          <div className="bg-white rounded-xl shadow p-2 h-full flex justify-center items-center overflow-hidden relative">
+        <main className="relative flex-1">
+          <div className="relative flex h-full min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-violet-100 bg-white p-3 shadow-sm">
             {/* ----- Present Button ----- */}
             <button
               onClick={handlePresent}
               disabled={!presentStatus.ready}
               title={presentStatus.reason}
-              className="absolute top-2.5 left-2.5 bg-gradient-to-r from-slate-500 to-teal-600 
-                        hover:from-slate-600 hover:to-teal-700 text-white px-4 py-2.5 rounded-xl text-base font-semibold transition z-10
+              className="absolute left-3 top-3 z-10 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800
                         disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Present
+              اجرا
             </button>
 
             {(activeSlideType === 1 || activeSlideType === 2) && (
               <button
                 onClick={handleTypeChangeClick}
-                className="absolute top-2 right-2 text-sm text-gray-500 hover:text-gray-700 z-10"
+                className="absolute right-3 top-3 z-10 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               >
-                Change Slide Type
+                تغییر نوع اسلاید
               </button>
             )}
 
@@ -1051,19 +1092,54 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
                   />
                 </div>
               ) : (
-                <div className="text-center text-gray-400">
-                  <p className="text-lg mb-4">No content to display</p>
+                <div className="max-w-md text-center text-slate-500">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                    <Sparkles className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                  <h1 className="mt-5 text-xl font-black text-slate-900">نوع این اسلاید را انتخاب کنید</h1>
+                  <p className="mb-5 mt-2 text-sm leading-7">سؤال تک‌گزینه‌ای، چندگزینه‌ای یا یک اسلاید محتوایی بسازید.</p>
                   <button
                     onClick={handleTypeChangeClick}
-                    className="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition"
+                    className="rounded-xl bg-violet-700 px-5 py-3 font-bold text-white hover:bg-violet-800"
                   >
-                    Select Slide Type
+                    انتخاب نوع اسلاید
                   </button>
                 </div>
               )
             ) : (
-              <div className="text-center text-gray-400">
-                <p className="text-lg mb-4">No slides yet</p>
+              <div className="mx-auto max-w-lg px-5 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <Sparkles className="h-8 w-8" aria-hidden="true" />
+                </div>
+                <p className="mt-3 text-sm font-bold text-violet-700">
+                  {createdPresentation ? "ارائه شما آماده است" : "شروع یک ارائه تازه"}
+                </p>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">اولین اسلاید را بسازید</h1>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-500">
+                  با یک سؤال تعاملی یا اسلاید محتوایی شروع کنید. نوع اسلاید در مرحله بعد انتخاب می‌شود.
+                </p>
+                <button
+                  type="button"
+                  onClick={addNewSlide}
+                  disabled={isAddingSlide}
+                  autoFocus={createdPresentation}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isAddingSlide ? (
+                    <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  ) : (
+                    <Plus className="h-5 w-5" aria-hidden="true" />
+                  )}
+                  {isAddingSlide ? "در حال ساخت…" : "ساخت اولین اسلاید"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/manager/panel")}
+                  className="mx-auto mt-4 flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                >
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  بازگشت به ارائه‌ها
+                </button>
               </div>
             )}
 
@@ -1074,12 +1150,12 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
                   onClick={() => setShowTypeBox(false)}
                 ></div>
 
-                <div className="absolute z-20 bg-white rounded-2xl shadow-2xl p-6 w-[400px] flex flex-col items-center space-y-4">
-                  <h2 className="text-xl font-bold text-pink-700">
-                    Select Slide Type
+                <div className="absolute inset-x-3 z-20 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl sm:inset-x-auto sm:w-[440px]" role="dialog" aria-modal="true" aria-labelledby="slide-type-title">
+                  <h2 id="slide-type-title" className="text-xl font-black text-violet-800">
+                    نوع اسلاید را انتخاب کنید
                   </h2>
                   <p className="text-sm text-slate-500 text-center">
-                    Choose a question format or add an informational content slide.
+                    بعداً می‌توانید نوع اسلاید را تغییر دهید.
                   </p>
                   {typeSelectionError && (
                     <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 text-center">
@@ -1090,9 +1166,10 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
                   {["Single Choice", "Multiple Choice", "Content Slide"].map((type) => {
                     const isSingle = type === "Single Choice";
                     const isContent = type === "Content Slide";
-                    const description = isContent ? "Explain a topic without collecting an answer" : isSingle
-                      ? "One correct answer"
-                      : "Multiple correct answers";
+                    const description = isContent ? "نمایش متن و تصویر بدون دریافت پاسخ" : isSingle
+                      ? "یک پاسخ درست"
+                      : "چند پاسخ درست";
+                    const label = isContent ? "اسلاید محتوایی" : isSingle ? "تک‌گزینه‌ای" : "چندگزینه‌ای";
                     const isBusy =
                       isSelectingType &&
                       typeSelectionMode === (isContent ? "content" : isSingle ? "single" : "multiple");
@@ -1101,13 +1178,13 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
                         key={type}
                         onClick={() => handleSelectType(type)}
                         disabled={isSelectingType}
-                        className="w-full bg-pink-500 text-white py-2 rounded-xl hover:bg-pink-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-violet-950 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <div className="flex flex-col items-center">
                           <span className="font-semibold">
-                            {isBusy ? "Applying..." : type}
+                            {isBusy ? "در حال اعمال…" : label}
                           </span>
-                          <span className="text-xs text-white/80">
+                          <span className="text-xs text-violet-700">
                             {description}
                           </span>
                         </div>
@@ -1119,7 +1196,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
                     onClick={() => setShowTypeBox(false)}
                     className="text-gray-500 text-sm hover:underline"
                   >
-                    Cancel
+                    انصراف
                   </button>
                 </div>
               </>
@@ -1130,7 +1207,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
               {typeSelectionNotice}
             </div>
           )}
-        </div>
+        </main>
 
         {/* ----- Right Panels ----- */}
         {showSidebar && (activeSlideType === 1 || activeSlideType === 2 || activeSlideType === 3) && (
@@ -1344,7 +1421,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz }) {
             }}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-gray-800">Slides</h2>
+              <h2 className="font-bold text-gray-800">اسلایدها</h2>
               <button
                 onClick={() => setShowSlidesPanel(false)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition"

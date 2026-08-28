@@ -29,6 +29,37 @@ No sticky session is required for correctness. Session cookies and participant
 credential hashes are validated against shared PostgreSQL. Each API instance
 can replay from the durable event ledger and then deliver new events locally.
 
+## Frontend boundary
+
+The browser remains a React 19/Vite single-page application. Its accepted
+incremental target is:
+
+```text
+app (bootstrap, router, providers, route layouts/errors)
+  -> modules (identity, presentations/editor, live, reports, marketing)
+       -> shared (API transport, UI primitives, styles, utilities)
+```
+
+Dependencies point downward; `shared` never imports a product module and one
+module does not reach into another module's internals. React Router owns URL
+state and route-level loading/error behavior. Server-backed REST state may use
+one cache layer when introduced deliberately; the live runtime remains a
+separate typed snapshot + HTTP command + SSE reducer because event ordering,
+replay, and reconnect are domain requirements rather than generic cache state.
+
+New or substantially changed UI is TS/TSX at module boundaries. Existing JSX
+migrates by feature, with lint/typecheck coverage expanding in the same change.
+Styling uses one Tailwind v4/CSS semantic-token source and logical RTL-aware
+properties. Local component state stays local; no global store, state machine,
+SSR framework, microfrontend, or separate design-system package is added absent
+a measured need.
+
+The complete current-state audit, target tree, state ownership, styling,
+testing, performance policy, and F0-F5 migration gates live in
+`docs/frontend-architecture.md`; the decision rationale is ADR 0003. The
+Persian UX order and viewport/accessibility acceptance gates live in
+`docs/frontend-professionalization.md`.
+
 ## Module boundaries
 
 | Module | Owns | Must not own |

@@ -8,7 +8,11 @@ export default function HomePage() {
 
   return (
     <QuizManager
-      onNewPresentation={(roomId) => navigate(`/manager/panel/${roomId}`)}
+      onNewPresentation={(roomId) =>
+        navigate(`/manager/panel/${roomId}`, {
+          state: { createdPresentation: true },
+        })
+      }
     />
   );
 }

@@ -1,0 +1,112 @@
+- generic [ref=e4]:
+  - generic [ref=e6]:
+    - generic [ref=e7]: شرکت‌کننده هستید؟ کد ورود را وارد کنید.
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: proslides.ir/
+        - textbox "کد ورود" [ref=e11]:
+          - /placeholder: کد را وارد کنید
+      - button "ورود" [ref=e12]
+  - banner [ref=e13]:
+    - generic [ref=e14]:
+      - button "بازگشت به ابتدای صفحه" [ref=e16]: ✱ ProSlides
+      - navigation "بخش‌های صفحه" [ref=e17]:
+        - button "خانه" [ref=e18]
+        - button "ویژگی‌ها" [ref=e19]
+        - button "نحوه کار" [ref=e20]
+        - button "مخاطبان" [ref=e21]
+      - generic [ref=e22]:
+        - link "ورود" [ref=e23] [cursor=pointer]:
+          - /url: /login
+        - link "ثبت‌نام رایگان" [ref=e24] [cursor=pointer]:
+          - /url: /signup
+  - main [ref=e25]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - paragraph [ref=e29]: ارائه‌های تعاملی برای تیم‌های مدرن
+        - heading "پلتفرم همه‌کاره برای ارائه‌های تعاملی جذاب اثرگذار و حرفه‌ای" [level=1] [ref=e30]:
+          - generic [ref=e31]: پلتفرم همه‌کاره برای ارائه‌های
+          - generic [ref=e32]:
+            - generic [ref=e33]:
+              - generic [ref=e34]: تعاملی
+              - generic [ref=e35]: جذاب
+              - generic [ref=e36]: اثرگذار
+            - text: و حرفه‌ای
+        - paragraph [ref=e37]: با اسلایدهای زنده و ابزارهای مشارکتی، تعامل را بالا ببرید و ارائه‌ای شفاف، منسجم و تاثیرگذار بسازید.
+        - generic [ref=e38]:
+          - button "رایگان شروع کنید" [ref=e39]
+          - button "دیدن ویژگی‌ها" [ref=e40]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: Live session
+          - generic [ref=e46]: آنلاین
+        - generic [ref=e47]:
+          - generic [ref=e48]: نظرسنجی لحظه‌ای
+          - generic [ref=e51]: کوئیز پویا
+          - generic [ref=e54]: اسلاید مشارکتی
+        - generic [ref=e57]: 94% مشارکت فعال در جلسه‌های اخیر
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - paragraph [ref=e60]: ProSlides
+        - heading "ویژگی‌هایی که ارائه را ارتقا می‌دهند" [level=2] [ref=e61]
+        - paragraph [ref=e62]: هر ارائه‌ای که می‌سازید، می‌تواند تعاملی‌تر، سریع‌تر و حرفه‌ای‌تر باشد.
+      - generic [ref=e63]:
+        - generic [ref=e69]:
+          - heading "اسلایدهای تعاملی" [level=3] [ref=e70]
+          - paragraph [ref=e71]: اسلایدها، نظرسنجی‌ها و آزمون‌ها را در یک جریان یکپارچه بسازید.
+        - generic [ref=e77]:
+          - heading "تعامل زنده" [level=3] [ref=e78]
+          - paragraph [ref=e79]: پاسخ‌ها را لحظه‌ای ببینید و ارائه را براساس مخاطب تنظیم کنید.
+        - generic [ref=e87]:
+          - heading "برندینگ حرفه‌ای" [level=3] [ref=e88]
+          - paragraph [ref=e89]: رنگ، فونت و امضای بصری خود را روی تمام اسلایدها یکدست کنید.
+        - generic [ref=e95]:
+          - heading "هم‌راستای تیم" [level=3] [ref=e96]
+          - paragraph [ref=e97]: بازخوردها، تصمیم‌ها و نتایج را در یک داشبورد شفاف نگه دارید.
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - paragraph [ref=e101]: ProSlides
+        - heading "در سه قدم شروع کنید" [level=2] [ref=e102]
+        - paragraph [ref=e103]: مسیر اجرای یک ارائه تعاملی از ساخت تا تحلیل، کاملاً ساده و شفاف است.
+      - generic [ref=e104]:
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]: "1"
+            - heading "ایده را بسازید" [level=3] [ref=e108]
+          - paragraph [ref=e109]: از قالب‌های آماده شروع کنید یا اسلایدهای خودتان را وارد کنید.
+          - generic [ref=e110]: مرحله 1
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - generic [ref=e113]: "2"
+            - heading "تعامل را فعال کنید" [level=3] [ref=e114]
+          - paragraph [ref=e115]: سؤال، نظرسنجی یا مسابقه اضافه کنید تا همه‌ها درگیر شوند.
+          - generic [ref=e116]: مرحله 2
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]: "3"
+            - heading "نتیجه را تحلیل کنید" [level=3] [ref=e120]
+          - paragraph [ref=e121]: بعد از ارائه، گزارش‌های قابل استفاده را با تیم به اشتراک بگذارید.
+          - generic [ref=e122]: مرحله 3
+    - generic [ref=e124]:
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - paragraph [ref=e127]: ProSlides
+          - heading "برای هر مخاطب، یک تجربه درگیرکننده" [level=2] [ref=e128]
+          - paragraph [ref=e129]: از کلاس درس تا جلسه فروش، پرو اسلایدز برای سناریوهای مختلف آماده است.
+        - generic [ref=e130]:
+          - generic [ref=e131]: مدرس‌ها و دانشگاه‌ها
+          - generic [ref=e132]: دوره‌های شرکتی
+          - generic [ref=e133]: رویدادهای حضوری
+          - generic [ref=e134]: وبینارها
+          - generic [ref=e135]: جلسات فروش
+          - generic [ref=e136]: کارگاه‌های تیمی
+      - generic [ref=e137]:
+        - heading "آماده‌اید ارائه‌های بعدی را متحول کنید؟" [level=3] [ref=e138]
+        - paragraph [ref=e139]: تجربه‌ای سریع و مدرن برای تعامل واقعی. از همین امروز شروع کنید.
+        - generic [ref=e140]:
+          - button "ایجاد حساب رایگان" [ref=e141]
+          - button "بازگشت به بالا" [ref=e142]
+    - paragraph [ref=e143]:
+      - text: ساخته شده توسط تیم ProSlides —
+      - link "آشنایی با تیم" [ref=e144] [cursor=pointer]:
+        - /url: /team

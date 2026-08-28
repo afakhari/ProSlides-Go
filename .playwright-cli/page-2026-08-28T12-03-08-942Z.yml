@@ -1,0 +1,29 @@
+- generic [ref=f1e87]:
+  - banner [ref=f1e88]:
+    - generic [ref=f1e89]:
+      - button "بازگشت به ارائه‌ها" [ref=f1e90]
+      - generic [ref=f1e94]: ✱ ProSlides
+    - generic [ref=f1e95]:
+      - button "ارائه بدون عنوان" [ref=f1e96]
+      - button "اشتراک‌گذاری" [ref=f1e97]
+  - generic [ref=f1e98]:
+    - complementary [ref=f1e99]:
+      - generic [ref=f1e100]:
+        - heading "اسلایدها" [level=2] [ref=f1e102]
+        - button "+ افزودن اسلاید" [ref=f1e103] [cursor=pointer]
+    - main [ref=f1e104]:
+      - generic [ref=f1e105]:
+        - button "اجرا" [disabled] [ref=f1e106]
+        - generic [ref=f1e107]:
+          - paragraph [ref=f1e112]: ارائه شما آماده است
+          - heading "اولین اسلاید را بسازید" [level=1] [ref=f1e113]
+          - paragraph [ref=f1e114]: با یک سؤال تعاملی یا اسلاید محتوایی شروع کنید. نوع اسلاید در مرحله بعد انتخاب می‌شود.
+          - button "ساخت اولین اسلاید" [active] [ref=f1e115]
+          - button "بازگشت به ارائه‌ها" [ref=f1e117]
+    - generic [ref=f1e120]:
+      - button "AI" [ref=f1e121]
+      - button "Templates" [ref=f1e126]
+      - button "Content" [ref=f1e133]
+      - button "Design" [ref=f1e138]
+      - button "Audio" [ref=f1e144]
+      - button "Settings" [ref=f1e151]

@@ -2,7 +2,7 @@
 
 ## Executive summary
 
-As of 2026-08-19, the active React product flows have functional backend
+As of 2026-08-28, the active React product flows have functional backend
 coverage in Go. The historical Django/Rust implementation remains available in
 Git history and on `master`, but it is not part of this branch's runtime.
 
@@ -43,8 +43,9 @@ binary-upload API; managed object storage is a separate production capability.
   role-scoped snapshot, manager roster pages, and owner result pages.
 - Rust result ingestion and its second score ledger were removed. Durable Go
   answers are authoritative for scores and reports.
-- Persistent presentation codes were replaced by the active non-ended live
-  session's generated join code.
+- Persistent presentation access codes are owner-selected, case-insensitively
+  unique, reused by new sessions, and atomically synchronized to the current
+  non-ended session; replacing an active code invalidates the old public link.
 - The historical Google path did not prove token signatures. Go deliberately
   performs full provider verification; weakening it would be a security defect,
   not useful parity.
@@ -59,6 +60,14 @@ complete roster or correctness metadata.
 The established login/register/recovery presentation was preserved. The main
 `AuthPage.jsx` remains the large, custom-designed screen; migration work changed
 its transport and provider integration rather than replacing the design.
+
+Frontend professionalization is not complete. The 2026-08-28 audit found a
+partial JavaScript-to-TypeScript migration (54 JSX, 15 JS, 7 TS, no TSX), with
+most UI outside `tsc`, oversized route components, unreachable legacy runtime,
+production mock-era adapters, and inconsistent token/RTL styles. The accepted
+incremental `app -> modules -> shared` target, constraints, and F0-F5 gates are
+in [frontend-architecture.md](frontend-architecture.md); UX acceptance is in
+[frontend-professionalization.md](frontend-professionalization.md).
 
 ## Verification evidence
 
@@ -89,19 +98,21 @@ a stale metadata overwrite with 409. No browser run was used for this change.
 
 ## Remaining work, in order
 
-1. Provision production SMTP, Google, database, Redis, origin, and TLS secrets
+1. Implement frontend F1 creation-to-editor continuity. This is the exact next
+   task: one create request, one navigation, Persian pending/error/onboarding,
+   stable editor skeleton, reduced motion, and desktop/mobile browser evidence.
+2. Complete frontend F2-F5 in order: semantic Persian/RTL shell; modular editor;
+   legacy/mock cleanup with enforceable TS/lint/test boundaries; then measured
+   accessibility and performance hardening.
+3. Provision production SMTP, Google, database, Redis, origin, and TLS secrets
    through the deployment platform; never commit them.
-2. Repeat the locally successful two-run 1k HTTP/SSE protocol on named
+4. Repeat the locally successful two-run 1k HTTP/SSE protocol on named
    production-like infrastructure through TLS, including cold readiness and
-   continuous pool/query/lock/CPU/heap capture. This is the exact next
-   engineering step.
-3. Add event retention, production backup/restore evidence, and full rollout
-   drain verification. Public join/answer limits, portable web/API images,
-   migration serialization, and reference TLS/SSE proxy/runbooks are present.
-4. After production-like 1k acceptance, pass 5k and then 10k on named
-   production-like infrastructure, fixing measured bottlenecks between levels.
-5. Exercise feature-flagged cutover and rollback before removing legacy
-   operational dependencies.
+   continuous pool/query/lock/CPU/heap capture. This gate remains mandatory and
+   unproven; frontend work does not satisfy it.
+5. Add event retention, production backup/restore evidence, and full rollout
+   drain verification, then pass 5k and 10k on named production-like
+   infrastructure and exercise feature-flagged cutover/rollback.
 
 See [capacity-plan.md](capacity-plan.md) for objective gates and
 [configuration.md](configuration.md) for deployment inputs.

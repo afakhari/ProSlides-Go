@@ -4,6 +4,7 @@ import {
   Route,
   useParams,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import { lazy, Suspense, useState, useEffect } from "react";
 import SiteHeader from "./components/SiteHeader";
@@ -18,6 +19,7 @@ import notFoundIllustration from "./assets/404.svg";
 import accessDeniedIllustration from "./assets/access_denied.png";
 import RequireSession from "./components/RequireSession";
 import { QuizSetup } from "./data/mockData";
+import EditorRouteSkeleton from "./modules/presentations/ui/EditorRouteSkeleton";
 
 import ManagerJoinPage from "./pages/presentation/manager/JoinPage";
 import ManagerPickAnswerQuestion from "./pages/presentation/manager/PickAnswerQuestion";
@@ -37,7 +39,17 @@ const WaitingPage = lazy(() => import("./pages/loading/LoadingPage"));
 const PresentationEntry = lazy(() => import("./routes/PresentationEntry"));
 
 function RouteFallback() {
-  return <div className="min-h-screen bg-white" aria-busy="true" />;
+  const location = useLocation();
+  if (/^\/[^/]+\/panel\/[^/]+\/?$/.test(location.pathname)) {
+    return <EditorRouteSkeleton />;
+  }
+  return (
+    <div
+      className="min-h-screen bg-white"
+      aria-busy="true"
+      aria-label="در حال بارگذاری صفحه"
+    />
+  );
 }
 
 function ProtectedPresentationRoute() {

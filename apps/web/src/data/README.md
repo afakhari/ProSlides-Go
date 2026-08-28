@@ -1,13 +1,18 @@
-# Mock Data Documentation
+# Legacy mock-data inventory
 
-> **Legacy fixture reference (2026-08-19):** this directory supports isolated
-> UI examples and tests only. Its numeric `type` messages describe the removed
-> Django/Rust WebSocket view-model and are not a current backend contract. The
-> production runtime uses the typed Go HTTP/SSE adapters in `src/live`,
-> `src/utils/api.js`, and `src/utils/presentationApi.js`. Use the repository
-> OpenAPI document and `docs/architecture.md` for authoritative payloads.
+> **Archived compatibility reference (audited 2026-08-28):** the structures
+> below document legacy fixtures; they are not an integration guide or current
+> backend contract. Numeric `type` messages belong to the removed Django/Rust
+> WebSocket view model. New production code must use the OpenAPI contract,
+> `src/live`, `src/services/quizService.ts`, and `src/utils/apiFetch.ts`.
+>
+> Some current production components still import this directory. That is a
+> known F4 migration gap, not an approved pattern. Migrated modules must replace
+> these compatibility models with canonical typed module models; do not add new
+> imports. See `docs/frontend-architecture.md` and ADR 0003.
 
-این فایل شامل داده‌های Mock برای توسعه و تست پروژه است.
+مطالب زیر فقط شکل تاریخی fixtureها را برای تست‌های قدیمی توضیح می‌دهند. برای
+پیاده‌سازی جدید از آن‌ها استفاده نکنید و هیچ پیام عددی را به API ارسال نکنید.
 
 ## ساختار داده‌ها
 
@@ -67,7 +72,7 @@
 }
 ```
 
-## استفاده در کامپوننت‌ها
+## نمونه تاریخی — برای کپی‌کردن نیست
 
 ```javascript
 import { User_adding, QuizSetup, createNextPrevious } from "../data/mockData";
@@ -78,9 +83,9 @@ const navData = createNextPrevious(5, "next", 0);
 console.log("Data to send:", navData);
 ```
 
-## نکات مهم
+## وضعیت مهاجرت
 
-1. این داده‌ها فقط برای توسعه و تست هستند
-2. در آینده باید از API واقعی دریافت شوند
-3. داده‌های ناوبری باید به سرور ارسال شوند هنگام تغییر صفحه
-4. شماره سوال از `QuizSetup.slides` محاسبه می‌شود
+1. قرارداد واقعی API هم‌اکنون در `apps/api/openapi/openapi.yaml` پیاده شده است.
+2. فرمان‌های live با HTTP و رویدادها با SSE منتقل می‌شوند؛ WebSocket عددی بازنمی‌گردد.
+3. fixtureهای لازم باید کنار تست مصرف‌کننده و با مدل canonical همان ماژول قرار گیرند.
+4. حذف وابستگی production به این پوشه بخشی از Phase F4 است.

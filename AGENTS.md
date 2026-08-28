@@ -41,16 +41,16 @@ The historical Django/Rust implementation was intentionally removed from this
 branch. Its history remains in Git and `master`; do not restore legacy code as
 a shortcut.
 
-## Current repository state — 2026-08-24
+## Current repository state — 2026-08-28
 
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | React 19/Vite UI with secure UUID generation on plain-HTTP LAN origins, monotonic snapshot/event recovery, delta presence updates, recoverable question stats, stable command retries, ranked participant leaderboard projection, and the existing typed editor/public join flow. Nginx has raised connection/FD ceilings, no-buffer SSE, upstream keepalive, and dynamic Docker-DNS recovery across API address changes. | Preserve the established auth UI and participant non-disclosure boundary. Keep web/API provider configuration synchronized. |
+| `apps/web` | Functional React 19/Vite SPA. Frontend F1 now provides a Persian/RTL dashboard-to-editor creation flow with one guarded request/navigation, recoverable creation/load errors, route-shaped skeleton, first-slide onboarding/type selection, responsive editor header/toolbars, reduced-motion behavior, and no fake dashboard/editor controls. Migration remains partial: 54 JSX, 15 JS, 8 TS, and 1 TSX file; most UI is still outside `tsc`, legacy runtime/mock adapters remain, and styles are not yet tokenized globally. | Continue incrementally toward `app -> modules -> shared` using `docs/frontend-architecture.md`; F2 must centralize semantic tokens and accessible feedback without rewriting working domains. Preserve auth behavior, live ordering/recovery, participant non-disclosure, revision conflicts, and idempotent command retries. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
-| Tests | Web lint/typecheck/32 unit tests/build, 3 Playwright system-Chrome E2E flows, Go tests/vet, SMTP/JWKS/proxy tests, Compose identity/presentation/editor revision/conflict/live/result/non-disclosure/SSE matrix, full API+web image smoke, accepted local direct and Nginx 100-user runs, two direct 1k passes, two consecutive Nginx 1k passes, and forced API-address recovery; production-like 1k/5k/10k gates do not exist | Treat browser/local Compose load as bounded evidence only; never claim production or 10k proof without the named capacity gates. |
+| Tests | Web lint/current partial TS+TSX typecheck/34 unit tests/build, 3 passing Playwright system-Chrome E2E flows, real-Chrome F1 desktop/mobile snapshots, request audit, no-overflow/no-console-error and reduced-motion checks, Go tests/vet, Compose matrices, image smoke, and the prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
 
 The working branch is `feat/go-platform-foundation`. It uses a separate Git
 worktree, so `master` remains available to teammates. Do not merge, force-push,
@@ -69,6 +69,7 @@ apps/
   web/                       React client, progressive JS -> TypeScript migration
 load/k6/                     pinned live HTTP/SSE load scenario and SQL audit
 docs/
+  README.md                  documentation authority map and update lifecycle
   AI_HANDOFF.md              precise execution plan and handoff template
   architecture.md            architecture boundaries
   capacity-plan.md           workload, SLOs, telemetry, and 1k/5k/10k gates
@@ -78,6 +79,7 @@ docs/
   deployment-runbook.md      images, dependencies, secrets, TLS/SSE ingress, rollout
   operations-runbook.md      backup, restore, rollback, rotation, incident checks
   migration-status.md        Django/Rust parity and remaining production work
+  frontend-architecture.md   frontend boundaries, target tree, migration gates
   frontend-professionalization.md Persian-first UX phases and acceptance gates
   decisions/                 Architecture Decision Records
 AGENTS.md                    this mandatory guide
@@ -205,14 +207,21 @@ load tests. Long-lived JWTs in an SSE query string are prohibited.
 
 ## Single exact next task
 
-Execute the checked-in 1k HTTP/SSE protocol twice on a named production-like
-single-API topology through real TLS ingress, including a cold deployment run.
+Implement the first frontend F2 foundation slice: define one semantic
+Tailwind/CSS token source and one accessible notice/error primitive, then apply
+them to the dashboard/editor/share surfaces already touched by F1. Replace
+remaining native `alert()` calls in that slice and remove the duplicate
+Tailwind import; do not translate or refactor unrelated live/report routes.
 
-Acceptance: both runs meet the documented HTTP/event SLOs; raw summaries,
-topology/commit/image identity, pool/query/lock/CPU/heap/ingress metrics are
-retained; correctness reconciliation reports zero lost answers, double scores,
-invalid transitions, and post-close writes; cold readiness reaches its declared
-minimum before traffic. Only then promote 1k and consider the 5k gate.
+Acceptance: touched components no longer invent brand/feedback colors or use
+native alerts; pending/success/error notices have correct live-region behavior;
+RTL/LTR boundaries for title and access code are explicit; current desktop and
+390x844 F1 visuals do not regress; lint, expanded typecheck, 34+ unit tests,
+build, and real-Chrome checks pass.
+
+The production-like TLS 1k proof remains mandatory and unchanged, but is queued
+after the owner-prioritized frontend F1-F5 sequence. It is not completed or
+waived by frontend work.
 
 ## Phases and the single next task
 
@@ -235,6 +244,21 @@ minimum before traffic. Only then promote 1k and consider the 5k gate.
   users, reconnects, host disconnects, and answer bursts; document measured SLOs.
 - [ ] Phase 4: feature-flagged cutover and exercised rollback only after
   production gates pass. Do not merge legacy code into this branch.
+
+Frontend modernization is a separate ordered track:
+
+- [x] Phase F0: audit the runtime, styles, typing, dependencies, bundle, and
+  browser flow; accept ADR 0003 and document the target architecture.
+- [x] Phase F1: creation-to-editor continuity, guarded mutations, Persian RTL
+  onboarding, responsive editor chrome, and real-browser acceptance.
+- [ ] **Phase F2 — exact next task:** app shell, semantic tokens, Persian/RTL foundation, and shared
+  accessible feedback primitives.
+- [ ] Phase F3: presentation/editor module extraction and responsive editor
+  information architecture.
+- [ ] Phase F4: remove legacy runtime/mock production dependencies and extend
+  TypeScript, lint, and tests over migrated UI.
+- [ ] Phase F5: performance/accessibility hardening and measured regression
+  budgets, followed by resumption of the production-like capacity gate.
 
 ## Change log
 
@@ -272,14 +296,17 @@ minimum before traffic. Only then promote 1k and consider the 5k gate.
 | 2026-08-23 | Exercised and corrected the complete quiz editor/live browser flow | Question timing/scoring validation is shared by save/present; option IDs/order and question saves are durable and atomic; type conversion normalizes correctness; empty queues and ended-session reruns are safe; manager/player startup avoids guaranteed 404/401 probes; SSE presence updates the lobby; unavailable score deltas are hidden; and logout aborts stale fetches. Go/web checks, 26 unit tests, Compose integration, system-Chrome E2E, and real manager/player edit/answer/leaderboard flows passed. |
 | 2026-08-23 | Reworked quiz creation/editing around a typed canonical boundary and revision-aware writes | Forward-only migration `0013` adds presentation/slide revisions; OpenAPI and Go reject malformed question/content definitions and stale `If-Match` edits; settings merge by key; the editor saves each mutation once, selects by stable ID, supports question/content conversion and editing, isolates derived leaderboard IDs, shares save/present validation, and recovers conflicts. Web lint/typecheck/31 unit tests/build, Go tests/vet, both images, health/readiness, and the preserved-volume Compose integration matrix passed; no browser was opened for this change. |
 | 2026-08-23 | Added persistent owner-selected quiz access codes and direct public join links | Migration `0014`, OpenAPI, Go and React now enforce case-insensitive unique 5-12 character codes, use them for new sessions, atomically replace the current active-session code, and resolve `/{accessCode}` for participants. Go tests/vet, web lint/typecheck/32 unit tests/build, image builds, OpenAPI parsing, and the preserved-volume Compose matrix passed, including old-link invalidation and uniqueness; no browser E2E was run. |
-| 2026-08-23 | Defined the Persian-first frontend professionalization program | `docs/frontend-professionalization.md` records real-Chrome findings, UX rules, ordered F1-F4 phases, responsive/accessibility gates, and makes creation-to-editor continuity the owner-prioritized next task without changing the independent capacity gates. |
+| 2026-08-23 | Defined the Persian-first frontend professionalization program | The initial F1-F4 UX plan made creation-to-editor continuity owner-prioritized without changing independent capacity gates; the 2026-08-28 audit supersedes its phase detail with F0-F5. |
 | 2026-08-23 | Enabled local mobile-device browser testing | A real Compose stack published web on `0.0.0.0:5173` while API, PostgreSQL, and Redis stayed loopback-only; both loopback and `192.168.100.10:5173` returned HTTP 200, API readiness passed, the web build passed, and Vite advertised LAN addresses. The local runbook documents IPv4, firewall, reset-link, and opt-out settings. |
 | 2026-08-23 | Hardened the complete live-quiz lifecycle and LAN participant flow | Migration `0015` freezes run definitions and enforces one active run; PostgreSQL-clock deadlines close durably; idempotency is actor-scoped; snapshots recover stats/rank; active runs resist destructive reset/delete; React recovery is monotonic and LAN-safe; Redis limits, request bounds/timeouts, pool controls, bounded metrics, graceful SSE failure/drain, and raised Nginx/FD limits were added. Go tests/vet, web lint/typecheck/32 tests/build, preserved-volume Compose integration, Nginx config, migration, and a real Chrome mobile join over `192.168.100.10` passed. A 100-user scenario was added, but its pinned `xk6-sse` build did not resolve locally, so no 100/1k/5k/10k capacity claim was made. |
 | 2026-08-23 | Measured and optimized the live protocol through local 1k | The pinned k6 build was recovered with proxy-to-direct fallback. Query metrics exposed pool pressure; snapshot/answer/deadline/join round trips were reduced; SSE initialization became single-flight; configured minimum pool readiness became synchronous; and the load model now follows lobby → snapshot/SSE → question-open event → HTTP answer → close. The 100-user run and two local 1k runs met SLOs with zero HTTP/check/correctness failures. `docs/load-test-results.md` records fingerprints and limitations; production-like 1k, 5k, and 10k remain unproven. |
-| 2026-08-24 | Verified and hardened the public Nginx live path | A nullable closed-question deadline now maps late/concurrent answers to 409 instead of 500; SSE metric flushing no longer emits duplicate-header warnings; load settings fail fast; and Nginx dynamically re-resolves API addresses with upstream keepalive. Nginx passed 100 users and two consecutive local 1k runs with durable reconciliation; a forced API IP change recovered without restarting Web. One preceding 1k sample missed answer p95 and remains documented. TLS/remote production-like 1k is still the exact next gate. |
+| 2026-08-24 | Verified and hardened the public Nginx live path | A nullable closed-question deadline now maps late/concurrent answers to 409 instead of 500; SSE metric flushing no longer emits duplicate-header warnings; load settings fail fast; and Nginx dynamically re-resolves API addresses with upstream keepalive. Nginx passed 100 users and two consecutive local 1k runs with durable reconciliation; a forced API IP change recovered without restarting Web. One preceding 1k sample missed answer p95 and remains documented. TLS/remote production-like 1k became the next capacity gate and remains queued/unproven. |
+| 2026-08-28 | Audited and fixed the frontend modernization documentation | ADR 0003 and `docs/frontend-architecture.md` define the incremental React/Vite `app -> modules -> shared` target, routing/state/style/type/test boundaries, measured current debt, and F0-F5 gates. Conflicting next-task statements were resolved in favor of owner-prioritized F1; the independent production-like TLS 1k gate remains queued and unproven. No runtime code changed. |
+| 2026-08-28 | Completed frontend F1 creation-to-editor continuity | Dashboard creation is guarded to one request/navigation with Persian pending/retry feedback; route and data loading use an editor-shaped TSX skeleton; empty presentations provide focused first-slide onboarding and open responsive Persian type selection after the intentional create action. Dashboard/editor chrome is RTL, fake controls were removed, and the toolbar exposes only working features. Lint, TS/TSX typecheck, 34 unit tests, build, healthy rebuilt API/Web images, three system-Chrome E2E flows, real-Chrome request audit, 1440x900/390x844 screenshots, no overflow/console errors, and reduced motion passed. |
 
 ## References
 
+- `docs/README.md` — documentation authority map, reading order, and lifecycle.
 - `docs/AI_HANDOFF.md` — exact next task, commands, acceptance criteria, and
   final-response template.
 - `docs/architecture.md` — boundaries and scale design.
@@ -289,7 +316,9 @@ minimum before traffic. Only then promote 1k and consider the 5k gate.
 - `docs/deployment-runbook.md` — immutable build, dependency, TLS/SSE, and rollout procedure.
 - `docs/operations-runbook.md` — backup/restore, rollback, rotation, and incident procedure.
 - `docs/migration-status.md` — current parity matrix, evidence, and remaining work.
+- `docs/frontend-architecture.md` — audited current frontend, target boundaries, and migration gates.
 - `docs/frontend-professionalization.md` — Persian-first UX direction, phases, and acceptance gates.
 - `docs/decisions/0001-go-modular-monolith.md` — architecture decision record.
 - `docs/decisions/0002-durable-events-and-bounded-sse-fanout.md` — replay/fan-out and backpressure decision.
+- `docs/decisions/0003-modular-react-frontend.md` — incremental modular React frontend decision.
 - `apps/api/openapi/openapi.yaml` — contract source of truth.

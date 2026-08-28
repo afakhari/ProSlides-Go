@@ -103,6 +103,30 @@ npm run test:e2e
 Pop-Location
 ```
 
+The Vite test server proxies `/api/v1` to `127.0.0.1:8080`; a healthy API that
+exists only inside the Compose network is insufficient. Confirm the published
+port with `docker compose ps` and `Invoke-RestMethod
+http://localhost:8080/readyz` before diagnosing a UI assertion.
+
+### Refresh stale API/Web images without deleting data
+
+After source or Nginx changes, an already-running container may still use an
+older image. Rebuild and recreate only the application services while keeping
+the named PostgreSQL/Redis volumes:
+
+```powershell
+docker compose --env-file apps/api/.env.example config --quiet
+docker compose --env-file apps/api/.env.example up --build -d --force-recreate api web
+docker compose ps
+Invoke-RestMethod http://localhost:8080/readyz
+Invoke-WebRequest -UseBasicParsing http://localhost:5173/web-healthz
+```
+
+If Web logs show an old startup-time `api` DNS resolution failure or browser
+requests return proxy 500s, use this refresh before rerunning E2E. Do not use
+`down -v`, `docker volume rm`, a database reset, or a Redis purge to repair
+container/image drift.
+
 ## Common failures
 
 | Symptom | Check |
@@ -114,3 +138,4 @@ Pop-Location
 | port already allocated | set `API_PORT`, `WEB_PORT`, `POSTGRES_PORT`, or `REDIS_PORT`; keep host-mode URLs consistent |
 | phone cannot open the site | confirm both devices share a network, use the computer's active IPv4 address rather than `localhost`, and allow inbound TCP `5173` on Private networks |
 | SSE updates are delayed behind another proxy | disable response buffering and use a read timeout longer than the session |
+| E2E gets API proxy 500 while API is ready | inspect `docker compose ps`/Web logs, then rebuild and force-recreate only `api web`; preserve volumes |

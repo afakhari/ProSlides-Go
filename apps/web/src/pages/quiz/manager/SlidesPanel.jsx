@@ -208,8 +208,8 @@ export default function SlidesPanel({
   // ???? ????? ???? ?????? ????
   const handleAddSlide = async () => {
     try {
-      await addNewSlide();
-      if (onRefresh) {
+      const createdSlide = await addNewSlide();
+      if (createdSlide && onRefresh) {
         await onRefresh();
       }
     } catch (error) {
@@ -248,19 +248,19 @@ export default function SlidesPanel({
   // ???? ???? ???? ?????? ??? ????
   const getQuestionType = (slide) => {
     if (slide.slide_type === 3) {
-      return "Leaderboard";
+      return "جدول امتیازات";
     }
     if (slide.slide_type === 2) {
-      return "Content";
+      return "محتوا";
     }
     
     if (slide.slide_type === 1 && slide.question) {
-      return slide.question.question_type === "single" ? "Single Choice" : 
-            slide.question.question_type === "multiple" ? "Multiple Choice" : 
-            "Not Selected";
+      return slide.question.question_type === "single" ? "تک‌گزینه‌ای" : 
+            slide.question.question_type === "multiple" ? "چندگزینه‌ای" : 
+            "انتخاب نشده";
     }
     
-    return "Not Selected";
+    return "انتخاب نشده";
   };
 
   // ???? ???? ?????? ???????? ??????
@@ -303,9 +303,9 @@ export default function SlidesPanel({
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="font-semibold">Slides</h2>
+        <h2 className="font-bold text-slate-800">اسلایدها</h2>
         {isReordering && (
-          <span className="text-xs text-blue-500 animate-pulse">Updating Order...</span>
+          <span className="animate-pulse text-xs text-blue-500 motion-reduce:animate-none">در حال مرتب‌سازی…</span>
         )}
       </div>
 
@@ -498,7 +498,7 @@ export default function SlidesPanel({
           w-full aspect-[16/9] max-w-[360px] mx-auto flex items-center justify-center
           ${isReordering ? 'opacity-50 cursor-not-allowed' : 'border-gray-300 text-gray-500 hover:border-green-300'}`}
       >
-        + Add Slide
+        + افزودن اسلاید
       </button>
 
       <ConfirmDialog

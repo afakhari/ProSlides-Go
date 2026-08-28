@@ -51,16 +51,26 @@ not complete. Never describe a design target as benchmark evidence.
   preceding Nginx 1k sample missed answer p95 (581.88 ms), so 1k
   production-like and all 5k/10k gates remain unmeasured. Use
   `docs/capacity-plan.md` and `docs/load-test-results.md` as the proof record.
-- Exact next task: execute the 1k protocol twice on a named production-like
-  single-API topology through TLS, including cold readiness and full metrics.
+- Frontend truth: the UI is functionally integrated but not yet professionally
+  modularized. Most components are JSX outside `tsc`; active routing coexists
+  with unreachable legacy runtime, production code still imports mock-era view
+  models, and styles lack one enforced semantic token/RTL system. The audited
+  baseline and target are in `docs/frontend-architecture.md`.
+- Exact next task: implement frontend F1 creation-to-editor continuity with one
+  create request, one navigation, Persian pending/error/onboarding states, an
+  editor-shaped skeleton, reduced-motion support, and desktop/mobile browser
+  evidence.
+- Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
+  then resume the still-mandatory production-like TLS 1k gate. No capacity gate
+  has been waived or passed by this reprioritization.
 - Canonical parity and deployment references: `docs/migration-status.md` and
   `docs/configuration.md`.
 
 ## Branch and collaboration boundary
 
-- Work only in `D:\software proj\ProSlides-go-platform` on
+- Work only in `D:\projs\software proj\ProSlides-go-platform` on
   `feat/go-platform-foundation` unless the owner directs otherwise.
-- `D:\software proj\ProSlides` / `master` is the colleagues' legacy workspace.
+- `D:\projs\software proj\ProSlides` / `master` is the colleagues' legacy workspace.
   Never modify, rebase, reset, or clean it as part of this project.
 - Commit focused changes to the feature branch and push normally. Do not merge
   to `master`, force-push, or open a production deployment without approval.
@@ -77,6 +87,7 @@ not complete. Never describe a design target as benchmark evidence.
 | Python | 3.13.15 installed user-scoped | runs official Codex skill helper scripts; the incomplete `C:\Python314` installation cannot import `encodings` |
 | Codex skills | official `security-best-practices`, `playwright`, `gh-fix-ci`, and `yeet` installed personally | available from the next Codex turn; they are developer tooling, not repository/runtime dependencies |
 | GitHub CLI / Actions | `gh` 2.97.0; Actions run Go/web checks, both Compose validations, and API/web image builds | `gh auth status` currently reports an invalid default token and must be repaired before `gh-fix-ci` or `yeet`; normal Git credential-manager pushes still work |
+| Git worktree metadata | checkout is `D:\projs\software proj\ProSlides-go-platform`, but its `.git` file still points to the removed `D:\software proj\...` location | until the owner approves metadata repair, inspect with `git --git-dir='D:/projs/software proj/ProSlides/.git/worktrees/ProSlides-go-platform' --work-tree='D:/projs/software proj/ProSlides-go-platform' ...`; do not guess, reset, or recreate the worktree |
 | C compiler | `gcc` is not installed | Go `-race` cannot run locally; CI runs the live-module race detector on Linux instead |
 
 Do not install a second Go version. Use the version declared by `apps/api/go.mod`.
@@ -216,14 +227,37 @@ the eighth one-second probe. This is local, non-TLS evidence only.
 
 ## Active Persian-first frontend program
 
-`docs/frontend-professionalization.md` is the UX source of truth. The product
-target is Persian and RTL; technical identifiers and APIs remain English. The
-owner-prioritized Phase F1 replaces the abrupt dashboard-to-generic-loader-to-
-empty-editor sequence with dashboard mutation feedback, an editor-shaped
-skeleton, reduced-motion-safe entry, and Persian first-slide onboarding. Do not
-expand F1 into the full design-system or translation migration; those are
-ordered as F2-F4 with explicit acceptance gates. The capacity plan remains
-valid and resumes after the prioritized frontend sequence.
+`docs/frontend-professionalization.md` owns UX sequencing;
+`docs/frontend-architecture.md` owns technical boundaries; ADR 0003 records the
+decision. F0 documentation/audit is complete. The accepted target keeps React
+19 and Vite and migrates incrementally toward `app -> modules -> shared`, with
+React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
+semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
+
+The owner-prioritized exact next task is F1. It replaces the abrupt
+dashboard-to-generic-loader-to-empty-editor flow with one idempotent UI action,
+dashboard mutation feedback, an editor-shaped skeleton, reduced-motion-safe
+entry, and Persian first-slide onboarding. Do not expand F1 into the complete
+design-system, translation, state-library, or framework migration. F2-F5 cover
+those ordered quality boundaries. Capacity work remains independently required
+and resumes after F5.
+
+### 2026-08-28 audit evidence
+
+- 78 JS/TS/CSS files and about 18,300 nonblank lines: 54 JSX, 15 JS, 7 TS,
+  and no TSX files; current `tsc` therefore verifies only a small typed seam.
+- Four UI files exceed 1,000 nonblank lines. `App.jsx` contains the active route
+  table followed by unreachable legacy runtime whose static imports still
+  influence the bundle.
+- Production code imports mock-era models and maps typed HTTP/SSE data back to
+  numeric legacy view models; migrated modules must retire this compatibility
+  layer rather than copy it.
+- Styling has roughly 381 direct color expressions, 75 inline objects, and 169
+  physical-direction utilities; Tailwind is imported twice and semantic UI
+  classes are not backed by a complete token set.
+- Responsive auth passed in real Chrome. Authenticated E2E was blocked before
+  frontend assertions by a stale running Web image returning API proxy 500s.
+  Rebuild/recreate API and Web without deleting volumes before F1 browser QA.
 
 ## Completed implementation: dependency adapters and readiness
 
@@ -348,16 +382,18 @@ recreated. Actual provider values (`SMTP_*`, `PUBLIC_WEB_URL`,
 `EMAIL_VERIFICATION_PEPPER`,
 `GOOGLE_CLIENT_ID`) must be supplied through deployment secret/config storage;
 none belong in Git. The bounded telemetry baseline, protocol-correct scenario,
-local 100-user gate, and repeatable local 1k observations now exist. Next,
-repeat 1k twice on a named production-like TLS topology with cold readiness and
-pool/query/lock/CPU/heap capture before proceeding to 5k/10k.
+local 100-user gate, and repeatable local 1k observations now exist. After the
+owner-prioritized frontend F1-F5 sequence, repeat 1k twice on a named
+production-like TLS topology with cold readiness and pool/query/lock/CPU/heap
+capture before proceeding to 5k/10k.
 
 ## Commands and verification matrix
 
 Run from repository root unless indicated otherwise.
 
 ```powershell
-# Always first
+# Always first. Use the explicit --git-dir/--work-tree form documented above
+# while the local worktree pointer remains stale.
 git status --short --branch
 
 # API formatting and tests (current shell may not have Go on PATH)
@@ -425,6 +461,10 @@ For every material change, update both documents in the same commit:
   risks/prerequisites, and dated change-log row.
 - `docs/AI_HANDOFF.md`: replace the exact-next-task section, environment facts
   if changed, definition of done, and commands if changed.
+
+For frontend architecture or UX changes, also update
+`docs/frontend-architecture.md` and `docs/frontend-professionalization.md`; add
+or supersede an ADR when a durable architecture decision changes.
 
 Use precise completion language: say `implemented and verified`, `implemented
 but not locally verified because <specific reason>`, or `not implemented`. Do

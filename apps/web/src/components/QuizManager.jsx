@@ -16,11 +16,14 @@ import {
   LogOut,
   Folder,
   X,
+  LoaderCircle,
+  Plus,
 } from "lucide-react";
 import ShareMenu from "./ShareMenu";
 import { apiFetch } from "../utils/apiFetch";
 import { clearAuthStorage } from "../utils/auth";
 import { getPresentationValidationError } from "../pages/quiz/manager/questionValidation";
+import { createPresentationOnce } from "../modules/presentations/model/createPresentationFlow.ts";
 
 const safeTimestamp = (value) => {
   const time = Date.parse(value);
@@ -29,7 +32,7 @@ const safeTimestamp = (value) => {
 
 const formatDate = (timestamp) =>
   timestamp
-    ? new Date(timestamp).toLocaleDateString("en-GB", {
+    ? new Date(timestamp).toLocaleDateString("fa-IR", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -39,7 +42,7 @@ const formatDate = (timestamp) =>
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
   const [loggedInUser] = useState(
-    () => localStorage.getItem("auth.name") || "You"
+    () => localStorage.getItem("auth.name") || "شما"
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,8 +63,6 @@ export default function QuizManager({ onNewPresentation }) {
   const fetchQuizzes = useCallback(async (signal) => {
     try {
       setLoading(true);
-      // Add a small delay for better UX
-      await new Promise((resolve) => setTimeout(resolve, 100));
       const data = await quizService.listPresentations({ signal });
 
       // Map API response to local quiz structure
@@ -139,23 +140,25 @@ export default function QuizManager({ onNewPresentation }) {
   });
   const menuButtonRefs = useRef({});
   const [creatingQuiz, setCreatingQuiz] = useState(false);
+  const [creationError, setCreationError] = useState(null);
+  const creationGateRef = useRef(false);
 
   // Create a new quiz via API and navigate to editor
   const handleNewPresentation = async () => {
+    if (creationGateRef.current) return;
     try {
       setCreatingQuiz(true);
-      const data = await quizService.createPresentation("Untitled Presentation");
-      const newQuizId = data.id;
-
-      if (newQuizId) {
-        // Navigate to editor with new quiz ID
-        onNewPresentation(newQuizId);
-      } else {
-        throw new Error("No quiz_id returned from API");
-      }
+      setCreationError(null);
+      await createPresentationOnce({
+        gate: creationGateRef,
+        create: quizService.createPresentation,
+        navigate: onNewPresentation,
+      });
     } catch (err) {
       console.error("Error creating new quiz:", err);
-      setError(err.message);
+      setCreationError(
+        "ارائه ساخته نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید."
+      );
     } finally {
       setCreatingQuiz(false);
     }
@@ -329,9 +332,9 @@ export default function QuizManager({ onNewPresentation }) {
     if (selectedQuizzes.length === 0) return;
 
     showConfirmDialog({
-      title: "Delete Quizzes",
-      description: `Are you sure you want to delete ${selectedQuizzes.length} quiz(es)? This action cannot be undone.`,
-      confirmText: "Delete",
+      title: "حذف ارائه‌ها",
+      description: `آیا از حذف ${selectedQuizzes.length} ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.`,
+      confirmText: "حذف",
       confirmVariant: "destructive",
       onConfirm: async () => {
         setLoading(true);
@@ -372,10 +375,10 @@ export default function QuizManager({ onNewPresentation }) {
   // Handle delete single quiz from hamburger menu
   const handleDeleteQuiz = async (quizId) => {
     showConfirmDialog({
-      title: "Delete Quiz",
+      title: "حذف ارائه",
       description:
-        "Are you sure you want to delete this quiz? This action cannot be undone.",
-      confirmText: "Delete",
+        "آیا از حذف این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
+      confirmText: "حذف",
       confirmVariant: "destructive",
       onConfirm: async () => {
         setShowMenu(null);
@@ -602,16 +605,20 @@ export default function QuizManager({ onNewPresentation }) {
   }, [showMenu]);
 
   return (
-    <div className="min-h-screen bg-blue-50 pb-24 md:pb-28">
+    <div
+      className="min-h-screen bg-[linear-gradient(180deg,#faf9ff_0%,#f5f7fb_100%)] pb-24 text-slate-900 md:pb-28"
+      dir="rtl"
+      style={{ fontFamily: '"Vazirmatn", "Segoe UI", sans-serif' }}
+    >
       {/* Header */}
       <div className="min-h-screen mx-auto mb-8">
         {/* Top Navigation Bar with Search */}
-        <div className="bg-white fixed top-0 left-0 right-0 w-full z-50 shadow-sm">
+        <div className="fixed inset-x-0 top-0 z-50 w-full border-b border-violet-100/80 bg-white/95 shadow-sm backdrop-blur">
           {/* Mobile Header */}
           <div className="md:hidden">
             {/* Single Row: Logo + Icons */}
             <div className="flex items-center justify-between px-4 py-2.5">
-              <div className="text-black font-semibold text-lg flex items-center gap-1.5 before:content-['✱'] before:text-xl">
+              <div className="flex items-center gap-1.5 text-lg font-bold text-violet-950 before:text-xl before:text-violet-600 before:content-['✱']" dir="ltr">
                 ProSlides
               </div>
               <div className="flex items-center gap-1">
@@ -626,37 +633,28 @@ export default function QuizManager({ onNewPresentation }) {
                       ? "bg-purple-100 text-purple-600"
                       : "hover:bg-gray-100 text-gray-600"
                   }`}
-                  aria-label="Toggle search"
-                  title="Search"
+                  aria-label="نمایش جست‌وجو"
+                  title="جست‌وجو"
                 >
                   <Search className="w-5 h-5" />
-                </button>
-                <button
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition"
-                  aria-label="Notifications"
-                  title="Notifications"
-                >
-                  <span className="text-lg">🔔</span>
-                </button>
-                <button className="px-3 py-1.5 bg-teal-500 text-white text-sm rounded-lg hover:bg-teal-600 transition font-medium">
-                  Upgrade
                 </button>
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-semibold cursor-pointer hover:bg-teal-600 transition ml-1"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-violet-700 text-sm font-semibold text-white transition hover:bg-violet-800"
+                    aria-label="باز کردن منوی حساب"
                   >
                     {loggedInUser.charAt(0).toUpperCase()}
                   </button>
                   {showProfileMenu && (
-                    <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-50">
+                    <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                       <button
                         onClick={() => handleLogout()}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
                       >
                         <LogOut className="w-4 h-4" />
-                        Logout
+                        خروج از حساب
                       </button>
                     </div>
                   )}
@@ -667,21 +665,21 @@ export default function QuizManager({ onNewPresentation }) {
             {showMobileSearch && (
               <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 animate-in slide-in-from-top duration-200">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search presentations.."
+                    placeholder="جست‌وجوی ارائه‌ها"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-200 text-gray-700 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full rounded-xl border border-gray-200 bg-white py-2 pe-10 ps-10 text-sm text-gray-700 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        aria-label="Clear search"
-                        title="Clear search"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label="پاک کردن جست‌وجو"
+                        title="پاک کردن جست‌وجو"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -693,67 +691,41 @@ export default function QuizManager({ onNewPresentation }) {
 
           {/* Desktop Header */}
           <div className="hidden md:flex items-center justify-between px-6 py-3">
-            <div className="text-black font-semibold text-lg flex items-center gap-1.5 before:content-['✱'] before:text-xl">
+            <div className="flex items-center gap-1.5 text-lg font-bold text-violet-950 before:text-xl before:text-violet-600 before:content-['✱']" dir="ltr">
               ProSlides
             </div>
 
             <div className="relative flex-1 max-w-md mx-8">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search presentations.."
+                placeholder="جست‌وجوی ارائه‌ها"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 border border-gray-300 text-gray-700 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pe-12 ps-4 text-gray-700 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
 
             <div className="flex items-center gap-4">
-              <button
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Language"
-                title="Language"
-              >
-                <span className="text-xl">🌐</span>
-              </button>
-              <button
-                className="p-2 hover:bg-gray-100 rounded-lg transition relative"
-                aria-label="Notifications"
-                title="Notifications"
-              >
-                <span className="text-xl">🔔</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <button
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Help"
-                title="Help"
-              >
-                <span className="text-xl">❓</span>
-              </button>
-              <button className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition font-medium">
-                Upgrade
-              </button>
-
               {/* Profile Dropdown */}
               <div className="relative">
                   <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:bg-teal-600 transition"
-                    aria-label="Open profile menu"
-                    title="Profile"
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-violet-700 font-semibold text-white transition hover:bg-violet-800"
+                    aria-label="باز کردن منوی حساب"
+                    title="حساب کاربری"
                   >
                   {loggedInUser.charAt(0).toUpperCase()}
                 </button>
 
                 {showProfileMenu && (
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-50">
+                  <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                     <button
                       onClick={() => handleLogout()}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
                     >
                       <LogOut className="w-4 h-4" />
-                      Logout
+                      خروج از حساب
                     </button>
                   </div>
                 )}
@@ -763,17 +735,16 @@ export default function QuizManager({ onNewPresentation }) {
         </div>
 
         {/* Content with top padding to account for fixed header */}
-        <div className="pt-16 md:pt-20 px-4 md:px-6">
+        <main className="mx-auto max-w-[1500px] px-4 pt-20 md:px-8 md:pt-24">
           {passwordPromptVisible && (
             <div className="mb-6 rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm text-purple-900 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-semibold">
-                    Set a password for your account
+                    برای حساب خود رمز عبور تعیین کنید
                   </div>
                   <div className="text-xs text-purple-700">
-                    You signed up with Google. Set a password to log in without
-                    Google.
+                    با گوگل ثبت‌نام کرده‌اید. با تعیین رمز عبور، بدون گوگل هم وارد شوید.
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -782,13 +753,13 @@ export default function QuizManager({ onNewPresentation }) {
                     disabled={passwordPromptLoading}
                     className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {passwordPromptLoading ? "Sending..." : "Send link"}
+                    {passwordPromptLoading ? "در حال ارسال…" : "ارسال لینک"}
                   </button>
                   <button
                     onClick={dismissPasswordPrompt}
                     className="rounded-md border border-purple-200 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-50"
                   >
-                    Later
+                    بعداً
                   </button>
                 </div>
               </div>
@@ -823,9 +794,15 @@ export default function QuizManager({ onNewPresentation }) {
             {/* <h3 className="text-xs uppercase text-gray-500 mb-2">
               MY PRESENTATIONS
             </h3> */}
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              My presentations
-            </h2>
+            <div className="mb-7 max-w-2xl">
+              <p className="mb-2 text-sm font-semibold text-violet-700">فضای کاری شما</p>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                ارائه‌های من
+              </h1>
+              <p className="mt-2 text-sm leading-7 text-slate-500">
+                ارائه تازه بسازید، اسلایدها را ویرایش کنید و برای اجرای زنده آماده شوید.
+              </p>
+            </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 md:gap-0">
@@ -833,15 +810,18 @@ export default function QuizManager({ onNewPresentation }) {
                 <Button
                   onClick={handleNewPresentation}
                   disabled={creatingQuiz}
-                  className="bg-purple-800 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 w-full md:w-auto"
+                  aria-describedby={creationError ? "presentation-creation-error" : undefined}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 text-white shadow-lg shadow-violet-200 transition hover:bg-violet-800 focus-visible:ring-violet-500 md:w-auto"
                 >
                   {creatingQuiz ? (
                     <>
-                      <span className="animate-spin">⏳</span> Creating...
+                      <LoaderCircle className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                      در حال ساخت…
                     </>
                   ) : (
                     <>
-                      <span className="text-xl mb-1">+</span> New presentation
+                      <Plus className="h-5 w-5" aria-hidden="true" />
+                      ارائه جدید
                     </>
                   )}
                 </Button>
@@ -860,31 +840,58 @@ export default function QuizManager({ onNewPresentation }) {
               </div>
 
               <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-3">
-                <span className="text-sm text-gray-500">Sort by</span>
+                <span className="text-sm text-gray-500">مرتب‌سازی</span>
                 <div className="relative">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none border border-gray-300 bg-white rounded-lg pl-4 pr-10 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                    aria-label="مرتب‌سازی ارائه‌ها"
+                    className="cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pe-4 ps-10 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   >
-                    <option>Recently updated</option>
-                    <option>Name</option>
-                    <option>Created date</option>
+                    <option value="Recently updated">آخرین ویرایش</option>
+                    <option value="Name">نام</option>
+                    <option value="Created date">تاریخ ساخت</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
+                  <ChevronDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
                 </div>
               </div>
             </div>
 
+            {creatingQuiz && (
+              <p className="sr-only" role="status" aria-live="polite">
+                در حال ساخت ارائه و انتقال به ویرایشگر
+              </p>
+            )}
+            {creationError && (
+              <div
+                id="presentation-creation-error"
+                className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                role="alert"
+              >
+                <span>{creationError}</span>
+                <button
+                  type="button"
+                  onClick={handleNewPresentation}
+                  disabled={creatingQuiz}
+                  className="rounded-lg bg-white px-3 py-2 font-bold text-rose-700 shadow-sm ring-1 ring-rose-200 hover:bg-rose-100"
+                >
+                  تلاش دوباره
+                </button>
+              </div>
+            )}
+
             {showEmptyState && (
-              <div className="mb-6 rounded-lg border border-dashed border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
+              <div className="mb-6 rounded-3xl border border-dashed border-violet-200 bg-white px-6 py-14 text-center shadow-sm">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <Plus className="h-7 w-7" aria-hidden="true" />
+                </div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {searchQuery ? "No results found" : "No presentations yet"}
+                  {searchQuery ? "نتیجه‌ای پیدا نشد" : "اولین ارائه‌تان را بسازید"}
                 </h3>
                 <p className="mt-2 text-sm text-gray-500">
                   {searchQuery
-                    ? "Try a different search or clear the filter."
-                    : "Create your first presentation to get started."}
+                    ? "عبارت دیگری را امتحان کنید یا جست‌وجو را پاک کنید."
+                    : "از یک ارائه خالی شروع کنید و اولین اسلاید را در ویرایشگر بسازید."}
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
                   {searchQuery ? (
@@ -893,15 +900,15 @@ export default function QuizManager({ onNewPresentation }) {
                       onClick={() => setSearchQuery("")}
                       className="border-gray-300 bg-white text-gray-700"
                     >
-                      Clear search
+                      پاک کردن جست‌وجو
                     </Button>
                   ) : null}
                   <Button
                     onClick={handleNewPresentation}
                     disabled={creatingQuiz}
-                    className="bg-purple-800 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg"
+                    className="rounded-xl bg-violet-700 px-6 py-2.5 text-white hover:bg-violet-800"
                   >
-                    {creatingQuiz ? "Creating..." : "New presentation"}
+                    {creatingQuiz ? "در حال ساخت…" : "ساخت اولین ارائه"}
                   </Button>
                 </div>
               </div>
@@ -927,19 +934,19 @@ export default function QuizManager({ onNewPresentation }) {
                       />
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
-                      Name
+                      نام
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
-                      Access code
+                      کد ورود
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
-                      Created by
+                      سازنده
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
-                      Last updated
+                      آخرین ویرایش
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600">
-                      Created
+                      تاریخ ساخت
                     </th>
                     <th className="text-left px-6 py-3 text-sm font-medium text-gray-600"></th>
                   </tr>
@@ -1074,7 +1081,7 @@ export default function QuizManager({ onNewPresentation }) {
                                     fill="#C4B5FD"
                                   />
                                 </svg>
-                                Report
+                                گزارش
                               </button>
                             </div>
                           </div>
@@ -1121,13 +1128,13 @@ export default function QuizManager({ onNewPresentation }) {
                             onClick={() => handleEdit(quiz.id)}
                             className="bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
                           >
-                            Edit
+                            ویرایش
                           </Button>
                           <Button
                             onClick={() => handlePresent(quiz.id)}
                             className="bg-purple-800 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm"
                           >
-                            Present
+                            اجرا
                           </Button>
                           <div className="relative">
                             <button
@@ -1152,7 +1159,7 @@ export default function QuizManager({ onNewPresentation }) {
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-purple-600 font-medium"
                                 >
                                   <Play className="w-4 h-4" />
-                                  Present
+                                  اجرا
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1182,14 +1189,14 @@ export default function QuizManager({ onNewPresentation }) {
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <Copy className="w-4 h-4" />
-                                  Reset results
+                                  پاک‌کردن نتایج
                                 </button>
                                 <button
                                   onClick={() => handleDuplicate(quiz)}
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <Copy className="w-4 h-4" />
-                                  Duplicate
+                                  تکثیر
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1199,7 +1206,7 @@ export default function QuizManager({ onNewPresentation }) {
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <span className="w-4 h-4 pb-5">🔗</span>
-                                  Share
+                                  اشتراک‌گذاری
                                 </button>
                                 {/* <button className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3">
                                   <span className="w-4 h-4">📁</span>
@@ -1326,7 +1333,7 @@ export default function QuizManager({ onNewPresentation }) {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-purple-600 font-medium"
                           >
-                            <Play className="w-4 h-4" /> Present
+                            <Play className="w-4 h-4" /> اجرا
                           </button>
                           <button
                             onClick={() => {
@@ -1336,7 +1343,7 @@ export default function QuizManager({ onNewPresentation }) {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
-                            <Pencil className="w-4 h-4" /> Rename
+                            <Pencil className="w-4 h-4" /> تغییر نام
                           </button>
                           <button
                             onClick={() => {
@@ -1348,13 +1355,13 @@ export default function QuizManager({ onNewPresentation }) {
                             <span className="w-4 h-4 flex items-center justify-center">
                               🔗
                             </span>{" "}
-                            Share
+                            اشتراک‌گذاری
                           </button>
                           <button
                             onClick={() => handleDuplicate(quiz)}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
-                            <Copy className="w-4 h-4" /> Duplicate
+                            <Copy className="w-4 h-4" /> تکثیر
                           </button>
                           <div className="h-px bg-gray-100 my-1"></div>
                           <button
@@ -1372,7 +1379,7 @@ export default function QuizManager({ onNewPresentation }) {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
                           >
-                            <Copy className="w-4 h-4" /> Reset results
+                            <Copy className="w-4 h-4" /> پاک‌کردن نتایج
                           </button>
                           <button
                             onClick={() => {
@@ -1381,7 +1388,7 @@ export default function QuizManager({ onNewPresentation }) {
                             }}
                             className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 flex items-center gap-3"
                           >
-                            <Trash2 className="w-4 h-4" /> Delete
+                            <Trash2 className="w-4 h-4" /> حذف
                           </button>
                         </div>
                       )}
@@ -1391,7 +1398,7 @@ export default function QuizManager({ onNewPresentation }) {
                   <div className="grid grid-cols-2 gap-4 text-sm mb-5 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
-                        Access Code
+                        کد ورود
                       </span>
                       <div
                         onClick={() => setShowShareModal(quiz.id)}
@@ -1402,7 +1409,7 @@ export default function QuizManager({ onNewPresentation }) {
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
-                        Last Updated
+                        آخرین ویرایش
                       </span>
                       <span className="text-xs font-medium text-gray-600">
                         {quiz.lastUpdated}
@@ -1416,20 +1423,20 @@ export default function QuizManager({ onNewPresentation }) {
                       variant="outline"
                       className="flex-1 h-10 text-sm border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium tracking-wide"
                     >
-                      Report
+                      گزارش
                     </Button>
                     <Button
                       onClick={() => handleEdit(quiz.id)}
                       variant="outline"
                       className="flex-1 h-10 text-sm border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium tracking-wide"
                     >
-                      Edit
+                      ویرایش
                     </Button>
                     <Button
                       onClick={() => handlePresent(quiz.id)}
                       className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-10 text-sm shadow-sm shadow-purple-200 font-medium tracking-wide"
                     >
-                      Present
+                      اجرا
                     </Button>
                   </div>
                 </div>
@@ -1438,18 +1445,20 @@ export default function QuizManager({ onNewPresentation }) {
               </>
             )}
             {loading && (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 mt-15 border-b-2 border-purple-600"></div>
+              <div className="grid gap-4 py-4 md:grid-cols-2 xl:grid-cols-3" aria-label="در حال بارگذاری ارائه‌ها" aria-busy="true">
+                {[0, 1, 2].map((item) => (
+                  <div key={item} className="h-44 animate-pulse rounded-2xl border border-violet-100 bg-white motion-reduce:animate-none" />
+                ))}
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
-                Error: {error}
+              <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
+                بارگذاری ارائه‌ها انجام نشد. لطفاً صفحه را دوباره بارگذاری کنید.
               </div>
             )}
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Share Modal */}
@@ -1477,7 +1486,7 @@ export default function QuizManager({ onNewPresentation }) {
           <div className="bg-[#4A5568] text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-6">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">
-                {selectedQuizzes.length} selected
+                {selectedQuizzes.length} انتخاب‌شده
               </span>
               {!allSelected && (
                 <button
@@ -1485,7 +1494,7 @@ export default function QuizManager({ onNewPresentation }) {
                   className="text-sm hover:text-gray-300 transition flex items-center gap-2"
                 >
                   <span className="text-lg">⚡</span>
-                  Select all
+                  انتخاب همه
                 </button>
               )}
               {/* <button className="text-sm hover:text-gray-300 transition flex items-center gap-2">
@@ -1497,7 +1506,7 @@ export default function QuizManager({ onNewPresentation }) {
                 className="text-sm text-red-400 hover:text-red-200 transition flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                Move to Trash
+                حذف ارائه‌ها
               </button>
             </div>
             <button

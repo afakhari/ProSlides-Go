@@ -1,32 +1,26 @@
 //This component belongs to the toolbar on the right side of the Edit Quiz section(Panel)
 
-import { 
-    Sparkles, LayoutTemplate,
-    FileText, Paintbrush, Volume2, Settings, LayoutList
-} from "lucide-react";
+import { FileText, Paintbrush, Volume2, LayoutList } from "lucide-react";
 
 
 const items = [
-    { id: "slides", label: "Slides", icon: LayoutList, mobileOnly: true },
-    { id: "ai", label: "AI", icon: Sparkles },
-    { id: "templates", label: "Templates", icon: LayoutTemplate },
-    "divider",
-    { id: "content", label: "Content", icon: FileText },
-    { id: "design", label: "Design", icon: Paintbrush },
-    { id: "audio", label: "Audio", icon: Volume2 },
-    "divider",
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "slides", label: "اسلایدها", icon: LayoutList, mobileOnly: true },
+    { id: "content", label: "محتوا", icon: FileText },
+    { id: "design", label: "طراحی", icon: Paintbrush },
+    { id: "audio", label: "صدا", icon: Volume2 },
 ];
 
 
 export default function RightToolbar({ activeTab, setActiveTab, isCompact = false }) {
     const containerClass = isCompact
-        ? "bg-white border-t border-gray-200 shadow-sm flex flex-row items-center py-2 px-2 gap-2 w-full h-14 overflow-x-auto flex-nowrap fixed bottom-0 left-0 right-0 z-40"
-        : "bg-white border-l border-gray-200 shadow-sm flex flex-col items-center py-4 gap-2 w-16 h-full";
+        ? "fixed inset-x-0 bottom-0 z-40 flex h-16 w-full flex-row items-center justify-around gap-2 border-t border-violet-100 bg-white px-2 py-2 shadow-lg"
+        : "flex h-full w-20 flex-col items-center gap-2 border-r border-violet-100 bg-white py-4 shadow-sm";
     return (
         <div
             className={containerClass}
             style={isCompact ? { paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" } : undefined}
+            aria-label="ابزارهای ویرایشگر"
+            dir="rtl"
         >
 
             {items.map((item, index) => {
@@ -47,9 +41,10 @@ export default function RightToolbar({ activeTab, setActiveTab, isCompact = fals
                     <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-1 transition-all 
-                            ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-100"}
+                        className={`flex h-12 min-w-14 flex-col items-center justify-center gap-1 rounded-xl px-2 transition-all 
+                            ${isActive ? "bg-violet-100 text-violet-800" : "text-slate-500 hover:bg-violet-50 hover:text-violet-700"}
                             ${visibilityClass}`}
+                        aria-pressed={isActive}
                     >
                         <Icon size={22} strokeWidth={2} />
                         <span className="text-[10px] font-medium">{item.label}</span>

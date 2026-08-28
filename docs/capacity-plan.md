@@ -75,6 +75,11 @@ cross-component traces remain.
 
 ## Ordered execution
 
+As of 2026-08-28, the owner has prioritized frontend phases F1-F5 before the
+next load run. This changes scheduling only: the topology, evidence, and pass/
+fail requirements below remain mandatory, and the production-like 1k result is
+still unproven.
+
 1. **Completed 2026-08-19:** add role-scoped/paginated snapshots so players
    never download the 10k roster; full leaderboard rows are also removed from
    audience SSE.
@@ -82,7 +87,7 @@ cross-component traces remain.
    answer/event-lag metrics, the 100-user protocol run, raw summaries, and hard
    SQL reconciliation passed, followed by two consecutive 1k passes through
    Nginx and a forced API-address recovery check.
-3. **In progress:** repeat the two-run 1k result on a named production-like
+3. **Queued after frontend F5:** repeat the two-run 1k result on a named production-like
    single API through TLS ingress, including cold readiness and CPU/heap/locks.
 4. Fix measured bottlenecks; rerun twice.
 5. Repeat at 5k with multiple API instances and no sticky sessions.

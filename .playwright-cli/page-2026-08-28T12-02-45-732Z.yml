@@ -1,0 +1,25 @@
+- generic [ref=f1e58]:
+  - generic [ref=f1e59]:
+    - text: ✱
+    - generic [ref=f1e60]:
+      - generic [ref=f1e61]: ✱ ProSlides
+      - textbox "جست‌وجوی ارائه‌ها" [ref=f1e63]
+      - button "باز کردن منوی حساب" [ref=f1e66] [cursor=pointer]: ک
+  - main [ref=f1e67]:
+    - generic [ref=f1e68]:
+      - generic [ref=f1e69]:
+        - paragraph [ref=f1e70]: فضای کاری شما
+        - heading "ارائه‌های من" [level=1] [ref=f1e71]
+        - paragraph [ref=f1e72]: ارائه تازه بسازید، اسلایدها را ویرایش کنید و برای اجرای زنده آماده شوید.
+      - generic [ref=f1e73]:
+        - button "ارائه جدید" [ref=f1e75]
+        - generic [ref=f1e76]:
+          - generic [ref=f1e77]: مرتب‌سازی
+          - combobox "مرتب‌سازی ارائه‌ها" [ref=f1e79] [cursor=pointer]:
+            - option "آخرین ویرایش" [selected]
+            - option "نام"
+            - option "تاریخ ساخت"
+      - generic [ref=f1e80]:
+        - heading "اولین ارائه‌تان را بسازید" [level=3] [ref=f1e83]
+        - paragraph [ref=f1e84]: از یک ارائه خالی شروع کنید و اولین اسلاید را در ویرایشگر بسازید.
+        - button "ساخت اولین ارائه" [ref=f1e86]

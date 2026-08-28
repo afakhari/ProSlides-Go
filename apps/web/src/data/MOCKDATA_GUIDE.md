@@ -1,12 +1,16 @@
-# Mock Data - راهنمای کامل
+# آرشیو ساختار Mock قدیمی
 
-> **Legacy fixture reference (2026-08-19):** examples below exist for isolated
-> component development and regression tests. Numeric WebSocket message types
-> are retired and must not be used for new integration work. Current live data
-> comes from the role-scoped Go snapshot, manager-only paginated queries, and
-> SSE event types under `src/live`; the OpenAPI file is authoritative.
+> **Deprecated — audited 2026-08-28:** examples below are a historical inventory
+> only. They are not current architecture, not an API contract, and must not be
+> copied into production code. Numeric WebSocket messages are retired. The Go
+> OpenAPI contract, `src/live`, `src/services/quizService.ts`, and module-owned
+> canonical types are authoritative. Existing production imports are tracked
+> for removal in frontend Phase F4; do not add another import from `mockData`.
 
-این فایل شامل **تمام** داده‌های Mock استفاده شده در پروژه است که از فایل‌های مختلف pages و components جمع‌آوری شده‌اند.
+این فایل صرفاً برای فهم و حذف تدریجی مدل‌های سازگاری قدیمی نگهداری می‌شود.
+راهنمای معماری جاری در `docs/frontend-architecture.md` و تصمیم آن در ADR 0003
+قرار دارد. هر مثال `TODO: Send to server` در ادامه منسوخ است؛ فرمان واقعی باید
+از adapter تایپ‌شده HTTP استفاده کند و وضعیت live از snapshot/SSE بازیابی شود.
 
 ---
 
@@ -348,94 +352,17 @@ const UserColorList = [
 
 ---
 
-## 🔄 نحوه Import کردن
+## وضعیت فعلی و روش حذف
 
-### Import همه چیز:
+- نام فایل‌ها و importهای تاریخی بالا ممکن است دیگر در repository وجود نداشته
+  باشند؛ برای یافتن مصرف‌کننده واقعی از جست‌وجوی source استفاده کنید.
+- هیچ داده API را به این قالب‌ها تبدیل نکنید. DTO واقعی در مرز typed ماژول به
+  مدل canonical همان دامنه تبدیل می‌شود.
+- fixture تست باید کنار تست مصرف‌کننده قرار گیرد و فقط همان مدل canonical را
+  بسازد.
+- حذف هر import production باید همراه تست pending/success/error و در live همراه
+  تست ترتیب رویداد، retry ID و non-disclosure باشد.
+- پس از حذف آخرین مصرف‌کننده production و انتقال fixtureهای لازم، این فایل و
+  `mockData.js` حذف می‌شوند.
 
-```javascript
-import * as MockData from "../data/mockData";
-```
-
-### Import انتخابی:
-
-```javascript
-import {
-  User_adding,
-  QuizSetup,
-  DefaultGameCode,
-  createNextPrevious,
-} from "../data/mockData";
-```
-
----
-
-## 📋 فایل‌های به‌روزرسانی شده
-
-تمام فایل‌های زیر برای استفاده از `mockData.js` به‌روزرسانی شده‌اند:
-
-### Pages:
-
-✅ `JoinPage2.jsx`  
-✅ `manager_question.jsx`  
-✅ `LeaderBoard.jsx`  
-✅ `pickAnswerQuestion.jsx`
-
-### Components:
-
-✅ `LeaderboardModal.jsx`  
-✅ `Footer.jsx`  
-✅ `presentation/players/pickAnswerQuestion.jsx`
-
----
-
-## 💡 نکات مهم
-
-1. **یک منبع واحد**: تمام JSON ها در یک فایل مرکزی
-2. **قابل نگهداری**: تغییرات فقط در یک جا
-3. **قابل استفاده مجدد**: توابع helper برای ایجاد داده‌ها
-4. **سازماندهی شده**: دسته‌بندی منطقی داده‌ها
-5. **آماده برای سرور**: فرمت‌های استاندارد برای ارسال/دریافت
-
----
-
-## 🚀 استفاده در آینده
-
-هنگام اتصال به سرور واقعی:
-
-1. داده‌های دریافتی را به همین فرمت تبدیل کنید
-2. از توابع helper موجود استفاده کنید
-3. فقط import ها را تغییر دهید (از mockData به API)
-
----
-
-## 📝 مثال استفاده کامل
-
-```javascript
-// در یک صفحه
-import {
-  QuizSetup,
-  createNextPrevious,
-  DefaultGameCode,
-  UserColorList,
-  DefaultFooterStats,
-} from "../data/mockData";
-
-function MyPage() {
-  const gameCode = DefaultGameCode;
-  const colors = UserColorList;
-  const currentQuestion = QuizSetup.slides[0];
-
-  const handleNext = () => {
-    const navData = createNextPrevious(5, "next", 0);
-    console.log(navData);
-    // TODO: Send to server
-  };
-
-  return <Footer stats={DefaultFooterStats} />;
-}
-```
-
----
-
-**نسخه:** 2.0  
-**آخرین به‌روزرسانی:** تمام JSON ها از فایل‌های پراکنده به mockData منتقل شدند
+**وضعیت سند:** آرشیوی؛ آخرین ممیزی 2026-08-28.
