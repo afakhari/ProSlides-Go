@@ -4,7 +4,7 @@ import QRSidebar from "../../../components/QRSidebar";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
 import { useLiveSession } from "../../../hooks/useLiveSession";
 import { useServerData } from "../../../hooks/useServerData";
-import { isLightColor } from "../../../lib/colorUtils";
+import { participantTheme } from "../../../modules/live/participant/theme";
 import {
   EMPTY_ROSTER,
   USER_COLORS,
@@ -288,40 +288,22 @@ export default function ManagerJoinPage({
   }, [previousUserCount, displayUsers]);
 
   // Calculate dynamic background style from quiz data
-  const backgroundStyle = {
-    backgroundImage: quiz?.background?.image
-      ? `url('${quiz.background.image}')`
-      : "none",
-    backgroundColor: quiz?.background?.color || "#1e1e2e",
-  };
-  const textColor =
-    quiz?.text_color || quiz?.background?.text_color || "#111827";
-  const isTextDark = textColor.toLowerCase() === "#111827";
-  const textMutedColor =
-    textColor.toLowerCase() === "#111827"
-      ? "rgba(17, 24, 39, 0.7)"
-      : "rgba(255, 255, 255, 0.7)";
-  const needsOverlay =
-    !!quiz?.background?.image ||
-    isLightColor(quiz?.background?.color || "#1e1e2e");
+  const theme = participantTheme(quiz);
 
   return (
     <div
       className="relative min-h-screen bg-cover bg-center bg-no-repeat"
       style={{
-        ...backgroundStyle,
-        "--quiz-text": textColor,
-        "--quiz-text-muted": textMutedColor,
+        ...theme.style,
+        "--quiz-text": theme.foreground,
+        "--quiz-text-muted": `color-mix(in srgb, ${theme.foreground} 70%, transparent)`,
       }}
     >
-      {needsOverlay && (
-        <div className="pointer-events-none absolute inset-0 bg-black/45" />
-      )}
       {!hasSyncedState ? (
         <div className="relative z-10 flex min-h-screen w-full items-center justify-center">
           <div
             className={`rounded-2xl px-6 py-4 text-lg font-semibold ${
-              isTextDark ? "bg-white/85 text-gray-900" : "bg-gray-900/80 text-white"
+              "bg-[color:var(--live-surface)] text-[color:var(--quiz-text)]"
             }`}
           >
             Syncing live session...
@@ -347,7 +329,7 @@ export default function ManagerJoinPage({
           className={`${
             showQRModal ? "w-[78%] mr-4" : "w-[88%]"
           } max-w-[2000px] ${
-            isTextDark ? "bg-white/85 text-gray-900" : "bg-gray-800 text-white"
+            "bg-[color:var(--live-surface)] text-[color:var(--quiz-text)] backdrop-blur-sm"
           } rounded-2xl lg:rounded-2xl md:rounded-xl sm:rounded-xl pt-4! pb-20! md:pt-8 md:pb-12 lg:pb-18 px-4 sm:px-4 md:px-16 lg:px-72! shadow-2xl relative transition-all duration-300`}
         >
           <div className="flex flex-col items-center gap-1.5">

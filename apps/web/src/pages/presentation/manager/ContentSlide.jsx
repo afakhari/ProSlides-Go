@@ -2,6 +2,7 @@ import React from "react";
 import TopBar from "../../../components/TopBar";
 import Footer from "../../../components/Footer";
 import { useLiveSession } from "../../../hooks/useLiveSession";
+import { participantTheme } from "../../../modules/live/participant/theme";
 
 export default function ManagerContentSlide({
   roomId,
@@ -20,6 +21,7 @@ export default function ManagerContentSlide({
   const text = source.content_text || source.text || "";
   const image =
     source.content_image_url || source.image_url || source.image || "";
+  const theme = participantTheme(quiz);
 
   const handleNext = async () => {
     const nextSlide = quiz?.slides?.[currentSlide];
@@ -33,10 +35,10 @@ export default function ManagerContentSlide({
   };
 
   return (
-    <div className="min-h-screen w-full" style={{ background: quiz?.background?.color || "#0f172a" }}>
+    <div className="min-h-screen w-full bg-cover bg-center text-[color:var(--live-fg)]" style={theme.style}>
       <TopBar pageType="quiz" roomId={roomId || quiz?.access_code || ""} quiz={quiz} />
 
-      <main className="mx-auto max-w-5xl px-6 py-8 text-center text-white">
+      <main className="mx-auto max-w-5xl px-6 py-8 text-center">
         {title && <h1 className="mb-4 text-3xl font-bold">{title}</h1>}
         {text && <p className="mx-auto mb-6 max-w-3xl whitespace-pre-wrap text-lg leading-8">{text}</p>}
         {image && (

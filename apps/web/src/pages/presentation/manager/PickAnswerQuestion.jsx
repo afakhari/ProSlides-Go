@@ -2,7 +2,8 @@
 import TopBar from "../../../components/TopBar";
 import QRSidebar from "../../../components/QRSidebar";
 import Footer from "../../../components/Footer";
-import { getColorForUser, isLightColor } from "../../../lib/colorUtils";
+import { getColorForUser } from "../../../lib/colorUtils";
+import { participantTheme } from "../../../modules/live/participant/theme";
 import { resolveQuestionTimer } from "../utils/questionTimerSync";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
 import { useLiveSession } from "../../../hooks/useLiveSession";
@@ -289,34 +290,18 @@ export default function ManagerPickAnswerQuestion({
   ]);
 
   // Calculate dynamic background style from quiz data
-  const backgroundStyle = {
-    backgroundImage: quiz?.background?.image
-      ? `url('${quiz.background.image}')`
-      : "none",
-    backgroundColor: quiz?.background?.color || "#1e1e2e",
-  };
-  const textColor =
-    quiz?.text_color || quiz?.background?.text_color || "#111827";
-  const textMutedColor =
-    textColor.toLowerCase() === "#111827"
-      ? "rgba(17, 24, 39, 0.7)"
-      : "rgba(255, 255, 255, 0.7)";
-  const needsOverlay =
-    !!quiz?.background?.image ||
-    isLightColor(quiz?.background?.color || "#1e1e2e");
+  const theme = participantTheme(quiz);
+  const textColor = theme.foreground;
 
   return (
     <div
       className="relative min-h-screen bg-cover bg-center bg-no-repeat flex flex-col justify-around items-center font-semibold"
       style={{
-        ...backgroundStyle,
+        ...theme.style,
         "--quiz-text": textColor,
-        "--quiz-text-muted": textMutedColor,
+        "--quiz-text-muted": `color-mix(in srgb, ${textColor} 70%, transparent)`,
       }}
     >
-      {needsOverlay && (
-        <div className="pointer-events-none absolute inset-0 bg-black/45" />
-      )}
       <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-around">
       <TopBar
         isConnected={isConnected}

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { motion as Motion } from "framer-motion";
 import { useLiveSession } from "../../../hooks/useLiveSession";
+import { participantTheme } from "../../../modules/live/participant/theme";
 
 const podiumStyle = {
   1: { order: "md:order-2", height: "h-56 md:h-72", color: "from-amber-300 to-yellow-500", icon: "👑" },
@@ -11,10 +12,10 @@ const podiumStyle = {
 export default function FinalLeaderboard({ leaderboardData, quiz, onExit }) {
   const { isConnected } = useLiveSession();
   const players = useMemo(() => [...(leaderboardData?.results || leaderboardData || [])].sort((a, b) => (b.total_points || 0) - (a.total_points || 0)).slice(0, 3), [leaderboardData]);
-  const backgroundImage = quiz?.background?.image ? `linear-gradient(rgba(0,0,0,.30),rgba(0,0,0,.58)),url('${quiz.background.image}')` : "radial-gradient(circle at 50% 0%, rgba(255,255,255,.16), transparent 42%)";
+  const theme = participantTheme(quiz);
 
   return (
-    <div dir="rtl" className="fixed inset-0 z-50 flex flex-col overflow-auto bg-cover bg-center px-4 py-6 text-white" style={{ backgroundColor: quiz?.background?.color || "#0f172a", backgroundImage }}>
+    <div dir="rtl" className="fixed inset-0 z-50 flex flex-col overflow-auto bg-cover bg-center px-4 py-6 text-[color:var(--live-fg)]" style={theme.style}>
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between">
         <p className="font-outfit text-xl font-black" dir="ltr">ProSlides</p>
         <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/20 px-3 py-1.5 text-xs backdrop-blur" role="status"><span className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-amber-300"}`} />{isConnected ? "متصل" : "در حال اتصال"}</div>
