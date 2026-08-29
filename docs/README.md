@@ -23,6 +23,7 @@ discrepancy in the handoff.
 | What are the backend and live invariants? | `architecture.md`, ADR 0001/0002, and OpenAPI |
 | What is the frontend target and migration order? | `frontend-architecture.md` and ADR 0003 |
 | What should Persian UX look and behave like? | `frontend-professionalization.md` |
+| What frontend accessibility and bundle budgets are enforced? | `frontend-quality-baseline.md` |
 | What proves 1k/5k/10k? | `capacity-plan.md`; observations in `load-test-results.md` |
 | Which Go/legacy behaviors have parity? | `migration-status.md` |
 | Which environment values exist? | `configuration.md` and checked-in examples |

@@ -46,11 +46,11 @@ a shortcut.
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | Functional React 19/Vite SPA. F1-F4 are verified. `App.jsx` is a small route composition root; the duplicated runtime and all production `mockData` imports are gone. Presentation and live routes retain their existing API/SSE boundaries, while router/404 chrome has typed, keyboard-visible feedback. | Begin F5 with a measured critical-flow accessibility and route-bundle baseline before changing chunk boundaries. |
+| `apps/web` | Functional React 19/Vite SPA. F1-F5 are verified. WCAG axe checks, RTL/reduced-motion/focus/overflow/Web-Vitals assertions, TS/TSX lint, named live commands, native route splitting, and measured bundle budgets now gate regressions. | Resume the production-like TLS 1k gate on a named topology with cold readiness and resource evidence. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
-| Tests | Web lint/current partial TS+TSX typecheck/34 unit tests/build, 3 passing Playwright system-Chrome E2E flows, real-Chrome F1 desktop/mobile snapshots, request audit, no-overflow/no-console-error and reduced-motion checks, Go tests/vet, Compose matrices, image smoke, and the prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
+| Tests | Web JS/JSX/TS/TSX lint, partial TS+TSX typecheck, 47 unit tests, bundle budgets/build, 3 system-Chrome E2E flows with axe and browser-quality assertions, Go tests/vet, Compose matrices, image smoke, and prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
 
 The working branch is `main` in a separate Git worktree. Do not merge,
 force-push, or modify `master` without explicit owner approval.
@@ -80,6 +80,7 @@ docs/
   migration-status.md        Django/Rust parity and remaining production work
   frontend-architecture.md   frontend boundaries, target tree, migration gates
   frontend-professionalization.md Persian-first UX phases and acceptance gates
+  frontend-quality-baseline.md measured F5 accessibility/performance budgets
   decisions/                 Architecture Decision Records
 AGENTS.md                    this mandatory guide
 docker-compose.yaml          local web + API + PostgreSQL + Redis stack
@@ -206,9 +207,9 @@ load tests. Long-lived JWTs in an SSE query string are prohibited.
 
 ## Single exact next task
 
-Begin F5 by measuring accessibility and route bundles for the critical Persian
-identity, dashboard/editor, report, and manager/player live flows. Record the
-accepted baseline before changing explicit chunk boundaries.
+Repeat the 1k HTTP/SSE protocol twice on a named production-like single-API
+topology through TLS ingress, including cold readiness and continuous
+pool/query/lock/CPU/heap capture.
 
 The production-like TLS 1k proof remains mandatory and unchanged, but is queued
 after the owner-prioritized frontend F1-F5 sequence. It is not completed or
@@ -248,7 +249,7 @@ Frontend modernization is a separate ordered track:
   responsive navigation, and unified dirty/save/conflict state.
 - [x] Phase F4: remove legacy runtime/mock production dependencies and extend
   TypeScript, lint, and tests over migrated UI.
-- [ ] Phase F5: performance/accessibility hardening and measured regression
+- [x] Phase F5: performance/accessibility hardening and measured regression
   budgets, followed by resumption of the production-like capacity gate.
 
 ## Change log
@@ -300,6 +301,7 @@ Frontend modernization is a separate ordered track:
 | 2026-08-29 | Completed frontend F2 | Presentation and slide transport types are generated reproducibly from checked-in OpenAPI, consumed at presentation boundaries, and checked for drift in CI while editor domain types remain separate. Drift check, lint, typecheck, 43 unit tests, build, and all three system-Chrome E2E flows passed. |
 | 2026-08-29 | Completed frontend F3 | Presentation dashboard/sharing/API/model and editor route/canvas/slide-list/inspector/toolbar code moved under `modules/presentations`. Type-first slide creation sends no request before selection and one request afterward; unified dirty/save/conflict state provides visible recovery. Drift check, lint, typecheck, 46 unit tests, build, and all three system-Chrome E2E flows passed. |
 | 2026-08-29 | Completed frontend F4 | Removed the unreachable duplicate runtime and dead route/import branches from `App.jsx`, isolated a typed Persian 404 route/header, removed every production `mockData` import and unsafe live fallback, and added a structural regression gate. Lint, typecheck, 47 unit tests, build, and system-Chrome E2E passed; full measured accessibility/performance closure remains F5. |
+| 2026-08-29 | Completed frontend F5 | Added axe WCAG gates and keyboard/RTL/reduced-motion/overflow/local-Web-Vitals checks; fixed measured contrast and fake-control issues; replaced numeric live message dispatch with named join/answer commands and direct snapshot/event projection; enabled TS/TSX lint; removed six unused production dependencies; and replaced substring manual chunks with native route splitting plus measured CI budgets. Initial JS/CSS are 80.50/17.31 KiB gzip with zero preloads. Drift, lint, typecheck, 47 unit tests, budgeted build, and three Chrome E2E flows passed. |
 
 ## References
 
@@ -315,6 +317,7 @@ Frontend modernization is a separate ordered track:
 - `docs/migration-status.md` — current parity matrix, evidence, and remaining work.
 - `docs/frontend-architecture.md` — audited current frontend, target boundaries, and migration gates.
 - `docs/frontend-professionalization.md` — Persian-first UX direction, phases, and acceptance gates.
+- `docs/frontend-quality-baseline.md` — enforced F5 browser and bundle evidence.
 - `docs/decisions/0001-go-modular-monolith.md` — architecture decision record.
 - `docs/decisions/0002-durable-events-and-bounded-sse-fanout.md` — replay/fan-out and backpressure decision.
 - `docs/decisions/0003-modular-react-frontend.md` — incremental modular React frontend decision.

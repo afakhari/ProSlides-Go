@@ -7,7 +7,7 @@ import { resolveQuestionTimer } from "../utils/questionTimerSync";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
 import { useLiveSession } from "../../../hooks/useLiveSession";
 import { useServerData } from "../../../hooks/useServerData";
-import { createNavigationState, EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
+import { EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 // import { useLocation, useNavigate } from "react-router-dom";
 
 const debugLog = (...args) => {
@@ -44,7 +44,7 @@ export default function ManagerPickAnswerQuestion({
   isRemoteReady,
   onEndGame,
 }) {
-  const { isConnected, sendNavigation, sendEnd, lastMessage, type8Message } =
+  const { isConnected, sendNavigation, sendEnd } =
     useLiveSession();
   const {
     questionResults,
@@ -53,7 +53,6 @@ export default function ManagerPickAnswerQuestion({
   } = useServerData();
 
   // Calculate current question number and details from currentSlide
-  const currentQuestionIndex = currentSlide - 1;
   // const questionNumber = currentQuestionIndex + 1;
   // const totalQuestions = QuizSetup.slides.length;
 
@@ -123,9 +122,6 @@ export default function ManagerPickAnswerQuestion({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [questionAnchorStartMs, setQuestionAnchorStartMs] = useState(Date.now());
-  const [_navigationData, setNavigationData] = useState(
-    createNavigationState(5, null, null)
-  ); // State for tracking navigation (to be sent to server)
   // const navigate = useNavigate();
 
   // Reset state when slide changes (new question)
@@ -152,127 +148,6 @@ export default function ManagerPickAnswerQuestion({
     roomId,
     isRemoteReady,
   ]);
-
-  // Apply live server projections to the existing visual state.
-  useEffect(() => {
-    if (!lastMessage) return;
-
-    debugLog("[PickAnswerQuestion] Received message:", lastMessage);
-
-    // Type 8: Question Results - Ù…Ø³ØªÙ‚ÛŒÙ… Ø§Ø¹Ù…Ø§Ù„ Ú©Ù†
-    if (lastMessage.type === 8) {
-      if (currentQuestion.question_id == null) return;
-      debugLog("[PickAnswerQuestion] ===== TYPE 8 RECEIVED =====");
-      debugLog(
-        "[PickAnswerQuestion] Current question_id:",
-        currentQuestion.question_id
-      );
-      debugLog(
-        "[PickAnswerQuestion] Message question_id:",
-        lastMessage.question_id
-      );
-      debugLog(
-        "[PickAnswerQuestion] Current options:",
-        questionOptions.map((o) => o.option_id)
-      );
-      debugLog(
-        "[PickAnswerQuestion] Server options:",
-        lastMessage.options?.map((o) => o.option_id)
-      );
-
-      setHasReceivedResults(true);
-      setAwaitingServerResults(false);
-
-      // Check if options array exists (from server)
-      const serverResults = lastMessage.options || lastMessage.submit || [];
-
-      // Ø§Ú¯Ù‡ currentQuestion.options Ø®Ø§Ù„ÛŒ ÛŒØ§ undefined Ø¨Ø§Ø´Ù‡ØŒ Ù…Ø³ØªÙ‚ÛŒÙ… Ø§Ø² serverResults Ø§Ø³ØªÙØ§Ø¯Ù‡ Ú©Ù†
-      if (questionOptions.length === 0) {
-        debugLog(
-          "[PickAnswerQuestion] No current options, using server results directly"
-        );
-        const newVotes = serverResults.map((s) => s.number_of_submits || 0);
-        debugLog("[PickAnswerQuestion] Direct votes:", newVotes);
-        setVotes(newVotes);
-        setShowResults(true);
-        return;
-      }
-
-      // ÙÙ‚Ø· Ø§Ø² Ø¯Ø§Ø¯Ù‡ Ø³Ø±ÙˆØ± Ø§Ø³ØªÙØ§Ø¯Ù‡ Ú©Ù†
-      const newVotes = questionOptions.map((option) => {
-        const serverResult = serverResults.find(
-          (s) => String(s.option_id) === String(option.option_id)
-        );
-        const serverVote = serverResult
-          ? serverResult.number_of_submits ?? serverResult.number_of_submit ?? 0
-          : 0;
-
-        debugLog(
-          `[PickAnswerQuestion] Option ${
-            option.option_id
-          }: found=${!!serverResult}, vote=${serverVote}`
-        );
-        return serverVote;
-      });
-
-      debugLog("[PickAnswerQuestion] Final votes:", newVotes);
-      setVotes(newVotes);
-      setShowResults(true);
-    }
-  }, [
-    lastMessage,
-    questionOptions,
-    currentQuestion.question_id,
-  ]);
-
-  // âœ… useEffect Ù…Ø®ØµÙˆØµ type8Message - Ø§ÛŒÙ† Ú¯Ù… Ù†Ù…ÛŒØ´Ù‡!
-  useEffect(() => {
-    if (!type8Message) return;
-    if (currentQuestion.question_id == null) return;
-
-    // Ú†Ú© Ú©Ù† Ú©Ù‡ question_id Ù…Ú† Ø¨Ø§Ø´Ù‡ - Ø§Ú¯Ù‡ Ù†Ù‡ØŒ Ù†Ø§Ø¯ÛŒØ¯Ù‡ Ø¨Ú¯ÛŒØ±
-    const msgQId = String(type8Message.question_id);
-    const currentQId = String(currentQuestion.question_id);
-
-    if (msgQId !== currentQId) {
-      debugLog(
-        "[PickAnswerQuestion] type8Message question_id mismatch, ignoring. msg:",
-        msgQId,
-        "current:",
-        currentQId
-      );
-      return;
-    }
-
-    debugLog("[PickAnswerQuestion] ===== TYPE 8 MESSAGE RECEIVED =====");
-    debugLog("[PickAnswerQuestion] type8Message:", type8Message);
-
-    setHasReceivedResults(true);
-    setAwaitingServerResults(false);
-
-    const serverResults = type8Message.options || [];
-
-    // Ø§Ú¯Ù‡ options Ø®Ø§Ù„ÛŒÙ‡ØŒ Ù…Ø³ØªÙ‚ÛŒÙ… Ø§Ø³ØªÙØ§Ø¯Ù‡ Ú©Ù†
-    if (questionOptions.length === 0) {
-      const newVotes = serverResults.map((s) => s.number_of_submits || 0);
-      debugLog("[PickAnswerQuestion] Direct votes:", newVotes);
-      setVotes(newVotes);
-      setShowResults(true);
-      return;
-    }
-
-    // Ù…Ù¾ Ú©Ù† Ø¨Ù‡ options ÙØ¹Ù„ÛŒ
-    const newVotes = questionOptions.map((option) => {
-      const serverResult = serverResults.find(
-        (s) => String(s.option_id) === String(option.option_id)
-      );
-      return serverResult?.number_of_submits ?? 0;
-    });
-
-    debugLog("[PickAnswerQuestion] Votes from type8Message:", newVotes);
-    setVotes(newVotes);
-    setShowResults(true);
-  }, [type8Message, questionOptions, currentQuestion.question_id]);
 
   // Update votes from questionResults in ServerDataContext
   useEffect(() => {
@@ -341,17 +216,6 @@ export default function ManagerPickAnswerQuestion({
 
   // Handle navigation and update server data
   const handleNext = async () => {
-    const newNavigationData = createNavigationState(
-      5,
-      "next",
-      currentQuestionIndex
-    );
-    setNavigationData(newNavigationData);
-    debugLog(
-      "[PollPage] Navigation data to send to server:",
-      newNavigationData
-    );
-
     const currentDefinition = quiz?.slides?.[currentSlide - 1];
     const nextSlide = quiz?.slides?.[currentSlide];
     if (!currentDefinition?.show_leaderboard_after && !nextSlide) {

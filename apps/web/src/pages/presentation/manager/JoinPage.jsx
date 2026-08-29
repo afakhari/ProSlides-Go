@@ -7,13 +7,8 @@ import { useServerData } from "../../../hooks/useServerData";
 import { isLightColor } from "../../../lib/colorUtils";
 import {
   EMPTY_ROSTER,
-  createNavigationState,
   USER_COLORS,
 } from "../../../modules/live/model/runtimeDefaults";
-
-const debugLog = (...args) => {
-  if (import.meta.env.DEV) console.log(...args);
-};
 
 const hashToColorIndex = (value, modulo) => {
   const str = String(value ?? "");
@@ -37,7 +32,6 @@ function calculatePlayersReady({ type, Users }) {
 export default function ManagerJoinPage({
   roomId,
   onNext,
-  currentSlide = 1,
   quiz,
 }) {
   const {
@@ -45,8 +39,6 @@ export default function ManagerJoinPage({
     connectionError,
     connect,
     sendNavigation,
-    sendEnd: _sendEnd,
-    lastMessage,
     snapshot,
     participantCount,
     hasMoreRoster,
@@ -71,10 +63,6 @@ export default function ManagerJoinPage({
   const [hiddenUsers, setHiddenUsers] = useState(new Set()); // Track which users have been clicked
   const [showQRModal, setShowQRModal] = useState(false); // State for QR modal
   const [hasSyncedState, setHasSyncedState] = useState(false);
-  const [_navigationData, setNavigationData] = useState(
-    createNavigationState(5, null, null)
-  ); // State for tracking navigation (to be sent to server)
-  const [_userCount, setUserCount] = useState(EMPTY_ROSTER.Users.length); // Track user count for reactivity
   const [sessionId] = useState(roomId); // Session ID from route
 
   // استفاده از بازیکنان از سرور یا mock data
@@ -82,7 +70,6 @@ export default function ManagerJoinPage({
   const playersReady = snapshot
     ? participantCount
     : users.length || calculatePlayersReady(EMPTY_ROSTER);
-  const currentQuestionIndex = Math.floor(currentSlide / 2);
   const hasLeaderboard =
     Array.isArray(leaderboardResults) ?
       leaderboardResults.length > 0 :
@@ -94,10 +81,10 @@ export default function ManagerJoinPage({
     hasLeaderboard;
 
   useEffect(() => {
-    if (!hasSyncedState && lastMessage) {
+    if (!hasSyncedState && snapshot) {
       setHasSyncedState(true);
     }
-  }, [lastMessage, hasSyncedState]);
+  }, [snapshot, hasSyncedState]);
 
   useEffect(() => {
     if (hasSyncedState) return;
@@ -147,11 +134,6 @@ export default function ManagerJoinPage({
     void connect(sessionId);
   }, [sessionId, isConnected, connect]);
 
-  useEffect(() => {
-    if (!lastMessage) return;
-    debugLog("[JoinPage] Received message:", lastMessage);
-  }, [lastMessage]);
-
   const handleStart = async () => {
     setStartError("");
     if (!quiz?.slides?.length) {
@@ -182,16 +164,6 @@ export default function ManagerJoinPage({
       setStartError("Connection is not ready. Please wait and try again.");
       return;
     }
-    const newNavigationData = createNavigationState(
-      5,
-      "start",
-      currentQuestionIndex
-    );
-    debugLog(
-      "[JoinPage2] Starting quiz, navigation data to send to server:",
-      newNavigationData
-    );
-
     // Send start command
     const ok = await sendNavigation("start", { slide: quiz?.slides?.[0] });
     if (!ok) {
@@ -199,7 +171,6 @@ export default function ManagerJoinPage({
       return;
     }
 
-    setNavigationData(newNavigationData);
     setPage("quiz");
 
     if (onNext) onNext();
@@ -273,7 +244,6 @@ export default function ManagerJoinPage({
   // Detect when a new user is added
   useEffect(() => {
     const currentUserCount = displayUsers.length;
-    setUserCount(currentUserCount);
 
     if (currentUserCount > previousUserCount) {
       // Get the newly added user (last in the array)

@@ -77,7 +77,7 @@ export interface RosterPage {
   next_cursor?: string;
 }
 
-export interface LiveSessionResult extends ManagerLiveSession {}
+export type LiveSessionResult = ManagerLiveSession;
 export interface ParticipantResult { id: string; display_name: string; avatar?: string }
 export interface AnswerResult { answer_id: string; score_delta: number; duplicate: boolean }
 export interface LiveSessionLocator { session_id: string; presentation_id: string }

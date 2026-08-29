@@ -208,9 +208,6 @@ export default function SessionDetail() {
           >
             <span className="text-xl">❓</span>
           </button>
-          <button className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition font-medium">
-            Upgrade
-          </button>
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -243,7 +240,7 @@ export default function SessionDetail() {
       {/* Content with top padding to account for fixed header */}
       <div className="pt-24 px-6 bg-slate-100 min-h-screen">
         <div className="max-w-6xl mx-auto py-8">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">
+          <div className="text-xs text-gray-600 uppercase tracking-wider mb-3">
             Report / {quizLabel}
           </div>
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

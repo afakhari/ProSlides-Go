@@ -8,8 +8,6 @@ import {
   Image as ImageIcon,
   X,
   Plus,
-  Save,
-  Loader2
 } from "lucide-react";
 
 import { quizService } from "../../api/presentationRepository.ts";

@@ -30,7 +30,7 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
   const [sessionId, setSessionId] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
   const [lastEvent, setLastEvent] = useState(null);
-  const [lastMessage, setLastMessage] = useState(null);
+  const [lastJoinResult, setLastJoinResult] = useState(null);
   const [roster, setRoster] = useState([]);
   const [rosterOrder, setRosterOrder] = useState("joined");
   const [hasMoreRoster, setHasMoreRoster] = useState(false);
@@ -55,7 +55,6 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
     snapshotRef.current = next;
     cursorRef.current = incoming;
     setSnapshot(next);
-    setLastMessage(next);
     return true;
   }, []);
 
@@ -202,7 +201,6 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
               if (!shouldApplyLiveEvent(cursorRef.current, event)) return;
               cursorRef.current = advanceLiveCursor(cursorRef.current, event);
               setLastEvent(event);
-              setLastMessage(event);
               retry = 500;
               if (event.name === "presence.updated") {
                 const delta = Number(event.payload?.participant_delta || 0);
@@ -307,50 +305,45 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
     }
   }, [refreshAuthoritative, runAction]);
 
-  const sendMessage = useCallback(async (message) => {
+  const joinParticipant = useCallback(async ({ name, avatar, clientUserId }) => {
     const id = sessionIdRef.current;
-    if (!id || !message) return false;
+    if (!id) return false;
+    const requestId = /^[0-9a-f-]{36}$/i.test(String(clientUserId || "")) ? String(clientUserId) : createRequestId();
     try {
-      if (message.type === 6) {
-        const requestId = /^[0-9a-f-]{36}$/i.test(String(message.user_id || "")) ? String(message.user_id) : createRequestId();
-        try {
-          const participant = await joinLiveSession(id, { request_id: requestId, display_name: message.name, avatar: message.character || "" });
-          setLastMessage({ type: 10, user_id: requestId, participant_id: participant.id, name: participant.display_name, character: participant.avatar || "" });
-          streamEnabledRef.current = true;
-          await refreshAuthoritative();
-          setIsConnected(true);
-          return true;
-        } catch (error) {
-          setConnectionError(error.message);
-          if (error instanceof LiveAPIError && [400, 409].includes(error.status)) return "rejected";
-          setIsConnected(false);
-          return false;
-        }
-      }
-      if (message.type === 4) {
-        const selected = (message.options_result || []).map((option, index) => ({ option, index })).filter(({ option }) => option.picked).map(({ option, index }) => Number(option.option_index ?? option.option_id ?? index));
-        try {
-          await submitLiveAnswer(id, { request_id: message.request_id || createRequestId(), question_slide_id: String(message.question_id), selected_option_indexes: selected });
-          return true;
-        } catch (error) {
-          setConnectionError(error.message);
-          if (error instanceof LiveAPIError && [400, 401, 409].includes(error.status)) return "rejected";
-          return false;
-        }
-      }
-      return false;
+      const participant = await joinLiveSession(id, { request_id: requestId, display_name: name, avatar: avatar || "" });
+      setLastJoinResult({ clientUserId: requestId, participantId: participant.id, displayName: participant.display_name, avatar: participant.avatar || "" });
+      streamEnabledRef.current = true;
+      await refreshAuthoritative();
+      setIsConnected(true);
+      return true;
     } catch (error) {
       setConnectionError(error.message);
+      if (error instanceof LiveAPIError && [400, 409].includes(error.status)) return "rejected";
+      setIsConnected(false);
       return false;
     }
   }, [refreshAuthoritative]);
 
+  const submitAnswer = useCallback(async (answer) => {
+    const id = sessionIdRef.current;
+    if (!id || !answer) return false;
+    const selected = (answer.options_result || []).map((option, index) => ({ option, index })).filter(({ option }) => option.picked).map(({ option, index }) => Number(option.option_index ?? option.option_id ?? index));
+    try {
+      await submitLiveAnswer(id, { request_id: answer.request_id || createRequestId(), question_slide_id: String(answer.question_id), selected_option_indexes: selected });
+      return true;
+    } catch (error) {
+      setConnectionError(error.message);
+      if (error instanceof LiveAPIError && [400, 401, 409].includes(error.status)) return "rejected";
+      return false;
+    }
+  }, []);
+
   return (
     <LiveSessionContext.Provider value={{
-      isConnected, connectionError, sessionId, snapshot, lastEvent, lastMessage,
+      isConnected, connectionError, sessionId, snapshot, lastEvent, lastJoinResult,
       roster, rosterOrder, hasMoreRoster, isRosterLoading,
       participantCount: snapshot?.participant_count || 0,
-      connect, disconnect, sendMessage, sendNavigation, sendEnd,
+      connect, disconnect, joinParticipant, submitAnswer, sendNavigation, sendEnd,
       loadMoreRoster: () => loadRoster(rosterOrderRef.current, true),
     }}>
       {children}

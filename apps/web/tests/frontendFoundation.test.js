@@ -109,3 +109,18 @@ test("F4 keeps the app router compositional and mock fixtures out of production"
   assert.doesNotMatch(productionSource, /from\s+["'][^"']*data\/mockData["']/);
   assert.match(source("src/routes/PresentationEntry.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
 });
+
+test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live commands", () => {
+  const packageJson = source("package.json");
+  const liveContext = source("src/contexts/LiveSessionContext.jsx");
+  const projectionContext = source("src/contexts/ServerDataContext.jsx");
+
+  assert.match(source("index.html"), /<html lang="fa-IR" dir="rtl">/);
+  assert.match(source("eslint.config.js"), /typescript-eslint/);
+  assert.match(packageJson, /bundle:check/);
+  assert.match(source("bundle-budgets.json"), /initialJavaScriptGzipKiB/);
+  assert.match(liveContext, /joinParticipant/);
+  assert.match(liveContext, /submitAnswer/);
+  assert.doesNotMatch(liveContext, /sendMessage|setLastMessage/);
+  assert.doesNotMatch(projectionContext, /processMessage|lastMessageType/);
+});

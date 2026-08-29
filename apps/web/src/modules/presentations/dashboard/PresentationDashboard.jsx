@@ -16,6 +16,12 @@ import {
   X,
   LoaderCircle,
   Plus,
+  Presentation,
+  BarChart3,
+  RotateCcw,
+  Share2,
+  FileText,
+  Users,
 } from "lucide-react";
 import ShareMenu from "../sharing/ShareDialog";
 import { apiFetch } from "../../../utils/apiFetch";
@@ -26,7 +32,20 @@ import Notice from "../../../shared/ui/Notice";
 import { fa } from "../../../shared/i18n/fa";
 
 const safeTimestamp = (value) => {
-  const time = Date.parse(value);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 1_000_000_000_000 ? value * 1000 : value;
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) return 0;
+  if (/^\d+$/.test(text)) {
+    const numeric = Number(text);
+    if (Number.isFinite(numeric)) {
+      return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+    }
+  }
+
+  const time = Date.parse(text);
   return Number.isNaN(time) ? 0 : time;
 };
 
@@ -39,16 +58,20 @@ const formatDate = (timestamp) =>
       })
     : "-";
 
+const persianNumberFormatter = new Intl.NumberFormat("fa-IR");
+
 const formatNumber = (value) =>
-  new Intl.NumberFormat("fa-IR").format(Number(value) || 0);
+  persianNumberFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0);
+
+const normalizePersianDigits = (value = "") =>
+  String(value)
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
 
 const normalizePersianText = (value = "") =>
-  String(value)
-    .normalize("NFKC")
+  normalizePersianDigits(String(value).normalize("NFKC"))
     .replace(/ي/g, "ی")
     .replace(/ك/g, "ک")
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
     .replace(/[‌\s]+/g, " ")
     .trim()
     .toLocaleLowerCase("fa-IR");
@@ -58,42 +81,86 @@ const persianCollator = new Intl.Collator("fa-IR", {
   sensitivity: "base",
 });
 
+const versionPattern = /\s*-\s*نسخه\s+([0-9۰-۹٠-٩]+)$/u;
+
+const getVersionInfo = (title) => {
+  const value = String(title || "").trim();
+  const match = value.match(versionPattern);
+  if (!match) {
+    return { baseName: value || "ارائه بدون عنوان", version: 1 };
+  }
+
+  const version = Number(normalizePersianDigits(match[1])) || 1;
+  const baseName = value.slice(0, match.index).trim() || "ارائه بدون عنوان";
+  return { baseName, version };
+};
+
+const formatVersionTitle = (baseName, version) =>
+  `${baseName || "ارائه بدون عنوان"} - نسخه ${formatNumber(version)}`;
+
 const localizeSystemTitle = (title) => {
   const value = String(title || "").trim();
-  if (!value) return "ارائه بدون عنوان";
-  if (value === "Untitled Presentation") return "ارائه بدون عنوان";
+  if (!value || value === "Untitled Presentation") return "ارائه بدون عنوان";
 
   const untitledCopyMatch = value.match(/^Untitled Presentation \(copy (\d+)\)$/i);
   if (untitledCopyMatch) {
-    return `ارائه بدون عنوان - نسخه ${Number(untitledCopyMatch[1]) + 1}`;
+    return formatVersionTitle(
+      "ارائه بدون عنوان",
+      Number(untitledCopyMatch[1]) + 1
+    );
+  }
+
+  const versionMatch = value.match(versionPattern);
+  if (versionMatch) {
+    const { baseName, version } = getVersionInfo(value);
+    return formatVersionTitle(baseName, version);
   }
 
   return value;
 };
 
 const getDuplicateTitle = (quiz, allQuizzes) => {
-  const versionPattern = /\s*-\s*نسخه\s+(\d+)$/;
-  const baseName = quiz.name.replace(versionPattern, "").trim() || "ارائه بدون عنوان";
-  let maxVersion = 1;
+  const current = getVersionInfo(quiz.name);
+  const normalizedBaseName = normalizePersianText(current.baseName);
+  let maxVersion = current.version;
 
   allQuizzes.forEach((item) => {
-    if (item.name === baseName) {
-      maxVersion = Math.max(maxVersion, 1);
-      return;
-    }
-    const match = item.name.match(versionPattern);
-    if (match && item.name.replace(versionPattern, "").trim() === baseName) {
-      maxVersion = Math.max(maxVersion, Number(match[1]) || 1);
+    const itemInfo = getVersionInfo(item.name);
+    if (normalizePersianText(itemInfo.baseName) === normalizedBaseName) {
+      maxVersion = Math.max(maxVersion, itemInfo.version);
     }
   });
 
-  return `${baseName} - نسخه ${maxVersion + 1}`;
+  return formatVersionTitle(current.baseName, maxVersion + 1);
+};
+
+const hasPersianText = (value) => /[\u0600-\u06FF]/u.test(String(value || ""));
+
+const toPersianUiMessage = (value, fallback) => {
+  const text = String(value || "").trim();
+  return text && hasPersianText(text) ? text : fallback;
+};
+
+const readLocalStorage = (key) => {
+  try {
+    return typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const removeLocalStorage = (key) => {
+  try {
+    if (typeof window !== "undefined") window.localStorage.removeItem(key);
+  } catch {
+    // Storage may be unavailable (for example in restricted browser contexts).
+  }
 };
 
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
   const [loggedInUser] = useState(
-    () => localStorage.getItem("auth.name") || "شما"
+    () => readLocalStorage("auth.name") || "شما"
   );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -113,10 +180,16 @@ export default function QuizManager({ onNewPresentation }) {
 
   const fetchQuizzes = useCallback(async (signal, { silent = false } = {}) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent) {
+        setLoading(true);
+        setLoadError(null);
+      }
       const data = await quizService.listPresentations({ signal });
+      if (!Array.isArray(data)) {
+        throw new Error("invalid_presentations_response");
+      }
 
-      const mappedQuizzes = (Array.isArray(data) ? data : []).map((quiz) => {
+      const mappedQuizzes = data.map((quiz) => {
         const updatedAt = safeTimestamp(quiz.updated_at);
         const createdAt = safeTimestamp(quiz.created_at);
         return {
@@ -126,8 +199,7 @@ export default function QuizManager({ onNewPresentation }) {
           accessCode: quiz.access_code || "",
           slides: Number(quiz.slide_count) || 0,
           participants: Number(quiz.participant_count) || 0,
-          members: "",
-          createdBy: quiz.owner_full_name || quiz.owner_name || loggedInUser,
+          createdBy: String(quiz.owner_full_name || quiz.owner_name || loggedInUser).trim() || loggedInUser,
           lastUpdated: formatDate(updatedAt),
           created: formatDate(createdAt),
           updatedAt,
@@ -141,17 +213,14 @@ export default function QuizManager({ onNewPresentation }) {
         return prev.filter((id) => validIds.has(id));
       });
       if (!silent) setLoadError(null);
+      return true;
     } catch (err) {
-      if (err.name === "AbortError") return;
+      if (err?.name === "AbortError") return false;
       console.error("Error fetching presentations:", err);
-      if (silent) {
-        setStatusMessage({
-          type: "error",
-          message: "به‌روزرسانی فهرست ارائه‌ها انجام نشد.",
-        });
-      } else {
+      if (!silent) {
         setLoadError("بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.");
       }
+      return false;
     } finally {
       if (!silent) setLoading(false);
     }
@@ -165,13 +234,16 @@ export default function QuizManager({ onNewPresentation }) {
 
   useEffect(() => {
     if (!statusMessage) return;
-    const timeoutId = setTimeout(() => setStatusMessage(null), 3000);
+    const timeoutId = setTimeout(
+      () => setStatusMessage(null),
+      statusMessage.type === "error" ? 6000 : 3500
+    );
     return () => clearTimeout(timeoutId);
   }, [statusMessage]);
 
   useEffect(() => {
-    const promptFlag = localStorage.getItem("auth.promptSetPassword");
-    const email = localStorage.getItem("auth.email");
+    const promptFlag = readLocalStorage("auth.promptSetPassword");
+    const email = readLocalStorage("auth.email");
     if (promptFlag && email) {
       setPasswordPromptVisible(true);
     }
@@ -204,6 +276,17 @@ export default function QuizManager({ onNewPresentation }) {
   const [creationError, setCreationError] = useState(null);
   const [duplicatingQuizIds, setDuplicatingQuizIds] = useState([]);
   const creationGateRef = useRef(false);
+  const duplicationLocksRef = useRef(new Set());
+  const cancelledRenameIdsRef = useRef(new Set());
+  const activeRenameIdRef = useRef(null);
+  const presentationLaunchGateRef = useRef(false);
+  const [presentingQuizId, setPresentingQuizId] = useState(null);
+
+  const closeActionMenu = useCallback(({ restoreFocus = false } = {}) => {
+    setShowMenu(null);
+    if (restoreFocus) activeMenuButtonRef.current?.focus?.();
+    activeMenuButtonRef.current = null;
+  }, []);
 
   // Create a new quiz via API and navigate to editor
   const handleNewPresentation = async () => {
@@ -253,9 +336,12 @@ export default function QuizManager({ onNewPresentation }) {
   };
 
   const normalizedSearchQuery = normalizePersianText(searchQuery);
+  const hasSearchQuery = normalizedSearchQuery.length > 0;
   const filteredQuizzes = quizzes
     .filter((quiz) =>
-      normalizePersianText(quiz.name).includes(normalizedSearchQuery)
+      normalizePersianText(
+        [quiz.name, quiz.accessCode, quiz.createdBy].filter(Boolean).join(" ")
+      ).includes(normalizedSearchQuery)
     )
     .sort((a, b) => {
       switch (sortBy) {
@@ -278,6 +364,10 @@ export default function QuizManager({ onNewPresentation }) {
     filteredQuizzes.length > 0 &&
     selectedInFilterCount === filteredQuizzes.length;
   const someSelected = selectedInFilterCount > 0 && !allSelected;
+  const selectedOutsideFilterCount = Math.max(
+    0,
+    selectedQuizzes.length - selectedInFilterCount
+  );
   const showEmptyState =
     !loading && !loadError && filteredQuizzes.length === 0;
 
@@ -334,14 +424,14 @@ export default function QuizManager({ onNewPresentation }) {
         revision: currentQuiz?.revision,
       });
 
-      const updatedAt = safeTimestamp(updated.updated_at) || Date.now();
+      const updatedAt = safeTimestamp(updated?.updated_at) || Date.now();
       setQuizzes((prev) =>
         prev.map((quiz) =>
           quiz.id === quizId
             ? {
                 ...quiz,
                 name: trimmedName,
-                revision: Number(updated.revision || quiz.revision),
+                revision: Number(updated?.revision || quiz.revision),
                 updatedAt,
                 lastUpdated: formatDate(updatedAt),
               }
@@ -353,10 +443,12 @@ export default function QuizManager({ onNewPresentation }) {
     } catch (err) {
       console.error("Error renaming presentation:", err);
       if (err.response?.status === 409 && err.response?.data?.error === "edit_conflict") {
-        await fetchQuizzes(undefined, { silent: true });
+        const refreshed = await fetchQuizzes(undefined, { silent: true });
         setStatusMessage({
           type: "error",
-          message: "این ارائه در جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
+          message: refreshed
+            ? "این ارائه در جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد."
+            : "این ارائه در جای دیگری تغییر کرده است و دریافت آخرین نسخه هم انجام نشد. صفحه را دوباره بارگذاری کنید.",
         });
       } else {
         setStatusMessage({
@@ -366,6 +458,46 @@ export default function QuizManager({ onNewPresentation }) {
       }
       return false;
     }
+  };
+
+  const startRenaming = (quiz) => {
+    cancelledRenameIdsRef.current.delete(quiz.id);
+    activeRenameIdRef.current = quiz.id;
+    setNewQuizName(quiz.name);
+    setRenamingQuiz(quiz.id);
+  };
+
+  const cancelRenaming = (quiz) => {
+    cancelledRenameIdsRef.current.add(quiz.id);
+    if (activeRenameIdRef.current === quiz.id) activeRenameIdRef.current = null;
+    setNewQuizName(quiz.name);
+    setRenamingQuiz(null);
+  };
+
+  const commitRenaming = async (quiz) => {
+    if (cancelledRenameIdsRef.current.has(quiz.id)) {
+      cancelledRenameIdsRef.current.delete(quiz.id);
+      return;
+    }
+
+    const nextName = newQuizName.trim();
+    if (!nextName) {
+      setNewQuizName(quiz.name);
+      setStatusMessage({ type: "error", message: "نام ارائه نمی‌تواند خالی باشد." });
+      if (activeRenameIdRef.current === quiz.id) activeRenameIdRef.current = null;
+      setRenamingQuiz((current) => (current === quiz.id ? null : current));
+      return;
+    }
+
+    if (nextName !== quiz.name) {
+      const success = await renameQuiz(quiz.id, nextName);
+      if (!success && activeRenameIdRef.current === quiz.id) {
+        setNewQuizName(quiz.name);
+      }
+    }
+
+    if (activeRenameIdRef.current === quiz.id) activeRenameIdRef.current = null;
+    setRenamingQuiz((current) => (current === quiz.id ? null : current));
   };
 
   const resetQuizResults = async (quizId) => {
@@ -394,13 +526,15 @@ export default function QuizManager({ onNewPresentation }) {
     }
   };
 
-  const handleMoveToTrash = async () => {
+  const handleDeleteSelected = async () => {
     if (selectedQuizzes.length === 0) return;
 
     const selectedCount = selectedQuizzes.length;
     showConfirmDialog({
       title: "حذف ارائه‌ها",
-      description: `آیا از حذف ${formatNumber(selectedCount)} ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.`,
+      description: selectedOutsideFilterCount > 0
+        ? `آیا از حذف ${formatNumber(selectedCount)} ارائه مطمئن هستید؟ ${formatNumber(selectedOutsideFilterCount)} مورد در نتایج فعلی دیده نمی‌شود. این کار قابل بازگشت نیست.`
+        : `آیا از حذف ${formatNumber(selectedCount)} ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.`,
       confirmText: "حذف",
       cancelText: "انصراف",
       confirmVariant: "destructive",
@@ -408,20 +542,32 @@ export default function QuizManager({ onNewPresentation }) {
         const idsToDelete = [...selectedQuizzes];
         setDeletingQuizIds(idsToDelete);
         try {
-          const results = await Promise.all(idsToDelete.map((id) => deleteQuiz(id, false)));
+          const results = [];
+          const batchSize = 5;
+          for (let index = 0; index < idsToDelete.length; index += batchSize) {
+            const batch = idsToDelete.slice(index, index + batchSize);
+            const batchResults = await Promise.all(
+              batch.map((id) => deleteQuiz(id, false))
+            );
+            results.push(...batchResults);
+          }
           const failedCount = results.filter((result) => !result).length;
-          await fetchQuizzes(undefined, { silent: true });
+          const refreshed = await fetchQuizzes(undefined, { silent: true });
 
           if (failedCount === 0) {
             setSelectedQuizzes([]);
             setStatusMessage({
               type: "success",
-              message: `${formatNumber(selectedCount)} ارائه حذف شد.`,
+              message: refreshed
+                ? `${formatNumber(selectedCount)} ارائه حذف شد.`
+                : `${formatNumber(selectedCount)} ارائه حذف شد، اما به‌روزرسانی فهرست از سرور انجام نشد.`,
             });
           } else {
             setStatusMessage({
               type: "error",
-              message: `حذف ${formatNumber(failedCount)} ارائه انجام نشد.`,
+              message: refreshed
+                ? `حذف ${formatNumber(failedCount)} ارائه انجام نشد.`
+                : `حذف ${formatNumber(failedCount)} ارائه انجام نشد و به‌روزرسانی فهرست از سرور هم ممکن نشد.`,
             });
           }
         } finally {
@@ -432,7 +578,7 @@ export default function QuizManager({ onNewPresentation }) {
   };
 
   const handleDeleteQuiz = async (quizId) => {
-    setShowMenu(null);
+    closeActionMenu();
     showConfirmDialog({
       title: "حذف ارائه",
       description: "آیا از حذف این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
@@ -440,7 +586,6 @@ export default function QuizManager({ onNewPresentation }) {
       cancelText: "انصراف",
       confirmVariant: "destructive",
       onConfirm: async () => {
-        setShowMenu(null);
         const success = await deleteQuiz(quizId);
         setStatusMessage(
           success
@@ -457,12 +602,16 @@ export default function QuizManager({ onNewPresentation }) {
   };
 
   const handleDuplicate = async (quiz) => {
-    if (duplicatingQuizIds.includes(quiz.id)) return;
+    const baseKey = normalizePersianText(getVersionInfo(quiz.name).baseName);
+    if (duplicationLocksRef.current.has(baseKey)) return;
 
+    duplicationLocksRef.current.add(baseKey);
     try {
       setDuplicatingQuizIds((prev) => [...new Set([...prev, quiz.id])]);
       const newName = getDuplicateTitle(quiz, quizzes);
       const duplicated = await quizService.duplicatePresentation(quiz.id, newName);
+      if (!duplicated?.id) throw new Error("invalid_duplicate_response");
+
       const updatedAt = safeTimestamp(duplicated.updated_at) || Date.now();
       const createdAt = safeTimestamp(duplicated.created_at) || updatedAt;
       const newQuiz = {
@@ -471,9 +620,10 @@ export default function QuizManager({ onNewPresentation }) {
         name: localizeSystemTitle(duplicated.title || newName),
         accessCode: duplicated.access_code || "",
         slides: Number(duplicated.slide_count ?? duplicated.slides?.length ?? quiz.slides) || 0,
-        participants: 0,
-        members: "",
-        createdBy: duplicated.owner_full_name || duplicated.owner_name || quiz.createdBy,
+        participants: Number(duplicated.participant_count) || 0,
+        createdBy: String(
+          duplicated.owner_full_name || duplicated.owner_name || quiz.createdBy || "شما"
+        ).trim() || "شما",
         lastUpdated: formatDate(updatedAt),
         created: formatDate(createdAt),
         updatedAt,
@@ -489,13 +639,18 @@ export default function QuizManager({ onNewPresentation }) {
         message: "تکثیر ارائه انجام نشد. دوباره تلاش کنید.",
       });
     } finally {
+      duplicationLocksRef.current.delete(baseKey);
       setDuplicatingQuizIds((prev) => prev.filter((id) => id !== quiz.id));
-      setShowMenu(null);
+      closeActionMenu();
     }
   };
 
   // Handle present click
   const handlePresent = async (quizId) => {
+    if (presentationLaunchGateRef.current) return;
+
+    presentationLaunchGateRef.current = true;
+    setPresentingQuizId(quizId);
     try {
       const quiz = await quizService.getQuiz(quizId);
 
@@ -507,7 +662,7 @@ export default function QuizManager({ onNewPresentation }) {
 
       const validationError = getPresentationValidationError(quiz);
       if (validationError) {
-        setErrorForModal(validationError || "اطلاعات ارائه کامل نیست.");
+        setErrorForModal(toPersianUiMessage(validationError, "اطلاعات ارائه برای اجرا کامل نیست. اسلایدها و پرسش‌ها را بررسی کنید."));
         setErrorModalOpen(true);
         return;
       }
@@ -516,6 +671,9 @@ export default function QuizManager({ onNewPresentation }) {
     } catch {
       setErrorForModal("بارگذاری ارائه انجام نشد. دوباره تلاش کنید.");
       setErrorModalOpen(true);
+    } finally {
+      presentationLaunchGateRef.current = false;
+      setPresentingQuizId(null);
     }
   };
   // Handle edit click
@@ -543,12 +701,12 @@ export default function QuizManager({ onNewPresentation }) {
   };
 
   const clearPasswordPrompt = () => {
-    localStorage.removeItem("auth.promptSetPassword");
+    removeLocalStorage("auth.promptSetPassword");
     setPasswordPromptVisible(false);
   };
 
   const sendPasswordSetupEmail = async () => {
-    const email = localStorage.getItem("auth.email");
+    const email = readLocalStorage("auth.email");
     if (!email) {
       setPasswordPromptStatus({
         type: "error",
@@ -579,39 +737,121 @@ export default function QuizManager({ onNewPresentation }) {
     } catch (err) {
       setPasswordPromptStatus({
         type: "error",
-        message: err.message || "ارسال لینک تعیین رمز عبور انجام نشد.",
+        message: toPersianUiMessage(err?.message, "ارسال لینک تعیین رمز عبور انجام نشد."),
       });
     } finally {
       setPasswordPromptLoading(false);
     }
   };
 
-  const checkMenuPosition = (buttonElement) => {
+  const handleProfileToggle = (event) => {
+    event.stopPropagation();
+    const trigger = event.currentTarget;
+    const willOpen = !showProfileMenu;
+
+    setShowProfileMenu(willOpen);
+    closeActionMenu();
+    setShowMobileSearch(false);
+
+    if (willOpen) {
+      requestAnimationFrame(() => {
+        trigger.parentElement?.querySelector('[role="menuitem"]')?.focus();
+      });
+    }
+  };
+
+  const handleAccountMenuKeyDown = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      const trigger = event.currentTarget.parentElement?.querySelector(
+        'button[aria-haspopup="menu"]'
+      );
+      setShowProfileMenu(false);
+      requestAnimationFrame(() => trigger?.focus());
+      return;
+    }
+
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      event.currentTarget.querySelector('[role="menuitem"]')?.focus();
+    }
+  };
+
+  const checkMenuPosition = useCallback((buttonElement) => {
     if (!buttonElement) return;
 
     const rect = buttonElement.getBoundingClientRect();
-    const menuHeight = 320;
+    const menuHeight =
+      buttonElement.parentElement
+        ?.querySelector('[role="menu"]')
+        ?.getBoundingClientRect().height || 390;
     const spaceAbove = rect.top;
     const spaceBelow = window.innerHeight - rect.bottom;
     setMenuPosition(spaceBelow >= menuHeight || spaceBelow >= spaceAbove ? "bottom" : "top");
-  };
+  }, []);
+
+  const focusFirstActionMenuItem = useCallback(() => {
+    activeMenuButtonRef.current?.parentElement
+      ?.querySelector('[role="menu"] [role="menuitem"]:not(:disabled)')
+      ?.focus();
+  }, []);
+
+  const handleActionMenuKeyDown = useCallback((event) => {
+    const items = Array.from(
+      event.currentTarget.querySelectorAll('[role="menuitem"]:not(:disabled)')
+    );
+    if (items.length === 0) return;
+
+    const currentIndex = items.indexOf(document.activeElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeActionMenu({ restoreFocus: true });
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      items[0].focus();
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      items[items.length - 1].focus();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      const nextIndex =
+        currentIndex < 0
+          ? direction > 0
+            ? 0
+            : items.length - 1
+          : (currentIndex + direction + items.length) % items.length;
+      items[nextIndex].focus();
+    }
+  }, [closeActionMenu]);
 
   const handleMenuToggle = (quizId, event) => {
     event.stopPropagation();
 
     if (showMenu === quizId) {
-      setShowMenu(null);
-      activeMenuButtonRef.current = null;
+      closeActionMenu();
       return;
     }
 
+    setShowProfileMenu(false);
+    setShowMobileSearch(false);
     activeMenuButtonRef.current = event.currentTarget;
     setShowMenu(quizId);
-    requestAnimationFrame(() => checkMenuPosition(activeMenuButtonRef.current));
+    requestAnimationFrame(() => {
+      checkMenuPosition(activeMenuButtonRef.current);
+      focusFirstActionMenuItem();
+    });
   };
 
   useEffect(() => {
-    if (!showMenu) return undefined;
+    if (showMenu === null) return undefined;
 
     const handlePositionUpdate = () => checkMenuPosition(activeMenuButtonRef.current);
     window.addEventListener("scroll", handlePositionUpdate, true);
@@ -621,7 +861,134 @@ export default function QuizManager({ onNewPresentation }) {
       window.removeEventListener("scroll", handlePositionUpdate, true);
       window.removeEventListener("resize", handlePositionUpdate);
     };
-  }, [showMenu]);
+  }, [showMenu, checkMenuPosition]);
+
+  useEffect(() => {
+    if (showMenu === null && !showProfileMenu && !showMobileSearch) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key !== "Escape") return;
+      if (showMenu !== null) closeActionMenu({ restoreFocus: true });
+      setShowProfileMenu(false);
+      setShowMobileSearch(false);
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showMenu, showProfileMenu, showMobileSearch, closeActionMenu]);
+
+  const renderActionMenu = (quiz) => {
+    const positionClass =
+      menuPosition === "top" ? "bottom-full mb-2" : "top-full mt-2";
+
+    return (
+      <div
+        role="menu"
+        aria-label={`عملیات ارائه ${quiz.name}`}
+        onKeyDown={handleActionMenuKeyDown}
+        className={`absolute end-0 ${positionClass} z-[60] max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg`}
+      >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            closeActionMenu();
+            void handlePresent(quiz.id);
+          }}
+          disabled={presentingQuizId !== null}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start font-medium text-brand hover:bg-brand-soft focus:bg-brand-soft focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {presentingQuizId === quiz.id ? (
+            <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          ) : (
+            <Play className="h-4 w-4" aria-hidden="true" />
+          )}
+          {presentingQuizId === quiz.id ? "در حال آماده‌سازی…" : "اجرا"}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            startRenaming(quiz);
+            closeActionMenu();
+          }}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+        >
+          <Pencil className="h-4 w-4" aria-hidden="true" />
+          تغییر نام
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            closeActionMenu();
+            navigate(`/manager/panel/${quiz.id}/report`);
+          }}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+        >
+          <BarChart3 className="h-4 w-4" aria-hidden="true" />
+          گزارش
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            setShowShareModal(quiz.id);
+            closeActionMenu();
+          }}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+        >
+          <Share2 className="h-4 w-4" aria-hidden="true" />
+          اشتراک‌گذاری
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => void handleDuplicate(quiz)}
+          disabled={duplicatingQuizIds.includes(quiz.id)}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {duplicatingQuizIds.includes(quiz.id) ? (
+            <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          ) : (
+            <Copy className="h-4 w-4" aria-hidden="true" />
+          )}
+          {duplicatingQuizIds.includes(quiz.id) ? "در حال تکثیر…" : "تکثیر"}
+        </button>
+        <div role="separator" className="my-1 h-px bg-gray-100" />
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            closeActionMenu();
+            showConfirmDialog({
+              title: "پاک‌کردن نتایج ارائه",
+              description:
+                "آیا از پاک‌کردن همه نتایج این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
+              confirmText: "پاک‌کردن نتایج",
+              confirmVariant: "destructive",
+              onConfirm: async () => {
+                await resetQuizResults(quiz.id);
+              },
+            });
+          }}
+          className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+        >
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          پاک‌کردن نتایج
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => handleDeleteQuiz(quiz.id)}
+          className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-start text-danger hover:bg-danger-soft focus:bg-danger-soft focus:outline-none"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          حذف
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -643,9 +1010,12 @@ export default function QuizManager({ onNewPresentation }) {
               <div className="flex items-center gap-1">
                 {/* Search Icon */}
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowMobileSearch(!showMobileSearch);
+                    setShowMobileSearch((open) => !open);
+                    setShowProfileMenu(false);
+                    closeActionMenu();
                   }}
                   className={`p-1.5 rounded-lg transition ${
                     showMobileSearch
@@ -655,24 +1025,30 @@ export default function QuizManager({ onNewPresentation }) {
                   aria-label="نمایش جست‌وجو"
                   title="جست‌وجو"
                 >
-                  <Search className="w-5 h-5" />
+                  <Search className="w-5 h-5" aria-hidden="true" />
                 </button>
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <button
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    type="button"
+                    onClick={handleProfileToggle}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-brand text-sm font-semibold text-content-inverse transition hover:bg-brand-strong"
                     aria-label="باز کردن منوی حساب"
+                    aria-haspopup="menu"
+                    aria-expanded={showProfileMenu}
+                    aria-controls="account-menu-mobile"
                   >
                     {loggedInUser.charAt(0).toUpperCase()}
                   </button>
                   {showProfileMenu && (
-                    <div className="absolute start-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
+                    <div id="account-menu-mobile" role="menu" onKeyDown={handleAccountMenuKeyDown} className="absolute end-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                       <button
+                        type="button"
+                        role="menuitem"
                         onClick={() => handleLogout()}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-4 h-4" aria-hidden="true" />
                         خروج از حساب
                       </button>
                     </div>
@@ -684,23 +1060,28 @@ export default function QuizManager({ onNewPresentation }) {
             {showMobileSearch && (
               <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 animate-in slide-in-from-top duration-200">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                   <input
                     type="text"
                     placeholder="جست‌وجوی ارائه‌ها"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setSearchQuery("");
+                    }}
+                    aria-label="جست‌وجوی ارائه‌ها"
                     autoFocus
                     className="w-full rounded-control border border-border-subtle bg-surface py-2 pe-10 ps-10 text-sm text-content transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-focus"
                   />
                     {searchQuery && (
                       <button
+                        type="button"
                         onClick={() => setSearchQuery("")}
-                        className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         aria-label="پاک کردن جست‌وجو"
                         title="پاک کردن جست‌وجو"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4" aria-hidden="true" />
                       </button>
                     )}
                 </div>
@@ -715,35 +1096,56 @@ export default function QuizManager({ onNewPresentation }) {
             </div>
 
             <div className="relative flex-1 max-w-md mx-8">
-              <Search className="pointer-events-none absolute end-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="جست‌وجوی ارائه‌ها"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-control border border-border-subtle bg-canvas py-2.5 pe-12 ps-4 text-content transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-focus"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setSearchQuery("");
+                }}
+                aria-label="جست‌وجوی ارائه‌ها"
+                className="w-full rounded-control border border-border-subtle bg-canvas py-2.5 pe-10 ps-12 text-content transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-focus"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="پاک کردن جست‌وجو"
+                  title="پاک کردن جست‌وجو"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-4">
               {/* Profile Dropdown */}
               <div className="relative">
                   <button
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    type="button"
+                    onClick={handleProfileToggle}
                     className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-brand font-semibold text-content-inverse transition hover:bg-brand-strong"
                     aria-label="باز کردن منوی حساب"
+                    aria-haspopup="menu"
+                    aria-expanded={showProfileMenu}
+                    aria-controls="account-menu-desktop"
                     title="حساب کاربری"
                   >
                   {loggedInUser.charAt(0).toUpperCase()}
                 </button>
 
                 {showProfileMenu && (
-                  <div className="absolute start-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
+                  <div id="account-menu-desktop" role="menu" onKeyDown={handleAccountMenuKeyDown} className="absolute end-0 top-full z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg">
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => handleLogout()}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-right text-gray-700 hover:bg-gray-50"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-start text-gray-700 hover:bg-gray-50"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 h-4" aria-hidden="true" />
                       خروج از حساب
                     </button>
                   </div>
@@ -768,6 +1170,7 @@ export default function QuizManager({ onNewPresentation }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={sendPasswordSetupEmail}
                     disabled={passwordPromptLoading}
                     className="rounded-control bg-brand px-3 py-1.5 text-xs font-semibold text-content-inverse hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-70"
@@ -775,6 +1178,7 @@ export default function QuizManager({ onNewPresentation }) {
                     {passwordPromptLoading ? "در حال ارسال…" : "ارسال لینک"}
                   </button>
                   <button
+                    type="button"
                     onClick={postponePasswordPrompt}
                     className="rounded-control border border-brand-border px-3 py-1.5 text-xs font-semibold text-brand-strong hover:bg-brand-soft"
                   >
@@ -843,13 +1247,13 @@ export default function QuizManager({ onNewPresentation }) {
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     aria-label="مرتب‌سازی ارائه‌ها"
-                    className="cursor-pointer appearance-none rounded-control border border-border-subtle bg-surface py-2.5 pe-4 ps-10 text-sm text-content focus:outline-none focus:ring-2 focus:ring-focus"
+                    className="cursor-pointer appearance-none rounded-control border border-border-subtle bg-surface py-2.5 pe-10 ps-4 text-sm text-content focus:outline-none focus:ring-2 focus:ring-focus"
                   >
                     <option value="updated">آخرین ویرایش</option>
                     <option value="name">نام</option>
                     <option value="created">تاریخ ساخت</option>
                   </select>
-                  <ChevronDown className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                  <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" aria-hidden="true" />
                 </div>
               </div>
             </div>
@@ -883,15 +1287,15 @@ export default function QuizManager({ onNewPresentation }) {
                   <Plus className="h-7 w-7" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {searchQuery ? "نتیجه‌ای پیدا نشد" : "اولین ارائه‌تان را بسازید"}
+                  {hasSearchQuery ? "نتیجه‌ای پیدا نشد" : "اولین ارائه‌تان را بسازید"}
                 </h3>
                 <p className="mt-2 text-sm text-gray-500">
-                  {searchQuery
+                  {hasSearchQuery
                     ? "عبارت دیگری را امتحان کنید یا جست‌وجو را پاک کنید."
                     : "از یک ارائه خالی شروع کنید و اولین اسلاید را در ویرایشگر بسازید."}
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
-                  {searchQuery ? (
+                  {hasSearchQuery ? (
                     <Button
                       variant="outline"
                       onClick={() => setSearchQuery("")}
@@ -917,9 +1321,10 @@ export default function QuizManager({ onNewPresentation }) {
                 {/* Desktop Table View */}
                 <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                   <table className="w-full">
+                    <caption className="sr-only">فهرست ارائه‌ها</caption>
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       <input
                         type="checkbox"
                         className="rounded"
@@ -931,22 +1336,24 @@ export default function QuizManager({ onNewPresentation }) {
                         aria-label="انتخاب همه ارائه‌های نمایش‌داده‌شده"
                       />
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       نام
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       کد ورود
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       سازنده
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       آخرین ویرایش
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
                       تاریخ ساخت
                     </th>
-                    <th className="text-start px-6 py-3 text-sm font-medium text-gray-600"></th>
+                    <th scope="col" className="text-start px-6 py-3 text-sm font-medium text-gray-600">
+                      <span className="sr-only">عملیات</span>
+                    </th>
                   </tr>
                 </thead>
 
@@ -973,8 +1380,8 @@ export default function QuizManager({ onNewPresentation }) {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-16 items-center justify-center rounded bg-gradient-to-br from-brand to-brand-strong text-2xl text-content-inverse">
-                            🎯
+                          <div className="flex h-12 w-16 items-center justify-center rounded bg-brand-soft text-brand" aria-hidden="true">
+                            <Presentation className="h-6 w-6" />
                           </div>
                           <div>
                             {renamingQuiz === quiz.id ? (
@@ -982,32 +1389,17 @@ export default function QuizManager({ onNewPresentation }) {
                                 type="text"
                                 value={newQuizName}
                                 onChange={(e) => setNewQuizName(e.target.value)}
-                                onBlur={async () => {
-                                  if (
-                                    newQuizName.trim() &&
-                                    newQuizName.trim() !== quiz.name
-                                  ) {
-                                    const success = await renameQuiz(
-                                      quiz.id,
-                                      newQuizName
-                                    );
-                                    if (!success) {
-                                      // Revert to original name if API call failed
-                                      setNewQuizName(quiz.name);
-                                    }
-                                  }
-                                  setRenamingQuiz((current) =>
-                                    current === quiz.id ? null : current
-                                  );
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.target.blur();
-                                  } else if (e.key === "Escape") {
-                                    setRenamingQuiz(null);
+                                onBlur={() => void commitRenaming(quiz)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.currentTarget.blur();
+                                  } else if (event.key === "Escape") {
+                                    event.preventDefault();
+                                    cancelRenaming(quiz);
                                   }
                                 }}
                                 autoFocus
+                                aria-label={`نام ارائه ${quiz.name}`}
                                 dir="auto"
                                 className="rounded border border-brand px-2 py-1 font-semibold text-content focus:outline-none focus:ring-2 focus:ring-focus"
                               />
@@ -1016,76 +1408,15 @@ export default function QuizManager({ onNewPresentation }) {
                                 {quiz.name}
                               </div>
                             )}
-                            <div className="text-xs text-gray-500 flex items-center gap-2">
-                              <span
-                                className="relative inline-flex items-center gap-1 group/tooltip"
-                                aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}
-                              >
-                                <span aria-hidden="true">📄</span>
-                                {formatNumber(quiz.slides)}
-                                <span
-                                  role="tooltip"
-                                  className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
-                                >
-                                  تعداد اسلایدها
-                                </span>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                              <span className="inline-flex items-center gap-1" aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}>
+                                <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                                {formatNumber(quiz.slides)} اسلاید
                               </span>
-                              <span
-                                className="relative inline-flex items-center gap-1 group/tooltip"
-                                aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}
-                              >
-                                <span aria-hidden="true">👥</span>
-                                {formatNumber(quiz.participants)}
-                                <span
-                                  role="tooltip"
-                                  className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
-                                >
-                                  تعداد شرکت‌کنندگان
-                                </span>
+                              <span className="inline-flex items-center gap-1" aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}>
+                                <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                                {formatNumber(quiz.participants)} شرکت‌کننده
                               </span>
-                              <span className="text-gray-400">
-                                {quiz.members}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  navigate(`/manager/panel/${quiz.id}/report`)
-                                }
-                                className="mb-1 mt-2 inline-flex items-center rounded bg-brand-muted px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand hover:text-content-inverse"
-                              >
-                                <svg
-                                  className="w-4 h-4 mr-0.5 flex-shrink-0"
-                                  viewBox="0 0 30 30"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <rect
-                                    x="3"
-                                    y="15"
-                                    width="6"
-                                    height="9"
-                                    rx="0.5"
-                                    fill="currentColor"
-                                  />
-                                  <rect
-                                    x="12"
-                                    y="7"
-                                    width="6"
-                                    height="17"
-                                    rx="0.5"
-                                    fill="currentColor"
-                                  />
-                                  <rect
-                                    x="21"
-                                    y="11"
-                                    width="6"
-                                    height="13"
-                                    rx="0.5"
-                                    fill="currentColor"
-                                    className="text-brand-border"
-                                  />
-                                </svg>
-                                گزارش
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -1102,17 +1433,18 @@ export default function QuizManager({ onNewPresentation }) {
                             {quiz.accessCode || "—"}
                           </button>
                           <button
+                            type="button"
                             onClick={() => setShowShareModal(quiz.id)}
                             className="p-1 hover:bg-gray-200 rounded transition opacity-0 group-hover/access:opacity-100 focus:opacity-100"
                             aria-label={`ویرایش یا اشتراک کد ورود ${quiz.name}`}
                           >
-                            <Pencil className="w-4 h-4 text-gray-500" />
+                            <Share2 className="h-4 w-4 text-gray-500" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                          <div aria-hidden="true" className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                             {String(quiz.createdBy || "شما")
                               .split(/\s+/)
                               .filter(Boolean)
@@ -1140,100 +1472,24 @@ export default function QuizManager({ onNewPresentation }) {
                             ویرایش
                           </Button>
                           <Button
-                            onClick={() => handlePresent(quiz.id)}
-                            className="rounded-control bg-brand-strong px-4 py-2 text-sm text-content-inverse hover:bg-brand"
+                            onClick={() => void handlePresent(quiz.id)}
+                            disabled={presentingQuizId !== null}
+                            className="rounded-control bg-brand-strong px-4 py-2 text-sm text-content-inverse hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            اجرا
+                            {presentingQuizId === quiz.id ? "در حال آماده‌سازی…" : "اجرا"}
                           </Button>
                           <div className="relative">
                             <button
+                              type="button"
                               onClick={(e) => handleMenuToggle(quiz.id, e)}
                               className="p-2 hover:bg-gray-200 rounded transition"
                               aria-label={`باز کردن منوی عملیات ${quiz.name}`}
+                              aria-haspopup="menu"
                               aria-expanded={showMenu === quiz.id}
                             >
-                              <MoreVertical className="w-5 h-5 text-gray-600" />
+                              <MoreVertical className="w-5 h-5 text-gray-600" aria-hidden="true" />
                             </button>
-                            {showMenu === quiz.id && (
-                              <div
-                                className={`absolute end-0 ${
-                                  menuPosition === "top"
-                                    ? "bottom-full mb-2"
-                                    : "top-full mt-2"
-                                } bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-[60] max-h-[80vh] overflow-y-auto`}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setShowMenu(null);
-                                    handlePresent(quiz.id);
-                                  }}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-start font-medium text-brand hover:bg-brand-soft"
-                                >
-                                  <Play className="w-4 h-4" />
-                                  اجرا
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setRenamingQuiz(quiz.id);
-                                    setNewQuizName(quiz.name);
-                                    setShowMenu(null);
-                                  }}
-                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                  تغییر نام
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setShowMenu(null);
-                                    showConfirmDialog({
-                                      title: "پاک‌کردن نتایج ارائه",
-                                      description:
-                                        "آیا از پاک‌کردن همه نتایج این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
-                                      confirmText: "پاک‌کردن نتایج",
-                                      confirmVariant: "destructive",
-                                      onConfirm: async () => {
-                                        await resetQuizResults(quiz.id);
-                                        setShowMenu(null);
-                                      },
-                                    });
-                                  }}
-                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
-                                >
-                                  <Copy className="w-4 h-4" />
-                                  پاک‌کردن نتایج
-                                </button>
-                                <button
-                                  onClick={() => handleDuplicate(quiz)}
-                                  disabled={duplicatingQuizIds.includes(quiz.id)}
-                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {duplicatingQuizIds.includes(quiz.id) ? (
-                                    <LoaderCircle className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Copy className="w-4 h-4" />
-                                  )}
-                                  {duplicatingQuizIds.includes(quiz.id) ? "در حال تکثیر…" : "تکثیر"}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setShowShareModal(quiz.id);
-                                    setShowMenu(null);
-                                  }}
-                                  className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
-                                >
-                                  <span className="w-4 h-4 pb-5">🔗</span>
-                                  اشتراک‌گذاری
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteQuiz(quiz.id)}
-                                  className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-start text-danger hover:bg-danger-soft"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  حذف
-                                </button>
-                              </div>
-                            )}
+                            {showMenu === quiz.id && renderActionMenu(quiz)}
                           </div>
                         </div>
                       </td>
@@ -1263,8 +1519,8 @@ export default function QuizManager({ onNewPresentation }) {
                         onChange={() => handleQuizSelect(quiz.id)}
                         aria-label={`انتخاب ارائه ${quiz.name}`}
                       />
-                      <div className="flex h-12 min-w-12 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-brand-strong text-xl text-content-inverse shadow-sm">
-                        🎯
+                      <div className="flex h-12 min-w-12 items-center justify-center rounded-lg bg-brand-soft text-brand shadow-sm" aria-hidden="true">
+                        <Presentation className="h-6 w-6" />
                       </div>
                       <div className="truncate min-w-0 flex-1">
                         {renamingQuiz === quiz.id ? (
@@ -1272,29 +1528,16 @@ export default function QuizManager({ onNewPresentation }) {
                             type="text"
                             value={newQuizName}
                             onChange={(e) => setNewQuizName(e.target.value)}
-                            onBlur={async () => {
-                              if (
-                                newQuizName.trim() &&
-                                newQuizName.trim() !== quiz.name
-                              ) {
-                                const success = await renameQuiz(
-                                  quiz.id,
-                                  newQuizName
-                                );
-                                if (!success) setNewQuizName(quiz.name);
-                              }
-                              setRenamingQuiz((current) =>
-                                current === quiz.id ? null : current
-                              );
-                            }}
+                            onBlur={() => void commitRenaming(quiz)}
                             onKeyDown={(event) => {
                               if (event.key === "Enter") event.currentTarget.blur();
                               if (event.key === "Escape") {
-                                setNewQuizName(quiz.name);
-                                setRenamingQuiz(null);
+                                event.preventDefault();
+                                cancelRenaming(quiz);
                               }
                             }}
                             autoFocus
+                            aria-label={`نام ارائه ${quiz.name}`}
                             dir="auto"
                             className="w-full rounded border border-brand px-2 py-1 font-semibold text-content focus:outline-none focus:ring-2 focus:ring-focus"
                           />
@@ -1308,127 +1551,38 @@ export default function QuizManager({ onNewPresentation }) {
                             {quiz.name}
                           </button>
                         )}
-                        <div className="text-xs text-gray-500 flex items-center gap-3 mt-1">
-                          <span
-                            className="relative inline-flex items-center gap-1 group/tooltip"
-                            aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}
-                          >
-                            <span aria-hidden="true">📄</span>
-                            {formatNumber(quiz.slides)}
-                            <span
-                              role="tooltip"
-                              className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
-                            >
-                              تعداد اسلایدها
-                            </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                          <span className="inline-flex items-center gap-1" aria-label={`تعداد اسلایدها: ${formatNumber(quiz.slides)}`}>
+                            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                            {formatNumber(quiz.slides)} اسلاید
                           </span>
-                          <span
-                            className="relative inline-flex items-center gap-1 group/tooltip"
-                            aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}
-                          >
-                            <span aria-hidden="true">👥</span>
-                            {formatNumber(quiz.participants)}
-                            <span
-                              role="tooltip"
-                              className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover/tooltip:opacity-100"
-                            >
-                              تعداد شرکت‌کنندگان
-                            </span>
+                          <span className="inline-flex items-center gap-1" aria-label={`تعداد شرکت‌کنندگان: ${formatNumber(quiz.participants)}`}>
+                            <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                            {formatNumber(quiz.participants)} شرکت‌کننده
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="relative ml-2">
+                    <div className="relative ms-2">
                       <button
+                        type="button"
                         onClick={(e) => handleMenuToggle(quiz.id, e)}
                         className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label={`باز کردن منوی عملیات ${quiz.name}`}
+                        aria-haspopup="menu"
                         aria-expanded={showMenu === quiz.id}
                       >
-                        <MoreVertical className="w-5 h-5 text-gray-500" />
+                        <MoreVertical className="w-5 h-5 text-gray-500" aria-hidden="true" />
                       </button>
 
-                      {showMenu === quiz.id && (
-                        <div className={`absolute end-0 ${menuPosition === "top" ? "bottom-10" : "top-10"} max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-gray-100 bg-white py-1 text-sm shadow-[0_4px_20px_rgba(0,0,0,0.1)] z-50 animate-in fade-in zoom-in-95 duration-100`}>
-                          <button
-                            onClick={() => {
-                              handlePresent(quiz.id);
-                              setShowMenu(null);
-                            }}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-start font-medium text-brand hover:bg-brand-soft"
-                          >
-                            <Play className="w-4 h-4" /> اجرا
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRenamingQuiz(quiz.id);
-                              setNewQuizName(quiz.name);
-                              setShowMenu(null);
-                            }}
-                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
-                          >
-                            <Pencil className="w-4 h-4" /> تغییر نام
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowShareModal(quiz.id);
-                              setShowMenu(null);
-                            }}
-                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
-                          >
-                            <span className="w-4 h-4 flex items-center justify-center">
-                              🔗
-                            </span>{" "}
-                            اشتراک‌گذاری
-                          </button>
-                          <button
-                            onClick={() => handleDuplicate(quiz)}
-                            disabled={duplicatingQuizIds.includes(quiz.id)}
-                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {duplicatingQuizIds.includes(quiz.id) ? (
-                              <LoaderCircle className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                            {duplicatingQuizIds.includes(quiz.id) ? "در حال تکثیر…" : "تکثیر"}
-                          </button>
-                          <div className="h-px bg-gray-100 my-1"></div>
-                          <button
-                            onClick={() => {
-                              setShowMenu(null);
-                              showConfirmDialog({
-                                title: "پاک‌کردن نتایج ارائه",
-                                description:
-                                  "آیا از پاک‌کردن همه نتایج این ارائه مطمئن هستید؟ این کار قابل بازگشت نیست.",
-                                confirmText: "پاک‌کردن نتایج",
-                                confirmVariant: "destructive",
-                                onConfirm: async () =>
-                                  await resetQuizResults(quiz.id),
-                              });
-                            }}
-                            className="w-full text-start px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700"
-                          >
-                            <Copy className="w-4 h-4" /> پاک‌کردن نتایج
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowMenu(null);
-                              handleDeleteQuiz(quiz.id);
-                            }}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-start text-danger hover:bg-danger-soft"
-                          >
-                            <Trash2 className="w-4 h-4" /> حذف
-                          </button>
-                        </div>
-                      )}
+                      {showMenu === quiz.id && renderActionMenu(quiz)}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm mb-5 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
                     <div>
-                      <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
+                      <span className="mb-1 block text-[10px] font-medium text-gray-400">
                         کد ورود
                       </span>
                       <button
@@ -1441,8 +1595,8 @@ export default function QuizManager({ onNewPresentation }) {
                         {quiz.accessCode || "—"}
                       </button>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium block mb-1">
+                    <div className="text-start">
+                      <span className="mb-1 block text-[10px] font-medium text-gray-400">
                         آخرین ویرایش
                       </span>
                       <span className="text-xs font-medium text-gray-600">
@@ -1467,10 +1621,11 @@ export default function QuizManager({ onNewPresentation }) {
                       ویرایش
                     </Button>
                     <Button
-                      onClick={() => handlePresent(quiz.id)}
-                      className="h-10 flex-1 bg-brand text-sm font-medium tracking-wide text-content-inverse shadow-sm hover:bg-brand-strong"
+                      onClick={() => void handlePresent(quiz.id)}
+                      disabled={presentingQuizId !== null}
+                      className="h-10 flex-1 bg-brand text-sm font-medium tracking-wide text-content-inverse shadow-sm hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      اجرا
+                      {presentingQuizId === quiz.id ? "در حال آماده‌سازی…" : "اجرا"}
                     </Button>
                   </div>
                 </div>
@@ -1506,7 +1661,7 @@ export default function QuizManager({ onNewPresentation }) {
       </div>
 
       {/* Share Modal */}
-      {showShareModal && (
+      {showShareModal !== null && (
         <ShareMenu
           isOpen={true}
           onClose={() => setShowShareModal(null)}
@@ -1526,47 +1681,52 @@ export default function QuizManager({ onNewPresentation }) {
 
       {/* Bottom Action Bar */}
       {selectedQuizzes.length > 0 && (
-        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 mb-8 z-50">
-          <div className="flex items-center gap-6 rounded-lg bg-content px-6 py-4 text-content-inverse shadow-2xl">
+        <div className="fixed inset-x-4 bottom-4 z-50 flex justify-center md:inset-x-auto md:left-1/2 md:-translate-x-1/2">
+          <div className="flex max-w-full flex-wrap items-center gap-x-6 gap-y-3 rounded-lg bg-content px-5 py-3 text-content-inverse shadow-2xl">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">
                 {formatNumber(selectedQuizzes.length)} انتخاب‌شده
+                {selectedOutsideFilterCount > 0
+                  ? ` (${formatNumber(selectedOutsideFilterCount)} مورد خارج از نتایج فعلی)`
+                  : ""}
               </span>
               {!allSelected && (
                 <button
+                  type="button"
                   onClick={handleBottomBarSelectAll}
                   className="text-sm hover:text-gray-300 transition flex items-center gap-2"
                 >
-                  <span className="text-lg">⚡</span>
-                  انتخاب همه
+                  <span className="text-lg" aria-hidden="true">⚡</span>
+                  انتخاب همه نتایج فعلی
                 </button>
               )}
               <button
-                onClick={handleMoveToTrash}
+                type="button"
+                onClick={handleDeleteSelected}
                 className="flex items-center gap-2 text-sm text-danger-border transition hover:text-content-inverse"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
                 حذف ارائه‌ها
               </button>
             </div>
             <button
+              type="button"
               onClick={() => setSelectedQuizzes([])}
               className="ms-4 hover:bg-gray-600 rounded p-1 transition"
               aria-label="لغو انتخاب ارائه‌ها"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
       )}
 
       {/* Close menu when clicking outside */}
-      {(showMenu || showProfileMenu || showMobileSearch) && (
+      {(showMenu !== null || showProfileMenu || showMobileSearch) && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
-            setShowMenu(null);
-            activeMenuButtonRef.current = null;
+            closeActionMenu();
             setShowProfileMenu(false);
             setShowMobileSearch(false);
           }}

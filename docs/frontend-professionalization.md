@@ -26,7 +26,7 @@ A real-Chrome review at desktop and 390x844 reproduced the first critical flow:
 dashboard -> Creating button -> unrelated full-screen loader -> empty editor
 ```
 
-The F1-F4 work aligned dashboard/editor foundations, replaced the blank first
+The F1-F5 work aligned dashboard/editor foundations, replaced the blank first
 step with type-first creation, and added responsive editor navigation and
 status recovery. Remaining routes still vary in color, density, language, and
 spatial structure; the editor also retains untranslated detail copy.
@@ -36,9 +36,8 @@ lines. After F4 the tree contains 51 JSX, 16 JS, 13 TS, and 6 TSX files.
 `tsconfig.json` checks TS/TSX, but the passing typecheck still
 excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
 files exceed 1,000 nonblank lines. `App.jsx` is now a small route composition
-root and production has no `mockData` imports; the active live runtime still
-contains legacy numeric projections and the editor carries duplicate
-legacy/canonical fields for F5 migration.
+root and production has no `mockData` imports. F5 removed numeric live message
+dispatch, enforced TypeScript lint, and established measured quality budgets.
 
 The initial styles contained roughly 381 direct color expressions, 75 inline
 style objects, and 169 physical-direction utilities. The first F2 slice now
@@ -196,6 +195,18 @@ explicit F5 quality-closure gate.
   code and heavy editors based on measurements.
 - Record browser evidence and close remaining UX gaps before returning priority
   to production-readiness work.
+
+Completed 2026-08-29. Axe now gates WCAG 2/2.1/2.2 A/AA on critical stable
+states; Chrome checks keyboard focus, mobile overflow, RTL, reduced motion,
+local FCP/LCP/CLS, request counts, recovery navigation, and console/network
+failures. Measured contrast failures were fixed and the report's fake Upgrade
+control was removed. Named live join/answer commands and direct snapshot/event
+projection replaced numeric message dispatch. JS/JSX/TS/TSX lint is enforced,
+six unused production dependencies were removed, and native route splitting
+replaced substring manual chunks. The accepted build is 80.50 KiB initial JS
+gzip, 17.31 KiB initial CSS gzip, 63.89 KiB largest route gzip, and zero initial
+module preloads; CI ceilings are checked during build. Full evidence and its
+local-only limitations are in `frontend-quality-baseline.md`.
 
 ## Priority relationship to capacity work
 

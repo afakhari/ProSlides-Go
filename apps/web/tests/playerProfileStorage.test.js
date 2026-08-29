@@ -7,7 +7,6 @@ import {
   readStoredProfile,
   saveStoredProfile,
   getPersistedUserIdForRoom,
-  createJoinMessage,
 } from "../src/pages/presentation/player/playerProfileStorage.js";
 
 const createMemoryStorage = () => {
@@ -54,31 +53,6 @@ test("readStoredProfile returns null for different room", () => {
 test("readStoredProfile returns null for malformed payload", () => {
   globalThis.localStorage.setItem(PLAYER_PROFILE_KEY, "{not-json");
   assert.equal(readStoredProfile(33), null);
-});
-
-test("createJoinMessage includes persisted user_id only when present", () => {
-  const withId = createJoinMessage({
-    name: "ali",
-    avatar: "A",
-    persistedUserId: "u-1",
-  });
-  assert.deepEqual(withId, {
-    type: 6,
-    name: "ali",
-    character: "A",
-    user_id: "u-1",
-  });
-
-  const withoutId = createJoinMessage({
-    name: "ali",
-    avatar: "A",
-    persistedUserId: "",
-  });
-  assert.deepEqual(withoutId, {
-    type: 6,
-    name: "ali",
-    character: "A",
-  });
 });
 
 test("getPersistedUserIdForRoom returns id only for matching room", () => {

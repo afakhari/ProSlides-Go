@@ -369,27 +369,6 @@ function EyeIcon({ open }) {
   );
 }
 
-function GlobeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
-    </svg>
-  );
-}
-
 function Cloud({ className }) {
   return (
     <svg viewBox="0 0 180 120" aria-hidden="true" className={className}>
@@ -443,26 +422,6 @@ function Wand({ className }) {
   );
 }
 
-function ChatBubble() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
-      <path
-        d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 10h8M8 14h6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -1262,7 +1221,7 @@ export default function AuthPage() {
               <MailIcon />
             </span>
             <input
-              className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af] ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+              className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100 ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
                 }`}
               type="email"
               name="email"
@@ -1296,7 +1255,7 @@ export default function AuthPage() {
                 <LockIcon />
               </span>
               <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type={showPassword ? "text" : "password"}
                 name="password"
                 autoComplete={isSignup ? "new-password" : "current-password"}
@@ -1364,7 +1323,7 @@ export default function AuthPage() {
                 <LockIcon />
               </span>
               <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type="text"
                 inputMode="numeric"
                 name="verification-code"
@@ -1397,7 +1356,7 @@ export default function AuthPage() {
                 <UserIcon />
               </span>
               <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-[#9ca3af]"
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type="text"
                 name="full-name"
                 autoComplete="name"

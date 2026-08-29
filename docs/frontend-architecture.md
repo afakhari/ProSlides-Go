@@ -26,9 +26,8 @@ The measured source facts are:
   dashboard, auth screen, editor, and editor sidebar;
 - F4 reduced `App.jsx` to the active route composition root and removed its
   unreachable presentation runtime, duplicate routes, and dead static imports;
-- the active live route is snapshot/SSE based, but `ServerDataContext` and
-  `live/protocol.js` project typed state back into retired numeric-message and
-  legacy quiz view models;
+- the active live route is snapshot/SSE based; F5 removed numeric-message
+  dispatch and now applies named commands plus snapshot/event projections;
 - production components no longer import `src/data/mockData.js`; bounded empty
   runtime defaults now live under the live module and demo quiz fallback is gone;
 - the editor domain duplicates legacy and canonical field names such as
@@ -435,6 +434,13 @@ revision or validation semantics.
   measured bundle/Web Vital gates.
 - Update browser evidence and remove compatibility files only after all active
   flows pass.
+
+Completed 2026-08-29: TypeScript ESLint now covers TS/TSX while generated
+OpenAPI remains protected by drift/type checks; named live commands replaced
+numeric dispatch; axe and browser quality checks cover critical flows; native
+route splitting keeps editor/live-heavy dependencies out of entry preloads;
+and measured build ceilings are enforced by `npm run build`. See
+`frontend-quality-baseline.md` for exact values and interpretation.
 
 ## Completion and documentation
 

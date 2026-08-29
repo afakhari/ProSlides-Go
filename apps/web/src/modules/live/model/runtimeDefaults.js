@@ -13,12 +13,6 @@ export const EMPTY_FOOTER_STATS = Object.freeze({
   players: { current: 0, max: 0 },
 });
 
-export const createNavigationState = (type = 5, action = null, slideIndex = null) => ({
-  type,
-  action,
-  slide_index: slideIndex,
-});
-
 // These controls are visual-only until their live commands have contracts.
 export const FOOTER_CHAT_MESSAGES = Object.freeze([]);
 export const FOOTER_MENU_ITEMS = Object.freeze([]);

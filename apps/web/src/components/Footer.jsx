@@ -173,7 +173,7 @@ export default function Footer({
                 onEnd();
                 return;
               }
-              onNext && onNext();
+              onNext?.();
             }}
             className={`h-11 px-5 ${focusRing} rounded-full flex items-center gap-2 cursor-pointer border-none transition-colors text-sm font-semibold ${
               isAtEnd ? "bg-emerald-500/25" : "bg-indigo-500/25"

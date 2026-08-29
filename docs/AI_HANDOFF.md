@@ -51,17 +51,17 @@ not complete. Never describe a design target as benchmark evidence.
   preceding Nginx 1k sample missed answer p95 (581.88 ms), so 1k
   production-like and all 5k/10k gates remain unmeasured. Use
   `docs/capacity-plan.md` and `docs/load-test-results.md` as the proof record.
-- Frontend truth: F1-F4 are verified. Presentation API/model, dashboard,
+- Frontend truth: F1-F5 are verified. Presentation API/model, dashboard,
   sharing, and editor UI are under `modules/presentations`; transport types are
   generated from OpenAPI, type-first slide creation avoids abandoned drafts,
   and unified dirty/save/conflict state exposes recovery. Most remaining UI is
-  JSX outside `tsc`; `App.jsx` is now route composition only and production has
-  no mock-data imports. Numeric live projections and physical-direction debt remain.
-- Exact next task: begin F5 with a measured critical-flow accessibility and
-  route-bundle baseline before changing compatibility or chunk boundaries.
-- Priority boundary: complete the owner-prioritized frontend F1-F5 sequence,
-  then resume the still-mandatory production-like TLS 1k gate. No capacity gate
-  has been waived or passed by this reprioritization.
+  JSX outside `tsc`, but TS/TSX lint, axe/browser checks, named live commands,
+  native route splitting, and measured bundle budgets now gate regressions.
+- Exact next task: repeat the 1k protocol twice on a named production-like
+  single-API topology through TLS with cold readiness and resource capture.
+- Priority boundary: the owner-prioritized frontend F1-F5 sequence is complete;
+  the still-mandatory production-like TLS 1k gate resumes next. No capacity gate
+  was waived or passed by frontend work.
 - Canonical parity and deployment references: `docs/migration-status.md` and
   `docs/configuration.md`.
 
@@ -228,15 +228,14 @@ the eighth one-second probe. This is local, non-TLS evidence only.
 
 `docs/frontend-professionalization.md` owns UX sequencing;
 `docs/frontend-architecture.md` owns technical boundaries; ADR 0003 records the
-decision. F0-F4 are complete. The accepted target keeps React
+decision. F0-F5 are complete. The accepted target keeps React
 19 and Vite and migrates incrementally toward `app -> modules -> shared`, with
 React Router, typed API boundaries, separate live HTTP/SSE state, Tailwind v4
 semantic tokens, controlled RTL/LTR boundaries, and gradual TS/TSX coverage.
 
-The owner-prioritized exact next task is the first F5 evidence slice: measure
-keyboard/accessibility behavior and route bundles across critical Persian and
-live/report flows before changing compatibility or chunk boundaries. Capacity
-work remains independently required and resumes after F5.
+The owner-prioritized frontend sequence is complete. The exact next task is the
+production-like TLS 1k gate: repeat the protocol twice on a named single-API
+topology with cold readiness and continuous pool/query/lock/CPU/heap evidence.
 
 ### 2026-08-28 audit evidence
 
@@ -246,8 +245,8 @@ work remains independently required and resumes after F5.
 - Four UI files exceed 1,000 nonblank lines. F4 reduced `App.jsx` from 567 lines
   to a small route composition root and removed duplicate route branches.
 - Production no longer imports mock-era models or falls back to a demo quiz.
-  Typed HTTP/SSE data is still projected to numeric legacy view models; F5 must
-  retire that compatibility layer rather than copy it.
+  F5 replaced numeric message dispatch with named join/answer commands and
+  direct snapshot/event projection.
 - The original audit found roughly 381 direct color expressions, 75 inline
   objects, 169 physical-direction utilities, duplicate Tailwind imports, and no
   complete tokens. The F2 foundation removes the duplicate import and migrates
@@ -295,6 +294,12 @@ work remains independently required and resumes after F5.
   imports and demo quiz fallback, and two dead mock-era components. A typed
   Persian 404/header boundary and structural regression gate were added. Lint,
   typecheck, 47 unit tests, build, and all three system-Chrome E2E flows pass.
+- F5 adds TS/TSX lint, axe WCAG checks, focus/RTL/reduced-motion/overflow/local
+  Web-Vitals assertions, named live commands, native route splitting, and
+  measured build budgets. Six unused production packages and measured contrast/
+  fake-control failures were removed. Initial JS/CSS are 80.50/17.31 KiB gzip,
+  the largest route is 63.89 KiB gzip, and initial preloads are zero. Drift,
+  lint, typecheck, 47 unit tests, budgeted build, and all three Chrome E2E flows pass.
 
 ## Completed implementation: dependency adapters and readiness
 

@@ -60,7 +60,7 @@ const pruneQueuedAnswersForCurrentQuestion = (roomId, questionId, runId) => {
   writeQueuedAnswers(roomId, next);
 };
 
-const flushQueuedAnswers = async (roomId, sendMessage, questionId, runId) => {
+const flushQueuedAnswers = async (roomId, submitAnswer, questionId, runId) => {
   const current = readQueuedAnswers(roomId);
   if (current.length === 0) {
     return { sentKeys: [], rejectedKeys: [], remaining: 0 };
@@ -82,7 +82,7 @@ const flushQueuedAnswers = async (roomId, sendMessage, questionId, runId) => {
       continue;
     }
 
-    const outcome = await sendMessage(answer);
+    const outcome = await submitAnswer(answer);
     if (outcome === true) {
       sentKeys.push(getAnswerKey(answer));
     } else if (outcome === "rejected") {
@@ -104,7 +104,7 @@ export default function PlayerPickAnswerQuestion({
   quiz,
 }) {
   const { questionResults, partialQuestionResults } = useServerData();
-  const { sendMessage, isConnected, connectionError } = useLiveSession();
+  const { submitAnswer, isConnected, connectionError } = useLiveSession();
 
   const questionId = question?.question_id;
   const questionTime = question?.question_time ?? 0;
@@ -188,7 +188,7 @@ export default function PlayerPickAnswerQuestion({
     if (!isConnected) return;
 
     let cancelled = false;
-    void flushQueuedAnswers(roomId, sendMessage, questionId, runId).then(
+    void flushQueuedAnswers(roomId, submitAnswer, questionId, runId).then(
       ({ sentKeys, rejectedKeys, remaining }) => {
         if (cancelled) return;
         const currentUserId = localStorage.getItem("user_id");
@@ -212,7 +212,7 @@ export default function PlayerPickAnswerQuestion({
     return () => {
       cancelled = true;
     };
-  }, [isConnected, sendMessage, roomId, questionId, runId, submitState]);
+  }, [isConnected, submitAnswer, roomId, questionId, runId, submitState]);
 
   const handleSelect = (option) => {
     if (submitted || timeLeft <= 0) return;
@@ -245,7 +245,6 @@ export default function PlayerPickAnswerQuestion({
 
     const options = question.options || [];
     const answer = {
-      type: 4,
       request_id: createRequestId(),
       question_id: question.question_id,
       user_id: userId,
@@ -257,7 +256,7 @@ export default function PlayerPickAnswerQuestion({
       })),
     };
 
-    const outcome = isConnected ? await sendMessage(answer) : false;
+    const outcome = isConnected ? await submitAnswer(answer) : false;
     if (outcome === true) {
       removeQueuedAnswer(roomId, answer);
       setSubmitState("sent");

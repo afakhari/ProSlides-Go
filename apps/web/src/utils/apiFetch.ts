@@ -15,7 +15,8 @@ const cookieValue = (name: string): string => {
 const hasHeader = (headers: Headers, key: string): boolean => headers.has(key);
 
 export const apiFetch = (path: string, options: ApiFetchOptions = {}): Promise<Response> => {
-  const { auth: _auth = true, headers, json, ...init } = options;
+  const { headers, json, ...init } = options;
+  delete init.auth;
   const finalHeaders = new Headers(headers);
   let body = init.body;
   if (json !== undefined) {

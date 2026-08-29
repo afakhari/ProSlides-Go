@@ -233,7 +233,7 @@ export default function LandingPage() {
               className="flex items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3 py-1.5 shadow-[0_8px_18px_rgba(15,23,42,0.06)]"
             >
               <div className="flex items-center gap-2" dir="ltr">
-                <span className="text-[11px] font-semibold tracking-[0.14em] text-[#94a3b8]">
+                <span className="text-[11px] font-semibold tracking-[0.14em] text-[#64748b]">
                   proslides.ir/
                 </span>
                 <input
@@ -393,7 +393,7 @@ export default function LandingPage() {
                 <div className="absolute inset-0 translate-x-6 translate-y-6 rounded-[32px] bg-[#e0e7ff]" />
                 <div className="relative rounded-[32px] border border-[#e2e8f0] bg-white p-6 shadow-[0_24px_50px_rgba(15,23,42,0.16)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#94a3b8]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#64748b]">
                       Live session
                     </span>
                     <span className="rounded-full bg-[#ecfdf3] px-3 py-1 text-xs font-semibold text-[#16a34a]">
@@ -485,7 +485,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <p className="mt-10 text-center text-xs text-[#94a3b8] md:text-sm">
+          <p className="mt-10 text-center text-xs text-[#64748b] md:text-sm">
             ساخته شده توسط تیم ProSlides
             {" — "}
             <Link

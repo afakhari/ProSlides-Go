@@ -195,6 +195,15 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .animate-custom-pulse,
   .animate-confetti-fall,
   .animate-applause-pop,
@@ -210,6 +219,12 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #000000;
+  opacity: 1;
 }
 
 /* Utility to hide native scrollbars while preserving scrolling */

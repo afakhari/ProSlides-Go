@@ -2,12 +2,10 @@
 import EmojiPicker from "emoji-picker-react";
 import { motion as Motion } from "framer-motion";
 import { useLiveSession } from "../../../hooks/useLiveSession";
-import { ErrorModal } from "../../quiz/manager/ErrorModal";
 import { isLightColor } from "../../../lib/colorUtils";
 import {
   createClientUserId,
   DEFAULT_AVATAR,
-  createJoinMessage,
   getPersistedUserIdForRoom,
   readStoredProfile,
   saveStoredProfile,
@@ -143,11 +141,9 @@ export default function PlayerJoinPage({ roomId, quiz }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectAttempt, setConnectAttempt] = useState(0);
 
-  const { connect, sendMessage, isConnected, lastMessage, connectionError } =
+  const { connect, joinParticipant, isConnected, lastJoinResult, connectionError } =
     useLiveSession();
 
-  const [error, _setError] = useState(null);
-  const [errorModalOpen, setErrorModalOpen] = useState(false);
 
   useEffect(() => {
     const profile = readStoredProfile(roomId);
@@ -162,9 +158,6 @@ export default function PlayerJoinPage({ roomId, quiz }) {
     setJoined(true);
   }, [roomId]);
 
-  const closeErrorModal = () => {
-    setErrorModalOpen(false);
-  };
 
   useEffect(() => {
     if (isConnected) {
@@ -216,20 +209,20 @@ export default function PlayerJoinPage({ roomId, quiz }) {
     if (!isConnected) return;
     if (joinSent) return;
 
-    const msg = createJoinMessage({
+    const command = {
       name,
       avatar,
-      persistedUserId: getPersistedUserIdForRoom(roomId),
-    });
+      clientUserId: getPersistedUserIdForRoom(roomId),
+    };
 
     let cancelled = false;
-    void sendMessage(msg).then((outcome) => {
+    void joinParticipant(command).then((outcome) => {
       if (!cancelled && outcome === true) setJoinSent(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [joined, isConnected, joinSent, name, avatar, sendMessage, roomId]);
+  }, [joined, isConnected, joinSent, name, avatar, joinParticipant, roomId]);
 
   useEffect(() => {
     if (!joined) return;
@@ -238,17 +231,14 @@ export default function PlayerJoinPage({ roomId, quiz }) {
   }, [joined, isConnected]);
 
   useEffect(() => {
-    if (!lastMessage) return;
-
-    if (lastMessage.type === 10) {
-      saveStoredProfile({
-        room_id: roomId,
-        name: lastMessage.name || name,
-        avatar: lastMessage.character || avatar,
-        user_id: lastMessage.user_id,
-      });
-    }
-  }, [lastMessage, roomId, name, avatar]);
+    if (!lastJoinResult) return;
+    saveStoredProfile({
+      room_id: roomId,
+      name: lastJoinResult.displayName || name,
+      avatar: lastJoinResult.avatar || avatar,
+      user_id: lastJoinResult.clientUserId,
+    });
+  }, [lastJoinResult, roomId, name, avatar]);
 
   const backgroundStyle = {
     backgroundImage: quiz?.background?.image
@@ -436,7 +426,6 @@ export default function PlayerJoinPage({ roomId, quiz }) {
 
         </div>
 
-        <ErrorModal isOpen={errorModalOpen} onClose={closeErrorModal} message={error} />
       </div>
     </div>
   );

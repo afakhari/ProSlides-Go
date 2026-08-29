@@ -11,7 +11,6 @@ import { presentationSlideToLegacy } from "../live/protocol";
 import { hasLeaderboardEntries } from "../pages/presentation/utils/leaderboardUtils";
 import { resolveQuestionTimer } from "../pages/presentation/utils/questionTimerSync";
 import {
-  createJoinMessage,
   getPersistedUserIdForRoom,
   readStoredProfile,
 } from "../pages/presentation/player/playerProfileStorage";
@@ -292,7 +291,7 @@ function AppPresentation({ roomId, role, initialQuizData }) {
   const {
     isConnected,
     connect,
-    sendMessage,
+    joinParticipant,
     snapshot,
     sessionId: liveSessionId,
   } = useLiveSession();
@@ -360,13 +359,11 @@ function AppPresentation({ roomId, role, initialQuizData }) {
     if (!playerResumeProfile) return;
 
     playerResumeJoinSentRef.current = true;
-    void sendMessage(
-      createJoinMessage({
+    void joinParticipant({
         name: playerResumeProfile.name,
         avatar: playerResumeProfile.avatar,
-        persistedUserId: getPersistedUserIdForRoom(roomId),
-      })
-    ).then((ok) => {
+        clientUserId: getPersistedUserIdForRoom(roomId),
+    }).then((ok) => {
       if (!ok) playerResumeJoinSentRef.current = false;
     });
   }, [
@@ -374,7 +371,7 @@ function AppPresentation({ roomId, role, initialQuizData }) {
     isConnected,
     playerResumeProfile,
     roomId,
-    sendMessage,
+    joinParticipant,
   ]);
   const [managerHasSyncedState, setManagerHasSyncedState] = useState(
     role !== "manager"

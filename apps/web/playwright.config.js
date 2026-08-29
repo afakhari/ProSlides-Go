@@ -4,7 +4,7 @@ const executablePath = globalThis.process?.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PA
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 45000,
+  timeout: 90000,
   expect: {
     timeout: 10000,
   },

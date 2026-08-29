@@ -1,5 +1,4 @@
 import { createSecureUUID } from "../../../live/secureUuid.js";
-
 export const PLAYER_PROFILE_KEY = "presentation_player_profile_v1";
 export const DEFAULT_AVATAR = "🧙";
 
@@ -26,7 +25,6 @@ export const readStoredProfile = (roomId) => {
     return null;
   }
 };
-
 export const saveStoredProfile = ({ room_id, name, avatar, user_id }) => {
   const roomIdStr = String(room_id || "");
   const existing = readStoredProfile(roomIdStr);
@@ -58,10 +56,3 @@ export const getPersistedUserIdForRoom = (roomId) => {
   const legacyUserId = localStorage.getItem("user_id");
   return legacyUserId ? String(legacyUserId) : null;
 };
-
-export const createJoinMessage = ({ name, avatar, persistedUserId }) => ({
-  type: 6,
-  name,
-  character: avatar,
-  ...(persistedUserId ? { user_id: persistedUserId } : {}),
-});
