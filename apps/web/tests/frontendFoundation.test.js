@@ -124,3 +124,19 @@ test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live comma
   assert.doesNotMatch(liveContext, /sendMessage|setLastMessage/);
   assert.doesNotMatch(projectionContext, /processMessage|lastMessageType/);
 });
+
+test("participant live UI is Persian, theme-driven, and disclosure-safe", () => {
+  const entry = source("src/routes/PresentationEntry.jsx");
+  const shell = source("src/modules/live/participant/ParticipantShell.tsx");
+  const theme = source("src/modules/live/participant/theme.ts");
+  const question = source("src/pages/presentation/player/PickAnswerQuestion.jsx");
+  const leaderboard = source("src/pages/presentation/player/LeaderBoard.jsx");
+
+  assert.match(entry, /data\.presentation\.background_color/);
+  assert.match(entry, /data\.presentation\.text_color/);
+  assert.match(shell, /dir="rtl"/);
+  assert.match(theme, /--live-bg/);
+  assert.match(question, /ثبت پاسخ/);
+  assert.doesNotMatch(question, />\s*(?:Submitted|Submit|Loading quiz|You voted)\s*</);
+  assert.doesNotMatch(leaderboard, /players\.map|roster/);
+});

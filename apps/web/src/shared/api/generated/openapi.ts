@@ -844,6 +844,14 @@ export interface components {
             session_id: string;
             /** Format: uuid */
             presentation_id: string;
+            presentation: components["schemas"]["PublicLivePresentation"];
+        };
+        /** @description Public, display-only presentation metadata safe for participant theming. */
+        PublicLivePresentation: {
+            title: string;
+            background_color: string;
+            background_image_url: string;
+            text_color: string;
         };
         ParticipantLiveSnapshot: {
             /** @enum {string} */

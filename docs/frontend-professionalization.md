@@ -32,12 +32,19 @@ status recovery. Remaining routes still vary in color, density, language, and
 spatial structure; the editor also retains untranslated detail copy.
 
 The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
-lines. After F4 the tree contains 51 JSX, 16 JS, 13 TS, and 6 TSX files.
-`tsconfig.json` checks TS/TSX, but the passing typecheck still
-excludes most JSX UI; ESLint checks JS/JSX but not TS/TSX. Four UI
-files exceed 1,000 nonblank lines. `App.jsx` is now a small route composition
-root and production has no `mockData` imports. F5 removed numeric live message
-dispatch, enforced TypeScript lint, and established measured quality budgets.
+lines. The current tree contains 49 JSX, 15 JS, 14 TS, and 7 TSX files.
+`tsconfig.json` checks TS/TSX, so most JSX remains outside static type coverage;
+ESLint now checks JS/JSX/TS/TSX. `App.jsx` is a small route composition root,
+production has no mock-data dependency, and the obsolete archive is deleted.
+F5 removed numeric dispatch and established measured quality budgets.
+`frontend-status.md` is the canonical debt, remedy, and claim boundary.
+
+The live-quiz follow-up adds a public display-only theme contract and one
+mobile-first Persian participant shell across join, lobby, question, content,
+and personal result states. Background color/image and text color come from the
+presentation settings. Closed questions are never remounted as a new timed
+question, while `show_leaderboard_after` still issues the explicit leaderboard
+transition after closure.
 
 The initial styles contained roughly 381 direct color expressions, 75 inline
 style objects, and 169 physical-direction utilities. The first F2 slice now
@@ -203,8 +210,8 @@ failures. Measured contrast failures were fixed and the report's fake Upgrade
 control was removed. Named live join/answer commands and direct snapshot/event
 projection replaced numeric message dispatch. JS/JSX/TS/TSX lint is enforced,
 six unused production dependencies were removed, and native route splitting
-replaced substring manual chunks. The accepted build is 80.50 KiB initial JS
-gzip, 17.31 KiB initial CSS gzip, 63.89 KiB largest route gzip, and zero initial
+replaced substring manual chunks. The current accepted build is 80.50 KiB initial JS
+gzip, 17.40 KiB initial CSS gzip, 63.54 KiB largest route gzip, and zero initial
 module preloads; CI ceilings are checked during build. Full evidence and its
 local-only limitations are in `frontend-quality-baseline.md`.
 

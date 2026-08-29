@@ -121,7 +121,7 @@ export const projectLiveSnapshot = (snapshot, roster = []) => {
   } : null;
   return {
     users: managerRows,
-    currentQuestion: active?.slide_type === 1 && !["leaderboard", "ended"].includes(snapshot.session.state) ? active : null,
+    currentQuestion: active?.slide_type === 1 && snapshot.session.state === "question_open" ? active : null,
     currentContent: active?.slide_type === 2 && snapshot.session.state === "content" ? active : null,
     leaderboardResults: leaderboard,
     participantCount: Number(snapshot.participant_count || 0),

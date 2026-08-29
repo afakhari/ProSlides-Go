@@ -931,11 +931,23 @@ components:
         rank: { type: integer, minimum: 1, description: Present for participant snapshots in leaderboard or ended state. }
     LiveSessionLocator:
       type: object
-      required: [session_id, presentation_id]
+      required: [session_id, presentation_id, presentation]
       additionalProperties: false
       properties:
         session_id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
+        presentation:
+          $ref: '#/components/schemas/PublicLivePresentation'
+    PublicLivePresentation:
+      type: object
+      required: [title, background_color, background_image_url, text_color]
+      additionalProperties: false
+      description: Public, display-only presentation metadata safe for participant theming.
+      properties:
+        title: { type: string }
+        background_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        background_image_url: { type: string }
+        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     ParticipantLiveSnapshot:
       type: object
       required: [role, session, participant, participant_count, last_event_id]

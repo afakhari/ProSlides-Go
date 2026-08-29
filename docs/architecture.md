@@ -163,6 +163,9 @@ uses `(score DESC, joined_at, id)`.
 
 The React live runtime mirrors this boundary with narrow TypeScript types. A
 public join code resolves directly to the active Go live-session ID; the client
+also receives only display-safe presentation title/background/image/text
+settings for participant theming—never slides, correctness, owner, or roster
+data. The client
 then joins over HTTP, applies the authoritative role-scoped snapshot, opens SSE
 with `Last-Event-ID`, and refreshes snapshot state before reconnecting. Manager
 roster pages are loaded in batches of at most 100; participant projections

@@ -235,6 +235,10 @@ try {
   $resolvedSession = Invoke-API -Method GET -Path "/api/v1/live/sessions/resolve?join_code=$($liveSession.join_code)" -Client $participantClient -ExpectedStatus 200
   $resolvedSessionPayload = $resolvedSession.Content | ConvertFrom-Json
   if ($resolvedSessionPayload.session_id -ne $liveSession.id -or $resolvedSessionPayload.presentation_id -ne $createdID) { throw "Join-code resolution did not return the active live session" }
+  if ($resolvedSessionPayload.presentation.title -ne "Updated through API" -or $resolvedSessionPayload.presentation.background_color -ne "#112233" -or $resolvedSessionPayload.presentation.text_color -ne "#ffffff") { throw "Join-code resolution did not return the display-safe presentation theme" }
+  foreach ($forbiddenThemeField in @("slides", "owner_id", "settings")) {
+    if ($resolvedSessionPayload.presentation.PSObject.Properties.Name -contains $forbiddenThemeField) { throw "Public presentation theme disclosed $forbiddenThemeField" }
+  }
   $previousAccessCode = $liveSession.join_code
   $replacementAccessCode = ("R" + [guid]::NewGuid().ToString("N").Substring(0, 11)).ToUpperInvariant()
   Invoke-API -Method PUT -Path "/api/v1/presentations/$createdID/access-code" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ access_code = $replacementAccessCode } | ConvertTo-Json -Compress) -ExpectedStatus 200 | Out-Null

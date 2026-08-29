@@ -226,7 +226,7 @@ function ManagerLeaderBoard({
               >
                 {players.length === 0 ? (
                   <div className="text-[color:var(--quiz-text-muted)] text-center py-6">
-                    Waiting for leaderboard dataâ€¦
+                    در حال دریافت جدول امتیازات…
                   </div>
                 ) : (
                   <ul className="space-y-4 w-full flex flex-col items-stretch py-2">
@@ -410,7 +410,7 @@ function ManagerLeaderBoard({
                   onClick={() => setShowLeaderboardModal(false)}
                   className="text-white hover:text-gray-300 text-3xl border-none bg-transparent cursor-pointer leading-none"
                 >
-                  Ã—
+                  ×
                 </button>
               </div>
 

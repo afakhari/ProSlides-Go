@@ -50,6 +50,23 @@ test("participant projection ignores any supplied roster and exposes only self o
   assert.equal(projection.participantCount, 10_000);
 });
 
+test("closed questions are not projected as a fresh participant question", () => {
+  const projection = projectLiveSnapshot({
+    role: "participant",
+    session: { state: "question_closed", state_version: 8, active_slide_id: "q1" },
+    active_slide: {
+      id: "q1",
+      kind: "question",
+      content: { text: "سؤال", question_time: 30, options: [{ text: "گزینه" }] },
+    },
+    participant: { id: "p1", display_name: "بازیکن", score: 0 },
+    participant_count: 1,
+  });
+
+  assert.equal(projection.currentQuestion, null);
+  assert.equal(projection.leaderboardResults, null);
+});
+
 test("manager projection contains only the roster page supplied by pagination", () => {
   const projection = projectLiveSnapshot(
     {
@@ -176,7 +193,11 @@ test("access codes resolve through the Go live API", async () => {
   let requestedURL = "";
   globalThis.fetch = async (url) => {
     requestedURL = String(url);
-    return new Response(JSON.stringify({ session_id: "session", presentation_id: "presentation" }), {
+    return new Response(JSON.stringify({
+      session_id: "session",
+      presentation_id: "presentation",
+      presentation: { title: "آزمون", background_color: "#123456", background_image_url: "", text_color: "#ffffff" },
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -184,6 +205,7 @@ test("access codes resolve through the Go live API", async () => {
   try {
     const result = await resolveLiveSession("JOIN CODE");
     assert.equal(result.session_id, "session");
+    assert.equal(result.presentation.background_color, "#123456");
   } finally {
     globalThis.fetch = originalFetch;
   }

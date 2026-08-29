@@ -13,9 +13,9 @@ capacity or production Web-Vitals evidence.
 | Metric | Measured | CI ceiling |
 |---|---:|---:|
 | initial JavaScript gzip | 80.50 KiB | 90 KiB |
-| initial CSS gzip | 17.31 KiB | 20 KiB |
-| largest route JavaScript gzip | 63.89 KiB | 70 KiB |
-| largest JavaScript file raw | 269.35 KiB | 300 KiB |
+| initial CSS gzip | 17.40 KiB | 20 KiB |
+| largest route JavaScript gzip | 63.54 KiB | 70 KiB |
+| largest JavaScript file raw | 267.44 KiB | 300 KiB |
 | initial module preloads | 0 | 0 |
 
 The previous substring-based manual chunking preloaded DnD and motion and had
@@ -37,7 +37,9 @@ unknown-code states. It also asserts:
 - registration, one-request creation, type-first slide creation, report
   history navigation, logout/login recovery, and invalid-code behavior.
 
-The final run had zero axe violations and all three interaction flows passed.
+The current suite has four flows. The three existing interaction flows and the
+new 390x844 public themed-participant entry passed in system Chrome; axe found
+zero violations in the themed entry state.
 Earlier baseline failures identified four contrast issues in landing/auth/report
 and one fake Upgrade control; those sources were corrected or removed. Live
 ordering, reconnect, role non-disclosure, timers, and named join/answer command

@@ -46,11 +46,11 @@ a shortcut.
 | Area | Actual state | Rule for next work |
 |---|---|---|
 | `apps/api` | Go API with immutable per-run slide definitions, database-clock deadlines and automatic closure, actor-scoped idempotency, recoverable question stats, bounded live requests/rate limits, reduced live SQL/acquire paths, single-flight SSE stream creation, synchronously warmed minimum PostgreSQL pools, bounded HTTP/pool/query/live metrics, graceful SSE drain, plus the previously verified identity/content/report flows | Preserve ownership/role boundaries and never accept an external score ledger. Provider secrets belong only in deployment configuration. |
-| `apps/web` | Functional React 19/Vite SPA. F1-F5 are verified. WCAG axe checks, RTL/reduced-motion/focus/overflow/Web-Vitals assertions, TS/TSX lint, named live commands, native route splitting, and measured bundle budgets now gate regressions. | Resume the production-like TLS 1k gate on a named topology with cold readiness and resource evidence. |
+| `apps/web` | Functional React 19/Vite SPA. F1-F5 are verified. Participant live entry/question/content/result now share a Persian mobile-first shell driven by public display-safe quiz theme settings; closed questions cannot replay, and after-question leaderboard navigation remains explicit. WCAG/browser checks, typed lint, native route splitting, and bundle budgets gate regressions. Remaining debt and remedies are explicit in `docs/frontend-status.md`. | Resume the production-like TLS 1k gate; do not describe completed phases as full TypeScript, field-performance, or complete live-browser certification. |
 | PostgreSQL | PostgreSQL 16; migrations `0001`-`0015`; authoritative users/content/settings/editor revisions/access codes/OTP and reset hashes/sessions/frozen run definitions/answers/scores/events | Durable data belongs here. Add forward-only migrations only. |
 | Redis | Redis 7.4 provides readiness and fixed-window identity plus live join/answer/action/reconnect limits; live fan-out/presence acceleration is not implemented | It may accelerate ephemeral work, never replace the event/answer ledger. |
 | CI | GitHub Actions validates Go tests/race, web lint/typecheck/unit/build, both Compose contracts, and API/web image builds | Keep CI passing and add checks with new tooling. |
-| Tests | Web JS/JSX/TS/TSX lint, partial TS+TSX typecheck, 47 unit tests, bundle budgets/build, 3 system-Chrome E2E flows with axe and browser-quality assertions, Go tests/vet, Compose matrices, image smoke, and prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
+| Tests | Web JS/JSX/TS/TSX lint, partial TS+TSX typecheck, 49 unit tests, bundle budgets/build, 4 system-Chrome E2E flows with axe and browser-quality assertions, Go tests/vet, Compose matrices, image smoke, and prior local 100/1k evidence. Production-like 1k/5k/10k gates do not exist. | Treat `tsc` as partial until migrated UI coverage expands. Keep browser artifacts ignored and treat local/browser evidence as bounded functional proof only. |
 
 The working branch is `main` in a separate Git worktree. Do not merge,
 force-push, or modify `master` without explicit owner approval.
@@ -81,6 +81,7 @@ docs/
   frontend-architecture.md   frontend boundaries, target tree, migration gates
   frontend-professionalization.md Persian-first UX phases and acceptance gates
   frontend-quality-baseline.md measured F5 accessibility/performance budgets
+  frontend-status.md           canonical frontend strengths/debt/remedies
   decisions/                 Architecture Decision Records
 AGENTS.md                    this mandatory guide
 docker-compose.yaml          local web + API + PostgreSQL + Redis stack
@@ -302,6 +303,7 @@ Frontend modernization is a separate ordered track:
 | 2026-08-29 | Completed frontend F3 | Presentation dashboard/sharing/API/model and editor route/canvas/slide-list/inspector/toolbar code moved under `modules/presentations`. Type-first slide creation sends no request before selection and one request afterward; unified dirty/save/conflict state provides visible recovery. Drift check, lint, typecheck, 46 unit tests, build, and all three system-Chrome E2E flows passed. |
 | 2026-08-29 | Completed frontend F4 | Removed the unreachable duplicate runtime and dead route/import branches from `App.jsx`, isolated a typed Persian 404 route/header, removed every production `mockData` import and unsafe live fallback, and added a structural regression gate. Lint, typecheck, 47 unit tests, build, and system-Chrome E2E passed; full measured accessibility/performance closure remains F5. |
 | 2026-08-29 | Completed frontend F5 | Added axe WCAG gates and keyboard/RTL/reduced-motion/overflow/local-Web-Vitals checks; fixed measured contrast and fake-control issues; replaced numeric live message dispatch with named join/answer commands and direct snapshot/event projection; enabled TS/TSX lint; removed six unused production dependencies; and replaced substring manual chunks with native route splitting plus measured CI budgets. Initial JS/CSS are 80.50/17.31 KiB gzip with zero preloads. Drift, lint, typecheck, 47 unit tests, budgeted build, and three Chrome E2E flows passed. |
+| 2026-08-29 | Professionalized the live quiz experience | Public resolution now returns display-safe presentation theming; participant join/wait/question/content/result screens use one Persian, mobile-first themed shell; closed questions cannot replay as a fresh question and `show_leaderboard_after` retains the close-to-leaderboard transition. Removed dead mock archives, an unused game page, and an unused 5,400-line manager leaderboard duplicate. Lint, typecheck, 49 unit tests, budgeted build, Go live tests, three existing Chrome flows and the new themed 390x844 axe flow passed. `docs/frontend-status.md` distinguishes verified quality from remaining typed/manager-live/test/style/field-performance debt. |
 
 ## References
 
@@ -318,6 +320,7 @@ Frontend modernization is a separate ordered track:
 - `docs/frontend-architecture.md` — audited current frontend, target boundaries, and migration gates.
 - `docs/frontend-professionalization.md` — Persian-first UX direction, phases, and acceptance gates.
 - `docs/frontend-quality-baseline.md` — enforced F5 browser and bundle evidence.
+- `docs/frontend-status.md` — canonical frontend strengths, remaining debt, remedies, and claim boundary.
 - `docs/decisions/0001-go-modular-monolith.md` — architecture decision record.
 - `docs/decisions/0002-durable-events-and-bounded-sse-fanout.md` — replay/fan-out and backpressure decision.
 - `docs/decisions/0003-modular-react-frontend.md` — incremental modular React frontend decision.

@@ -57,6 +57,10 @@ not complete. Never describe a design target as benchmark evidence.
   and unified dirty/save/conflict state exposes recovery. Most remaining UI is
   JSX outside `tsc`, but TS/TSX lint, axe/browser checks, named live commands,
   native route splitting, and measured bundle budgets now gate regressions.
+  Participant live surfaces share a Persian mobile shell driven by public,
+  display-safe presentation theme fields. `docs/frontend-status.md` is the
+  canonical debt and claim boundary; F1-F5 is not a claim that every JSX
+  surface is top-tier.
 - Exact next task: repeat the 1k protocol twice on a named production-like
   single-API topology through TLS with cold readiness and resource capture.
 - Priority boundary: the owner-prioritized frontend F1-F5 sequence is complete;
@@ -297,9 +301,18 @@ topology with cold readiness and continuous pool/query/lock/CPU/heap evidence.
 - F5 adds TS/TSX lint, axe WCAG checks, focus/RTL/reduced-motion/overflow/local
   Web-Vitals assertions, named live commands, native route splitting, and
   measured build budgets. Six unused production packages and measured contrast/
-  fake-control failures were removed. Initial JS/CSS are 80.50/17.31 KiB gzip,
-  the largest route is 63.89 KiB gzip, and initial preloads are zero. Drift,
-  lint, typecheck, 47 unit tests, budgeted build, and all three Chrome E2E flows pass.
+  fake-control failures were removed. The current initial JS/CSS are
+  80.50/17.40 KiB gzip, the largest route is 63.54 KiB gzip, and initial
+  preloads are zero. Drift, lint, typecheck, 49 unit tests, budgeted build, and
+  four Chrome flows pass.
+- The live-quiz UX follow-up exposes public display-safe theme settings, applies
+  them across the participant lifecycle, and removes dead mock/game/duplicate-
+  leaderboard sources. A `question_closed` snapshot no longer projects the
+  active question, preventing a second timer/render; the tested
+  `show_leaderboard_after` sequence remains `close_question -> show_leaderboard`.
+  Lint, typecheck, 49 unit tests, budgeted build, Go live tests, the three
+  existing Chrome flows, and the new 390x844 themed-entry axe flow pass.
+  A seeded complete manager+participant lifecycle remains explicit P1 debt.
 
 ## Completed implementation: dependency adapters and readiness
 

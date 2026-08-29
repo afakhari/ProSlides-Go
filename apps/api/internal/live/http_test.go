@@ -31,7 +31,10 @@ func (s *snapshotStore) ResolveSession(_ context.Context, code string) (SessionL
 	if code != "JOIN1" {
 		return SessionLocator{}, ErrNotFound
 	}
-	return SessionLocator{SessionID: testSessionID, PresentationID: testPresentationID}, nil
+	return SessionLocator{
+		SessionID: testSessionID, PresentationID: testPresentationID,
+		Presentation: PublicLivePresentation{Title: "آزمون نمونه", BackgroundColor: "#123456", BackgroundImageURL: "https://example.test/theme.webp", TextColor: "#ffffff"},
+	}, nil
 }
 func (s *snapshotStore) Join(context.Context, string, string, string, string, []byte) (Participant, bool, error) {
 	return Participant{}, false, errors.New("unexpected Join")
@@ -150,6 +153,12 @@ func TestResolveSessionUsesPublicJoinCode(t *testing.T) {
 	snapshotHandler(&snapshotStore{}).ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !jsonFieldEquals(response.Body.Bytes(), "session_id", testSessionID) {
 		t.Fatalf("resolve response = %d %s", response.Code, response.Body.String())
+	}
+	var payload struct {
+		Presentation PublicLivePresentation `json:"presentation"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil || payload.Presentation.BackgroundColor != "#123456" || payload.Presentation.TextColor != "#ffffff" || payload.Presentation.Title != "آزمون نمونه" {
+		t.Fatalf("resolve theme = %#v, err = %v", payload.Presentation, err)
 	}
 
 	missing := httptest.NewRecorder()

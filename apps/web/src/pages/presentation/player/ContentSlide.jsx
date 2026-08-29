@@ -1,25 +1,21 @@
-import React from "react";
-import TopBar from "../../../components/TopBar";
+import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
 
-export default function PlayerContentSlide({ roomId, quiz, content }) {
-  const title = content?.title || content?.content_title || "";
+export default function PlayerContentSlide({ quiz, content }) {
+  const title = content?.title || content?.content_title || "مطلب بعدی";
   const text = content?.content_text || content?.text || "";
-  const image =
-    content?.content_image_url || content?.image_url || content?.image || "";
+  const image = content?.content_image_url || content?.image_url || content?.image || "";
 
   return (
-    <div className="min-h-screen w-full" style={{ background: quiz?.background?.color || "#0f172a" }}>
-      <TopBar pageType="quiz" roomId={roomId} quiz={quiz} isMobilePlayer={true} />
-
-      <main className="mx-auto max-w-5xl px-6 py-8 text-center text-white">
-        {title && <h1 className="mb-4 text-3xl font-bold">{title}</h1>}
-        {text && <p className="mx-auto mb-6 max-w-3xl whitespace-pre-wrap text-lg leading-8">{text}</p>}
-        {image && (
-          <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/15 bg-white/5 p-2">
-            <img src={image} alt={title || "content"} className="mx-auto max-h-[60vh] w-auto rounded-lg" />
-          </div>
-        )}
-      </main>
-    </div>
+    <ParticipantShell quiz={quiz}>
+      <article className="flex flex-1 flex-col justify-center py-5 text-center">
+        <div className="rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-5 shadow-2xl backdrop-blur-xl sm:p-9">
+          <p className="mb-3 text-sm font-bold text-[color:var(--live-muted)]">اسلاید توضیحی</p>
+          <h1 className="text-3xl font-black leading-tight sm:text-4xl" dir="auto">{title}</h1>
+          {image && <img src={image} alt="" className="mx-auto mt-6 max-h-[42dvh] w-auto max-w-full rounded-2xl border border-[color:var(--live-border)] object-contain shadow-xl" />}
+          {text && <p className="mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-lg leading-9 text-[color:var(--live-muted)]" dir="auto">{text}</p>}
+          <div className="mx-auto mt-7 inline-flex rounded-full border border-[color:var(--live-border)] bg-white/10 px-4 py-2 text-sm font-bold">برای ادامه، نمایشگر ارائه‌دهنده را دنبال کنید</div>
+        </div>
+      </article>
+    </ParticipantShell>
   );
 }

@@ -62,15 +62,20 @@ The established login/register/recovery presentation was preserved. The main
 its transport and provider integration rather than replacing the design.
 
 Frontend professionalization F0-F5 is complete and verified. The
-partial JavaScript-to-TypeScript migration has 51 JSX, 16 JS, 13 TS, and 6 TSX
+partial JavaScript-to-TypeScript migration has 49 JSX, 15 JS, 14 TS, and 7 TSX
 files; most JSX UI remains outside `tsc`, but JS/JSX/TS/TSX lint, axe/browser
 quality checks, named live commands, route splitting, and bundle budgets are
 enforced. Oversized legacy JSX and styling debt are maintainability follow-up,
 not blockers for the completed F0-F5 acceptance track.
-Presentation API/model, dashboard, sharing, and editor UI now follow the
+Participant join, waiting, question, content, and personal-result screens now
+share a Persian RTL mobile shell driven by display-safe presentation theme
+metadata. Closed questions are not projected as fresh questions, and the
+after-question leaderboard transition remains explicit. Presentation API/model,
+dashboard, sharing, and editor UI follow the
 incremental `app -> modules -> shared` target. Detailed constraints and F0-F5
 gates are in [frontend-architecture.md](frontend-architecture.md); UX
 acceptance is in [frontend-professionalization.md](frontend-professionalization.md).
+The quality/debt matrix and remedies are in [frontend-status.md](frontend-status.md).
 
 ## Verification evidence
 

@@ -106,16 +106,16 @@ function AccessCodeResolver() {
           setResolvedData(data);
           setResolvedMeta({
             quiz_id: data.presentation_id,
-            title: "",
+            title: data.presentation.title,
             access_code: accessCode,
             background: {
-              color: "#1e1e2e",
-              image: "",
-              text_color: "#111827",
+              color: data.presentation.background_color,
+              image: data.presentation.background_image_url,
+              text_color: data.presentation.text_color,
             },
             music_url: "",
             slides: [],
-            text_color: "#111827",
+            text_color: data.presentation.text_color,
           });
           setStatus("success");
         } else {
@@ -138,12 +138,12 @@ function AccessCodeResolver() {
 
   // Loading state
   if (status === "loading") {
-    return <Waiting message="Joining..." />;
+    return <Waiting message="در حال ورود به کوئیز…" />;
   }
 
   // Error state
   if (status === "error") {
-    return <Waiting message="Invalid access code" />;
+    return <Waiting message="کد ورود معتبر نیست" />;
   }
 
   // Success - render player presentation directly (URL stays the same)
@@ -498,7 +498,7 @@ function AppPresentation({ roomId, role, initialQuizData }) {
     }
   }, [role, currentContent, quiz, currentSlide, data.type]);
 
-  // dYYâ€º U^U,OÂ¦UO manager OO3OÂ¦ U^ type:1 OOÃ½ O3OÃ±U^OÃ± U.UOÆ’?OOÃ±O3O_OO O"UÃ˜ U,UOO_OÃ±O"U^OÃ±O_ O"OÃ±U^
+  // Keep the manager route aligned with the authoritative leaderboard state.
   useEffect(() => {
     if (role !== "manager" || !hasLeaderboardEntries(leaderboardResults)) {
       return;
@@ -672,6 +672,7 @@ function AppPresentation({ roomId, role, initialQuizData }) {
         return (
           <FinalLeaderboard
             leaderboardData={modalLeaderboardResults || leaderboardResults}
+            quiz={quiz}
             onExit={() => (window.location.href = "/manager/panel")}
           />
         );
@@ -715,7 +716,11 @@ function AppPresentation({ roomId, role, initialQuizData }) {
         />
       );
     }
-    if (playerHasSeenActiveSlide && playerLastActive?.payload) {
+    if (
+      playerHasSeenActiveSlide &&
+      playerLastActive?.payload &&
+      snapshot?.session?.state === "question_open"
+    ) {
       if (playerLastActive.kind === "question") {
         const fallbackQuestion = playerLastActive.payload;
         const fallbackTimer = resolveQuestionTimer({
@@ -739,26 +744,17 @@ function AppPresentation({ roomId, role, initialQuizData }) {
         }
       }
 
-      if (playerLastActive.kind === "content") {
-        return (
-          <PlayerContentSlide
-            roomId={roomId}
-            quiz={quiz}
-            content={playerLastActive.payload}
-          />
-        );
-      }
     }
 
     if (playerHasSeenActiveSlide && playerResumeProfile) {
-      return <Waiting message="Syncing live session..." />;
+      return <Waiting message="در حال همگام‌سازی جلسه…" />;
     }
     return <PlayerJoinPage roomId={roomId} quiz={quiz} />;
   };  /* ----------- Final Conditional Rendering ----------- */
   if (role === "manager") {
     return (
       <PresentationErrorBoundary key={`manager-${roomId ?? "unknown"}`}>
-        {managerHasSyncedState ? renderManager() : <Waiting message="Syncing live session..." />}
+        {managerHasSyncedState ? renderManager() : <Waiting message="در حال همگام‌سازی جلسه…" />}
       </PresentationErrorBoundary>
     );
   }

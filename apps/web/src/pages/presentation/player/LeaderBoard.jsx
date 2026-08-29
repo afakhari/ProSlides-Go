@@ -1,316 +1,29 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { motion as Motion, AnimatePresence } from "framer-motion";
-import { getColorForUser, isLightColor } from "../../../lib/colorUtils";
+import { motion as Motion } from "framer-motion";
 import { useLiveSession } from "../../../hooks/useLiveSession";
-
-// const players = [
-//   {
-//     user_id: 1,
-//     name: "Chloe",
-//     character: "👑",
-//     color: "#db2777",
-//     rank: 1,
-//     total_points: 153,
-//     new_points: 61,
-//   },
-//   {
-//     user_id: 2,
-//     name: "Trang",
-//     character: "🌸",
-//     color: "#059669",
-//     rank: 2,
-//     total_points: 149,
-//     new_points: 49,
-//   },
-//   {
-//     user_id: 3,
-//     name: "Alex",
-//     character: "🐱",
-//     color: "#65a30d",
-//     rank: 3,
-//     total_points: 34,
-//     new_points: 34,
-//   },
-//   {
-//     user_id: 4,
-//     name: "Jenny",
-//     character: "🧁",
-//     color: "#2563eb",
-//     rank: 5,
-//     total_points: 0,
-//     new_points: 0,
-//   },
-//   {
-//     user_id: 5,
-//     name: "Kian",
-//     character: "😂",
-//     color: "#4563bb",
-//     rank: 4,
-//     total_points: 20,
-//     new_points: 20,
-//   },
-// ];
-
-function PlayerLeaderBoard({ players, quiz }) {
+import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
 
-  const { participantCount, snapshot } = useLiveSession();
-  // Ensure players is always an array to prevent crashes and filter out invalid entries
-  const validPlayers = useMemo(
-    () =>
-      (Array.isArray(players) ? players : []).filter(
-        (p) => p && typeof p === "object"
-      ),
-    [players]
-  );
-
-  const [displayedPlayers, setDisplayedPlayers] = useState([]);
-  const [animateBars, setAnimateBars] = useState(false);
-  const currentUserId = snapshot?.role === "participant" ? snapshot.participant.id : null;
-  // const navigate = useNavigate();
-
-  if (import.meta.env.DEV) console.log(
-    "[PlayerLeaderBoard] Rendering with",
-    validPlayers.length,
-    "players"
-  );
-
-  const maxScore =
-    validPlayers.length > 0
-      ? Math.max(...validPlayers.map((p) => parseFloat(p.total_points) || 0))
-      : 0;
-  const minScore = 0;
-
-  const calcPercent = (score) => {
-    const val = parseFloat(score) || 0;
-    if (maxScore <= minScore) return val > 0 ? 100 : 0;
-    // Calculate percentage relative to max score
-    const percent = (val / maxScore) * 100;
-    return Math.max(percent, 1);
-  };
-
-  useEffect(() => {
-    // Ensure players have colors based on user_id
-    const processedPlayers = validPlayers.map((p) => ({
-      ...p,
-      color: getColorForUser(p.user_id),
-    }));
-    setDisplayedPlayers(processedPlayers);
-  }, [validPlayers, currentUserId]);
-
-  useEffect(() => {
-    // Trigger animation only if not already animated
-    const t = setTimeout(() => {
-      setAnimateBars(true);
-    }, 500);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Calculate dynamic background style from quiz data
-  const backgroundStyle = {
-    backgroundImage: quiz?.background?.image
-      ? `url('${quiz.background.image}')`
-      : "none",
-    backgroundColor: quiz?.background?.color || "#1e1e2e",
-  };
-  const textColor =
-    quiz?.text_color || quiz?.background?.text_color || "#111827";
-  const textMutedColor =
-    textColor.toLowerCase() === "#111827"
-      ? "rgba(17, 24, 39, 0.7)"
-      : "rgba(255, 255, 255, 0.7)";
-  const needsOverlay =
-    !!quiz?.background?.image ||
-    isLightColor(quiz?.background?.color || "#1e1e2e");
-
-  return (
-    <div
-      className="relative h-screen overflow-hidden bg-cover bg-center bg-no-repeat text-[color:var(--quiz-text)]"
-      style={{
-        ...backgroundStyle,
-        "--quiz-text": textColor,
-        "--quiz-text-muted": textMutedColor,
-      }}
-    >
-      {needsOverlay && (
-        <div className="pointer-events-none absolute inset-0 bg-black/45" />
-      )}
-      <div className="relative z-10 h-full">
-      <header>
-        <div className="flex items-center justify-center text-[color:var(--quiz-text)] px-6 py-7 rounded-t-xl placeholder-gray-500">
-          <div className="shrink-0">
-            <p className="text-3xl">Proslides</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="mt-7 flex-1 flex flex-col min-h-0">
-        <section className="flex-1 flex flex-col min-h-0">
-          {/* Title and player count */}
-          <div className="text-center">
-            <h1 className="px-4 text-5xl font-bold text-[color:var(--quiz-text)]">{"\u062c\u062f\u0648\u0644 \u0627\u0645\u062a\u06cc\u0627\u0632\u0627\u062a"}</h1>
-            <p className="text-[color:var(--quiz-text-muted)] text-lg mt-2">
-              {participantCount} {"\u0628\u0627\u0632\u06cc\u06a9\u0646"}
-            </p>
-          </div>
-
-          {/* Scrollable players list */}
-          <div
-            className="mt-6 flex-1 overflow-auto w-full min-h-0 no-scrollbar"
-            style={{ maxHeight: "calc(100vh - 220px)" }}
-          >
-            {displayedPlayers.length === 0 ? (
-              <div className="text-center text-[color:var(--quiz-text-muted)] py-10">
-                منتظر نتایج لیدربورد...
-              </div>
-            ) : (
-              <ul className="space-y-4 w-full flex flex-col items-stretch py-2">
-                <AnimatePresence>
-                  {displayedPlayers.map((p, index) => {
-                  const scoreVal = parseFloat(p.total_points) || 0;
-                  const hasScore = scoreVal > 0;
-                  const widthPercent = hasScore ? calcPercent(scoreVal) : 0;
-                  const isCurrentUser = p.user_id === currentUserId;
-
-                  return (
-                    <Motion.li
-                      key={p.user_id || p.rank || index}
-                      id={`player-${p.user_id || index}`}
-                      layout
-                      initial={{
-                        opacity: 0,
-                        x: -20,
-                        scale: isCurrentUser ? 0.9 : 1,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                        scale: isCurrentUser ? 1.08 : 1,
-                      }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 120,
-                        damping: 18,
-                      }}
-                      className={`flex justify-start items-center relative w-[90%] max-w-2xl mx-auto rounded-xl ${
-                        isCurrentUser ? "z-20 my-2" : "z-10"
-                      }`}
-                      style={
-                        isCurrentUser
-                          ? {
-                              background: `linear-gradient(135deg, ${p.color}40, ${p.color}20)`,
-                              boxShadow: `0 0 30px ${p.color}80, 0 0 60px ${p.color}50, inset 0 1px 0 rgba(255, 255, 255, 0.2)`,
-                              border: `2px solid ${p.color}cc`,
-                              padding: "8px",
-                            }
-                          : {}
-                      }
-                    >
-                      {/* Glow effect for current user */}
-                      {isCurrentUser && (
-                        <Motion.div
-                          className="absolute inset-0 rounded-xl pointer-events-none"
-                          animate={{
-                            boxShadow: [
-                              `0 0 20px ${p.color}60`,
-                              `0 0 40px ${p.color}90`,
-                              `0 0 20px ${p.color}60`,
-                            ],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      )}
-
-                      {/* Rank */}
-                      <div
-                        className={`text-lg font-bold w-10 h-10 flex items-center justify-center rounded-full mr-3`}
-                        style={{
-                          backgroundColor: p.color,
-                          color: "#fff",
-                          boxShadow: `0 4px 12px ${p.color}60`,
-                        }}
-                      >
-                        {p.rank}
-                      </div>
-
-                      {/* Fixed-width translucent track */}
-                      <div
-                        className={`relative overflow-hidden w-full mr-3 rounded-lg ${
-                          isCurrentUser
-                            ? "bg-white/20 h-16"
-                            : "bg-white/10 h-14"
-                        }`}
-                      >
-                        {/* Colored fill - only show if score > 0 */}
-                        {hasScore && (
-                          <Motion.div
-                            className={`absolute left-0 top-0 h-full z-10 rounded-lg`}
-                            style={{
-                              backgroundColor: p.color,
-                              boxShadow: `0 4px 15px ${p.color}80, 0 2px 8px ${p.color}60`,
-                            }}
-                            initial={{ width: 0 }}
-                            animate={{
-                              width: animateBars ? `${widthPercent}%` : 0,
-                            }}
-                            transition={{ duration: 1.3, ease: "easeOut" }}
-                          />
-                        )}
-
-                        {/* Content on top */}
-                        <div
-                          className={`relative z-20 flex items-center px-4 gap-4 h-full`}
-                        >
-                          <div
-                            className={`player-avatar ${
-                              isCurrentUser ? "text-3xl" : "text-2xl"
-                            }`}
-                          >
-                            {p.character}
-                          </div>
-
-                          <div className="flex items-center space-x-3">
-                                <div
-                                  className={`font-medium transition-all duration-200 text-[color:var(--quiz-text)] ${
-                                    isCurrentUser ? "text-lg font-bold" : ""
-                                  }`}
-                                >
-                                  {p.name}
-                                  {isCurrentUser && (
-                                    <span className="ml-2 text-yellow-400 text-sm animate-pulse">
-                                      ← You
-                                    </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Score */}
-                      <div className="relative w-[15%] font-semibold ml-3 text-[color:var(--quiz-text)]">
-                        {Math.round(p.total_points)}p{" "}
-                        {Number.isFinite(p.new_points) && (
-                          <span className="text-sm text-[color:var(--quiz-text-muted)]">
-                            +{Math.round(p.new_points)}
-                          </span>
-                        )}
-                      </div>
-                    </Motion.li>
-                  );
-                  })}
-                </AnimatePresence>
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
-      </div>
-    </div>
-  );
-}
-
-export default PlayerLeaderBoard;
+export default function PlayerLeaderBoard({ quiz }) {
+  const { participantCount, snapshot, isConnected } = useLiveSession();
+  const participant = snapshot?.role === "participant" ? snapshot.participant : null;
+  const rank = participant?.rank;
+  const score = Number(participant?.score || 0);
+
+  return (
+    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+      <section className="flex flex-1 flex-col justify-center py-5 text-center">
+        <Motion.div initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
+          <p className="text-sm font-bold text-[color:var(--live-muted)]">نتیجه‌ی این مرحله</p>
+          <h1 className="mt-2 text-3xl font-black">جایگاه شما</h1>
+          <div className="mx-auto my-7 grid h-36 w-36 place-items-center rounded-full border-4 border-white/25 bg-white/10 shadow-2xl">
+            <div><p className="text-sm text-[color:var(--live-muted)]">رتبه</p><p className="text-5xl font-black" dir="ltr">{rank ?? "—"}</p></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-[color:var(--live-border)] bg-white/10 p-4"><p className="text-xs text-[color:var(--live-muted)]">امتیاز شما</p><p className="mt-1 text-2xl font-black" dir="ltr">{score.toLocaleString("fa-IR")}</p></div>
+            <div className="rounded-2xl border border-[color:var(--live-border)] bg-white/10 p-4"><p className="text-xs text-[color:var(--live-muted)]">شرکت‌کنندگان</p><p className="mt-1 text-2xl font-black" dir="ltr">{Number(participantCount || 0).toLocaleString("fa-IR")}</p></div>
+          </div>
+          <p className="mt-7 text-sm leading-7 text-[color:var(--live-muted)]">مرحله‌ی بعدی به‌زودی شروع می‌شود؛ همین صفحه را باز نگه دارید.</p>
+        </Motion.div>
+      </section>
+    </ParticipantShell>
+  );
+}

@@ -80,6 +80,15 @@ export interface RosterPage {
 export type LiveSessionResult = ManagerLiveSession;
 export interface ParticipantResult { id: string; display_name: string; avatar?: string }
 export interface AnswerResult { answer_id: string; score_delta: number; duplicate: boolean }
-export interface LiveSessionLocator { session_id: string; presentation_id: string }
+export interface LiveSessionLocator {
+  session_id: string;
+  presentation_id: string;
+  presentation: {
+    title: string;
+    background_color: string;
+    background_image_url: string;
+    text_color: string;
+  };
+}
 export type PresentationSlide = components["schemas"]["Slide"];
 export type Presentation = components["schemas"]["Presentation"];

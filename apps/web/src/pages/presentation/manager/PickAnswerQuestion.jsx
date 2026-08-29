@@ -353,7 +353,7 @@ export default function ManagerPickAnswerQuestion({
             )}
             {awaitingServerResults && (
               <div className="absolute top-24 left-1/2 -translate-x-1/2 rounded-full bg-black/45 px-4 py-2 text-sm text-[color:var(--quiz-text)]">
-                Waiting for server results...
+                در انتظار نتیجه‌ی نهایی…
               </div>
             )}
 
@@ -443,7 +443,7 @@ export default function ManagerPickAnswerQuestion({
           </>
         ) : (
           <div className="flex items-center justify-center w-full flex-1 min-h-0 mb-4 px-4">
-          <div className="text-[color:var(--quiz-text-muted)] text-2xl">Loading quizâ€¦</div>
+          <div className="text-[color:var(--quiz-text-muted)] text-2xl">در حال آماده‌سازی کوئیز…</div>
           </div>
         )}
 
@@ -464,7 +464,7 @@ export default function ManagerPickAnswerQuestion({
 
         {voted && !showResults && (
           <p className="mt-6 text-pink-700 font-medium">
-            You voted for <b>{options[selected]}</b>
+            انتخاب شما: <b>{options[selected]}</b>
           </p>
         )}
       </div>
@@ -497,9 +497,9 @@ export default function ManagerPickAnswerQuestion({
               <div className="flex items-center gap-3">
                 <span className="text-4xl">ðŸ†</span>
                 <div>
-                  <h2 className="text-white text-3xl font-bold">Leaderboard</h2>
+                  <h2 className="text-white text-3xl font-bold">جدول امتیازات</h2>
                   <p className="text-gray-400 text-sm">
-                    {(modalLeaderboardResults || []).length} players
+                    {(modalLeaderboardResults || []).length.toLocaleString("fa-IR")} شرکت‌کننده
                   </p>
                 </div>
               </div>
@@ -507,7 +507,7 @@ export default function ManagerPickAnswerQuestion({
                 onClick={() => setShowLeaderboard(false)}
                 className="text-white hover:text-gray-300 text-3xl border-none bg-transparent cursor-pointer leading-none"
               >
-                Ã—
+                ×
               </button>
             </div>
 

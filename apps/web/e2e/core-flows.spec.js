@@ -197,7 +197,36 @@ test("an unknown join code shows the access-denied state", async ({ page }) => {
   const validButUnknownCode = `MISS${Date.now().toString().slice(-8)}`;
   await page.goto(`/${validButUnknownCode}`);
   expect((await resolution).status()).toBe(404);
-  await expect(page.getByText("Invalid access code")).toBeVisible();
+  await expect(page.getByText("کد ورود معتبر نیست")).toBeVisible();
   await expectAccessible(page, "unknown access code");
+  expect(failures).toEqual([]);
+});
+
+test("mobile participant entry uses the public quiz theme", async ({ page }) => {
+  const failures = watchRuntime(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/api/v1/live/sessions/resolve?join_code=THEME1", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        session_id: "11111111-1111-4111-8111-111111111111",
+        presentation_id: "22222222-2222-4222-8222-222222222222",
+        presentation: {
+          title: "مسابقه رنگ‌ها",
+          background_color: "#0f766e",
+          background_image_url: "",
+          text_color: "#ffffff",
+        },
+      }),
+    });
+  });
+
+  await page.goto("/THEME1");
+  await expect(page.getByRole("heading", { name: "به کوئیز بپیوندید" })).toBeVisible();
+  await expect(page.getByText("مسابقه رنگ‌ها")).toBeVisible();
+  expect(await page.locator(".participant-live-shell").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(15, 118, 110)");
+  await expectNoOverflow(page);
+  await expectAccessible(page, "themed participant join");
   expect(failures).toEqual([]);
 });

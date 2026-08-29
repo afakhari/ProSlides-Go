@@ -6,20 +6,21 @@ This document is the implementation source of truth for professionalizing the
 React client. It records the current state, the target structure, the rules
 that preserve Go editor/live correctness, and the ordered migration path. The
 experience acceptance criteria live in `frontend-professionalization.md`; the
-durable backend and HTTP/SSE boundaries live in `architecture.md` and OpenAPI.
+honest quality/debt matrix lives in `frontend-status.md`; the durable backend
+and HTTP/SSE boundaries live in `architecture.md` and OpenAPI.
 
 If a frontend change alters an API route, event, error, or persistent value,
 OpenAPI and the backend workflow still take precedence. Visual work must not
 weaken idempotency, revision conflicts, role-scoped snapshots, or recovery.
 
-## Current state — audited 2026-08-28
+## Current state — audited 2026-08-29
 
 The active UI is functional, but it is not yet a modular TypeScript frontend.
 The measured source facts are:
 
 - the pre-F1 audit counted 78 JavaScript/TypeScript/CSS source files and about
-  18,300 non-blank lines; the post-F2-foundation tree has 54 `.jsx`, 15 `.js`,
-  10 `.ts`, and 4 `.tsx` files;
+  18,300 non-blank lines; the current tree has 49 `.jsx`, 15 `.js`, 14 `.ts`,
+  and 7 `.tsx` files;
 - `tsconfig.json` includes `src/**/*.ts` and `src/**/*.tsx`, so the successful typecheck still does
   not validate most components or routes;
 - several components have more than 1,000 non-blank lines, including the
@@ -28,8 +29,8 @@ The measured source facts are:
   unreachable presentation runtime, duplicate routes, and dead static imports;
 - the active live route is snapshot/SSE based; F5 removed numeric-message
   dispatch and now applies named commands plus snapshot/event projections;
-- production components no longer import `src/data/mockData.js`; bounded empty
-  runtime defaults now live under the live module and demo quiz fallback is gone;
+- production components no longer import mock data; the obsolete archive,
+  unused game page, and duplicate 5,400-line manager leaderboard are deleted;
 - the editor domain duplicates legacy and canonical field names such as
   `title`/`quiz_name`, `text`/`question_text`, and
   `time_limit`/`question_time`;
@@ -39,10 +40,10 @@ The measured source facts are:
 - static inspection found 381 direct color expressions, 75 inline style
   objects, and 169 physical direction utilities. Inline runtime presentation
   theming is legitimate; repeated brand/layout values are not;
-- product chrome mixes Persian and English, and dashboard, loading, editor,
-  auth, and public-join screens do not yet share one visual system;
-- lint, the current partial typecheck, 37 unit tests, and a production Vite
-  build pass.
+- participant join/wait/question/content/personal-result screens share a
+  Persian mobile shell and consume public display-safe quiz theme data;
+  manager live and unrelated legacy routes retain the debt in `frontend-status.md`;
+- lint, partial typecheck, 49 unit tests, and a budgeted production build pass.
 
 ### Browser and bundle evidence
 

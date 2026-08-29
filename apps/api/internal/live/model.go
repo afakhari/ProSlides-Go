@@ -45,8 +45,15 @@ type ParticipantWithScore struct {
 	Rank  *int `json:"rank,omitempty"`
 }
 type SessionLocator struct {
-	SessionID      string `json:"session_id"`
-	PresentationID string `json:"presentation_id"`
+	SessionID      string                 `json:"session_id"`
+	PresentationID string                 `json:"presentation_id"`
+	Presentation   PublicLivePresentation `json:"presentation"`
+}
+type PublicLivePresentation struct {
+	Title              string `json:"title"`
+	BackgroundColor    string `json:"background_color"`
+	BackgroundImageURL string `json:"background_image_url"`
+	TextColor          string `json:"text_color"`
 }
 type AnswerResult struct {
 	AnswerID   string `json:"answer_id"`
