@@ -11,22 +11,16 @@ import {
   retryAfterSeconds,
 } from "../api/identityErrors.ts";
 import {
-  emailSchema,
   loginSchema,
-  registerPasswordSchema,
   registerSchema,
   verificationSchema,
 } from "../model/authSchemas.ts";
 import { normalizeDigits } from "../../../shared/forms/numbers.ts";
 import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
 
-function isEmailValid(value) {
-  return emailSchema.safeParse(value).success;
-}
-
 function getPasswordStrength(value) {
   if (!value) {
-    return { score: 0, label: "Weak" };
+    return { score: 0, label: "ضعیف" };
   }
   const length = value.length;
   const hasLower = /[a-z]/.test(value);
@@ -45,11 +39,6 @@ function getPasswordStrength(value) {
   const label =
     score >= 4 ? "قوی" : score === 3 ? "خوب" : score === 2 ? "متوسط" : "ضعیف";
   return { score, label };
-}
-
-function getPasswordPolicyError(value) {
-  const result = registerPasswordSchema.safeParse(value);
-  return result.success ? "" : result.error.issues[0]?.message || "رمز عبور معتبر نیست.";
 }
 
 function getResendSeconds(payload, fallbackSeconds) {
@@ -385,6 +374,10 @@ export default function AuthPage() {
     : isSignup
       ? registerSchema
       : loginSchema;
+  const formResolver = useMemo(
+    () => createZodResolver(activeSchema),
+    [activeSchema],
+  );
   const {
     register,
     handleSubmit: handleFormSubmit,
@@ -396,7 +389,7 @@ export default function AuthPage() {
     getValues,
     formState: { errors, isSubmitting: formSubmitting },
   } = useForm({
-    resolver: createZodResolver(activeSchema),
+    resolver: formResolver,
     mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: {
@@ -766,6 +759,8 @@ export default function AuthPage() {
     } catch (error) {
       applyServerFieldErrors(error);
       if (identityErrorCode(error) === "email_not_verified") {
+        setValue("password", "");
+        clearErrors();
         setMode("verify");
         setStatus({
           type: "info",
@@ -1169,33 +1164,35 @@ export default function AuthPage() {
           )}
 
           {isVerify ? (
-            <label
-              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${verificationCodeError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
-                }`}
-            >
-              <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
-                <LockIcon />
-              </span>
-              <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
-                type="text"
-                inputMode="numeric"
-                placeholder="کد تأیید"
-                maxLength={6}
-                autoComplete="one-time-code"
-                required
-                aria-invalid={Boolean(verificationCodeError)}
-                {...register("verificationCode", {
-                  setValueAs: (value) =>
-                    normalizeDigits(value).replace(/\D/g, "").slice(0, 6),
-                })}
-              />
-            </label>
-            {verificationCodeError && (
-              <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
-                {verificationCodeError}
-              </div>
-            )}
+            <>
+              <label
+                className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${verificationCodeError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+                  }`}
+              >
+                <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
+                  <LockIcon />
+                </span>
+                <input
+                  className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="کد تأیید"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  required
+                  aria-invalid={Boolean(verificationCodeError)}
+                  {...register("verificationCode", {
+                    setValueAs: (value) =>
+                      normalizeDigits(value).replace(/\D/g, "").slice(0, 6),
+                  })}
+                />
+              </label>
+              {verificationCodeError && (
+                <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
+                  {verificationCodeError}
+                </div>
+              )}
+            </>
           ) : isSignup ? (
             <label
               className={`mb-1 flex items-center overflow-hidden rounded-xl border bg-white ${fullNameError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
