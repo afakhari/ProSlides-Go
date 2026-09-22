@@ -26,7 +26,7 @@ status and priorities live in `status/current.md`.
 | P1 | Legacy top-level `pages/components/contexts/hooks/services/utils/routes/live` ownership still coexists with `app/modules/shared`. | Move active areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
 | P1 | Live protocol/reconnect/roster state remains heavily embedded in React context. | Extract a typed `modules/live/api + runtime + react` boundary, then retire duplicate projections/compatibility state. |
 | P2 | Core Button/ConfirmDialog primitives now use the ProSlides semantic token vocabulary and Radix AlertDialog, but legacy routes still contain direct colors and ad-hoc controls. | Continue route-by-route token migration, move remaining reusable controls into shared primitives/patterns, and add headless primitives only where keyboard/focus behavior warrants them. |
-| P1 | Critical Playwright flows exist but the default web CI job does not run `npm run test:e2e`. | Add deterministic browser CI with a real API stack, especially a seeded manager/participant lifecycle. |
+| P2 | Playwright now runs in CI against a real API/PostgreSQL/Redis stack, but the suite still lacks one deterministic end-to-end manager + participant live lifecycle in the same browser gate. | Extend the browser gate with a seeded manager/participant lifecycle covering join, answer, close, leaderboard, reconnect and end-state recovery. |
 
 ## P2 product/maintainability debt
 
