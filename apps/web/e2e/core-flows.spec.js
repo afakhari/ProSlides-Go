@@ -712,8 +712,14 @@ test("content editor projects unsaved draft and preserves it across edit conflic
   expect(savedSlide.content.title).toBe("عنوان ذخیره‌نشده");
   expect(savedSlide.content.text).toBe("متن ذخیره‌نشده\nبا خط دوم");
   await expect(
-    inspector.getByText("همه تغییرات ذخیره شده است.", { exact: true }),
+    inspector.getByText("همه تغییرات ذخیره شده است."),
   ).toBeVisible();
+  await expect(
+    inspector.getByRole("button", { name: "ذخیره تغییرات" }),
+  ).toBeDisabled();
+  await expect(
+    preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
+  ).toBeHidden();
 
   await titleInput.fill("عنوان موقت برای رد");
   await expect(
