@@ -362,3 +362,34 @@ test("content editor shares one typed draft across inspector and canvas", () => 
   assert.match(editorModel, /CONTENT_LIMITS/);
   assert.match(editorModel, /validateEditorContent/);
 });
+
+
+test("design editor shares one typed presentation draft across all preview surfaces", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const inspector = source("src/modules/presentations/editor/inspector/DesignInspector.tsx");
+  const question = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
+  const content = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
+  const leaderboard = source("src/modules/presentations/editor/canvas/LeaderboardCanvas.tsx");
+  const slides = source("src/modules/presentations/editor/slide-list/SlideList.jsx");
+  const provider = source("src/modules/presentations/editor/model/DesignDraftProvider.tsx");
+  const draft = source("src/modules/presentations/editor/model/designDraft.ts");
+
+  assert.match(route, /<DesignDraftProvider/);
+  assert.match(route, /presentation=\{showDesignPanel \? quiz : null\}/);
+  assert.doesNotMatch(route, /backgroundSaveNotice/);
+  assert.match(inspector, /useRequiredDesignDraft/);
+  assert.match(inspector, /error instanceof ApiError/);
+  assert.match(inspector, /conflictPending/);
+  assert.match(inspector, /type="color"/);
+  assert.doesNotMatch(inspector, /ErrorModal/);
+  assert.doesNotMatch(inspector, /document\.createElement/);
+  assert.doesNotMatch(inspector, /error\.response\?\./);
+  assert.match(question, /useOptionalDesignDraft/);
+  assert.match(content, /useOptionalDesignDraft/);
+  assert.match(leaderboard, /useOptionalDesignDraft/);
+  assert.match(leaderboard, /presentationTheme/);
+  assert.match(slides, /useOptionalDesignDraft/);
+  assert.match(provider, /useDesignDraft\(presentation\)/);
+  assert.match(draft, /designDraftReducer/);
+  assert.match(draft, /designDraftToUpdate/);
+});
