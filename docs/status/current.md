@@ -45,7 +45,7 @@ Strengths already in place:
 
 - React 19/Vite SPA with route-level lazy loading;
 - OpenAPI-generated presentation transport types with drift checking;
-- a shared typed JSON/API-error boundary for presentation flows;
+- a shared typed JSON/API-error boundary and one TanStack Query REST cache;
 - explicit presentation editor domain mapping and revision conflict recovery;
 - semantic CSS tokens on migrated surfaces;
 - Persian/RTL participant experience and mixed-content direction handling;
@@ -65,11 +65,12 @@ These are independent tracks. A change in one track does not waive another.
 1. **Production capacity:** repeat the 1k HTTP/SSE protocol twice on a named
    production-like single-API topology through TLS with cold readiness and
    continuous pool/query/lock/CPU/heap evidence.
-2. **Frontend foundation:** standardize the API error contract and frontend error
-   mapping before introducing a REST query cache or broad form-library migration.
-3. **Frontend modularization:** continue TypeScript/module migration, starting
-   with identity/reports and then the live runtime, while preserving editor/live
-   correctness.
+2. **Frontend foundation:** continue the shared error/form/design-system
+   foundation through the remaining identity/dashboard surfaces without adding
+   parallel HTTP or state abstractions.
+3. **Frontend modularization:** continue TypeScript/module migration through
+   identity/dashboard and then the live runtime, while preserving editor/live
+   correctness. Reports are now a typed module using the shared Query cache.
 4. **Quality:** move architecture rules from source-regex tests into dependency
    enforcement, add component/API-state tests, and make the critical Playwright
    lifecycle a CI gate.
