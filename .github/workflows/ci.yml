@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [master, feat/go-platform-foundation]
+    branches: [main, master, feat/go-platform-foundation]
 
 jobs:
   api:
@@ -42,8 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Validate local Compose
         run: docker compose --env-file apps/api/.env.example config --quiet
+
       - name: Validate production Compose
         env:
           API_IMAGE: example.invalid/proslides/api:test
@@ -55,7 +57,59 @@ jobs:
           SMTP_HOST: smtp.example.com
           SMTP_FROM_ADDRESS: no-reply@example.com
         run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
+
+      - name: Select container registry
+        id: registry
+        shell: bash
+        run: |
+          set -u
+
+          registries=(
+            "docker.io/library"
+            "public.ecr.aws/docker/library"
+            "docker.arvancloud.ir"
+          )
+
+          images=(
+            "golang:1.26-alpine"
+            "alpine:3.21"
+            "node:22-alpine"
+            "nginx:1.27-alpine"
+          )
+
+          for registry in "${registries[@]}"; do
+            echo "::group::Testing $registry"
+            healthy=true
+
+            for image in "${images[@]}"; do
+              echo "Pulling $registry/$image"
+              if ! docker pull "$registry/$image"; then
+                echo "Registry $registry failed on $image"
+                healthy=false
+                break
+              fi
+            done
+
+            echo "::endgroup::"
+
+            if [ "$healthy" = true ]; then
+              echo "Selected registry: $registry"
+              echo "registry=$registry" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "Trying next registry..."
+          done
+
+          echo "::error::No container registry is currently available"
+          exit 1
+
       - name: Build API image
-        run: docker build apps/api
+        env:
+          BASE_REGISTRY: ${{ steps.registry.outputs.registry }}
+        run: docker build --build-arg BASE_REGISTRY="$BASE_REGISTRY" apps/api
+
       - name: Build web image
-        run: docker build apps/web
+        env:
+          BASE_REGISTRY: ${{ steps.registry.outputs.registry }}
+        run: docker build --build-arg BASE_REGISTRY="$BASE_REGISTRY" apps/web
