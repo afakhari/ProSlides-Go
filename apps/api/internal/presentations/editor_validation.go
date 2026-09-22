@@ -58,7 +58,7 @@ func validateSlideContent(kind string, raw json.RawMessage) error {
 		if err := decodeStrictObject(raw, &value); err != nil {
 			return err
 		}
-		if (strings.TrimSpace(value.Title) == "" && strings.TrimSpace(value.Text) == "" && strings.TrimSpace(value.ImageURL) == "") || len(value.Title) > 500 || len(value.Text) > 20000 || len(value.ImageURL) > 4096 {
+		if (strings.TrimSpace(value.Title) == "" && strings.TrimSpace(value.Text) == "" && strings.TrimSpace(value.ImageURL) == "") || utf8.RuneCountInString(value.Title) > 500 || utf8.RuneCountInString(value.Text) > 20000 || utf8.RuneCountInString(value.ImageURL) > 4096 {
 			return errInvalidSlideDefinition
 		}
 		return nil
