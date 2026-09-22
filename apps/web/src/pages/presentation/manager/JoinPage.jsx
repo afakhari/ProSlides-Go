@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import TopBar from "../../../components/TopBar";
 import QRSidebar from "../../../components/QRSidebar";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
-import { useLiveSession } from "../../../hooks/useLiveSession";
-import { useServerData } from "../../../hooks/useServerData";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
+import { useServerData } from "../../../modules/live/react/useServerData";
 import { participantTheme } from "../../../modules/live/participant/theme";
 import {
   EMPTY_ROSTER,
