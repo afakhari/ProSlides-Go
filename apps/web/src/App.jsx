@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import ProtectedManagerShell from "./app/layouts/ProtectedManagerShell";
 import NotFoundRoute from "./app/router/NotFoundRoute";
 import RequireSession from "./components/RequireSession.tsx";
@@ -9,7 +9,7 @@ import LandingPage from "./pages/landing/LandingPage";
 const AuthPage = lazy(() => import("./pages/auth/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./modules/identity/routes/ResetPasswordRoute.tsx"));
 const TeamPage = lazy(() => import("./pages/team/TeamPage"));
-const SessionDetail = lazy(() => import("./pages/report/SessionDetail"));
+const ReportRoute = lazy(() => import("./modules/reports/routes/ReportRoute.tsx"));
 const HomePage = lazy(() => import("./pages/quiz/manager/HomePage"));
 const EditorPage = lazy(() => import("./modules/presentations/editor/routes/EditorRoute"));
 const PresentationEntry = lazy(() => import("./routes/PresentationEntry"));
@@ -18,12 +18,6 @@ function RouteFallback() {
   const location = useLocation();
   if (/^\/[^/]+\/panel\/[^/]+\/?$/.test(location.pathname)) return <EditorRouteSkeleton />;
   return <div className="min-h-screen bg-white" aria-busy="true" aria-label="در حال بارگذاری صفحه" />;
-}
-
-function ProtectedPresentationRoute() {
-  const { role } = useParams();
-  const presentation = <PresentationEntry mode="presentation" />;
-  return role === "manager" ? <RequireSession>{presentation}</RequireSession> : presentation;
 }
 
 export default function App() {
@@ -37,12 +31,19 @@ export default function App() {
           <Route path="/signup" element={<AuthPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/:role/presentation/:roomId" element={<ProtectedPresentationRoute />} />
+          <Route
+            path="/manager/presentation/:roomId"
+            element={<RequireSession><PresentationEntry mode="presentation" role="manager" /></RequireSession>}
+          />
+          <Route
+            path="/player/presentation/:roomId"
+            element={<PresentationEntry mode="presentation" role="player" />}
+          />
           <Route element={<ProtectedManagerShell />}>
-            <Route path="/:role/panel" element={<HomePage />} />
-            <Route path="/:role/panel/:roomId" element={<EditorPage />} />
+            <Route path="/manager/panel" element={<HomePage />} />
+            <Route path="/manager/panel/:roomId" element={<EditorPage />} />
+            <Route path="/manager/panel/:presentationId/report" element={<ReportRoute />} />
           </Route>
-          <Route path="/:role/panel/:quizId/report" element={<RequireSession><SessionDetail /></RequireSession>} />
           <Route path="/:accessCode" element={<PresentationEntry mode="accessCode" />} />
           <Route path="*" element={<NotFoundRoute />} />
         </Routes>
