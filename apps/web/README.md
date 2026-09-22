@@ -1,33 +1,37 @@
 # ProSlides web
 
-React/Vite client for the new Go API.
+React/Vite client for the Go HTTP/SSE API.
 
-## Current state
+## Architecture
 
-The existing UI is retained while authentication, dashboard, editor, reports,
-and the live runtime use the Go API. Live delivery uses typed HTTP commands,
-role-scoped snapshots, manager-only paginated rosters, and SSE recovery from
-`last_event_id`. No live runtime route opens the historical WebSocket client.
+The accepted target is an incremental modular TypeScript SPA:
 
-This is not yet a fully TypeScript or modular frontend. As audited on
-2026-08-28, the source has 54 JSX, 15 JS, 7 TS, and no TSX files; the current
-`typecheck` covers TS only and therefore excludes most UI. Active routing still
-coexists with unreachable legacy runtime, some production modules import
-mock-era view models, and styling has not converged on one semantic token/RTL
-system. Do not copy those patterns into new work.
+```text
+app -> modules -> shared
+```
 
-The accepted migration is incremental—keep React 19 and Vite, preserve the
-working Go HTTP/SSE behavior, and move features toward `app -> modules ->
-shared`. Read [`docs/frontend-architecture.md`](../../docs/frontend-architecture.md),
-[`docs/frontend-professionalization.md`](../../docs/frontend-professionalization.md),
-and [ADR 0003](../../docs/decisions/0003-modular-react-frontend.md) before a
-frontend change. New or substantially changed feature boundaries should be
-TS/TSX and must expand lint/typecheck coverage with them.
+Presentation API/model, dashboard, sharing and editor code already have a
+module boundary. Other active areas still include legacy top-level
+`pages/components/contexts/hooks/services/utils` ownership and migrate
+incrementally; do not copy those legacy placements into new work.
+
+Live behavior is snapshot-first: HTTP commands are definitive, clients fetch a
+role-scoped snapshot, then consume SSE from `last_event_id`. The live runtime
+is intentionally separate from ordinary REST server-state caching.
+
+Read:
+
+- `../../docs/status/current.md` for current project state;
+- `../../docs/frontend-status.md` for remaining frontend debt;
+- `../../docs/frontend-architecture.md` for technical rules;
+- `../../docs/frontend-professionalization.md` for UX/design rules;
+- `../../docs/decisions/0003-modular-react-frontend.md` for rationale.
 
 ## Development
 
 ```sh
 npm ci
+npm run api:types:check
 npm run dev
 npm run lint
 npm run typecheck
@@ -36,45 +40,25 @@ npm run build
 npm run test:e2e
 ```
 
-Passing `npm run typecheck` currently proves the typed seams, not all JSX. The
-F1-F5 migration expands this boundary rather than converting the repository in
-one mechanical rewrite.
+`npm run typecheck` checks TS/TSX only; remaining JSX is not magically type
+safe because the command is green.
 
-Playwright uses its managed Chromium by default. When browser-binary downloads
-are unavailable but Chrome is installed locally, set
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the Chrome executable before running
-`npm run test:e2e`. The smoke suite starts or reuses Vite on port 4173 and
-expects the Go API stack on port 8080.
+Playwright starts/reuses Vite on port 4173 and expects the Go API on port 8080.
+If managed Chromium is unavailable, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to a local Chrome executable.
 
-If browser tests receive API proxy 500s while `/readyz` is healthy, inspect
-`docker compose ps` and Web logs for a stale image/startup DNS state. Rebuild and
-recreate API and Web as documented in `docs/local-development.md`; never remove
-volumes to solve image drift.
+## API and auth
 
-`VITE_API_BASE_URL` and `VITE_LIVE_API_BASE_URL` configure the Go API. Both
-default to same-origin `/api/v1`; the Vite development server proxies it to the
-local Go API. The supported production reference is also same-origin; a custom
-cross-origin deployment requires separately reviewed cookie, CSRF, and CORS
-behavior. `VITE_GOOGLE_CLIENT_ID` enables
-the existing Google UI and must exactly match the backend `GOOGLE_CLIENT_ID`.
-The Go endpoint verifies the signature, JWKS key, issuer, audience, expiry, and
-verified-email claim before issuing the normal session/CSRF cookies.
+`VITE_API_BASE_URL` and `VITE_LIVE_API_BASE_URL` default to same-origin
+`/api/v1`. `VITE_GOOGLE_CLIENT_ID` is a public build value and must match
+backend `GOOGLE_CLIENT_ID`.
 
-The original login/register/recovery presentation, animations, responsive
-behavior, OTP states, and validation UX are intentionally preserved. The
-integration no longer stores Django JWT access/refresh tokens in the browser;
-authentication is cookie-based.
-
-The presenter connection moves a new draft session idempotently into the lobby
-before displaying its join code. Participant retry/reconnect preserves one
-join credential, and final/leaderboard views keep only the participant's own
-row plus the aggregate count. Presenter roster and final score pages remain
-bounded and load additional rows explicitly.
+Authentication uses server-side opaque sessions, HttpOnly cookies and CSRF; the
+active application does not use Django JWT access/refresh tokens.
 
 ## Production image
 
-`Dockerfile` builds the Vite artifact with Node 22 and serves it from Nginx on
-port 8080. The image provides SPA fallback, bounded cache rules, security
-headers, same-origin API proxying, and an unbuffered long-lived SSE route.
-Build-time `VITE_GOOGLE_CLIENT_ID` must match the API runtime value. See
-[`docs/deployment-runbook.md`](../../docs/deployment-runbook.md).
+The Docker image builds the Vite artifact with Node 22 and serves it through
+Nginx on port 8080 with SPA fallback, security/cache headers, same-origin API
+proxying and unbuffered SSE. See
+`../../docs/deployment-runbook.md`.
