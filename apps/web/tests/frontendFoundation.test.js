@@ -230,3 +230,17 @@ test("dashboard presentation server state is owned by TanStack Query", () => {
   assert.match(queries, /listPresentations\(\{ signal \}\)/);
   assert.match(queries, /staleTime:\s*30_000/);
 });
+
+
+test("live projection is derived directly from the authoritative live context", () => {
+  const liveContext = source("src/contexts/LiveSessionContext.jsx");
+  const projectionContext = source("src/contexts/ServerDataContext.jsx");
+  const entry = source("src/routes/PresentationEntry.jsx");
+
+  assert.match(projectionContext, /useLiveSession/);
+  assert.match(projectionContext, /projectLiveSnapshot\(snapshot, roster\)/);
+  assert.doesNotMatch(projectionContext, /applyLiveSnapshot|applyLiveEvent/);
+  assert.doesNotMatch(liveContext, /lastEvent|setLastEvent/);
+  assert.doesNotMatch(entry, /LiveMessageHandler|applyLiveSnapshot|applyLiveEvent/);
+  assert.match(entry, /<LiveSessionProvider[^>]*>[\s\S]*<ServerDataProvider>/);
+});
