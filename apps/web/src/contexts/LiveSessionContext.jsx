@@ -204,13 +204,22 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
               retry = 500;
               if (event.name === "presence.updated") {
                 const delta = Number(event.payload?.participant_delta || 0);
-                if (delta > 0) {
+                if (delta !== 0) {
                   setSnapshot((current) => {
                     if (!current) return current;
-                    const next = { ...current, participant_count: Number(current.participant_count || 0) + delta };
+                    const next = {
+                      ...current,
+                      participant_count: Math.max(
+                        0,
+                        Number(current.participant_count || 0) + delta,
+                      ),
+                    };
                     snapshotRef.current = next;
                     return next;
                   });
+                }
+                if (role === "manager") {
+                  void loadRoster("joined", false);
                 }
               } else if (event.name === "answer.stats") {
                 setSnapshot((current) => {
@@ -243,7 +252,7 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
     };
     void run();
     return () => controller.abort();
-  }, [sessionId, snapshot?.role, refreshAuthoritative]);
+  }, [sessionId, snapshot?.role, refreshAuthoritative, loadRoster, role]);
 
   const runAction = useCallback(async (action, slide) => {
     const id = sessionIdRef.current;
