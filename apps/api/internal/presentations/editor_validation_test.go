@@ -57,3 +57,39 @@ func TestReplaceSlideRejectsInvalidQuestionBeforeStore(t *testing.T) {
 		t.Fatalf("status=%d", result.Code)
 	}
 }
+
+
+func TestValidateQuestionLengthsCountUnicodeCharacters(t *testing.T) {
+	makeQuestion := func(text, optionText string) json.RawMessage {
+		value := map[string]any{
+			"text":                         text,
+			"question_type":                "single",
+			"question_time":                30,
+			"min_point":                    0,
+			"max_point":                    100,
+			"faster_answers_more_points":   false,
+			"partial_scoring":              false,
+			"show_leaderboard_after":       false,
+			"image_url":                    "",
+			"options": []map[string]any{
+				{"id": "a", "text": optionText, "is_correct": true, "image_url": "", "order": 1},
+				{"id": "b", "text": "گزینه دوم", "is_correct": false, "image_url": "", "order": 2},
+			},
+		}
+		raw, err := json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw
+	}
+
+	if err := validateSlideContent("question", makeQuestion(strings.Repeat("س", 10000), strings.Repeat("گ", 2000))); err != nil {
+		t.Fatalf("unicode content at documented limits rejected: %v", err)
+	}
+	if err := validateSlideContent("question", makeQuestion(strings.Repeat("س", 10001), "گزینه")); err == nil {
+		t.Fatal("question over documented character limit accepted")
+	}
+	if err := validateSlideContent("question", makeQuestion("پرسش", strings.Repeat("گ", 2001))); err == nil {
+		t.Fatal("option over documented character limit accepted")
+	}
+}
