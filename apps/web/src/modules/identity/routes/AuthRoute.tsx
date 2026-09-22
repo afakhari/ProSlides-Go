@@ -21,14 +21,17 @@ import {
   getResendSeconds,
   maskEmail,
   resolveAuthMode,
-  type AuthFormValues,
   type AuthMode,
   type AuthStatus,
 } from "../model/authFlow.ts";
 import {
+  loginFormSchema,
   loginSchema,
+  registerFormSchema,
   registerSchema,
+  verificationFormSchema,
   verificationSchema,
+  type AuthFormValues,
 } from "../model/authSchemas.ts";
 import AuthBackdrop from "../ui/AuthBackdrop.tsx";
 import AuthCard from "../ui/AuthCard.tsx";
@@ -54,10 +57,10 @@ export default function AuthRoute() {
   const isSignup = mode === "signup";
   const isVerify = mode === "verify";
   const activeSchema = isVerify
-    ? verificationSchema
+    ? verificationFormSchema
     : isSignup
-      ? registerSchema
-      : loginSchema;
+      ? registerFormSchema
+      : loginFormSchema;
 
   const formResolver = useMemo(
     () => createZodResolver(activeSchema),
