@@ -16,13 +16,6 @@ export type AuthStatus = {
   message: string;
 } | null;
 
-export type AuthFormValues = {
-  email: string;
-  password: string;
-  verificationCode: string;
-  fullName: string;
-};
-
 export type PasswordStrength = {
   score: number;
   label: "ضعیف" | "متوسط" | "خوب" | "قوی";
