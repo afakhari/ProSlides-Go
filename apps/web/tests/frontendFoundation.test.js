@@ -215,3 +215,19 @@ test("identity route validation is owned by module Zod schemas", () => {
   assert.match(schemas, /verificationCodeSchema/);
   assert.doesNotMatch(auth, /pages\/auth\/AuthPage/);
 });
+
+
+test("presentation dashboard REST list state is owned by TanStack Query", () => {
+  const dashboard = source("src/modules/presentations/dashboard/PresentationDashboard.jsx");
+  const queries = source("src/modules/presentations/api/presentationQueries.ts");
+
+  assert.match(dashboard, /useQuery\(presentationListQuery\(\)\)/);
+  assert.match(dashboard, /refetchPresentations/);
+  assert.doesNotMatch(dashboard, /setQuizzes\(/);
+  assert.doesNotMatch(dashboard, /listPresentations\(/);
+  assert.doesNotMatch(dashboard, /new AbortController\(\)/);
+
+  assert.match(queries, /queryOptions/);
+  assert.match(queries, /signal/);
+  assert.match(queries, /presentationKeys\.list/);
+});
