@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, ImageOff } from "lucide-react";
 
 import { presentationTheme } from "../../../../shared/styles/presentationTheme.ts";
+import { useOptionalDesignDraft } from "../model/useDesignDraftContext.ts";
 import type { EditorSlide } from "../../model/editor.ts";
 import { createContentDraft } from "../model/contentDraft.ts";
 import { createContentPreviewModel } from "../model/contentPreview.ts";
@@ -58,6 +59,7 @@ export default function ContentCanvas({
   quizBackgroundImage,
   textColor = "#111827",
 }: ContentCanvasProps) {
+  const designController = useOptionalDesignDraft();
   const controller = useOptionalContentDraft();
   const persistedDraft = useMemo(
     () => createContentDraft(slide),
@@ -77,13 +79,20 @@ export default function ContentCanvas({
     () =>
       presentationTheme({
         background: {
-          color: quizBackground,
-          image: quizBackgroundImage,
-          text_color: textColor,
+          color: designController?.draft.backgroundColor ?? quizBackground,
+          image: designController?.draft.backgroundImageUrl ?? quizBackgroundImage,
+          text_color: designController?.draft.textColor ?? textColor,
         },
-        text_color: textColor,
+        text_color: designController?.draft.textColor ?? textColor,
       }),
-    [quizBackground, quizBackgroundImage, textColor],
+    [
+      designController?.draft.backgroundColor,
+      designController?.draft.backgroundImageUrl,
+      designController?.draft.textColor,
+      quizBackground,
+      quizBackgroundImage,
+      textColor,
+    ],
   );
 
   if (!draft || !preview) return null;
@@ -109,6 +118,11 @@ export default function ContentCanvas({
             {controller?.dirty && (
               <span className="rounded-full border border-warning-border bg-warning-soft px-3 py-1.5 text-warning-ink">
                 تغییرات ذخیره‌نشده
+              </span>
+            )}
+            {designController?.dirty && (
+              <span className="rounded-full border border-warning-border bg-warning-soft px-3 py-1.5 text-warning-ink">
+                طراحی ذخیره‌نشده
               </span>
             )}
             {preview.validationIssueCount > 0 && (
