@@ -186,7 +186,7 @@ test("manager and player routes are explicit and reports use the typed query bou
 
 
 test("identity UI uses the typed module API instead of parsing transport responses", () => {
-  const auth = source("src/pages/auth/AuthPage.jsx");
+  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
   const api = source("src/modules/identity/api/identityApi.ts");
   const errors = source("src/modules/identity/api/identityErrors.ts");
 
@@ -198,4 +198,20 @@ test("identity UI uses the typed module API instead of parsing transport respons
   assert.match(api, /announceAuthExpiry:\s*false/);
   assert.match(errors, /email_not_verified/);
   assert.match(errors, /verification_expired/);
+});
+
+
+test("identity route validation is owned by module Zod schemas", () => {
+  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
+  const schemas = source("src/modules/identity/model/authSchemas.ts");
+
+  assert.match(auth, /registerSchema\.safeParse/);
+  assert.match(auth, /loginSchema\.safeParse/);
+  assert.match(auth, /verificationSchema\.safeParse/);
+  assert.match(auth, /normalizeDigits/);
+  assert.match(schemas, /min\(12/);
+  assert.match(schemas, /max\(128/);
+  assert.match(schemas, /max\(100/);
+  assert.match(schemas, /verificationCodeSchema/);
+  assert.doesNotMatch(auth, /pages\/auth\/AuthPage/);
 });
