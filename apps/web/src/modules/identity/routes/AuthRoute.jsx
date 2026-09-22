@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Seo from "../../../components/Seo";
@@ -17,6 +18,7 @@ import {
   verificationSchema,
 } from "../model/authSchemas.ts";
 import { normalizeDigits } from "../../../shared/forms/numbers.ts";
+import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
 
 function isEmailValid(value) {
   return emailSchema.safeParse(value).success;
@@ -362,21 +364,12 @@ export default function AuthPage() {
     return "login";
   }, [location.pathname, location.search]);
   const [mode, setMode] = useState(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
-  const emailRef = useRef(null);
-  const passwordRef = useRef(null);
-  const codeRef = useRef(null);
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
   const DEFAULT_OTP_TTL_SECONDS = 600;
   const PASSWORD_PROMPT_FLAG = "auth.promptSetPassword";
@@ -387,6 +380,39 @@ export default function AuthPage() {
 
   const isSignup = mode === "signup";
   const isVerify = mode === "verify";
+  const activeSchema = isVerify
+    ? verificationSchema
+    : isSignup
+      ? registerSchema
+      : loginSchema;
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+    setFocus,
+    trigger,
+    getValues,
+    formState: { errors, isSubmitting: formSubmitting },
+  } = useForm({
+    resolver: createZodResolver(activeSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+      verificationCode: "",
+      fullName: "",
+    },
+  });
+  const email = watch("email") || "";
+  const password = watch("password") || "";
+  const verificationCode = watch("verificationCode") || "";
+  const fullName = watch("fullName") || "";
+  const submitting = actionSubmitting || formSubmitting;
+
   const submitLabel = isVerify
     ? "تأیید"
     : isSignup
@@ -402,30 +428,16 @@ export default function AuthPage() {
   const seoCanonical = `https://proslides.ir/${isSignup ? "signup" : "login"}`;
 
   const trimmedEmail = email.trim();
-  const emailFormatError = useMemo(() => {
-    if (isVerify) return "";
-    if (!trimmedEmail) return "";
-    return isEmailValid(trimmedEmail) ? "" : "لطفاً یک ایمیل معتبر وارد کنید.";
-  }, [isVerify, trimmedEmail]);
-  const emailError = fieldErrors.email || emailFormatError;
-
-  const passwordPolicyError = useMemo(() => {
-    if (!isSignup) return "";
-    if (!password.trim()) return "";
-    return getPasswordPolicyError(password.trim());
-  }, [isSignup, password]);
+  const emailError = errors.email?.message || "";
+  const passwordPolicyError = isSignup ? errors.password?.message || "" : "";
+  const fullNameError = isSignup ? errors.fullName?.message || "" : "";
+  const verificationCodeError = isVerify
+    ? errors.verificationCode?.message || ""
+    : "";
   const passwordStrength = useMemo(
     () => getPasswordStrength(password.trim()),
     [password]
   );
-
-  const fullNameError = useMemo(() => {
-    if (!isSignup) return "";
-    if (fieldErrors.full_name) return fieldErrors.full_name;
-    if (!hasSubmitted) return "";
-    if (!fullName.trim()) return "نام و نام خانوادگی را وارد کنید.";
-    return "";
-  }, [fieldErrors.full_name, fullName, hasSubmitted, isSignup]);
 
   const otpExpired = isVerify && otpExpiresIn === 0;
 
