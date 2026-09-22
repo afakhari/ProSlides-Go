@@ -336,7 +336,7 @@ export class LiveRuntime {
       return this.refreshPromise;
     }
 
-    this.refreshPromise = (async () => {
+    const refresh = (async () => {
       let next: LiveSnapshot;
       do {
         this.refreshDirty = false;
@@ -344,28 +344,36 @@ export class LiveRuntime {
         if (id !== this.selectedSessionId) {
           throw new Error("Live session changed during refresh");
         }
-        if (!this.storeSnapshot(next)) this.refreshDirty = true;
+
+        if (!this.storeSnapshot(next)) {
+          this.refreshDirty = true;
+          continue;
+        }
+
+        if (next.role === "manager") {
+          await this.loadRoster(
+            ["leaderboard", "ended"].includes(next.session.state)
+              ? "score"
+              : "joined",
+            false,
+          );
+        } else {
+          this.rosterValue = [];
+          this.rosterCursor = "";
+          this.publish({ roster: [], hasMoreRoster: false });
+        }
       } while (this.refreshDirty && this.selectedSessionId === id);
 
-      if (next.role === "manager") {
-        await this.loadRoster(
-          ["leaderboard", "ended"].includes(next.session.state)
-            ? "score"
-            : "joined",
-          false,
-        );
-      } else {
-        this.rosterValue = [];
-        this.rosterCursor = "";
-        this.publish({ roster: [], hasMoreRoster: false });
-      }
       return next;
     })();
 
+    this.refreshPromise = refresh;
     try {
-      return await this.refreshPromise;
+      return await refresh;
     } finally {
-      this.refreshPromise = null;
+      if (this.refreshPromise === refresh) {
+        this.refreshPromise = null;
+      }
     }
   };
 
@@ -387,7 +395,12 @@ export class LiveRuntime {
         this.publish({ snapshot: next });
       }
       if (this.role === "manager") {
-        void this.loadRoster("joined", false);
+        const order: RosterOrder = ["leaderboard", "ended"].includes(
+          this.snapshotValue?.session.state || "",
+        )
+          ? "score"
+          : "joined";
+        void this.loadRoster(order, false);
       }
       return;
     }
