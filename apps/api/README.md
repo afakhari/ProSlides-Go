@@ -41,7 +41,7 @@ migration sequence. All identity, SMTP, Google, proxy, and runtime variables are
 [`docs/configuration.md`](../../docs/configuration.md).
 
 API contract changes begin in `openapi/openapi.yaml`. See the repository root
-`AGENTS.md` and `docs/AI_HANDOFF.md` before changing code.
+`AGENTS.md` and `docs/status/current.md` before changing code.
 
 ## Implemented API status
 
