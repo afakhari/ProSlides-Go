@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../../components/ui/button";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { Button } from "../../../shared/ui/primitives/Button.tsx";
+import { ConfirmDialog } from "../../../shared/ui/primitives/ConfirmDialog.tsx";
 import { ErrorModal } from "../../../pages/quiz/manager/ErrorModal";
 import { quizService } from "../api/presentationRepository.ts";
 import {
