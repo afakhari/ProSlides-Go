@@ -419,6 +419,7 @@ export default function ManagerJoinPage({
                     className="inline-flex items-center gap-1.5 bg-linear-to-br from-purple-800 to-purple-600 text-white px-8! py-3! rounded-lg border-none cursor-pointer font-semibold text-base shadow-lg shadow-purple-600/40 transition-all duration-150 hover:-translate-y-1 hover:scale-110 hover:shadow-xl hover:shadow-purple-600/50 after:content-['⏵'] after:text-sm after:ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleStart}
                     disabled={!isConnected || sessionInProgress || !hasSyncedState}
+                    aria-label={sessionInProgress ? "ادامه جلسه" : "شروع ارائه"}
                   >
                     {sessionInProgress
                       ? "ادامه جلسه…"
