@@ -68,7 +68,7 @@ These are independent tracks. A change in one track does not waive another.
    foundation through the remaining identity/editor surfaces without adding
    parallel HTTP or state abstractions.
 3. **Frontend modularization:** continue TypeScript/module migration through
-   the remaining identity UI composition and legacy presentation surfaces while preserving editor/live correctness. Reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
+   legacy presentation/editor surfaces while preserving editor/live correctness. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
 4. **Quality:** continue replacing source-regex checks with structural tooling
    and add component/API-state tests around migrated identity, report, editor and
    live recovery states.
