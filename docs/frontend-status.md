@@ -10,7 +10,7 @@ status and priorities live in `status/current.md`.
 | Area | Evidence/implementation |
 |---|---|
 | Product flow | Identity, dashboard, editor, reports and live flows use the Go HTTP/SSE boundary. |
-| Live correctness | Snapshot recovery, stable request IDs, event/state ordering and participant non-disclosure have protocol/unit coverage. |
+| Live correctness | A typed runtime controller owns snapshot/cursor/reconnect/roster/command state; React is a thin adapter, projections are single-sourced from snapshot + roster, and protocol/unit coverage guards ordering, retry and disclosure invariants. |
 | Presentation contract | Generated OpenAPI transport types and editor domain adapters exist; revision conflicts are recoverable. |
 | Persian UX | Participant live surfaces are Persian/RTL and consume display-safe presentation theming; editor/client copy has continued moving to Persian. |
 | Accessibility | Critical stable routes have axe/browser checks, focus/reduced-motion/overflow assertions. |
