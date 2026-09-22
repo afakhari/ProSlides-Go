@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/primitives/Button.tsx";
 import { ConfirmDialog } from "../../../shared/ui/primitives/ConfirmDialog.tsx";
 import { ErrorModal } from "../../../pages/quiz/manager/ErrorModal";
 import { quizService } from "../api/presentationRepository.ts";
+import { presentationListQuery } from "../api/presentationQueries.ts";
 import {
   Search,
   MoreVertical,
@@ -162,8 +164,11 @@ export default function QuizManager({ onNewPresentation }) {
   const [loggedInUser] = useState(
     () => readLocalStorage("auth.name") || "شما"
   );
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const presentationList = useQuery(presentationListQuery());
+  const loading = presentationList.isPending;
+  const loadError = presentationList.isError
+    ? "بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید."
+    : null;
   const [statusMessage, setStatusMessage] = useState(null);
   const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
   const [passwordPromptStatus, setPasswordPromptStatus] = useState(null);
@@ -175,21 +180,9 @@ export default function QuizManager({ onNewPresentation }) {
     setErrorModalOpen(false);
   };
 
-  // Load quizzes from API on mount
-  const [quizzes, setQuizzes] = useState([]);
-
-  const fetchQuizzes = useCallback(async (signal, { silent = false } = {}) => {
-    try {
-      if (!silent) {
-        setLoading(true);
-        setLoadError(null);
-      }
-      const data = await quizService.listPresentations({ signal });
-      if (!Array.isArray(data)) {
-        throw new Error("invalid_presentations_response");
-      }
-
-      const mappedQuizzes = data.map((quiz) => {
+  const quizzes = useMemo(
+    () =>
+      (presentationList.data || []).map((quiz) => {
         const updatedAt = safeTimestamp(quiz.updated_at);
         const createdAt = safeTimestamp(quiz.created_at);
         return {
@@ -199,38 +192,23 @@ export default function QuizManager({ onNewPresentation }) {
           accessCode: quiz.access_code || "",
           slides: Number(quiz.slide_count) || 0,
           participants: Number(quiz.participant_count) || 0,
-          createdBy: String(quiz.owner_full_name || quiz.owner_name || loggedInUser).trim() || loggedInUser,
+          createdBy:
+            String(
+              quiz.owner_full_name || quiz.owner_name || loggedInUser,
+            ).trim() || loggedInUser,
           lastUpdated: formatDate(updatedAt),
           created: formatDate(createdAt),
           updatedAt,
           createdAt,
         };
-      });
+      }),
+    [presentationList.data, loggedInUser],
+  );
 
-      setQuizzes(mappedQuizzes);
-      setSelectedQuizzes((prev) => {
-        const validIds = new Set(mappedQuizzes.map((quiz) => quiz.id));
-        return prev.filter((id) => validIds.has(id));
-      });
-      if (!silent) setLoadError(null);
-      return true;
-    } catch (err) {
-      if (err?.name === "AbortError") return false;
-      console.error("Error fetching presentations:", err);
-      if (!silent) {
-        setLoadError("بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.");
-      }
-      return false;
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [loggedInUser]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchQuizzes(controller.signal);
-    return () => controller.abort();
-  }, [fetchQuizzes]);
+  const refreshPresentations = useCallback(async () => {
+    const result = await presentationList.refetch();
+    return !result.isError;
+  }, [presentationList]);
 
   useEffect(() => {
     if (!statusMessage) return;
