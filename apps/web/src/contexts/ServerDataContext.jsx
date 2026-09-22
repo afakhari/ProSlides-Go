@@ -1,5 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useMemo, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
+
+import { useLiveSession } from "../hooks/useLiveSession";
 import { projectLiveSnapshot } from "../live/protocol";
 
 export const ServerDataContext = createContext(null);
@@ -14,51 +16,41 @@ const EMPTY_PROJECTION = {
   modalLeaderboardResults: null,
   currentQuestion: null,
   currentContent: null,
-  lastUpdateName: null,
-  lastUpdateTime: null,
 };
 
 export const ServerDataProvider = ({ children }) => {
-  const [serverData, setServerData] = useState(EMPTY_PROJECTION);
+  const { snapshot, roster } = useLiveSession();
+  const projection = useMemo(
+    () => projectLiveSnapshot(snapshot, roster) || EMPTY_PROJECTION,
+    [snapshot, roster],
+  );
+  const [managerLastLeaderboard, setManagerLastLeaderboard] = useState(null);
 
-  const applyLiveSnapshot = useCallback((snapshot, roster = []) => {
-    const projection = projectLiveSnapshot(snapshot, roster);
-    if (!projection) return;
-    setServerData((previous) => ({
-      ...previous,
+  useEffect(() => {
+    if (snapshot?.role !== "manager" || !projection.leaderboardResults) return;
+    setManagerLastLeaderboard(projection.leaderboardResults);
+  }, [projection.leaderboardResults, snapshot?.role]);
+
+  const serverData = useMemo(
+    () => ({
+      ...EMPTY_PROJECTION,
       ...projection,
-      managerLastLeaderboard:
-        snapshot.role === "manager" && projection.leaderboardResults
-          ? projection.leaderboardResults
-          : previous.managerLastLeaderboard,
-      lastUpdateName: "live_snapshot",
-      lastUpdateTime: new Date().toISOString(),
-    }));
-  }, []);
+      managerLastLeaderboard,
+    }),
+    [managerLastLeaderboard, projection],
+  );
 
-  const applyLiveEvent = useCallback((event) => {
-    if (event?.name !== "answer.stats" || !event.payload) return;
-    const counts = event.payload.option_counts || {};
-    setServerData((previous) => ({
-      ...previous,
-      questionResults: {
-        question_id: event.payload.question_slide_id,
-        optionsResult: Object.entries(counts).map(([optionId, count]) => ({
-          option_id: Number(optionId),
-          number_of_submits: Number(count),
-        })),
-      },
-      lastUpdateName: event.name,
-      lastUpdateTime: new Date().toISOString(),
-    }));
-  }, []);
+  const value = useMemo(
+    () => ({
+      serverData,
+      ...serverData,
+    }),
+    [serverData],
+  );
 
-  const value = useMemo(() => ({
-    serverData,
-    ...serverData,
-    applyLiveSnapshot,
-    applyLiveEvent,
-  }), [serverData, applyLiveSnapshot, applyLiveEvent]);
-
-  return <ServerDataContext.Provider value={value}>{children}</ServerDataContext.Provider>;
+  return (
+    <ServerDataContext.Provider value={value}>
+      {children}
+    </ServerDataContext.Provider>
+  );
 };
