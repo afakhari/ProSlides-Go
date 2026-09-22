@@ -1418,7 +1418,7 @@ export default function QuizManager({ onNewPresentation }) {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div aria-hidden="true" className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                          <div aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-brand text-sm font-semibold text-content-inverse">
                             {String(quiz.createdBy || "شما")
                               .split(/\s+/)
                               .filter(Boolean)
