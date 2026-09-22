@@ -1,79 +1,67 @@
 # ProSlides documentation map
 
-## Start here
+This file is the documentation index and authority map. It deliberately does
+not repeat the project's current state.
 
-Read repository work in this order:
+## Read first
 
-1. `AGENTS.md` — mandatory rules, current state, and the one exact next task;
-2. `AI_HANDOFF.md` — detailed evidence, environment facts, verification, and
-   handoff format;
-3. the architecture document for the scope;
-4. the relevant ADR;
-5. OpenAPI, configuration/runbooks, and code in scope.
+1. `../AGENTS.md` — repository-wide development rules and safety rails.
+2. `status/current.md` — the single current-state and active-priority source.
+3. The architecture document and ADR relevant to the work.
+4. OpenAPI, configuration, runbooks, and code in scope.
 
-When two documents conflict, do not choose silently. Verify against code and
-evidence, update every affected source in the same change, and record the
-discrepancy in the handoff.
+When documentation and code disagree, verify the implementation and evidence.
+Do not silently choose the more convenient source.
 
 ## Authority by question
 
-| Question | Authoritative document |
+| Question | Authoritative source |
 |---|---|
-| What is the current state and exact next task? | `../AGENTS.md`, then `AI_HANDOFF.md` |
-| What are the backend and live invariants? | `architecture.md`, ADR 0001/0002, and OpenAPI |
-| What is the frontend target and migration order? | `frontend-architecture.md` and ADR 0003 |
-| What should Persian UX look and behave like? | `frontend-professionalization.md` |
-| What frontend accessibility and bundle budgets are enforced? | `frontend-quality-baseline.md` |
-| What is the honest frontend quality status and remaining debt? | `frontend-status.md` |
-| What proves 1k/5k/10k? | `capacity-plan.md`; observations in `load-test-results.md` |
-| Which Go/legacy behaviors have parity? | `migration-status.md` |
+| What is the current state and what work is active? | `status/current.md` |
+| What are the system/backend/live invariants? | `architecture.md`, ADR 0001/0002, OpenAPI |
+| What is the frontend target architecture? | `frontend-architecture.md`, ADR 0003 |
+| What are the Persian UX/design/accessibility rules? | `frontend-professionalization.md` |
+| What frontend debt remains? | `frontend-status.md` |
+| What frontend measurements were accepted in F5? | `frontend-quality-baseline.md` |
+| What proves a capacity level? | `capacity-plan.md` plus dated evidence in `load-test-results.md` |
+| Which legacy behaviors have Go parity? | `migration-status.md` |
 | Which environment values exist? | `configuration.md` and checked-in examples |
 | How do I run and verify locally? | `local-development.md` |
 | How is a release deployed? | `deployment-runbook.md` |
-| How are backup, restore, rollback, and incidents handled? | `operations-runbook.md` |
+| How are backup, restore, rollback and incidents handled? | `operations-runbook.md` |
 | What is the external HTTP/SSE contract? | `../apps/api/openapi/openapi.yaml` |
+| Why was a durable architecture decision made? | `decisions/` |
 
-ADRs explain durable decisions; they do not replace current-state or execution
-documents. Historical change-log statements are evidence from their date, not
-the present priority.
+## Documentation classes
 
-## Current position — 2026-08-29
+- **Current state:** mutable and singular. Only `status/current.md`.
+- **Architecture/guidelines:** durable rules; update only when the rule changes.
+- **ADRs:** decision records; supersede rather than rewrite historical rationale.
+- **Runbooks/configuration:** executable operational instructions.
+- **Evidence:** dated measurements tied to a commit/topology.
+- **Archive:** completed migration/program history that is useful but not current.
 
-- Backend product/API parity is functionally implemented in the Go modular
-  monolith; production certification is incomplete.
-- Local Docker evidence includes accepted 100 and repeated 1k runs, including
-  Nginx, but no production-like TLS 1k/5k/10k gate has passed.
-- The frontend is functional but still mixes legacy JavaScript/view models and
-  partial TypeScript with inconsistent architecture/styles.
-- Frontend F0-F3 are complete. Presentation API/model, dashboard, sharing, and
-  editor UI are owned by `modules/presentations`; OpenAPI transport generation,
-  CI drift checks, type-first slide creation, responsive editor navigation, and
-  unified dirty/save/conflict state are verified. F4 cleanup is the exact next
-  task, followed by F5 hardening.
-- The production-like TLS 1k gate remains mandatory and is queued after F5.
+The completed frontend F0-F5 history is preserved in
+`archive/frontend-f0-f5-2026-08.md`.
 
-This priority order is scheduling, not a capacity or production waiver.
+## Update lifecycle
 
-## Documentation lifecycle
-
-Update documentation in the same change as behavior:
-
-| Change | Required documentation |
+| Change | Documentation to update |
 |---|---|
-| REST/SSE behavior | OpenAPI first, architecture if invariant changes, AGENTS, AI_HANDOFF |
-| persistent data | forward-only migration, OpenAPI if external, operations consequence, AGENTS, AI_HANDOFF |
-| configuration/dependency | `.env.example`, `configuration.md`, Compose/deploy/runbooks, health/CI coverage |
-| frontend module/style/UX | frontend architecture, professionalization plan, AGENTS, AI_HANDOFF; ADR if decision changes |
-| load or production proof | raw artifact location, `load-test-results.md`, `capacity-plan.md`, AGENTS, AI_HANDOFF |
-| deployment/incident process | deployment or operations runbook plus AGENTS/AI_HANDOFF when status or next task changes |
+| REST/SSE contract | OpenAPI first; architecture/ADR only if an invariant changes; current status only if project state changes |
+| persistent data | forward-only migration; OpenAPI when external; operations notes when operational behavior changes |
+| configuration/dependency | example env files, `configuration.md`, affected runbooks/health/CI |
+| frontend boundary or design rule | frontend architecture/guidelines; ADR only for a durable decision |
+| completed frontend debt item | `frontend-status.md` and, when material, `status/current.md` |
+| measured load/performance evidence | dated evidence and the relevant plan/status claim |
+| deployment/incident process | the affected runbook |
+| ordinary implementation detail | usually code/tests only; do not update five documents for ceremony |
 
-Use only `implemented and verified`, `implemented but not verified because …`,
-or `not implemented`. Never turn a target, local observation, screenshot, or
-architecture claim into production evidence.
+Use precise language: `implemented and verified`, `implemented but not
+verified because …`, or `not implemented`. A target, screenshot, local
+observation or historical benchmark is never production proof.
 
-## Document health rule
+## Health rule
 
-Every material handoff must leave exactly one next task in `AGENTS.md` and
-`AI_HANDOFF.md`. Dates, test counts, paths, phase status, and provider/tool facts
-must be corrected when they become stale. Do not bulk-update an evidence record
-merely to make its date look current.
+Do not copy counts, versions, machine paths, "next task" text, or dated evidence
+into multiple active documents. Link to the authoritative source instead.
