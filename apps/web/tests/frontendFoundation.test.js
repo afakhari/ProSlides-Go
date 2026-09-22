@@ -183,3 +183,19 @@ test("manager and player routes are explicit and reports use the typed query bou
   assert.match(provider, /QueryClientProvider/);
   assert.match(queryClient, /mutations:\s*\{[\s\S]*retry:\s*false/);
 });
+
+
+test("identity UI uses the typed module API instead of parsing transport responses", () => {
+  const auth = source("src/pages/auth/AuthPage.jsx");
+  const api = source("src/modules/identity/api/identityApi.ts");
+  const errors = source("src/modules/identity/api/identityErrors.ts");
+
+  assert.match(auth, /identityApi\.login/);
+  assert.match(auth, /identityApi\.register/);
+  assert.match(auth, /identityApi\.verifyEmail/);
+  assert.match(auth, /identityApi\.authenticateWithGoogle/);
+  assert.doesNotMatch(auth, /apiFetch\(|parseJson\(|formatError\(|extractFieldErrors\(/);
+  assert.match(api, /announceAuthExpiry:\s*false/);
+  assert.match(errors, /email_not_verified/);
+  assert.match(errors, /verification_expired/);
+});
