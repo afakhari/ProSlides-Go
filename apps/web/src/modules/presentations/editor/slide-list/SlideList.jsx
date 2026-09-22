@@ -490,9 +490,9 @@ export default function SlidesPanel({
         type="button"
         onClick={handleAddSlide}
         disabled={isReordering}
-        className={`mt-4 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-green-100 
+        className={`mt-4 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-success-soft 
           w-full aspect-[16/9] max-w-[360px] mx-auto flex items-center justify-center
-          ${isReordering ? 'opacity-50 cursor-not-allowed' : 'border-gray-300 text-gray-500 hover:border-green-300'}`}
+          ${isReordering ? 'opacity-50 cursor-not-allowed' : 'border-border-subtle text-content hover:border-success-border'}`}
       >
         + افزودن اسلاید
       </button>
