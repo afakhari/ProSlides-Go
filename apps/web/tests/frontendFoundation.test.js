@@ -157,3 +157,28 @@ test("shared design primitives use the ProSlides token vocabulary and accessible
   assert.match(confirm, /AlertDialogPrimitive\.Cancel/);
   assert.match(confirm, /aria-busy/);
 });
+
+
+test("manager and player routes are explicit and reports use the typed query boundary", () => {
+  const app = source("src/App.jsx");
+  const report = source("src/modules/reports/routes/ReportRoute.tsx");
+  const reportApi = source("src/modules/reports/api/reportApi.ts");
+  const reportQueries = source("src/modules/reports/api/reportQueries.ts");
+  const provider = source("src/app/providers/AppQueryProvider.tsx");
+
+  assert.match(app, /path="\/manager\/panel"/);
+  assert.match(app, /path="\/manager\/panel\/:presentationId\/report"/);
+  assert.match(app, /path="\/manager\/presentation\/:roomId"/);
+  assert.match(app, /path="\/player\/presentation\/:roomId"/);
+  assert.doesNotMatch(app, /:\s*role|\/:role/);
+
+  assert.match(report, /useInfiniteQuery/);
+  assert.match(report, /useQuery/);
+  assert.match(report, /بازگشت به پنل مدیریت/);
+  assert.doesNotMatch(report, /Language|Notifications|Help|Logout|Search participants|Participants/);
+  assert.match(reportApi, /requestJson/);
+  assert.doesNotMatch(reportApi, /liveApi|services\/quizService/);
+  assert.match(reportQueries, /refetchInterval:\s*15 \* 60_000/);
+  assert.match(provider, /QueryClientProvider/);
+  assert.match(provider, /mutations:\s*\{[\s\S]*retry:\s*false/);
+});
