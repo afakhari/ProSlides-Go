@@ -459,7 +459,7 @@ test("question editor preserves typed draft semantics across save and edit confl
   });
 
   await page.goto(`/manager/panel/${fixture.presentationId}`);
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
   await expectAccessible(page, "question editor");
 
@@ -518,7 +518,7 @@ test("question editor preserves typed draft semantics across save and edit confl
     preview.getByText("پایتخت ایران را انتخاب کنید", { exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
   await questionInput.fill("نسخه محلی که نباید بی‌صدا از بین برود");
   await expect(
@@ -594,7 +594,7 @@ test("question editor preserves typed draft semantics across save and edit confl
   await conflictDialog.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
 
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeHidden();
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "متن سؤال", exact: true })).toHaveValue("نسخه جدید سرور");
   await expect(preview.getByText("نسخه جدید سرور", { exact: true })).toBeVisible();
 
@@ -664,7 +664,7 @@ test("content editor projects unsaved draft and preserves it across edit conflic
   });
 
   await page.goto(`/manager/panel/${fixture.presentationId}`);
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
 
   const inspector = page.getByRole("complementary", {
     name: "تنظیمات اسلاید محتوا",
@@ -733,7 +733,7 @@ test("content editor projects unsaved draft and preserves it across edit conflic
     preview.getByText("عنوان ذخیره‌نشده", { exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
   await expect(inspector).toBeVisible();
   await titleInput.fill("نسخه محلی محتوا که باید حفظ شود");
   await expect(
@@ -814,7 +814,7 @@ test("content editor projects unsaved draft and preserves it across edit conflic
     .click();
 
   await expect(inspector).toBeHidden();
-  await page.getByRole("button", { name: "محتوا" }).click();
+  await page.getByRole("button", { name: "محتوا", exact: true }).click();
   await expect(inspector).toBeVisible();
   await expect(titleInput).toHaveValue("نسخه جدید سرور برای محتوا");
   await expect(
