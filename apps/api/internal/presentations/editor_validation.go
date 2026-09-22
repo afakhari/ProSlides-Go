@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"unicode/utf8"
 )
 
 var errInvalidSlideDefinition = errors.New("invalid slide definition")
@@ -87,7 +88,7 @@ func decodeStrictObject(raw json.RawMessage, target any) error {
 }
 
 func validateQuestionDefinition(value questionDefinition) error {
-	if strings.TrimSpace(value.Text) == "" || len(value.Text) > 10000 || len(value.Title) > 500 || len(value.ImageURL) > 4096 {
+	if strings.TrimSpace(value.Text) == "" || utf8.RuneCountInString(value.Text) > 10000 || utf8.RuneCountInString(value.Title) > 500 || utf8.RuneCountInString(value.ImageURL) > 4096 {
 		return errInvalidSlideDefinition
 	}
 	if value.QuestionType != "single" && value.QuestionType != "multiple" {
@@ -107,7 +108,7 @@ func validateQuestionDefinition(value questionDefinition) error {
 	correct := 0
 	for _, option := range value.Options {
 		id := strings.TrimSpace(option.ID)
-		if id == "" || len(id) > 128 || strings.TrimSpace(option.Text) == "" || len(option.Text) > 2000 || len(option.ImageURL) > 4096 || option.Order < 1 || option.Order > len(value.Options) {
+		if id == "" || utf8.RuneCountInString(id) > 128 || strings.TrimSpace(option.Text) == "" || utf8.RuneCountInString(option.Text) > 2000 || utf8.RuneCountInString(option.ImageURL) > 4096 || option.Order < 1 || option.Order > len(value.Options) {
 			return errInvalidSlideDefinition
 		}
 		if _, exists := ids[id]; exists {
