@@ -127,13 +127,15 @@ test("participant live UI is Persian, theme-driven, and disclosure-safe", () => 
   const entry = source("src/routes/PresentationEntry.jsx");
   const shell = source("src/modules/live/participant/ParticipantShell.tsx");
   const theme = source("src/modules/live/participant/theme.ts");
+  const sharedTheme = source("src/shared/styles/presentationTheme.ts");
   const question = source("src/pages/presentation/player/PickAnswerQuestion.jsx");
   const leaderboard = source("src/pages/presentation/player/LeaderBoard.jsx");
 
   assert.match(entry, /data\.presentation\.background_color/);
   assert.match(entry, /data\.presentation\.text_color/);
   assert.match(shell, /dir="rtl"/);
-  assert.match(theme, /--live-bg/);
+  assert.match(theme, /presentationTheme as participantTheme/);
+  assert.match(sharedTheme, /--live-bg/);
   assert.match(question, /ثبت پاسخ/);
   assert.doesNotMatch(question, />\s*(?:Submitted|Submit|Loading quiz|You voted)\s*</);
   assert.doesNotMatch(leaderboard, /players\.map|roster/);
@@ -297,14 +299,26 @@ test("live projection is derived directly from authoritative snapshot and roster
 });
 
 
-test("question editor keeps draft, validation, transport and accessibility responsibilities separated", () => {
+test("question editor keeps one typed draft across inspector and canvas", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
   const inspector = source("src/modules/presentations/editor/inspector/QuestionInspector.tsx");
+  const canvas = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const options = source("src/modules/presentations/editor/inspector/QuestionOptionsEditor.tsx");
+  const provider = source("src/modules/presentations/editor/model/QuestionDraftProvider.tsx");
   const draft = source("src/modules/presentations/editor/model/questionDraft.ts");
+  const preview = source("src/modules/presentations/editor/model/questionPreview.ts");
   const hook = source("src/modules/presentations/editor/model/useQuestionDraft.ts");
   const editorModel = source("src/modules/presentations/model/editor.ts");
 
-  assert.match(inspector, /useQuestionDraft/);
+  assert.match(route, /<QuestionDraftProvider/);
+  assert.match(route, /showSidebar && activeSlideType === 1/);
+  assert.match(inspector, /useRequiredQuestionDraft/);
+  assert.doesNotMatch(inspector, /useQuestionDraft\(/);
+  assert.match(canvas, /useOptionalQuestionDraft/);
+  assert.match(canvas, /createQuestionPreviewModel/);
+  assert.match(canvas, /presentationTheme/);
+  assert.match(canvas, /پیش‌نمایش شرکت‌کننده/);
+  assert.match(provider, /useQuestionDraft\(slide\)/);
   assert.match(inspector, /error instanceof ApiError/);
   assert.match(inspector, /slide_has_results/);
   assert.match(inspector, /conflictPending/);
@@ -316,6 +330,7 @@ test("question editor keeps draft, validation, transport and accessibility respo
   assert.match(options, /QUESTION_LIMITS\.minOptions/);
   assert.match(draft, /questionDraftReducer/);
   assert.match(draft, /questionDraftToEditorSlide/);
+  assert.match(preview, /validationIssueCount/);
   assert.match(hook, /questionDraftEquals/);
   assert.match(editorModel, /QUESTION_LIMITS/);
   assert.match(editorModel, /validateEditorQuestion/);
