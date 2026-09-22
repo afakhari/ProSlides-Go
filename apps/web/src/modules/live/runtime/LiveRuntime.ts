@@ -359,7 +359,7 @@ export class LiveRuntime {
       return this.refreshPromise;
     }
 
-    this.refreshPromise = (async () => {
+    const refresh = (async () => {
       let next: LiveSnapshot;
       do {
         this.refreshDirty = false;
@@ -370,35 +370,47 @@ export class LiveRuntime {
         ) {
           throw new Error("Live session changed during refresh");
         }
-        if (!this.storeSnapshot(next)) this.refreshDirty = true;
-      } while (this.refreshDirty && this.selectedSessionId === id);
 
-      if (
-        id !== this.selectedSessionId ||
-        lifecycleVersion !== this.lifecycleVersion
-      ) {
-        throw new Error("Live session changed during refresh");
-      }
+        if (!this.storeSnapshot(next)) {
+          this.refreshDirty = true;
+          continue;
+        }
 
-      if (next.role === "manager") {
-        await this.loadRoster(
-          ["leaderboard", "ended"].includes(next.session.state)
-            ? "score"
-            : "joined",
-          false,
-        );
-      } else {
-        this.rosterValue = [];
-        this.rosterCursor = "";
-        this.publish({ roster: [], hasMoreRoster: false });
-      }
+        if (next.role === "manager") {
+          await this.loadRoster(
+            ["leaderboard", "ended"].includes(next.session.state)
+              ? "score"
+              : "joined",
+            false,
+          );
+        } else {
+          this.rosterValue = [];
+          this.rosterCursor = "";
+          this.publish({ roster: [], hasMoreRoster: false });
+        }
+
+        if (
+          id !== this.selectedSessionId ||
+          lifecycleVersion !== this.lifecycleVersion
+        ) {
+          throw new Error("Live session changed during refresh");
+        }
+      } while (
+        this.refreshDirty &&
+        this.selectedSessionId === id &&
+        lifecycleVersion === this.lifecycleVersion
+      );
+
       return next;
     })();
 
+    this.refreshPromise = refresh;
     try {
-      return await this.refreshPromise;
+      return await refresh;
     } finally {
-      this.refreshPromise = null;
+      if (this.refreshPromise === refresh) {
+        this.refreshPromise = null;
+      }
     }
   };
 
