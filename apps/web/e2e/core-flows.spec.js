@@ -335,7 +335,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     }, { accessCode });
 
     await manager.goto(`/manager/presentation/${fixture.presentationId}`);
-    const startButton = manager.getByRole("button", { name: "شروع", exact: true });
+    const startButton = manager.getByRole("button", { name: /شروع/ });
     await expect(startButton).toBeEnabled({ timeout: 15000 });
     await expectAccessible(manager, "manager live lobby");
 
