@@ -991,7 +991,18 @@ export interface components {
             };
         };
         Error: {
+            /** @description Stable machine-readable error code. */
             error: string;
+            /** @description Optional safe human-readable detail; clients should branch on error, not this text. */
+            message?: string;
+            /** @description Optional field-scoped machine-readable validation codes. */
+            field_errors?: {
+                [key: string]: string[];
+            };
+            /** @description Optional retry delay for bounded/rate-limited operations. */
+            retry_after_seconds?: number;
+            /** @description Optional correlation identifier safe to expose to the client. */
+            request_id?: string;
         };
         Health: {
             /** @example ok */
