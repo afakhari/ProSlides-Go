@@ -202,7 +202,7 @@ rather than requiring clients to parse human-readable text:
 
 ```ts
 type ApiErrorResponse = {
-  code: string;
+  error: string; // stable machine-readable code; retained for API compatibility
   message?: string;
   field_errors?: Record<string, string[]>;
   retry_after_seconds?: number;
