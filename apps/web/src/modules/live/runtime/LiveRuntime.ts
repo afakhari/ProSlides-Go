@@ -8,7 +8,7 @@ import {
   joinLiveSession,
   streamLiveEvents,
   submitLiveAnswer,
-} from "../api/liveApi";
+} from "../api/liveApi.ts";
 import type {
   LiveEvent,
   LiveSnapshot,
@@ -16,14 +16,14 @@ import type {
   QuestionStats,
   RosterEntry,
   RosterPage,
-} from "../api/types";
+} from "../api/types.ts";
 import {
   advanceLiveCursor,
   liveCursorFromSnapshot,
   planLiveEnd,
   planLiveNavigation,
   shouldApplyLiveEvent,
-} from "./protocol";
+} from "./protocol.js";
 
 export type LiveClientRole = "manager" | "player";
 export type RosterOrder = "joined" | "score";
