@@ -167,13 +167,13 @@ test("register, create a presentation, and open its report", async ({ page }) =>
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
   await page.goto(`/manager/panel/${presentationId}/report`);
-  await expect(page.getByLabel("Back to manager panel")).toBeVisible();
+  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
   await expectAccessible(page, "report");
 
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
   await page.goForward();
-  await expect(page.getByLabel("Back to manager panel")).toBeVisible();
+  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
 
   await page.goto("/manager/panel");
   await page.locator('button[aria-label="باز کردن منوی حساب"]:visible').click();
