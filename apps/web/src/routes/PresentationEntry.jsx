@@ -79,10 +79,10 @@ const EMPTY_PRESENTATION = {
   text_color: "#111827",
 };
 
-export default function PresentationEntry({ mode }) {
+export default function PresentationEntry({ mode, role: explicitRole }) {
   return (
     <ServerDataProvider>
-      {mode === "accessCode" ? <AccessCodeResolver /> : <PresentationRouter />}
+      {mode === "accessCode" ? <AccessCodeResolver /> : <PresentationRouter explicitRole={explicitRole} />}
     </ServerDataProvider>
   );
 }
@@ -166,8 +166,9 @@ function AccessCodeResolver() {
 }
 
 /* ------------------------ Router Wrapper ------------------------ */
-function PresentationRouter() {
-  const { roomId, role } = useParams();
+function PresentationRouter({ explicitRole }) {
+  const { roomId, role: routeRole } = useParams();
+  const role = explicitRole || routeRole;
   const liveRole = role === "player" ? "player" : "manager";
 
   return (
