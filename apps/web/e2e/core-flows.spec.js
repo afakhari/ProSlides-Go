@@ -829,3 +829,247 @@ test("content editor projects unsaved draft and preserves it across edit conflic
 
   expect(failures).toEqual([]);
 });
+
+
+test("design editor projects a contrast-safe presentation draft and preserves conflicts", async ({ page }) => {
+  test.setTimeout(90000);
+  const failures = watchRuntime(page);
+  const unique = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+  const email = "design-editor-" + unique + "@example.com";
+
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill("BrowserPass!42");
+  await page.locator('input[name="fullName"]').fill("مدیر تست طراحی");
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/manager\/panel$/);
+
+  const fixture = await page.evaluate(async () => {
+    const cookieValue = (name) => {
+      const prefix = encodeURIComponent(name) + "=";
+      const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+      return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+    };
+    const api = async (path, options = {}) => {
+      const headers = new Headers(options.headers || {});
+      headers.set("Content-Type", "application/json");
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+      const response = await fetch("/api/v1" + path, {
+        method: options.method || "GET",
+        credentials: "include",
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error((options.method || "GET") + " " + path + ": " + response.status + " " + JSON.stringify(body));
+      }
+      return body;
+    };
+
+    const presentation = await api("/presentations", {
+      method: "POST",
+      body: {
+        title: "تست طراحی ارائه",
+        settings: {
+          background_color: "#ffffff",
+          text_color: "#111827",
+          background_image_url: "",
+        },
+      },
+    });
+    const slide = await api("/presentations/" + presentation.id + "/slides", {
+      method: "POST",
+      headers: { "If-Match": String(presentation.revision) },
+      body: {
+        position: 0,
+        kind: "content",
+        content: {
+          title: "پیش‌نمایش طراحی",
+          text: "متن نمونه برای طراحی",
+          image_url: "",
+        },
+      },
+    });
+
+    return {
+      presentationId: presentation.id,
+      slideId: slide.id,
+    };
+  });
+
+  await page.goto("/manager/panel/" + fixture.presentationId);
+  const preview = page.getByRole("region", {
+    name: "پیش‌نمایش اسلاید محتوا",
+  });
+  await expect(preview).toBeVisible();
+
+  await page.getByRole("button", { name: "طراحی", exact: true }).click();
+  const inspector = page.getByRole("complementary", {
+    name: "تنظیمات طراحی ارائه",
+  });
+  await expect(inspector).toBeVisible();
+  await expectAccessible(page, "design editor");
+
+  const backgroundInput = inspector.locator("#design-background-custom");
+  const textInput = inspector.locator("#design-text-custom");
+
+  await backgroundInput.fill("#312e81");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#312e81");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-fg").trim()
+    )
+  ).toBe("#ffffff");
+  await expect(
+    preview.getByText("طراحی ذخیره‌نشده", { exact: true }),
+  ).toBeVisible();
+
+  await backgroundInput.fill("#ffffff");
+  await textInput.fill("#ffffff");
+  await expect(textInput).toHaveValue("#0f172a");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-fg").trim()
+    )
+  ).toBe("#0f172a");
+
+  await backgroundInput.fill("#312e81");
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith(
+        "/api/v1/presentations/" + fixture.presentationId,
+      ),
+  );
+  await inspector.getByRole("button", { name: "ذخیره طراحی" }).click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(200);
+  const savedPresentation = await saveResponse.json();
+  expect(savedPresentation.settings.background_color).toBe("#312e81");
+  expect(savedPresentation.settings.text_color).toBe("#ffffff");
+  await expect(
+    inspector.getByText(/طراحی ذخیره شده است/),
+  ).toBeVisible();
+
+  await backgroundInput.fill("#f0fdf4");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#f0fdf4");
+
+  await inspector
+    .getByRole("button", { name: "بستن تنظیمات طراحی" })
+    .click();
+  const discardDialog = page.getByRole("alertdialog");
+  await expect(discardDialog).toContainText(
+    "تغییرات ذخیره‌نشده طراحی از بین می‌رود",
+  );
+  await discardDialog.getByRole("button", { name: "رد تغییرات" }).click();
+  await expect(inspector).toBeHidden();
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#312e81");
+
+  await page.getByRole("button", { name: "طراحی", exact: true }).click();
+  await expect(inspector).toBeVisible();
+  await backgroundInput.fill("#eff6ff");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#eff6ff");
+
+  await page.evaluate(
+    async ({ presentationId, revision }) => {
+      const cookieValue = (name) => {
+        const prefix = encodeURIComponent(name) + "=";
+        const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        "If-Match": String(revision),
+      });
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+
+      const response = await fetch(
+        "/api/v1/presentations/" + presentationId,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            settings: {
+              background_color: "#111111",
+              text_color: "#ffffff",
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error("external design mutation failed: " + response.status);
+      }
+    },
+    {
+      presentationId: fixture.presentationId,
+      revision: savedPresentation.revision,
+    },
+  );
+
+  const conflictResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.status() === 409 &&
+      new URL(response.url()).pathname.endsWith(
+        "/api/v1/presentations/" + fixture.presentationId,
+      ),
+  );
+  await inspector.getByRole("button", { name: "ذخیره طراحی" }).click();
+  await conflictResponsePromise;
+
+  await expect(
+    inspector.getByText(/نسخه جدیدتری از طراحی ارائه روی سرور وجود دارد/),
+  ).toBeVisible();
+  await expect(backgroundInput).toHaveValue("#eff6ff");
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#eff6ff");
+  await expect(
+    inspector.getByRole("button", { name: "ذخیره طراحی" }),
+  ).toBeDisabled();
+
+  await inspector.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
+  const conflictDialog = page.getByRole("alertdialog");
+  await expect(conflictDialog).toContainText(
+    "تغییرات محلی از بین می‌رود",
+  );
+  await conflictDialog
+    .getByRole("button", { name: "بارگذاری نسخه سرور" })
+    .click();
+
+  await expect(inspector).toBeHidden();
+  await expect.poll(async () =>
+    preview.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--live-bg").trim()
+    )
+  ).toBe("#111111");
+
+  await page.getByRole("button", { name: "طراحی", exact: true }).click();
+  await expect(inspector).toBeVisible();
+  await expect(backgroundInput).toHaveValue("#111111");
+  await expect(textInput).toHaveValue("#ffffff");
+
+  expect(failures).toEqual([]);
+});
