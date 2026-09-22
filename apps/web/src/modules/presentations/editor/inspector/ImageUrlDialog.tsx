@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, LoaderCircle, X } from "lucide-react";
 
-import { QUESTION_LIMITS } from "../../model/editor.ts";
 import { Button } from "../../../../shared/ui/primitives/Button.tsx";
 
 type ImageUrlDialogProps = {
   open: boolean;
   initialUrl?: string;
   title: string;
+  maxLength?: number;
   onClose: () => void;
   onConfirm: (url: string) => void;
 };
 
-const validateImageUrl = (value: string): string | null => {
+const validateImageUrl = (
+  value: string,
+  maxLength: number,
+): string | null => {
   const trimmed = value.trim();
   if (!trimmed) return "آدرس تصویر را وارد کنید.";
-  if (Array.from(trimmed).length > QUESTION_LIMITS.imageUrl) {
+  if (Array.from(trimmed).length > maxLength) {
     return "آدرس تصویر بیش از حد طولانی است.";
   }
 
@@ -35,6 +38,7 @@ export default function ImageUrlDialog({
   open,
   initialUrl = "",
   title,
+  maxLength = 4_096,
   onClose,
   onConfirm,
 }: ImageUrlDialogProps) {
@@ -72,7 +76,7 @@ export default function ImageUrlDialog({
 
   const checkPreview = () => {
     const trimmed = url.trim();
-    const validationError = validateImageUrl(trimmed);
+    const validationError = validateImageUrl(trimmed, maxLength);
     if (validationError) {
       setError(validationError);
       setPreviewUrl("");
@@ -172,7 +176,7 @@ export default function ImageUrlDialog({
             inputMode="url"
             autoComplete="url"
             value={url}
-            maxLength={QUESTION_LIMITS.imageUrl}
+            maxLength={maxLength}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "editor-image-url-error" : "editor-image-url-help"}
             onChange={(event) => {
