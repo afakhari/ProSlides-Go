@@ -31,9 +31,8 @@ export function useQuestionDraft(slide: EditorSlide) {
   });
 
   useEffect(() => {
-    const next = requireQuestionDraft(slide);
-    dispatch({ type: "reset", draft: next });
-  }, [slide.slide_id, slide.revision]);
+    dispatch({ type: "reset", draft: initial });
+  }, [initial]);
 
   const dirty = useMemo(
     () => !questionDraftEquals(state.baseline, state.draft),
