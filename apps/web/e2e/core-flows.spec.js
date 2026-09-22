@@ -356,7 +356,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
 
     await participant.getByRole("button", { name: /تهران/ }).click();
     await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
-    await expect(participant.getByRole("status")).toContainText("پاسخ شما ارسال شد");
+    await expect(participant.getByText("پاسخ شما ثبت شد.", { exact: true })).toBeVisible();
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
