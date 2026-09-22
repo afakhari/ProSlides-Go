@@ -446,3 +446,43 @@ test("refresh requests arriving during roster loading are drained before reconne
   runtime.destroy();
 });
 
+test("disconnect during manager connect cannot resurrect stale session state", async () => {
+  let releaseSnapshot;
+  const snapshotReady = new Promise((resolve) => {
+    releaseSnapshot = resolve;
+  });
+
+  const runtime = createLiveRuntime("manager", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000024",
+      createLiveSession: async () => managerSession("session"),
+      getLiveSnapshot: async () => {
+        await snapshotReady;
+        return managerSnapshot("session", {
+          eventId: 9,
+          stateVersion: 4,
+          state: "lobby",
+        });
+      },
+      getRosterPage: async (_id, order) => emptyRoster(order),
+      streamLiveEvents: parkedStream,
+    },
+  });
+
+  const connecting = runtime.connect("presentation");
+  for (let index = 0; index < 10 && runtime.getState().sessionId !== "session"; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  runtime.disconnect();
+  releaseSnapshot();
+
+  assert.equal(await connecting, false);
+  assert.equal(runtime.getState().sessionId, null);
+  assert.equal(runtime.getState().snapshot, null);
+  assert.equal(runtime.getState().isConnected, false);
+
+  runtime.destroy();
+});
+
