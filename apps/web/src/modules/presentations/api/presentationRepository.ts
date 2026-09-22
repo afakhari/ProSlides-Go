@@ -134,12 +134,15 @@ export const editorSlideToDefinition = (slide: EditorSlide, fallbackPosition = 0
   };
 };
 
-const mutationQueues = new Map<string, Promise<unknown>>();
+const mutationQueues = new Map<string, Promise<void>>();
 const queueSlideMutation = <T>(presentationID: string, slideID: string, mutation: () => Promise<T>): Promise<T> => {
   const key = `${presentationID}:${slideID}`;
   const previous = mutationQueues.get(key) || Promise.resolve();
-  const next = previous.catch(() => undefined).then(mutation);
-  const tracked = next.finally(() => {
+  const next = previous.then(mutation, mutation);
+  const tracked = next.then(
+    () => undefined,
+    () => undefined,
+  ).finally(() => {
     if (mutationQueues.get(key) === tracked) mutationQueues.delete(key);
   });
   mutationQueues.set(key, tracked);
