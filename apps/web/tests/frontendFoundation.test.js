@@ -245,3 +245,17 @@ test("live API runtime and React ownership live inside the live module", () => {
   assert.match(serverContext, /\.\.\/runtime\/protocol/);
   assert.match(liveApi, /\.\/types/);
 });
+
+
+test("live projection is derived directly from authoritative snapshot and roster", () => {
+  const liveContext = source("src/modules/live/react/LiveSessionContext.jsx");
+  const projectionContext = source("src/modules/live/react/ServerDataContext.jsx");
+  const entry = source("src/routes/PresentationEntry.jsx");
+
+  assert.match(projectionContext, /useLiveSession/);
+  assert.match(projectionContext, /projectLiveSnapshot\(snapshot, roster\)/);
+  assert.doesNotMatch(projectionContext, /applyLiveSnapshot|applyLiveEvent/);
+  assert.doesNotMatch(liveContext, /lastEvent|setLastEvent/);
+  assert.doesNotMatch(entry, /LiveMessageHandler|applyLiveSnapshot|applyLiveEvent/);
+  assert.match(entry, /<LiveSessionProvider[^>]*>[\s\S]*<ServerDataProvider>/);
+});
