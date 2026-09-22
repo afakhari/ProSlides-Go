@@ -165,6 +165,7 @@ test("manager and player routes are explicit and reports use the typed query bou
   const reportApi = source("src/modules/reports/api/reportApi.ts");
   const reportQueries = source("src/modules/reports/api/reportQueries.ts");
   const provider = source("src/app/providers/AppQueryProvider.tsx");
+  const queryClient = source("src/app/providers/queryClient.ts");
 
   assert.match(app, /path="\/manager\/panel"/);
   assert.match(app, /path="\/manager\/panel\/:presentationId\/report"/);
