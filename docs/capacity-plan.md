@@ -75,21 +75,18 @@ cross-component traces remain.
 
 ## Ordered execution
 
-As of 2026-08-28, the owner has prioritized frontend phases F1-F5 before the
-next load run. This changes scheduling only: the topology, evidence, and pass/
-fail requirements below remain mandatory, and the production-like 1k result is
-still unproven.
+Current scheduling is recorded in `status/current.md`; this section defines the
+capacity sequence and does not compete with that status document.
 
-1. **Completed 2026-08-19:** add role-scoped/paginated snapshots so players
-   never download the 10k roster; full leaderboard rows are also removed from
-   audience SSE.
-2. **Completed locally 2026-08-24:** bounded HTTP/runtime/pool/query/SSE/broker/
-   answer/event-lag metrics, the 100-user protocol run, raw summaries, and hard
-   SQL reconciliation passed, followed by two consecutive 1k passes through
-   Nginx and a forced API-address recovery check.
-3. **Queued after frontend F5:** repeat the two-run 1k result on a named production-like
-   single API through TLS ingress, including cold readiness and CPU/heap/locks.
-4. Fix measured bottlenecks; rerun twice.
+1. **Completed:** role-scoped/paginated snapshots prevent participant clients
+   from downloading a full roster; audience SSE remains aggregate-only.
+2. **Completed locally:** bounded metrics, the 100-user protocol run, hard SQL
+   reconciliation, consecutive local 1k passes through Nginx, and API-address
+   recovery evidence. These are local observations only.
+3. **Next capacity gate:** repeat the two-run 1k result on a named
+   production-like single API through TLS ingress, including cold readiness and
+   continuous CPU/heap/pool/query/lock evidence.
+4. Fix measured bottlenecks and rerun the same gate twice.
 5. Repeat at 5k with multiple API instances and no sticky sessions.
 6. Add Redis outbox wake-up only if event polling/latency measurements require it.
 7. Repeat at 10k, including reconnect and answer bursts.
