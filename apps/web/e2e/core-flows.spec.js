@@ -600,3 +600,226 @@ test("question editor preserves typed draft semantics across save and edit confl
 
   expect(failures).toEqual([]);
 });
+
+
+test("content editor projects unsaved draft and preserves it across edit conflicts", async ({ page }) => {
+  test.setTimeout(90000);
+  const failures = watchRuntime(page);
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const email = `content-editor-${unique}@example.com`;
+
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill("BrowserPass!42");
+  await page.locator('input[name="fullName"]').fill("مدیر تست محتوای ارائه");
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/manager\/panel$/);
+
+  const fixture = await page.evaluate(async () => {
+    const cookieValue = (name) => {
+      const prefix = `${encodeURIComponent(name)}=`;
+      const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+      return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+    };
+    const api = async (path, options = {}) => {
+      const headers = new Headers(options.headers || {});
+      headers.set("Content-Type", "application/json");
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+      const response = await fetch(`/api/v1${path}`, {
+        method: options.method || "GET",
+        credentials: "include",
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`${options.method || "GET"} ${path}: ${response.status} ${JSON.stringify(body)}`);
+      }
+      return body;
+    };
+
+    const presentation = await api("/presentations", {
+      method: "POST",
+      body: { title: "تست ویرایشگر محتوا", settings: {} },
+    });
+    const slide = await api(`/presentations/${presentation.id}/slides`, {
+      method: "POST",
+      headers: { "If-Match": String(presentation.revision) },
+      body: {
+        position: 0,
+        kind: "content",
+        content: {
+          title: "عنوان اولیه",
+          text: "متن اولیه",
+          image_url: "",
+        },
+      },
+    });
+
+    return {
+      presentationId: presentation.id,
+      slideId: slide.id,
+    };
+  });
+
+  await page.goto(`/manager/panel/${fixture.presentationId}`);
+  await page.getByRole("button", { name: "محتوا" }).click();
+
+  const inspector = page.getByRole("complementary", {
+    name: "تنظیمات اسلاید محتوا",
+  });
+  const preview = page.getByRole("region", {
+    name: "پیش‌نمایش اسلاید محتوا",
+  });
+  await expect(inspector).toBeVisible();
+  await expect(preview).toBeVisible();
+  await expectAccessible(page, "content editor");
+
+  const titleInput = inspector.getByRole("textbox", {
+    name: "عنوان",
+    exact: true,
+  });
+  const textInput = inspector.getByRole("textbox", {
+    name: "متن",
+    exact: true,
+  });
+
+  await titleInput.fill("عنوان ذخیره‌نشده");
+  await textInput.fill("متن ذخیره‌نشده\nبا خط دوم");
+
+  await expect(
+    preview.getByText("عنوان ذخیره‌نشده", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    preview.getByText("متن ذخیره‌نشده\nبا خط دوم", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
+  ).toBeVisible();
+
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      new URL(response.url()).pathname.endsWith(
+        `/api/v1/presentations/${fixture.presentationId}/slides/${fixture.slideId}`,
+      ),
+  );
+  await inspector.getByRole("button", { name: "ذخیره تغییرات" }).click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(200);
+  const savedSlide = await saveResponse.json();
+  expect(savedSlide.content.title).toBe("عنوان ذخیره‌نشده");
+  expect(savedSlide.content.text).toBe("متن ذخیره‌نشده\nبا خط دوم");
+  await expect(
+    inspector.getByText("همه تغییرات ذخیره شده است.", { exact: true }),
+  ).toBeVisible();
+
+  await titleInput.fill("عنوان موقت برای رد");
+  await expect(
+    preview.getByText("عنوان موقت برای رد", { exact: true }),
+  ).toBeVisible();
+  await inspector
+    .getByRole("button", { name: "بستن تنظیمات اسلاید محتوا" })
+    .click();
+
+  const discardDialog = page.getByRole("alertdialog");
+  await expect(discardDialog).toContainText(
+    "تغییرات ذخیره‌نشده این اسلاید محتوا از بین می‌رود",
+  );
+  await discardDialog.getByRole("button", { name: "رد تغییرات" }).click();
+  await expect(inspector).toBeHidden();
+  await expect(
+    preview.getByText("عنوان ذخیره‌نشده", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "محتوا" }).click();
+  await expect(inspector).toBeVisible();
+  await titleInput.fill("نسخه محلی محتوا که باید حفظ شود");
+  await expect(
+    preview.getByText("نسخه محلی محتوا که باید حفظ شود", { exact: true }),
+  ).toBeVisible();
+
+  await page.evaluate(
+    async ({ presentationId, slideId, revision, content }) => {
+      const cookieValue = (name) => {
+        const prefix = `${encodeURIComponent(name)}=`;
+        const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        "If-Match": String(revision),
+      });
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+
+      const response = await fetch(
+        `/api/v1/presentations/${presentationId}/slides/${slideId}`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            position: 0,
+            kind: "content",
+            content: {
+              ...content,
+              title: "نسخه جدید سرور برای محتوا",
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`external content mutation failed: ${response.status}`);
+      }
+    },
+    {
+      presentationId: fixture.presentationId,
+      slideId: fixture.slideId,
+      revision: savedSlide.revision,
+      content: savedSlide.content,
+    },
+  );
+
+  const conflictResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      response.status() === 409 &&
+      new URL(response.url()).pathname.endsWith(
+        `/api/v1/presentations/${fixture.presentationId}/slides/${fixture.slideId}`,
+      ),
+  );
+  await inspector.getByRole("button", { name: "ذخیره تغییرات" }).click();
+  await conflictResponsePromise;
+
+  await expect(
+    inspector.getByText(/نسخه جدیدتری از این اسلاید ذخیره شده است/),
+  ).toBeVisible();
+  await expect(titleInput).toHaveValue("نسخه محلی محتوا که باید حفظ شود");
+  await expect(
+    preview.getByText("نسخه محلی محتوا که باید حفظ شود", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    inspector.getByRole("button", { name: "ذخیره تغییرات" }),
+  ).toBeDisabled();
+
+  await inspector.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
+  const conflictDialog = page.getByRole("alertdialog");
+  await expect(conflictDialog).toContainText(
+    "تغییرات محلی این پنل از بین می‌رود",
+  );
+  await conflictDialog
+    .getByRole("button", { name: "بارگذاری نسخه سرور" })
+    .click();
+
+  await expect(inspector).toBeHidden();
+  await page.getByRole("button", { name: "محتوا" }).click();
+  await expect(inspector).toBeVisible();
+  await expect(titleInput).toHaveValue("نسخه جدید سرور برای محتوا");
+  await expect(
+    preview.getByText("نسخه جدید سرور برای محتوا", { exact: true }),
+  ).toBeVisible();
+
+  expect(failures).toEqual([]);
+});
