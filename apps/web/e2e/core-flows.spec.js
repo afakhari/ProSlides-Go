@@ -384,3 +384,181 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await managerContext.close();
   }
 });
+
+
+test("question editor preserves typed draft semantics across save and edit conflict", async ({ page }) => {
+  test.setTimeout(90000);
+  const failures = watchRuntime(page);
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const email = `editor-browser-${unique}@example.com`;
+
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill("BrowserPass!42");
+  await page.locator('input[name="fullName"]').fill("مدیر تست ویرایشگر");
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/manager\/panel$/);
+
+  const fixture = await page.evaluate(async () => {
+    const cookieValue = (name) => {
+      const prefix = `${encodeURIComponent(name)}=`;
+      const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+      return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+    };
+    const api = async (path, options = {}) => {
+      const headers = new Headers(options.headers || {});
+      headers.set("Content-Type", "application/json");
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+      const response = await fetch(`/api/v1${path}`, {
+        method: options.method || "GET",
+        credentials: "include",
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`${options.method || "GET"} ${path}: ${response.status} ${JSON.stringify(body)}`);
+      }
+      return body;
+    };
+
+    const presentation = await api("/presentations", {
+      method: "POST",
+      body: { title: "تست ویرایشگر سؤال", settings: {} },
+    });
+    const slide = await api(`/presentations/${presentation.id}/slides`, {
+      method: "POST",
+      headers: { "If-Match": String(presentation.revision) },
+      body: {
+        position: 0,
+        kind: "question",
+        content: {
+          title: "",
+          text: "پایتخت ایران کدام است؟",
+          question_type: "single",
+          question_time: 30,
+          min_point: 0,
+          max_point: 100,
+          image_url: "",
+          faster_answers_more_points: false,
+          partial_scoring: false,
+          show_leaderboard_after: true,
+          options: [
+            { id: crypto.randomUUID(), text: "تهران", is_correct: true, image_url: "", order: 1 },
+            { id: crypto.randomUUID(), text: "شیراز", is_correct: false, image_url: "", order: 2 },
+          ],
+        },
+      },
+    });
+
+    return {
+      presentationId: presentation.id,
+      slideId: slide.id,
+    };
+  });
+
+  await page.goto(`/manager/panel/${fixture.presentationId}`);
+  await page.getByRole("button", { name: "محتوا" }).click();
+  await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
+  await expectAccessible(page, "question editor");
+
+  const questionInput = page.getByLabel("متن سؤال");
+  const timeInput = page.getByLabel("زمان پاسخ به ثانیه");
+  await questionInput.fill("پایتخت ایران را انتخاب کنید");
+  await timeInput.fill("۴۵");
+
+  await page.getByRole("button", { name: "انتقال گزینه ۱ به پایین" }).click();
+  await expect(page.getByPlaceholder("متن گزینه ۱")).toHaveValue("شیراز");
+  await expect(page.getByText("تغییرات ذخیره‌نشده دارید.")).toBeVisible();
+
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      new URL(response.url()).pathname.endsWith(
+        `/api/v1/presentations/${fixture.presentationId}/slides/${fixture.slideId}`,
+      ),
+  );
+  await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(200);
+  const savedSlide = await saveResponse.json();
+  expect(savedSlide.content.text).toBe("پایتخت ایران را انتخاب کنید");
+  expect(savedSlide.content.question_time).toBe(45);
+  expect(savedSlide.content.options[0].text).toBe("شیراز");
+  expect(savedSlide.content.options[0].order).toBe(1);
+  await expect(page.getByText("همه تغییرات ذخیره شده است.")).toBeVisible();
+
+  await questionInput.fill("نسخه محلی که نباید بی‌صدا از بین برود");
+
+  await page.evaluate(
+    async ({ presentationId, slideId, revision, content }) => {
+      const cookieValue = (name) => {
+        const prefix = `${encodeURIComponent(name)}=`;
+        const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        "If-Match": String(revision),
+      });
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+
+      const response = await fetch(
+        `/api/v1/presentations/${presentationId}/slides/${slideId}`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            position: 0,
+            kind: "question",
+            content: {
+              ...content,
+              text: "نسخه جدید سرور",
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`external editor mutation failed: ${response.status}`);
+      }
+    },
+    {
+      presentationId: fixture.presentationId,
+      slideId: fixture.slideId,
+      revision: savedSlide.revision,
+      content: savedSlide.content,
+    },
+  );
+
+  const conflictResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      response.status() === 409 &&
+      new URL(response.url()).pathname.endsWith(
+        `/api/v1/presentations/${fixture.presentationId}/slides/${fixture.slideId}`,
+      ),
+  );
+  await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
+  await conflictResponsePromise;
+
+  await expect(
+    page.getByText(/نسخه جدیدتری از این سؤال ذخیره شده است/),
+  ).toBeVisible();
+  await expect(questionInput).toHaveValue("نسخه محلی که نباید بی‌صدا از بین برود");
+  await expect(page.getByRole("button", { name: "ذخیره تغییرات" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
+  const conflictDialog = page.getByRole("alertdialog");
+  await expect(conflictDialog).toBeVisible();
+  await expect(conflictDialog).toContainText("تغییرات محلی این پنل از بین می‌رود");
+  await conflictDialog.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
+
+  await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeHidden();
+  await page.getByRole("button", { name: "محتوا" }).click();
+  await expect(page.getByLabel("متن سؤال")).toHaveValue("نسخه جدید سرور");
+
+  expect(failures).toEqual([]);
+});
