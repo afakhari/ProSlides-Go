@@ -1,68 +1,56 @@
 # ProSlides
 
-ProSlides is a capacity-oriented interactive presentation platform for quizzes,
-polls, word clouds, Q&A, live sessions, scoring, and reports.
+ProSlides is an interactive presentation platform for quizzes, polls, live
+sessions, scoring and reports.
 
 ## Architecture
 
 ```text
-apps/web  → React 19 + Vite (incremental JavaScript → TypeScript migration)
-apps/api  → Go modular monolith + REST + SSE
-             ↓
-        PostgreSQL + Redis
+apps/web  -> React + Vite SPA
+apps/api  -> Go modular monolith + HTTP + SSE
+                |
+         PostgreSQL + Redis
 ```
 
-The backend uses HTTP POST for commands and Server-Sent Events for live
-server-to-client updates. PostgreSQL is the durable source of truth. Redis
-currently provides readiness and distributed identity rate limits; future live
-fan-out/presence acceleration must remain ephemeral.
+PostgreSQL is the durable source of truth. Client commands use HTTP; live
+server-to-client updates use SSE. Redis provides readiness/rate-limit support
+and may accelerate ephemeral work, but it is not a durable answer/event ledger.
 
-## Repository layout
+## Repository
 
-- `apps/api` — Go API, SQL migrations, and OpenAPI contract.
-- `apps/web` — React client using the Go cookie API and snapshot-first SSE.
-- `docs` — backend/capacity architecture, frontend target architecture, UX
-  phases, runbooks, evidence, and architectural decisions.
-- `AGENTS.md` — mandatory development context and update protocol.
+- `apps/api` — Go API, migrations and OpenAPI contract.
+- `apps/web` — React client using cookie auth and snapshot-first SSE.
+- `load/k6` — protocol load scenario and reconciliation tooling.
+- `docs` — architecture, decisions, current status, runbooks and evidence.
+- `AGENTS.md` — repository-wide engineering rules.
+
+Current implementation status and active priorities live only in
+[docs/status/current.md](docs/status/current.md).
 
 ## Local stack
 
-Install Docker Desktop with Compose v2 and run:
+With Docker Compose v2:
 
 ```powershell
 docker compose --env-file apps/api/.env.example up --build -d
 ```
 
-Open the complete application at `http://localhost:5173`. The UI container
-serves the production React build and proxies `/api/v1` to Go. Direct API
-health is `http://localhost:8080/healthz`; readiness is
-`http://localhost:8080/readyz` and requires PostgreSQL and Redis.
+Open `http://localhost:5173`. Direct API liveness is
+`http://localhost:8080/healthz`; readiness is
+`http://localhost:8080/readyz`.
 
-For direct Go development, install the version declared in `apps/api/go.mod`,
-then run `go test ./...` from `apps/api`.
+For hot reload, verification, provider configuration and troubleshooting, use
+[docs/local-development.md](docs/local-development.md).
 
-Use [the documentation map](docs/README.md) to find the authoritative document
-for each question. Use [the local runbook](docs/local-development.md) for hot reload, verification,
-ports, provider behavior, and troubleshooting. Use [the deployment
-runbook](docs/deployment-runbook.md) and [operations
-runbook](docs/operations-runbook.md) for immutable images, TLS/SSE proxying,
-migrations, backup/restore, and rollback.
+## Development
 
-## Development rules
-
-Read [AGENTS.md](AGENTS.md) before making a change. API and SSE contract changes
-start in `apps/api/openapi/openapi.yaml`; after every material change, update
-both [AGENTS.md](AGENTS.md) and [the AI execution handoff](docs/AI_HANDOFF.md).
-The handoff document defines the exact next task, verification commands, and
-completion criteria. See [migration status](docs/migration-status.md) for the
-Django/Rust parity matrix and [configuration](docs/configuration.md) for all
-runtime settings. Frontend changes must also follow the audited
-[frontend architecture](docs/frontend-architecture.md), the
-[Persian-first delivery plan](docs/frontend-professionalization.md), and
+Read [AGENTS.md](AGENTS.md) before changing the repository. External API/SSE
+changes start in `apps/api/openapi/openapi.yaml`. Frontend work follows
+[frontend architecture](docs/frontend-architecture.md),
+[frontend product guidelines](docs/frontend-professionalization.md) and
 [ADR 0003](docs/decisions/0003-modular-react-frontend.md).
 
-F1 and the first three F2 foundation slices are complete. The current exact next
-task is generated OpenAPI presentation transport types with a CI drift check. The
-production-like TLS 1k capacity gate remains mandatory and queued after the
-owner-prioritized frontend F1-F5 sequence; local 1k results are not production
-capacity certification.
+Use [docs/README.md](docs/README.md) as the documentation authority map.
+Deployment and operations procedures are in
+[deployment-runbook.md](docs/deployment-runbook.md) and
+[operations-runbook.md](docs/operations-runbook.md).
