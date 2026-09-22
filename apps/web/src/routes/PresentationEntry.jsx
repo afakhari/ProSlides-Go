@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, lazy } from "react";
 import { useParams } from "react-router-dom";
 
-import { LiveSessionProvider } from "../contexts/LiveSessionContext";
-import { ServerDataProvider } from "../contexts/ServerDataContext";
-import { useServerData } from "../hooks/useServerData";
-import { useLiveSession } from "../hooks/useLiveSession";
+import { LiveSessionProvider } from "../modules/live/react/LiveSessionContext";
+import { ServerDataProvider } from "../modules/live/react/ServerDataContext";
+import { useServerData } from "../modules/live/react/useServerData";
+import { useLiveSession } from "../modules/live/react/useLiveSession";
 import { AudioProvider, useAudio } from "../contexts/AudioContext";
-import { getPresentation, resolveLiveSession } from "../live/liveApi";
-import { presentationSlideToLegacy } from "../live/protocol";
+import { getPresentation, resolveLiveSession } from "../modules/live/api/liveApi";
+import { presentationSlideToLegacy } from "../modules/live/runtime/protocol";
 import { hasLeaderboardEntries } from "../pages/presentation/utils/leaderboardUtils";
 import { resolveQuestionTimer } from "../pages/presentation/utils/questionTimerSync";
 import {
