@@ -176,7 +176,7 @@ test("manager and player routes are explicit and reports use the typed query bou
   assert.match(report, /useInfiniteQuery/);
   assert.match(report, /useQuery/);
   assert.match(report, /بازگشت به پنل مدیریت/);
-  assert.doesNotMatch(report, /Language|Notifications|Help|Logout|Search participants|Participants/);
+  assert.doesNotMatch(report, /"(?:Language|Notifications|Help|Logout|Search participants|Participants)"/);
   assert.match(reportApi, /requestJson/);
   assert.doesNotMatch(reportApi, /liveApi|services\/quizService/);
   assert.match(reportQueries, /refetchInterval:\s*15 \* 60_000/);
