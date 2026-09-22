@@ -4,7 +4,9 @@ import type { components } from "./generated/openapi.ts";
 type ErrorDTO = components["schemas"]["Error"];
 
 export type ApiErrorPayload = ErrorDTO | null;
-export type ApiRequestOptions = ApiFetchOptions;
+export type ApiRequestOptions = ApiFetchOptions & {
+  announceAuthExpiry?: boolean;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -72,12 +74,13 @@ const announceAuthExpiry = () => {
 };
 
 export async function requestJson<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const response = await apiFetch(path, options);
+  const { announceAuthExpiry: shouldAnnounceAuthExpiry = true, ...fetchOptions } = options;
+  const response = await apiFetch(path, fetchOptions);
   if (response.status === 204) return undefined as T;
 
   const rawPayload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401) announceAuthExpiry();
+    if (response.status === 401 && shouldAnnounceAuthExpiry) announceAuthExpiry();
     throw new ApiError(response.status, normalizeApiErrorPayload(rawPayload));
   }
   return rawPayload as T;
