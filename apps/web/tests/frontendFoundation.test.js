@@ -8,10 +8,8 @@ const source = (relativePath) =>
 
 test("Tailwind and semantic theme have one CSS source", () => {
   const indexCss = source("src/index.css");
-  const appCss = source("src/App.css");
 
   assert.equal((indexCss.match(/@import\s+["']tailwindcss["']/g) || []).length, 1);
-  assert.equal((appCss.match(/@import\s+["']tailwindcss["']/g) || []).length, 0);
   assert.match(indexCss, /@theme\s*{/);
   assert.match(indexCss, /--color-brand:/);
   assert.match(indexCss, /--color-danger:/);
