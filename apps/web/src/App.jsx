@@ -7,7 +7,7 @@ import EditorRouteSkeleton from "./modules/presentations/editor/routes/EditorRou
 import LandingPage from "./pages/landing/LandingPage";
 
 const AuthPage = lazy(() => import("./pages/auth/AuthPage"));
-const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./modules/identity/routes/ResetPasswordRoute.tsx"));
 const TeamPage = lazy(() => import("./pages/team/TeamPage"));
 const SessionDetail = lazy(() => import("./pages/report/SessionDetail"));
 const HomePage = lazy(() => import("./pages/quiz/manager/HomePage"));
