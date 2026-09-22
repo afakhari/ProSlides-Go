@@ -101,8 +101,8 @@ export const contentDraftToEditorSlide = (
     slide_type: 2,
     show_leaderboard_after: false,
     question: null,
-    title: draft.title.trim(),
-    content_text: draft.text.trim(),
+    title: draft.title,
+    content_text: draft.text,
     content_image_url: draft.imageUrl.trim(),
   };
 };
