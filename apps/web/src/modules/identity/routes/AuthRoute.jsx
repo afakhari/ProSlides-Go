@@ -482,22 +482,20 @@ export default function AuthPage() {
       navigate(`/${nextMode}`, { replace: true });
     }
     setStatus(null);
-    setFieldErrors({});
+    clearErrors();
     setResendCooldown(0);
-    setHasSubmitted(false);
     setOtpExpiresIn(0);
-    setPassword("");
-    setVerificationCode("");
+    setValue("password", "");
+    setValue("verificationCode", "");
   };
 
   const handleEditEmail = () => {
     setMode("login");
     setStatus(null);
-    setFieldErrors({});
+    clearErrors();
     setResendCooldown(0);
-    setHasSubmitted(false);
     setOtpExpiresIn(0);
-    setVerificationCode("");
+    setValue("verificationCode", "");
   };
 
   const maskEmail = (value) => {
@@ -578,21 +576,6 @@ export default function AuthPage() {
     }
   }, [isVerify, otpExpiresIn, trimmedEmail]);
 
-  useEffect(() => {
-    if (!hasSubmitted) return;
-    if (emailError && emailRef.current) {
-      emailRef.current.focus();
-      return;
-    }
-    if ((fieldErrors.password || passwordPolicyError) && passwordRef.current) {
-      passwordRef.current.focus();
-      return;
-    }
-    if (fieldErrors.code && codeRef.current) {
-      codeRef.current.focus();
-    }
-  }, [hasSubmitted, emailError, fieldErrors, passwordPolicyError]);
-
   const startResendCooldown = (seconds) => {
     const safeSeconds = Math.max(0, seconds || 0);
     setResendCooldown(safeSeconds);
@@ -648,6 +631,21 @@ export default function AuthPage() {
     navigate("/manager/panel");
   }, [navigate]);
 
+  const applyServerFieldErrors = useCallback((error) => {
+    const fieldErrors = identityFieldErrors(error);
+    const entries = [
+      ["email", fieldErrors.email],
+      ["password", fieldErrors.password],
+      ["fullName", fieldErrors.full_name],
+      ["verificationCode", fieldErrors.code],
+    ].filter(([, message]) => Boolean(message));
+
+    for (const [field, message] of entries) {
+      setError(field, { type: "server", message });
+    }
+    if (entries[0]) setFocus(entries[0][0]);
+  }, [setError, setFocus]);
+
   const handleGoogleResponse = useCallback(
     async (response) => {
       if (!response?.credential) {
@@ -658,7 +656,7 @@ export default function AuthPage() {
         return;
       }
 
-      setSubmitting(true);
+      setActionSubmitting(true);
       setStatus(null);
       try {
         const payload = await identityApi.authenticateWithGoogle({
@@ -677,16 +675,16 @@ export default function AuthPage() {
 
         navigateToDashboard();
       } catch (error) {
-        setFieldErrors(identityFieldErrors(error));
+        applyServerFieldErrors(error);
         setStatus({
           type: "error",
           message: identityErrorMessage(error, "ورود با گوگل ناموفق بود."),
         });
       } finally {
-        setSubmitting(false);
+        setActionSubmitting(false);
       }
     },
-    [navigateToDashboard]
+    [applyServerFieldErrors, navigateToDashboard]
   );
 
   useEffect(() => {
@@ -759,15 +757,15 @@ export default function AuthPage() {
     window.google.accounts.id.prompt(handleGooglePromptMoment);
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (values) => {
     let payload;
     try {
       payload = await identityApi.login({
-        email: email.trim(),
-        password: password.trim(),
+        email: values.email.trim(),
+        password: values.password,
       });
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "email_not_verified") {
         setMode("verify");
         setStatus({
@@ -783,8 +781,8 @@ export default function AuthPage() {
       throw error;
     }
 
-    setAuthEmail(trimmedEmail);
-    const resolvedName = payload?.display_name || fullName.trim();
+    setAuthEmail(values.email.trim());
+    const resolvedName = payload?.display_name || getValues("fullName").trim();
     if (resolvedName) {
       localStorage.setItem("auth.name", resolvedName);
     }
@@ -793,7 +791,8 @@ export default function AuthPage() {
   };
 
   const handleForgotPassword = async () => {
-    if (!email.trim()) {
+    const currentEmail = getValues("email").trim();
+    if (!currentEmail) {
       setStatus({
         type: "error",
         message: "برای بازیابی رمز عبور، ابتدا ایمیل خود را وارد کنید.",
@@ -801,16 +800,16 @@ export default function AuthPage() {
       return;
     }
 
-    setSubmitting(true);
+    setActionSubmitting(true);
     setStatus(null);
     try {
-      await identityApi.requestPasswordReset({ email: email.trim() });
+      await identityApi.requestPasswordReset({ email: currentEmail });
       setStatus({
         type: "info",
         message: "راهنمای بازیابی رمز عبور به ایمیل شما ارسال شد.",
       });
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       setStatus({
         type: "error",
         message: identityErrorMessage(
@@ -819,22 +818,21 @@ export default function AuthPage() {
         ),
       });
     } finally {
-      setSubmitting(false);
+      setActionSubmitting(false);
     }
   };
 
-  const handleSignup = async () => {
-    const trimmedName = fullName.trim();
+  const handleSignup = async (values) => {
+    const trimmedName = values.fullName.trim();
     let responsePayload;
     try {
       responsePayload = await identityApi.register({
-        email: email.trim(),
-        password: password.trim(),
+        email: values.email.trim(),
+        password: values.password,
         display_name: trimmedName,
       });
     } catch (error) {
-      setHasSubmitted(true);
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "email_taken") {
         setStatus({
           type: "email-exists",
@@ -849,7 +847,7 @@ export default function AuthPage() {
     if (trimmedName) {
       localStorage.setItem("auth.name", trimmedName);
     }
-    setAuthEmail(trimmedEmail);
+    setAuthEmail(values.email.trim());
 
     if (responsePayload?.is_active) {
       navigateToDashboard();
@@ -858,28 +856,29 @@ export default function AuthPage() {
 
     setStatus({
       type: "info",
-      message: `کد ۶ رقمی به ${maskEmail(email)} ارسال شد. برای تأیید حساب آن را وارد کنید.`,
+      message: `کد ۶ رقمی به ${maskEmail(values.email)} ارسال شد. برای تأیید حساب آن را وارد کنید.`,
     });
     setMode("verify");
+    setValue("verificationCode", "");
+    clearErrors();
     startResendCooldown(getResendSeconds(responsePayload, 60));
     startOtpExpiry(
       getOtpExpirySeconds(responsePayload, DEFAULT_OTP_TTL_SECONDS)
     );
   };
 
-  const handleVerify = async () => {
-    setSubmitting(true);
+  const handleVerify = async (values) => {
     setStatus(null);
     try {
       await identityApi.verifyEmail({
-        email: email.trim(),
-        code: verificationCode.trim(),
+        email: values.email.trim(),
+        code: values.verificationCode,
       });
 
-      setAuthEmail(trimmedEmail);
+      setAuthEmail(values.email.trim());
       navigateToDashboard();
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "verification_expired") {
         setOtpExpiresIn(0);
       }
@@ -890,13 +889,12 @@ export default function AuthPage() {
             : "error",
         message: identityErrorMessage(error, "امکان تأیید ایمیل وجود ندارد."),
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
   const handleResendVerification = async () => {
-    if (!email.trim()) {
+    const currentEmail = getValues("email").trim();
+    if (!currentEmail) {
       setStatus({
         type: "error",
         message: "برای ارسال مجدد کد، ایمیل خود را وارد کنید.",
@@ -904,11 +902,11 @@ export default function AuthPage() {
       return;
     }
 
-    setSubmitting(true);
+    setActionSubmitting(true);
     setStatus(null);
     try {
       const payload = await identityApi.resendVerification({
-        email: email.trim(),
+        email: currentEmail,
       });
       setStatus({
         type: "info",
@@ -916,12 +914,11 @@ export default function AuthPage() {
       });
       startResendCooldown(getResendSeconds(payload, 60));
       startOtpExpiry(getOtpExpirySeconds(payload, DEFAULT_OTP_TTL_SECONDS));
-      setVerificationCode("");
+      setValue("verificationCode", "");
     } catch (error) {
-      setHasSubmitted(true);
       const retrySeconds = retryAfterSeconds(error, resendCooldown);
       if (retrySeconds > 0) setResendCooldown(retrySeconds);
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       setStatus({
         type: "error",
         message: identityErrorMessage(
@@ -930,38 +927,29 @@ export default function AuthPage() {
         ),
       });
     } finally {
-      setSubmitting(false);
+      setActionSubmitting(false);
     }
   };
 
-  const submitForm = async () => {
-    if (!isReady) return;
-    setSubmitting(true);
+  const submitForm = handleFormSubmit(async (values) => {
     setStatus(null);
-    setHasSubmitted(true);
-    setFieldErrors({});
+    clearErrors();
+
     try {
       if (isVerify) {
-        await handleVerify();
+        await handleVerify(values);
       } else if (isSignup) {
-        await handleSignup();
+        await handleSignup(values);
       } else {
-        await handleLogin();
+        await handleLogin(values);
       }
     } catch (error) {
       setStatus({
         type: "error",
         message: identityErrorMessage(error),
       });
-    } finally {
-      setSubmitting(false);
     }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    submitForm();
-  };
+  });
 
   return (
     <div
@@ -1099,7 +1087,7 @@ export default function AuthPage() {
           </div>
         )}
 
-        <form className="flex flex-col" onSubmit={handleSubmit}>
+        <form className="flex flex-col" onSubmit={submitForm}>
           <label
             className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.email ? "border-[#fca5a5]" : "border-[#e5e7eb]"
               }`}
