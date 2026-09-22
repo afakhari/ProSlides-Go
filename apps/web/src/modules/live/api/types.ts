@@ -9,6 +9,7 @@ export interface PublicLiveSession {
   state_version: number;
   active_slide_id: string | null;
   ends_at: string | null;
+  remaining_seconds?: number | null;
 }
 
 export interface ManagerLiveSession extends PublicLiveSession {
