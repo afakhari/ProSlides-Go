@@ -359,3 +359,90 @@ test("a successful manager mutation stays successful when only the follow-up ref
   runtime.destroy();
 });
 
+test("refresh requests arriving during roster loading are drained before reconnect continues", async () => {
+  let onEvent = null;
+  let snapshotReads = 0;
+  let rosterReads = 0;
+  let releaseRoster;
+  const blockedRoster = new Promise((resolve) => {
+    releaseRoster = resolve;
+  });
+
+  const runtime = createLiveRuntime("manager", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000023",
+      createLiveSession: async () => managerSession("session"),
+      getLiveSnapshot: async () => {
+        snapshotReads += 1;
+        if (snapshotReads === 1) {
+          return managerSnapshot("session", {
+            eventId: 1,
+            stateVersion: 1,
+            state: "lobby",
+          });
+        }
+        if (snapshotReads === 2) {
+          return managerSnapshot("session", {
+            eventId: 2,
+            stateVersion: 2,
+            state: "leaderboard",
+          });
+        }
+        return managerSnapshot("session", {
+          eventId: 3,
+          stateVersion: 3,
+          state: "leaderboard",
+        });
+      },
+      getRosterPage: async (_id, order) => {
+        rosterReads += 1;
+        if (rosterReads === 2) await blockedRoster;
+        return emptyRoster(order);
+      },
+      streamLiveEvents: async (_id, _lastEventId, options) => {
+        onEvent = options.onEvent;
+        return parkedStream(_id, _lastEventId, options);
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("presentation"), true);
+
+  onEvent({
+    event_id: 2,
+    schema_version: 1,
+    session_id: "session",
+    state_version: 2,
+    name: "session.state_changed",
+    payload: {},
+    occurred_at: new Date().toISOString(),
+  });
+
+  for (let index = 0; index < 20 && rosterReads < 2; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  assert.equal(rosterReads, 2);
+
+  onEvent({
+    event_id: 3,
+    schema_version: 1,
+    session_id: "session",
+    state_version: 3,
+    name: "leaderboard.updated",
+    payload: {},
+    occurred_at: new Date().toISOString(),
+  });
+
+  releaseRoster();
+
+  for (let index = 0; index < 20 && snapshotReads < 3; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  assert.equal(snapshotReads, 3);
+  assert.equal(runtime.getState().snapshot.last_event_id, 3);
+  assert.equal(runtime.getState().snapshot.session.state_version, 3);
+  runtime.destroy();
+});
+
