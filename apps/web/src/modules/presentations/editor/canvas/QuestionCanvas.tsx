@@ -9,6 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { formatPersianNumber } from "../../../../shared/forms/numbers.ts";
 import { presentationTheme } from "../../../../shared/styles/presentationTheme.ts";
 import { createQuestionDraft } from "../model/questionDraft.ts";
 import { createQuestionPreviewModel } from "../model/questionPreview.ts";
@@ -176,7 +177,7 @@ export default function QuestionCanvas({
               {preview.options.map((option) => (
                 <article
                   key={option.id}
-                  aria-label={`گزینه ${option.position}: ${option.text || `گزینه ${option.position}`}${option.isCorrect ? "، پاسخ صحیح" : ""}`}
+                  aria-label={`گزینه ${formatPersianNumber(option.position)}: ${option.text || `گزینه ${formatPersianNumber(option.position)}`}${option.isCorrect ? "، پاسخ صحیح" : ""}`}
                   className={`relative flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-start backdrop-blur-md ${
                     option.isCorrect
                       ? "border-emerald-300/80 bg-emerald-950/35"
@@ -193,7 +194,7 @@ export default function QuestionCanvas({
                     }`}
                     aria-hidden="true"
                   >
-                    {option.isCorrect ? "✓" : option.position}
+                    {option.isCorrect ? "✓" : formatPersianNumber(option.position)}
                   </span>
 
                   {option.imageUrl && (
@@ -208,7 +209,7 @@ export default function QuestionCanvas({
                     className="min-w-0 flex-1 whitespace-pre-wrap text-sm font-bold leading-6 sm:text-base"
                     dir="auto"
                   >
-                    {option.text || `گزینه ${option.position}`}
+                    {option.text || `گزینه ${formatPersianNumber(option.position)}`}
                   </span>
 
                   {option.isCorrect && (
