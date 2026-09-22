@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import MiniResultsResultsOnly from "../canvas/QuestionCanvas";
+import QuestionCanvas from "../canvas/QuestionCanvas";
 import LeaderboardPreview from "../canvas/LeaderboardCanvas";
 import QuizHeader from "../toolbar/EditorHeader";
 import Sidebar from "../inspector/QuestionInspector";
@@ -18,6 +18,7 @@ import EditorRouteSkeleton from "./EditorRouteSkeleton";
 import Notice from "../../../../shared/ui/Notice";
 import { fa } from "../../../../shared/i18n/fa";
 import { useEditorStatus } from "../model/useEditorStatus.ts";
+import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -1006,6 +1007,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
 
   return (
+    <QuestionDraftProvider
+      slide={showSidebar && activeSlideType === 1 ? activeSlide : null}
+    >
     <div
       className="relative flex h-full flex-col bg-gradient-to-b from-brand-soft to-canvas pb-20 pt-16 text-content md:pb-0"
       dir="rtl"
@@ -1134,7 +1138,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 </div>
               ) : activeSlideType === 1 && activeSlide.question ? (
                 <div className="w-full h-full flex justify-center items-center">
-                  <MiniResultsResultsOnly
+                  <QuestionCanvas
                     slide={activeSlide}
                     quizBackground={quiz.background_color}
                     quizBackgroundImage={quiz.background_image_url}
@@ -1555,5 +1559,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         isLoading={false}
       />
     </div>
+    </QuestionDraftProvider>
   );
 }
