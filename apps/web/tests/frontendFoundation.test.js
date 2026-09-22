@@ -282,7 +282,7 @@ test("live projection is derived directly from authoritative snapshot and roster
   assert.doesNotMatch(liveContext, /lastEvent|setLastEvent/);
   assert.doesNotMatch(entry, /LiveMessageHandler|applyLiveSnapshot|applyLiveEvent/);
   assert.match(entry, /<LiveSessionProvider[^>]*>[\s\S]*<ServerDataProvider>/);
-  assert.match(entry, /key=\{\`player:\$\{String\(resolvedData\.session_id\)\}\`\}/);
-  assert.match(entry, /key=\{\`\$\{role\}:\$\{String\(roomId \|\| "unknown"\)\}\`\}/);
+  assert.match(entry, /key=\{`player:\$\{String\(resolvedData\.session_id\)\}`\}/);
+  assert.match(entry, /key=\{`\$\{role\}:\$\{String\(roomId \|\| "unknown"\)\}`\}/);
   assert.match(entry, /if \(ok !== true\) playerResumeJoinSentRef\.current = false/);
 });
