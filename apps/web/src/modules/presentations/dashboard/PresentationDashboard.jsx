@@ -382,8 +382,8 @@ export default function QuizManager({ onNewPresentation }) {
       }
 
       await quizService.deletePresentation(quizId);
-      setQuizzes((prev) => prev.filter((quiz) => quiz.id !== quizId));
       setSelectedQuizzes((prev) => prev.filter((id) => id !== quizId));
+      if (manageLoadingState) await refreshPresentations();
       return true;
     } catch (err) {
       console.error("Error deleting presentation:", err);
@@ -401,31 +401,18 @@ export default function QuizManager({ onNewPresentation }) {
 
     try {
       const currentQuiz = quizzes.find((quiz) => quiz.id === quizId);
-      const updated = await quizService.updateQuiz(quizId, {
+      await quizService.updateQuiz(quizId, {
         title: trimmedName,
         revision: currentQuiz?.revision,
       });
 
-      const updatedAt = safeTimestamp(updated?.updated_at) || Date.now();
-      setQuizzes((prev) =>
-        prev.map((quiz) =>
-          quiz.id === quizId
-            ? {
-                ...quiz,
-                name: trimmedName,
-                revision: Number(updated?.revision || quiz.revision),
-                updatedAt,
-                lastUpdated: formatDate(updatedAt),
-              }
-            : quiz
-        )
-      );
+      await refreshPresentations();
       setStatusMessage({ type: "success", message: "نام ارائه تغییر کرد." });
       return true;
     } catch (err) {
       console.error("Error renaming presentation:", err);
       if (err.response?.status === 409 && err.response?.data?.error === "edit_conflict") {
-        const refreshed = await fetchQuizzes(undefined, { silent: true });
+        const refreshed = await refreshPresentations();
         setStatusMessage({
           type: "error",
           message: refreshed
@@ -488,11 +475,7 @@ export default function QuizManager({ onNewPresentation }) {
       if (!quiz) throw new Error("presentation_not_found");
 
       await quizService.resetPresentationResults(quizId);
-      setQuizzes((prev) =>
-        prev.map((item) =>
-          item.id === quizId ? { ...item, participants: 0 } : item
-        )
-      );
+      await refreshPresentations();
       setStatusMessage({
         type: "success",
         message: "نتایج ارائه با موفقیت پاک شد.",
@@ -534,7 +517,7 @@ export default function QuizManager({ onNewPresentation }) {
             results.push(...batchResults);
           }
           const failedCount = results.filter((result) => !result).length;
-          const refreshed = await fetchQuizzes(undefined, { silent: true });
+          const refreshed = await refreshPresentations();
 
           if (failedCount === 0) {
             setSelectedQuizzes([]);
@@ -594,25 +577,7 @@ export default function QuizManager({ onNewPresentation }) {
       const duplicated = await quizService.duplicatePresentation(quiz.id, newName);
       if (!duplicated?.id) throw new Error("invalid_duplicate_response");
 
-      const updatedAt = safeTimestamp(duplicated.updated_at) || Date.now();
-      const createdAt = safeTimestamp(duplicated.created_at) || updatedAt;
-      const newQuiz = {
-        id: duplicated.id,
-        revision: Number(duplicated.revision || 1),
-        name: localizeSystemTitle(duplicated.title || newName),
-        accessCode: duplicated.access_code || "",
-        slides: Number(duplicated.slide_count ?? duplicated.slides?.length ?? quiz.slides) || 0,
-        participants: Number(duplicated.participant_count) || 0,
-        createdBy: String(
-          duplicated.owner_full_name || duplicated.owner_name || quiz.createdBy || "شما"
-        ).trim() || "شما",
-        lastUpdated: formatDate(updatedAt),
-        created: formatDate(createdAt),
-        updatedAt,
-        createdAt,
-      };
-
-      setQuizzes((prev) => [...prev, newQuiz]);
+      await refreshPresentations();
       setStatusMessage({ type: "success", message: "یک نسخه از ارائه ساخته شد." });
     } catch (err) {
       console.error("Error duplicating presentation:", err);
@@ -1629,7 +1594,7 @@ export default function QuizManager({ onNewPresentation }) {
                 className="mb-6 flex-wrap"
                 action={<Button
                   variant="outline"
-                  onClick={() => fetchQuizzes()}
+                  onClick={() => void refreshPresentations()}
                   className="border-danger-border bg-surface text-danger-ink hover:bg-danger-soft"
                 >
                   تلاش دوباره
@@ -1649,14 +1614,8 @@ export default function QuizManager({ onNewPresentation }) {
           onClose={() => setShowShareModal(null)}
           quizId={showShareModal}
           accessCode={quizzes.find((q) => q.id === showShareModal)?.accessCode}
-          onAccessCodeSaved={(updatedCode) => {
-            setQuizzes((prevQuizzes) =>
-              prevQuizzes.map((quiz) =>
-                quiz.id === showShareModal
-                  ? { ...quiz, accessCode: updatedCode }
-                  : quiz
-              )
-            );
+          onAccessCodeSaved={() => {
+            void refreshPresentations();
           }}
         />
       )}
