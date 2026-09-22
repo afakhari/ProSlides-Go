@@ -1,4 +1,4 @@
-import { createSecureUUID } from "../../../live/secureUuid.js";
+import { createSecureUUID } from "../../../modules/live/api/secureUuid.js";
 export const PLAYER_PROFILE_KEY = "presentation_player_profile_v1";
 export const DEFAULT_AVATAR = "🧙";
 
