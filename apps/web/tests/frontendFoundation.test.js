@@ -230,3 +230,22 @@ test("dashboard presentation server state is owned by TanStack Query", () => {
   assert.match(queries, /listPresentations\(\{ signal \}\)/);
   assert.match(queries, /staleTime:\s*30_000/);
 });
+
+
+test("main identity fields are owned by React Hook Form", () => {
+  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
+
+  assert.match(auth, /useForm\(/);
+  assert.match(auth, /createZodResolver/);
+  assert.match(auth, /register\("email"\)/);
+  assert.match(auth, /register\("password"\)/);
+  assert.match(auth, /register\("verificationCode"/);
+  assert.match(auth, /register\("fullName"\)/);
+  assert.match(auth, /readOnly=\{isVerify\}/);
+  assert.match(auth, /setError\(field, \{ type: "server", message \}\)/);
+  assert.doesNotMatch(auth, /const \[email, setEmail\]/);
+  assert.doesNotMatch(auth, /const \[password, setPassword\]/);
+  assert.doesNotMatch(auth, /const \[verificationCode, setVerificationCode\]/);
+  assert.doesNotMatch(auth, /const \[fullName, setFullName\]/);
+  assert.doesNotMatch(auth, /setFieldErrors\(/);
+});
