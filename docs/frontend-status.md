@@ -32,7 +32,7 @@ status and priorities live in `status/current.md`.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P2 | Identity transport/error handling and Zod schemas are module-owned, reset-password uses RHF, and the main auth route now lives in `modules/identity`; however login/register/verification still share a large manual state/orchestration component. | Split the auth route into focused RHF-backed form components and a smaller Google/OTP orchestration layer while preserving the browser-tested flow. |
+| P2 | Identity transport/error handling and Zod schemas are module-owned, reset-password uses RHF, and the main auth route now lives in `modules/identity`, and RHF now owns login/register/verification fields; the route still combines form presentation with Google prompt, mode switching, resend cooldown and OTP expiry orchestration. | Split the auth route into focused form UI and smaller Google/OTP orchestration hooks/components while preserving the browser-tested flow. |
 | P2 | One TanStack Query client owns reports and the manager presentation list with cancellation; remaining REST reads should migrate only where cache ownership is useful. | Continue incremental module-owned Query adoption while keeping editor draft state and live SSE outside the cache. |
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
