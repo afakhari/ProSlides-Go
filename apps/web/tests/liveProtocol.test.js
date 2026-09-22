@@ -10,8 +10,8 @@ import {
   presentationSlideToLegacy,
   projectLiveSnapshot,
   shouldApplyLiveEvent,
-} from "../src/live/protocol.js";
-import { resolveLiveSession, streamLiveEvents } from "../src/live/liveApi.ts";
+} from "../src/modules/live/runtime/protocol.js";
+import { resolveLiveSession, streamLiveEvents } from "../src/modules/live/api/liveApi.ts";
 
 test("equal state versions are accepted when event_id advances", () => {
   const cursor = { eventId: 10, stateVersion: 4 };
