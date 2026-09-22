@@ -93,3 +93,29 @@ func TestValidateQuestionLengthsCountUnicodeCharacters(t *testing.T) {
 		t.Fatal("option over documented character limit accepted")
 	}
 }
+
+
+func TestValidateContentSlideLengthsCountUnicodeCharacters(t *testing.T) {
+	makeContent := func(title, text, imageURL string) json.RawMessage {
+		value := map[string]any{
+			"title":     title,
+			"text":      text,
+			"image_url": imageURL,
+		}
+		raw, err := json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw
+	}
+
+	if err := validateSlideContent("content", makeContent(strings.Repeat("ع", 500), strings.Repeat("م", 20000), "")); err != nil {
+		t.Fatalf("unicode content at documented limits rejected: %v", err)
+	}
+	if err := validateSlideContent("content", makeContent(strings.Repeat("ع", 501), "متن", "")); err == nil {
+		t.Fatal("content title over documented character limit accepted")
+	}
+	if err := validateSlideContent("content", makeContent("عنوان", strings.Repeat("م", 20001), "")); err == nil {
+		t.Fatal("content text over documented character limit accepted")
+	}
+}
