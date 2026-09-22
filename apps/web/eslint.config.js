@@ -27,6 +27,38 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    files: ['src/shared/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/app/**', '**/modules/**'],
+              message: 'shared may not import from app or modules',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/modules/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/app/**'],
+              message: 'modules may not import from app',
+            },
+          ],
+        },
+      ],
+    },
+  },
   ...tseslint.configs.recommended.map((config) => ({
     ...config,
     files: config.files ?? ['**/*.{ts,tsx}'],
