@@ -70,6 +70,30 @@ export const QUESTION_LIMITS = {
   maxDurationSeconds: 86_400,
 } as const;
 
+export const CONTENT_LIMITS = {
+  title: 500,
+  text: 20_000,
+  imageUrl: 4_096,
+} as const;
+
+export type ContentLike = {
+  title?: string | null;
+  content_text?: string | null;
+  content_image_url?: string | null;
+};
+
+export type ContentValidationField =
+  | "content"
+  | "title"
+  | "content_text"
+  | "content_image";
+
+export type ContentValidationIssue = {
+  code: string;
+  field: ContentValidationField;
+  message: string;
+};
+
 export type QuestionValidationField =
   | "question"
   | "question_text"
@@ -274,6 +298,59 @@ export const getQuestionValidationError = (
   question: QuestionLike | null | undefined,
 ): string | null => validateEditorQuestion(question)[0]?.message ?? null;
 
+
+export const validateEditorContent = (
+  content: ContentLike | null | undefined,
+): ContentValidationIssue[] => {
+  const value = content ?? {};
+  const title = String(value.title ?? "");
+  const text = String(value.content_text ?? "");
+  const imageUrl = String(value.content_image_url ?? "");
+  const issues: ContentValidationIssue[] = [];
+
+  if (
+    !title.trim() &&
+    !text.trim() &&
+    !imageUrl.trim()
+  ) {
+    issues.push({
+      code: "content_required",
+      field: "content",
+      message: "عنوان، متن یا تصویر به اسلاید محتوا اضافه کنید.",
+    });
+  }
+
+  if (textLength(title) > CONTENT_LIMITS.title) {
+    issues.push({
+      code: "content_title_too_long",
+      field: "title",
+      message: `عنوان نمی‌تواند بیشتر از ${CONTENT_LIMITS.title.toLocaleString("fa-IR")} نویسه باشد.`,
+    });
+  }
+
+  if (textLength(text) > CONTENT_LIMITS.text) {
+    issues.push({
+      code: "content_text_too_long",
+      field: "content_text",
+      message: `متن نمی‌تواند بیشتر از ${CONTENT_LIMITS.text.toLocaleString("fa-IR")} نویسه باشد.`,
+    });
+  }
+
+  if (textLength(imageUrl) > CONTENT_LIMITS.imageUrl) {
+    issues.push({
+      code: "content_image_too_long",
+      field: "content_image",
+      message: "آدرس تصویر بیش از حد طولانی است.",
+    });
+  }
+
+  return issues;
+};
+
+export const getContentValidationError = (
+  content: ContentLike | null | undefined,
+): string | null => validateEditorContent(content)[0]?.message ?? null;
+
 export const getPresentationValidationError = (
   presentation: Pick<EditorPresentation, "slides">,
 ): string | null => {
@@ -283,11 +360,9 @@ export const getPresentationValidationError = (
       const error = getQuestionValidationError(slide.question);
       if (error) return error;
     }
-    if (
-      slide.slide_type === 2 &&
-      !String(slide.title || slide.content_text || slide.content_image_url || "").trim()
-    ) {
-      return "پیش از اجرا به همه اسلایدهای محتوایی مطلب اضافه کنید.";
+    if (slide.slide_type === 2) {
+      const error = getContentValidationError(slide);
+      if (error) return error;
     }
   }
   return null;
