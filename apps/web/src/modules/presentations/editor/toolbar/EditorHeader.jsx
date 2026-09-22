@@ -204,7 +204,7 @@ export default function QuizHeader({
                 ? "bg-danger-soft text-danger"
                 : saveState === "dirty"
                   ? "bg-warning-soft text-warning-ink"
-                  : "bg-success-soft text-success"
+                  : "bg-success-soft text-success-ink"
             }`}
             role="status"
             aria-live="polite"
