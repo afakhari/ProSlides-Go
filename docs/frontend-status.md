@@ -23,8 +23,8 @@ status and priorities live in `status/current.md`.
 |---:|---|---|
 | P2 | The API error contract and identity UI now use stable machine codes through the shared typed `ApiError` boundary; most backend handlers still emit only the code and optional retry metadata. | Add structured field errors/correlation metadata only where they provide concrete UX or operational value; do not return to parsing human-readable server text. |
 | P1 | TypeScript coverage is partial; active JSX is outside `tsc`. | Migrate feature/domain boundaries deliberately, not by mechanical extension renames. |
-| P1 | Legacy top-level `pages/components/contexts/hooks/services/utils/routes/live` ownership still coexists with `app/modules/shared`. | Move active areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
-| P1 | Live protocol/reconnect/roster state remains heavily embedded in React context. | Extract a typed `modules/live/api + runtime + react` boundary, then retire duplicate projections/compatibility state. |
+| P1 | Legacy top-level `pages/components/services/utils/routes` ownership still coexists with `app/modules/shared`; active live API/runtime/React ownership has moved into `modules/live`. | Continue moving active legacy areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
+| P1 | Live transport/protocol/React ownership is now physically under `modules/live/api + runtime + react`, but reconnect/roster/command state remains heavily embedded in the React provider. | Extract the stateful live runtime behind a typed store/controller and thin React adapter, then retire duplicate `ServerDataContext` projection state. |
 | P2 | Core Button/ConfirmDialog primitives now use the ProSlides semantic token vocabulary and Radix AlertDialog, but legacy routes still contain direct colors and ad-hoc controls. | Continue route-by-route token migration, move remaining reusable controls into shared primitives/patterns, and add headless primitives only where keyboard/focus behavior warrants them. |
 | P2 | Playwright runs in CI against a real API/PostgreSQL/Redis stack and now covers a manager + participant lifecycle through join, answer, leaderboard, participant reconnect and manager end-state. | Extend the browser gate only when a material uncovered live behavior is identified; keep protocol/unit tests as the denser correctness layer. |
 
@@ -33,7 +33,7 @@ status and priorities live in `status/current.md`.
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
 | P2 | Identity transport/error handling and Zod schemas are module-owned, reset-password uses RHF, and the main auth route now lives in `modules/identity`; however login/register/verification still share a large manual state/orchestration component. | Split the auth route into focused RHF-backed form components and a smaller Google/OTP orchestration layer while preserving the browser-tested flow. |
-| P2 | One TanStack Query client is established and reports use typed queries/infinite queries with cancellation and cursor pagination; dashboard and most identity REST state still use manual effects/state. | Extend the same query client incrementally to dashboard/identity REST reads while keeping editor draft state and live SSE outside the cache. |
+| P2 | One TanStack Query client owns reports and the manager presentation list with cancellation; remaining REST reads should migrate only where cache ownership is useful. | Continue incremental module-owned Query adoption while keeping editor draft state and live SSE outside the cache. |
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
 | P2 | Component/API-state coverage is thinner than protocol coverage. | Add Vitest + Testing Library + MSW for pending/success/validation/conflict/cancellation/reconnect states. |
@@ -57,6 +57,3 @@ corresponding items above are closed.
 
 The historical F0-F5 program established a useful baseline. Its dated evidence
 is preserved separately and does not waive current debt.
-
-
-- The manager presentation list is now Query-owned: request cancellation comes from Query's AbortSignal, while search, selection and dialog state remain local UI state.
