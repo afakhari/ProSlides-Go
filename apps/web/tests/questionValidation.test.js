@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getPresentationValidationError, getQuestionValidationError } from "../src/modules/presentations/editor/model/validation.js";
+import {
+  getContentValidationError,
+  getPresentationValidationError,
+  getQuestionValidationError,
+} from "../src/modules/presentations/editor/model/validation.js";
 
 const validQuestion = {
   question_text: "Choose",
@@ -50,8 +54,24 @@ test("presentation validation is shared by editor and dashboard present actions"
   }), /زمان/i);
   assert.match(getPresentationValidationError({
     slides: [{ slide_type: 2, title: "", content_text: "", content_image_url: "" }],
-  }), /اسلایدهای محتوایی/i);
+  }), /عنوان، متن یا تصویر/i);
   assert.equal(getPresentationValidationError({
     slides: [{ slide_type: 2, title: "Introduction", content_text: "", content_image_url: "" }],
   }), null);
+});
+
+
+test("content validation shares the editor contract and unicode limits", () => {
+  assert.match(
+    getContentValidationError({ title: "", content_text: "", content_image_url: "" }),
+    /عنوان، متن یا تصویر/i,
+  );
+  assert.equal(
+    getContentValidationError({ title: "ع".repeat(500), content_text: "م".repeat(20_000) }),
+    null,
+  );
+  assert.match(
+    getContentValidationError({ title: "ع".repeat(501) }),
+    /عنوان/i,
+  );
 });
