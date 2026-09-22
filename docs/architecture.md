@@ -54,11 +54,11 @@ properties. Local component state stays local; no global store, state machine,
 SSR framework, microfrontend, or separate design-system package is added absent
 a measured need.
 
-The complete current-state audit, target tree, state ownership, styling,
-testing, performance policy, and F0-F5 migration gates live in
-`docs/frontend-architecture.md`; the decision rationale is ADR 0003. The
-Persian UX order and viewport/accessibility acceptance gates live in
-`docs/frontend-professionalization.md`.
+The durable frontend target, state ownership, forms/API boundaries, styling,
+testing and migration order live in `docs/frontend-architecture.md`; ADR 0003
+records the decision rationale. Persian product/UX rules live in
+`docs/frontend-professionalization.md`. Current implementation status is kept
+separately in `docs/status/current.md` and `docs/frontend-status.md`.
 
 ## Module boundaries
 
