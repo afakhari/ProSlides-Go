@@ -335,3 +335,30 @@ test("question editor keeps one typed draft across inspector and canvas", () => 
   assert.match(editorModel, /QUESTION_LIMITS/);
   assert.match(editorModel, /validateEditorQuestion/);
 });
+
+
+test("content editor shares one typed draft across inspector and canvas", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const inspector = source("src/modules/presentations/editor/inspector/ContentInspector.tsx");
+  const canvas = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
+  const provider = source("src/modules/presentations/editor/model/ContentDraftProvider.tsx");
+  const draft = source("src/modules/presentations/editor/model/contentDraft.ts");
+  const editorModel = source("src/modules/presentations/model/editor.ts");
+
+  assert.match(route, /<ContentDraftProvider/);
+  assert.match(route, /showSidebar && activeSlideType === 2/);
+  assert.match(route, /<ContentCanvas/);
+  assert.match(inspector, /useRequiredContentDraft/);
+  assert.match(inspector, /error instanceof ApiError/);
+  assert.match(inspector, /conflictPending/);
+  assert.doesNotMatch(inspector, /error\.response\?\./);
+  assert.doesNotMatch(inspector, /JSON\.stringify/);
+  assert.match(canvas, /useOptionalContentDraft/);
+  assert.match(canvas, /createContentPreviewModel/);
+  assert.match(canvas, /presentationTheme/);
+  assert.match(provider, /useContentDraft\(slide\)/);
+  assert.match(draft, /contentDraftReducer/);
+  assert.match(draft, /contentDraftToEditorSlide/);
+  assert.match(editorModel, /CONTENT_LIMITS/);
+  assert.match(editorModel, /validateEditorContent/);
+});
