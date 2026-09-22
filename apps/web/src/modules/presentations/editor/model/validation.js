@@ -1,1 +1,5 @@
-export { getQuestionValidationError, getPresentationValidationError } from "../../model/editor.ts";
+export {
+  getContentValidationError,
+  getQuestionValidationError,
+  getPresentationValidationError,
+} from "../../model/editor.ts";
