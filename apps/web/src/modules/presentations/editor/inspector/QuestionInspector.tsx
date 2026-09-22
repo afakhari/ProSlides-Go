@@ -579,7 +579,7 @@ function QuestionInspectorInner({
                 تغییرات ذخیره‌نشده دارید.
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 font-medium text-success">
+              <span className="inline-flex items-center gap-1.5 font-medium text-success-ink">
                 <CheckCircle2 className="size-3.5" aria-hidden="true" />
                 همه تغییرات ذخیره شده است.
                 {lastSavedAt && (
