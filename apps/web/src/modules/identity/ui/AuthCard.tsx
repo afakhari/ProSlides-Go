@@ -88,9 +88,9 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 const fieldShell = (hasError: boolean) =>
-  \`flex items-center overflow-hidden rounded-control border bg-surface transition focus-within:ring-2 focus-within:ring-focus/30 \${
+  `flex items-center overflow-hidden rounded-control border bg-surface transition focus-within:ring-2 focus-within:ring-focus/30 ${
     hasError ? "border-danger-border" : "border-border-subtle"
-  }\`;
+  }`;
 
 const errorText = "mt-1 text-start text-xs text-danger-ink";
 
@@ -136,7 +136,7 @@ export default function AuthCard({
           <div className="mt-1">
             {otpExpired
               ? "کد منقضی شده است. یک کد جدید درخواست کنید."
-              : \`انقضا تا \${formatCountdown(otpExpiresIn)}\`}
+              : `انقضا تا ${formatCountdown(otpExpiresIn)}`}
           </div>
         </div>
       )}
@@ -151,7 +151,7 @@ export default function AuthCard({
         >
           {isVerify
             ? resendCooldown > 0
-              ? \`ارسال مجدد تا \${formatCountdown(resendCooldown)}\`
+              ? `ارسال مجدد تا ${formatCountdown(resendCooldown)}`
               : "ارسال مجدد کد"
             : isSignup
               ? "ورود به حساب کاربری"
@@ -248,9 +248,9 @@ export default function AuthCard({
               {[0, 1, 2, 3].map((index) => (
                 <span
                   key={index}
-                  className={\`h-1.5 flex-1 rounded-full \${
+                  className={`h-1.5 flex-1 rounded-full ${
                     passwordStrength.score > index ? "bg-brand" : "bg-border-subtle"
-                  }\`}
+                  }`}
                 />
               ))}
             </div>
@@ -360,7 +360,7 @@ export default function AuthCard({
                   disabled={submitting || resendCooldown > 0}
                   className="font-semibold underline disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {resendCooldown > 0 ? \`ارسال مجدد تا \${formatCountdown(resendCooldown)}\` : "ارسال مجدد کد"}
+                  {resendCooldown > 0 ? `ارسال مجدد تا ${formatCountdown(resendCooldown)}` : "ارسال مجدد کد"}
                 </button>
               </div>
             )}
