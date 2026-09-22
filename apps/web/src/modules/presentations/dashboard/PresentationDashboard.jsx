@@ -164,9 +164,13 @@ export default function QuizManager({ onNewPresentation }) {
   const [loggedInUser] = useState(
     () => readLocalStorage("auth.name") || "شما"
   );
-  const presentationList = useQuery(presentationListQuery());
-  const loading = presentationList.isPending;
-  const loadError = presentationList.isError
+  const {
+    data: presentationData = [],
+    isPending: loading,
+    isError: presentationLoadFailed,
+    refetch: refetchPresentations,
+  } = useQuery(presentationListQuery());
+  const loadError = presentationLoadFailed
     ? "بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید."
     : null;
   const [statusMessage, setStatusMessage] = useState(null);
@@ -182,7 +186,7 @@ export default function QuizManager({ onNewPresentation }) {
 
   const quizzes = useMemo(
     () =>
-      (presentationList.data || []).map((quiz) => {
+      presentationData.map((quiz) => {
         const updatedAt = safeTimestamp(quiz.updated_at);
         const createdAt = safeTimestamp(quiz.created_at);
         return {
@@ -202,13 +206,13 @@ export default function QuizManager({ onNewPresentation }) {
           createdAt,
         };
       }),
-    [presentationList.data, loggedInUser],
+    [presentationData, loggedInUser],
   );
 
   const refreshPresentations = useCallback(async () => {
-    const result = await presentationList.refetch();
+    const result = await refetchPresentations();
     return !result.isError;
-  }, [presentationList]);
+  }, [refetchPresentations]);
 
   useEffect(() => {
     if (!statusMessage) return;
