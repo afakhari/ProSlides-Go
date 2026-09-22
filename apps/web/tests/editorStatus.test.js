@@ -17,3 +17,11 @@ test("editor conflict state remains explicit until recovery clears it", () => {
   assert.equal(conflicted.conflictMessage, "نسخه جدید بارگذاری شد.");
   assert.equal(editorStatusReducer(conflicted, { type: "clear-conflict" }).conflictMessage, null);
 });
+
+
+test("editor dirty updates are idempotent for the same area value", () => {
+  const dirty = editorStatusReducer(initialEditorStatus, { type: "set-dirty", area: "content", dirty: true });
+  const unchanged = editorStatusReducer(dirty, { type: "set-dirty", area: "content", dirty: true });
+
+  assert.strictEqual(unchanged, dirty);
+});
