@@ -181,5 +181,5 @@ test("manager and player routes are explicit and reports use the typed query bou
   assert.doesNotMatch(reportApi, /liveApi|services\/quizService/);
   assert.match(reportQueries, /refetchInterval:\s*15 \* 60_000/);
   assert.match(provider, /QueryClientProvider/);
-  assert.match(provider, /mutations:\s*\{[\s\S]*retry:\s*false/);
+  assert.match(queryClient, /mutations:\s*\{[\s\S]*retry:\s*false/);
 });
