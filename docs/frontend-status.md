@@ -57,3 +57,6 @@ corresponding items above are closed.
 
 The historical F0-F5 program established a useful baseline. Its dated evidence
 is preserved separately and does not waive current debt.
+
+
+- The manager presentation list is now Query-owned: request cancellation comes from Query's AbortSignal, while search, selection and dialog state remain local UI state.
