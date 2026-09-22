@@ -46,7 +46,7 @@ Strengths already in place:
 - React 19/Vite SPA with route-level lazy loading;
 - OpenAPI-generated presentation transport types with drift checking;
 - a shared typed JSON/API-error boundary and one TanStack Query REST cache;
-- explicit presentation editor domain mapping and revision conflict recovery;
+- explicit presentation editor domain mapping and revision conflict recovery, with typed question draft ownership that preserves local edits across stale-revision conflicts;
 - semantic CSS tokens on migrated surfaces;
 - Persian/RTL participant experience and mixed-content direction handling;
 - bundle budgets, axe checks, CI-gated Playwright flows, and protocol/unit coverage;
@@ -68,7 +68,7 @@ These are independent tracks. A change in one track does not waive another.
    foundation through the remaining identity/editor surfaces without adding
    parallel HTTP or state abstractions.
 3. **Frontend modularization:** continue TypeScript/module migration through
-   legacy presentation/editor surfaces while preserving editor/live correctness. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
+   legacy presentation/editor surfaces while preserving editor/live correctness. Question authoring now has typed domain draft/validation ownership; the next editor slice is canvas/draft projection and remaining inspector convergence. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
 4. **Quality:** continue replacing source-regex checks with structural tooling
    and add component/API-state tests around migrated identity, report, editor and
    live recovery states.
