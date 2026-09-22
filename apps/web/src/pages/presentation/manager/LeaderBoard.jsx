@@ -6,8 +6,8 @@ import Footer from "../../../components/Footer";
 import { getColorForUser } from "../../../lib/colorUtils";
 import { participantTheme } from "../../../modules/live/participant/theme";
 // LeaderboardModal component was inlined into this page per request
-import { useLiveSession } from "../../../hooks/useLiveSession";
-import { useServerData } from "../../../hooks/useServerData";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
+import { useServerData } from "../../../modules/live/react/useServerData";
 import { EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 
 const debugLog = (...args) => {
