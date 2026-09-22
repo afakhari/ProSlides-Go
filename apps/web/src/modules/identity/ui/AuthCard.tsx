@@ -7,11 +7,11 @@ import type {
 import { normalizeDigits } from "../../../shared/forms/numbers.ts";
 import Notice from "../../../shared/ui/Notice.tsx";
 import type {
-  AuthFormValues,
   AuthMode,
   AuthStatus,
   PasswordStrength,
 } from "../model/authFlow.ts";
+import type { AuthFormValues } from "../model/authSchemas.ts";
 import { formatCountdown, maskEmail } from "../model/authFlow.ts";
 
 type AuthCardProps = {
