@@ -1,48 +1,59 @@
-# Frontend status, evidence, and remaining debt
+# Frontend status and remaining debt
 
-Last reviewed: 2026-08-29. This is the canonical statement of frontend quality.
-Completed phase labels do not mean every legacy file is modern, fully typed,
-or production-certified.
+Last reviewed: 2026-09-22.
 
-## Executive assessment
-
-The active frontend is professional and regression-gated for its verified
-flows. The entire source tree is not yet top-tier: most UI remains JSX, several
-manager/editor surfaces are oversized, visual tokens are not universal,
-component/API-state tests are thinner than protocol tests, and field
-performance is not measured. These are explicit follow-ups, not hidden F5
-claims.
+This file tracks frontend debt and the boundary of claims. Project-wide current
+status and priorities live in `status/current.md`.
 
 ## Current strengths
 
-| Area | Current evidence |
+| Area | Evidence/implementation |
 |---|---|
-| Product flow | Identity, dashboard, editor, reports, manager live, and participant live use the Go HTTP/SSE boundary. |
-| Persian UX | The participant join, waiting, question, content, result, and final leaderboard surfaces use Persian copy, RTL layout, and explicit mixed-content direction. |
-| Quiz theming | Public join resolution exposes only display-safe title/background/image/text settings. The whole participant mobile flow uses those settings instead of a hard-coded theme; invalid colors fall back safely and a low-contrast chosen text color receives a WCAG-readable foreground fallback. |
-| Live correctness | Snapshot recovery, named commands, stable request IDs, event ordering, participant non-disclosure, and answer retry remain enforced. Closed questions cannot replay as new questions; `show_leaderboard_after` retains `close_question -> show_leaderboard`. |
-| Accessibility | Critical routes have axe WCAG gates, keyboard focus, reduced motion, live status semantics, and 390x844 overflow checks. |
-| Performance | Build budgets enforce initial JS/CSS, largest route/file, and zero initial preloads. |
-| Cleanup | Dead mock archives, an unused game page, and an unused 5,400-line manager leaderboard duplicate were removed. |
+| Product flow | Identity, dashboard, editor, reports and live flows use the Go HTTP/SSE boundary. |
+| Live correctness | Snapshot recovery, stable request IDs, event/state ordering and participant non-disclosure have protocol/unit coverage. |
+| Presentation contract | Generated OpenAPI transport types and editor domain adapters exist; revision conflicts are recoverable. |
+| Persian UX | Participant live surfaces are Persian/RTL and consume display-safe presentation theming; editor/client copy has continued moving to Persian. |
+| Accessibility | Critical stable routes have axe/browser checks, focus/reduced-motion/overflow assertions. |
+| Performance | Build budgets enforce initial JS/CSS, largest route/file and zero initial preloads. |
+| Routing/bundle | Heavy route code is lazy-loaded instead of preloaded into the entry route. |
 
-## Known weaknesses and concrete remedies
+## P0/P1 architecture debt
 
-| Priority | Weakness / risk | Required remedy and closure evidence |
+| Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | TypeScript is partial: 49 JSX, 15 JS, 14 TS, and 7 TSX source files. | Migrate live first, then reports/identity/marketing; use discriminated snapshot types and no broad `any`. Close every slice with lint, typecheck, behavior tests, and browser acceptance. |
-| P1 | Manager live screens retain legacy structure, debug branches, and duplicated visual patterns. | Extract a typed `modules/live` manager shell and shared theme primitives; remove old route components only after a complete manager/player lifecycle passes. |
-| P1 | A deterministic checked-in manager+participant lifecycle is not run on every change. | Add seeded Compose E2E for create -> themed mobile join -> answer -> `show_leaderboard_after` -> participant rank -> reconnect -> end. Assert one question render. |
-| P2 | Styling debt remains outside migrated surfaces. Runtime quiz colors are legitimate; repeated chrome colors are not. | Move route by route to semantic tokens and logical `start/end`; record count reduction and 1440x900/390x844 comparisons. |
-| P2 | Component/API-state coverage is thinner than protocol coverage. | Add Testing Library + MSW with migrated slices for pending, success, validation, cancellation, conflict, reconnect, and duplicate-submit behavior. |
-| P2 | Local Web Vitals are not field performance. | Add stable throttled mobile lab evidence, then privacy-safe production RUM and percentile budgets before claiming field-grade Core Web Vitals. |
-| P3 | The development tree has one advisory and stale browser compatibility data. | Review compatible upgrades separately; do not run broad `npm audit fix`. |
+| P0 | API error payloads are too weakly standardized; some frontend code infers semantics from optional fields/human text. | Define a stable machine-readable OpenAPI error shape with code, optional field errors, retry metadata and request/debug correlation; map it once at the shared API boundary. |
+| P1 | TypeScript coverage is partial; active JSX is outside `tsc`. | Migrate feature/domain boundaries deliberately, not by mechanical extension renames. |
+| P1 | Legacy top-level `pages/components/contexts/hooks/services/utils/routes/live` ownership still coexists with `app/modules/shared`. | Move active areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
+| P1 | Live protocol/reconnect/roster state remains heavily embedded in React context. | Extract a typed `modules/live/api + runtime + react` boundary, then retire duplicate projections/compatibility state. |
+| P1 | Design-system token vocabulary is not fully converged; old shadcn-style primitives use token names that are not the same semantic system as migrated product tokens. | Choose one semantic vocabulary, migrate primitives, and use accessible headless dialog/menu/popover primitives. |
+| P1 | Critical Playwright flows exist but the default web CI job does not run `npm run test:e2e`. | Add deterministic browser CI with a real API stack, especially a seeded manager/participant lifecycle. |
+
+## P2 product/maintainability debt
+
+| Priority | Weakness / risk | Required remedy |
+|---:|---|---|
+| P2 | Identity/password forms contain extensive manual field state, validation, server-error mapping and submit lifecycle code. | Introduce RHF + Zod for ordinary forms after the API error contract is stable; keep design primitives independent of RHF. |
+| P2 | Dashboard/report REST server state is manually fetched/cached in components. | Introduce one TanStack Query client through migrated identity/report slices using the existing typed fetch boundary and query cancellation signals. |
+| P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
+| P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
+| P2 | Component/API-state coverage is thinner than protocol coverage. | Add Vitest + Testing Library + MSW for pending/success/validation/conflict/cancellation/reconnect states. |
+| P2 | Architecture enforcement still relies partly on structural/source-regex tests. | Replace with dependency-boundary linting and dead-code/dependency checks where practical. |
+| P2 | Local Web Vitals are not production field performance. | Add privacy-safe RUM and release-tagged frontend error/performance observability before field-grade claims. |
+
+## P3 tooling debt
+
+- The project should move from the `rolldown-vite` preview alias to stable
+  Vite 8 in a dedicated compatibility-tested upgrade.
+- React/Tailwind/Router/TypeScript major/minor upgrades should be isolated from
+  architecture migration so failures have one cause.
+- Review development dependency advisories separately; do not use broad
+  `npm audit fix` as architecture work.
 
 ## Claim boundary
 
-Do not call the entire frontend “top-tier” until every P1 item is closed,
-production RUM and TLS evidence exist, the complete manager/player lifecycle is
-a stable browser gate, and no critical active surface sits outside typed module
-boundaries. F0-F5 is a professional baseline, not an exemption from this debt.
+The frontend should not be described as fully modular, fully TypeScript,
+field-performance certified, or complete-live-browser certified until the
+corresponding items above are closed.
 
-The exact repository next task remains the production-like TLS 1k protocol
-gate. Frontend debt must be scheduled explicitly and cannot waive that evidence.
+The historical F0-F5 program established a useful baseline. Its dated evidence
+is preserved separately and does not waive current debt.
