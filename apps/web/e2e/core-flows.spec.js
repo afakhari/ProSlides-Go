@@ -107,7 +107,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await page.goto("/signup");
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("BrowserPass!42");
-  await page.locator('input[name="full-name"]').fill("Browser Test User");
+  await page.locator('input[name="fullName"]').fill("Browser Test User");
 
   const registration = page.waitForResponse(
     (response) =>
@@ -250,7 +250,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await manager.goto("/signup");
     await manager.locator('input[name="email"]').fill(email);
     await manager.locator('input[name="password"]').fill("BrowserPass!42");
-    await manager.locator('input[name="full-name"]').fill("مدیر تست زنده");
+    await manager.locator('input[name="fullName"]').fill("مدیر تست زنده");
     await manager.locator('button[type="submit"]').click();
     await expect(manager).toHaveURL(/\/manager\/panel$/);
 
