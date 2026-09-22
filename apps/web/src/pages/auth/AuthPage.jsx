@@ -9,10 +9,17 @@ import {
   identityFieldErrors,
   retryAfterSeconds,
 } from "../../modules/identity/api/identityErrors.ts";
+import {
+  emailSchema,
+  loginSchema,
+  registerPasswordSchema,
+  registerSchema,
+  verificationSchema,
+} from "../../modules/identity/model/authSchemas.ts";
+import { normalizeDigits } from "../../shared/forms/numbers.ts";
 
 function isEmailValid(value) {
-  if (!value) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return emailSchema.safeParse(value).success;
 }
 
 function getPasswordStrength(value) {
@@ -39,10 +46,8 @@ function getPasswordStrength(value) {
 }
 
 function getPasswordPolicyError(value) {
-  if (!value) return "لطفاً رمز عبور را وارد کنید.";
-  if (value.length < 12) return "رمز عبور باید حداقل ۱۲ کاراکتر باشد.";
-  if (/^\d+$/.test(value)) return "رمز عبور نمی‌تواند فقط شامل اعداد باشد.";
-  return "";
+  const result = registerPasswordSchema.safeParse(value);
+  return result.success ? "" : result.error.issues[0]?.message || "رمز عبور معتبر نیست.";
 }
 
 function getResendSeconds(payload, fallbackSeconds) {
@@ -425,15 +430,23 @@ export default function AuthPage() {
   const otpExpired = isVerify && otpExpiresIn === 0;
 
   const isReady = useMemo(() => {
-    if (!trimmedEmail) return false;
-    if (!isEmailValid(trimmedEmail)) return false;
     if (isVerify) {
-      return verificationCode.trim().length === 6;
+      return verificationSchema.safeParse({
+        email: trimmedEmail,
+        verificationCode,
+      }).success;
     }
-    if (!password.trim()) return false;
-    if (isSignup && getPasswordPolicyError(password.trim())) return false;
-    if (isSignup && !fullName.trim()) return false;
-    return true;
+    if (isSignup) {
+      return registerSchema.safeParse({
+        email: trimmedEmail,
+        password,
+        fullName,
+      }).success;
+    }
+    return loginSchema.safeParse({
+      email: trimmedEmail,
+      password,
+    }).success;
   }, [
     trimmedEmail,
     password,
@@ -1193,11 +1206,13 @@ export default function AuthPage() {
                 maxLength={6}
                 value={verificationCode}
                 onChange={(event) =>
-                  setVerificationCode(event.target.value.replace(/\D/g, ""))
+                  setVerificationCode(
+                    normalizeDigits(event.target.value).replace(/\D/g, "").slice(0, 6),
+                  )
                 }
                 onPaste={(event) => {
                   const pasted = event.clipboardData.getData("text") || "";
-                  const cleaned = pasted.replace(/\D/g, "").slice(0, 6);
+                  const cleaned = normalizeDigits(pasted).replace(/\D/g, "").slice(0, 6);
                   if (cleaned) {
                     event.preventDefault();
                     setVerificationCode(cleaned);
