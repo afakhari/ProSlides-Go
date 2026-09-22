@@ -2,6 +2,8 @@ services:
   api:
     build:
       context: ./apps/api
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io/library}
     environment:
       APP_ENV: ${APP_ENV:-development}
       HTTP_ADDR: :8080
@@ -57,6 +59,7 @@ services:
     build:
       context: ./apps/web
       args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io/library}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
         VITE_LIVE_API_BASE_URL: ${VITE_LIVE_API_BASE_URL:-/api/v1}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
@@ -72,7 +75,7 @@ services:
         hard: 65535
 
   postgres:
-    image: docker.arvancloud.ir/postgres:17.5-alpine3.21
+    image: ${BASE_REGISTRY:-docker.io/library}/postgres:17.5-alpine3.21
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-proslides}
       POSTGRES_USER: ${POSTGRES_USER:-proslides}
@@ -89,7 +92,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: docker.arvancloud.ir/redis:7.4.3-alpine 
+    image: ${BASE_REGISTRY:-docker.io/library}/redis:7.4.3-alpine
     command: redis-server --appendonly yes --save 60 1000 --loglevel warning
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
