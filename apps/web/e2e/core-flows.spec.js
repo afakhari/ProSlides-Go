@@ -230,3 +230,157 @@ test("mobile participant entry uses the public quiz theme", async ({ page }) => 
   await expectAccessible(page, "themed participant join");
   expect(failures).toEqual([]);
 });
+
+
+test("manager and participant complete a live question lifecycle with reconnect", async ({ browser }) => {
+  test.setTimeout(120000);
+
+  const managerContext = await browser.newContext();
+  const participantContext = await browser.newContext();
+  const manager = await managerContext.newPage();
+  const participant = await participantContext.newPage();
+  const managerFailures = watchRuntime(manager);
+  const participantFailures = watchRuntime(participant);
+
+  try {
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const email = `live-browser-${unique}@example.com`;
+    const accessCode = `L${Date.now().toString(36).slice(-7)}`.toUpperCase();
+
+    await manager.goto("/signup");
+    await manager.locator('input[name="email"]').fill(email);
+    await manager.locator('input[name="password"]').fill("BrowserPass!42");
+    await manager.locator('input[name="full-name"]').fill("مدیر تست زنده");
+    await manager.locator('button[type="submit"]').click();
+    await expect(manager).toHaveURL(/\/manager\/panel$/);
+
+    const fixture = await manager.evaluate(async ({ accessCode }) => {
+      const cookieValue = (name) => {
+        const prefix = `${encodeURIComponent(name)}=`;
+        const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
+      const api = async (path, options = {}) => {
+        const headers = new Headers(options.headers || {});
+        headers.set("Content-Type", "application/json");
+        const csrf = cookieValue("proslides_csrf");
+        if (csrf) headers.set("X-CSRF-Token", csrf);
+        const response = await fetch(`/api/v1${path}`, {
+          method: options.method || "GET",
+          credentials: "include",
+          headers,
+          body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(`${options.method || "GET"} ${path}: ${response.status} ${JSON.stringify(body)}`);
+        }
+        return body;
+      };
+
+      const presentation = await api("/presentations", {
+        method: "POST",
+        body: { title: "چرخه کامل تست زنده", settings: {} },
+      });
+
+      const optionOneId = crypto.randomUUID();
+      const optionTwoId = crypto.randomUUID();
+      const slide = await api(`/presentations/${presentation.id}/slides`, {
+        method: "POST",
+        headers: { "If-Match": String(presentation.revision) },
+        body: {
+          position: 0,
+          kind: "question",
+          content: {
+            title: "پرسش تست",
+            text: "پایتخت ایران کدام شهر است؟",
+            question_type: "single",
+            question_time: 60,
+            min_point: 0,
+            max_point: 100,
+            image_url: "",
+            faster_answers_more_points: false,
+            partial_scoring: false,
+            show_leaderboard_after: true,
+            options: [
+              {
+                id: optionOneId,
+                text: "تهران",
+                is_correct: true,
+                image_url: "",
+                order: 1,
+              },
+              {
+                id: optionTwoId,
+                text: "شیراز",
+                is_correct: false,
+                image_url: "",
+                order: 2,
+              },
+            ],
+          },
+        },
+      });
+
+      await api(`/presentations/${presentation.id}/access-code`, {
+        method: "PUT",
+        body: { access_code: accessCode },
+      });
+
+      return {
+        presentationId: presentation.id,
+        slideId: slide.id,
+        accessCode,
+      };
+    }, { accessCode });
+
+    await manager.goto(`/manager/presentation/${fixture.presentationId}`);
+    const startButton = manager.getByRole("button", { name: "شروع", exact: true });
+    await expect(startButton).toBeEnabled({ timeout: 15000 });
+    await expectAccessible(manager, "manager live lobby");
+
+    await participant.goto(`/${fixture.accessCode}`);
+    await expect(participant.getByRole("heading", { name: "به کوئیز بپیوندید" })).toBeVisible();
+    await participant.getByLabel("نام نمایشی").fill("شرکت‌کننده تست");
+    await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
+    await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
+    await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+
+    await startButton.click();
+    await expect(
+      participant.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      manager.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
+    ).toBeVisible({ timeout: 15000 });
+
+    await participant.getByRole("button", { name: /تهران/ }).click();
+    await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
+    await expect(participant.getByRole("status")).toContainText("پاسخ شما ارسال شد");
+
+    await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
+    await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+
+    await participant.reload();
+    await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(participant.getByText("امتیاز شما")).toBeVisible();
+
+    const endButton = manager.getByRole("button", { name: "پایان پرزنتیشن" });
+    await endButton.click();
+    await endButton.click();
+    await expect(
+      manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
+    ).toBeVisible({ timeout: 15000 });
+
+    expect(managerFailures).toEqual([]);
+    expect(participantFailures).toEqual([]);
+  } finally {
+    await participantContext.close();
+    await managerContext.close();
+  }
+});
