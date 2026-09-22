@@ -175,6 +175,8 @@ export class LiveRuntime {
   private refreshDirty = false;
   private commandInFlight = false;
   private pendingActionIds = new Map<string, string>();
+  private lifecycleVersion = 0;
+  private rosterRequestVersion = 0;
   private destroyed = false;
 
   constructor(role: LiveClientRole, dependencies: LiveRuntimeDependencies = {}) {
@@ -225,6 +227,8 @@ export class LiveRuntime {
   };
 
   private resetInternals = () => {
+    this.lifecycleVersion += 1;
+    this.rosterRequestVersion += 1;
     this.streamAbort?.abort();
     this.streamAbort = null;
     this.selectedSessionId = null;
@@ -241,6 +245,8 @@ export class LiveRuntime {
 
   private selectSession = (sessionId: string) => {
     if (this.selectedSessionId === sessionId) return;
+    this.lifecycleVersion += 1;
+    this.rosterRequestVersion += 1;
     this.streamAbort?.abort();
     this.streamAbort = null;
     this.selectedSessionId = sessionId;
@@ -288,6 +294,8 @@ export class LiveRuntime {
   ) => {
     const id = this.selectedSessionId;
     if (!id || this.role !== "manager") return false;
+    const lifecycleVersion = this.lifecycleVersion;
+    const requestVersion = ++this.rosterRequestVersion;
 
     this.publish({ isRosterLoading: true });
     try {
@@ -299,7 +307,13 @@ export class LiveRuntime {
         cursor,
         100,
       );
-      if (id !== this.selectedSessionId) return false;
+      if (
+        id !== this.selectedSessionId ||
+        lifecycleVersion !== this.lifecycleVersion ||
+        requestVersion !== this.rosterRequestVersion
+      ) {
+        return false;
+      }
 
       const nextItems = append
         ? [...this.rosterValue, ...page.items]
@@ -314,12 +328,20 @@ export class LiveRuntime {
       });
       return true;
     } catch (error) {
-      if (id === this.selectedSessionId) {
+      if (
+        id === this.selectedSessionId &&
+        lifecycleVersion === this.lifecycleVersion &&
+        requestVersion === this.rosterRequestVersion
+      ) {
         this.publish({ connectionError: errorMessage(error) });
       }
       return false;
     } finally {
-      if (id === this.selectedSessionId) {
+      if (
+        id === this.selectedSessionId &&
+        lifecycleVersion === this.lifecycleVersion &&
+        requestVersion === this.rosterRequestVersion
+      ) {
         this.publish({ isRosterLoading: false });
       }
     }
@@ -330,6 +352,7 @@ export class LiveRuntime {
   private refreshAuthoritative = async (): Promise<LiveSnapshot> => {
     const id = this.selectedSessionId;
     if (!id) throw new Error("Live session is not selected");
+    const lifecycleVersion = this.lifecycleVersion;
 
     if (this.refreshPromise) {
       this.refreshDirty = true;
@@ -341,11 +364,21 @@ export class LiveRuntime {
       do {
         this.refreshDirty = false;
         next = await this.transport.getLiveSnapshot(id);
-        if (id !== this.selectedSessionId) {
+        if (
+          id !== this.selectedSessionId ||
+          lifecycleVersion !== this.lifecycleVersion
+        ) {
           throw new Error("Live session changed during refresh");
         }
         if (!this.storeSnapshot(next)) this.refreshDirty = true;
       } while (this.refreshDirty && this.selectedSessionId === id);
+
+      if (
+        id !== this.selectedSessionId ||
+        lifecycleVersion !== this.lifecycleVersion
+      ) {
+        throw new Error("Live session changed during refresh");
+      }
 
       if (next.role === "manager") {
         await this.loadRoster(
@@ -387,7 +420,12 @@ export class LiveRuntime {
         this.publish({ snapshot: next });
       }
       if (this.role === "manager") {
-        void this.loadRoster("joined", false);
+        const order: RosterOrder =
+          this.snapshotValue &&
+          ["leaderboard", "ended"].includes(this.snapshotValue.session.state)
+            ? "score"
+            : "joined";
+        void this.loadRoster(order, false);
       }
       return;
     }
@@ -617,7 +655,11 @@ export class LiveRuntime {
         );
         if (!applied) throw new Error("Live action was not authorized");
       }
-      await this.refreshAuthoritative();
+      try {
+        await this.refreshAuthoritative();
+      } catch (refreshError) {
+        this.publish({ connectionError: errorMessage(refreshError) });
+      }
       return true;
     } catch (error) {
       this.publish({ connectionError: errorMessage(error) });
@@ -639,7 +681,11 @@ export class LiveRuntime {
           throw new Error("Live end action was not authorized");
         }
       }
-      await this.refreshAuthoritative();
+      try {
+        await this.refreshAuthoritative();
+      } catch (refreshError) {
+        this.publish({ connectionError: errorMessage(refreshError) });
+      }
       return true;
     } catch (error) {
       this.publish({ connectionError: errorMessage(error) });
