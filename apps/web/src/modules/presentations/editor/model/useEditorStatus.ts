@@ -21,6 +21,7 @@ export const initialEditorStatus: EditorStatusState = {
 
 export function editorStatusReducer(state: EditorStatusState, action: EditorStatusAction): EditorStatusState {
   if (action.type === "set-dirty") {
+    if (state.dirty[action.area] === action.dirty) return state;
     return { ...state, dirty: { ...state.dirty, [action.area]: action.dirty } };
   }
   if (action.type === "clear-dirty") return { ...state, dirty: initialEditorStatus.dirty };
