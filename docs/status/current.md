@@ -50,7 +50,7 @@ Strengths already in place:
 - semantic CSS tokens on migrated surfaces;
 - Persian/RTL participant experience and mixed-content direction handling;
 - bundle budgets, axe checks, CI-gated Playwright flows, and protocol/unit coverage;
-- snapshot/SSE recovery and stable live request IDs.
+- snapshot/SSE recovery and stable live request IDs;\n- a typed live runtime controller for cursor/reconnect/roster/command ownership behind a thin React adapter.
 
 Remaining frontend debt is tracked in `../frontend-status.md`. The largest
 architectural gaps are incomplete TypeScript coverage, legacy top-level
