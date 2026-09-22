@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { quizService } from "../../api/presentationRepository.ts";
-import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 import { getQuestionValidationError } from "../model/validation";
 
 
