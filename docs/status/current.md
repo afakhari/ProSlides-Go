@@ -49,14 +49,14 @@ Strengths already in place:
 - explicit presentation editor domain mapping and revision conflict recovery;
 - semantic CSS tokens on migrated surfaces;
 - Persian/RTL participant experience and mixed-content direction handling;
-- bundle budgets, axe checks, Playwright flows, and protocol/unit coverage;
+- bundle budgets, axe checks, CI-gated Playwright flows, and protocol/unit coverage;
 - snapshot/SSE recovery and stable live request IDs.
 
 Remaining frontend debt is tracked in `../frontend-status.md`. The largest
 architectural gaps are incomplete TypeScript coverage, legacy top-level
 `pages/components/contexts/hooks/services/utils` ownership, an oversized React
 live runtime, incomplete design-system convergence, thin component/API-state
-coverage, and Playwright not running in the default web CI job.
+coverage, plus an incomplete full manager/participant browser lifecycle.
 
 ## Active priorities
 
@@ -72,8 +72,8 @@ These are independent tracks. A change in one track does not waive another.
    identity/dashboard and then the live runtime, while preserving editor/live
    correctness. Reports are now a typed module using the shared Query cache.
 4. **Quality:** move architecture rules from source-regex tests into dependency
-   enforcement, add component/API-state tests, and make the critical Playwright
-   lifecycle a CI gate.
+   enforcement, add component/API-state tests, and extend the CI Playwright gate
+   to a complete deterministic manager/participant live lifecycle.
 
 ## Documentation rules
 
