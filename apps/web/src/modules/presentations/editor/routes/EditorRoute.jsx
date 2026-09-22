@@ -21,6 +21,7 @@ import { fa } from "../../../../shared/i18n/fa";
 import { useEditorStatus } from "../model/useEditorStatus.ts";
 import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
 import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
+import DesignDraftProvider from "../model/DesignDraftProvider.tsx";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -143,7 +144,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const [notice, setNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
   const [audioSaveNotice, setAudioSaveNotice] = useState(null);
-  const [backgroundSaveNotice, setBackgroundSaveNotice] = useState(null);
   const hasUnsavedChanges = editorStatus.hasUnsavedChanges;
 
   const slides = quiz.slides;
@@ -1009,6 +1009,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
 
   return (
+    <DesignDraftProvider
+      presentation={showDesignPanel ? quiz : null}
+    >
     <QuestionDraftProvider
       slide={showSidebar && activeSlideType === 1 ? activeSlide : null}
     >
@@ -1393,7 +1396,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         
         {showDesignPanel && (
           <div
-            className="bg-white rounded-xl shadow p-4 overflow-y-auto w-full md:h-full md:w-1/3 lg:w-1/4 md:static fixed inset-x-0 bottom-0 top-14 z-50"
+            className="fixed inset-x-0 bottom-0 top-14 z-50 w-full overflow-y-auto rounded-xl bg-surface p-4 shadow md:static md:h-full md:w-1/3 lg:w-1/4"
             style={
               isMobile
                 ? {
@@ -1403,23 +1406,15 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 : undefined
             }
           >
-            {activeSlide && (
-              <DesignPanel
-                quiz={quiz}
-                updateQuiz={updateQuiz}
-                onClose={handleCloseDesignPanel}
-                setBackgroundSaveNotice={setBackgroundSaveNotice}
-                onDirtyChange={setHasDesignChanges}
-                onConflict={recoverConflict}
-              />
-            )}
+            <DesignPanel
+              quizId={quiz.quiz_id}
+              onClose={handleCloseDesignPanel}
+              onQuizUpdated={updateQuiz}
+              onDirtyChange={setHasDesignChanges}
+              onConflict={recoverConflict}
+              onNotify={showNotice}
+            />
           </div>
-        )}
-
-        {backgroundSaveNotice && (
-          <Notice tone="success" className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 shadow-lg">
-            {backgroundSaveNotice}
-          </Notice>
         )}
 
         {showAudioPanel && (
@@ -1558,5 +1553,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     </div>
     </ContentDraftProvider>
     </QuestionDraftProvider>
+    </DesignDraftProvider>
   );
 }
