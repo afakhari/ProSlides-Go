@@ -13,7 +13,7 @@ import { quizService } from "../../api/presentationRepository.ts";
 import { getPresentationValidationError } from "../model/validation";
 import { UNSAVED_CHANGES_KEY } from "../../../../utils/auth";
 import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
-import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 import EditorRouteSkeleton from "./EditorRouteSkeleton";
 import Notice from "../../../../shared/ui/Notice";
 import { fa } from "../../../../shared/i18n/fa";
