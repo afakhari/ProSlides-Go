@@ -32,7 +32,7 @@ status and priorities live in `status/current.md`.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P2 | RHF + Zod infrastructure and the typed identity API/error boundary are established, but the large auth/register/verification screen still owns extensive manual field state and mode/cooldown orchestration. | Move login/register/verification forms incrementally into `modules/identity` with Zod schemas and RHF while preserving Google/OTP behavior through browser tests. |
+| P2 | Identity transport/error handling and Zod schemas are module-owned, reset-password uses RHF, and the main auth route now lives in `modules/identity`; however login/register/verification still share a large manual state/orchestration component. | Split the auth route into focused RHF-backed form components and a smaller Google/OTP orchestration layer while preserving the browser-tested flow. |
 | P2 | One TanStack Query client is established and reports use typed queries/infinite queries with cancellation and cursor pagination; dashboard and most identity REST state still use manual effects/state. | Extend the same query client incrementally to dashboard/identity REST reads while keeping editor draft state and live SSE outside the cache. |
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
