@@ -65,10 +65,10 @@ These are independent tracks. A change in one track does not waive another.
    production-like single-API topology through TLS with cold readiness and
    continuous pool/query/lock/CPU/heap evidence.
 2. **Frontend foundation:** continue the shared error/form/design-system
-   foundation through the remaining identity/dashboard surfaces without adding
+   foundation through the remaining identity/editor surfaces without adding
    parallel HTTP or state abstractions.
 3. **Frontend modularization:** continue TypeScript/module migration through
-   the remaining identity UI and live runtime, while preserving editor/live
+   the remaining identity UI composition and live runtime, while preserving editor/live
    correctness. Reports and the manager presentation list now use the shared Query cache, and live transport/protocol/React ownership is under `modules/live`.
 4. **Quality:** continue replacing source-regex checks with structural tooling
    and add component/API-state tests around migrated identity, report, editor and
