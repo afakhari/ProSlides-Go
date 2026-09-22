@@ -1,9 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/primitives/Button.tsx";
 import { ConfirmDialog } from "../../../shared/ui/primitives/ConfirmDialog.tsx";
 import { ErrorModal } from "../../../pages/quiz/manager/ErrorModal";
 import { quizService } from "../api/presentationRepository.ts";
+import {
+  presentationKeys,
+  presentationListQuery,
+} from "../api/presentationQueries.ts";
 import {
   Search,
   MoreVertical,
@@ -157,13 +162,50 @@ const removeLocalStorage = (key) => {
   }
 };
 
+const toDashboardQuiz = (quiz, loggedInUser) => {
+  const updatedAt = safeTimestamp(quiz.updated_at);
+  const createdAt = safeTimestamp(quiz.created_at);
+  return {
+    id: quiz.id,
+    revision: Number(quiz.revision || 1),
+    name: localizeSystemTitle(quiz.title),
+    accessCode: quiz.access_code || "",
+    slides: Number(quiz.slide_count) || 0,
+    participants: Number(quiz.participant_count) || 0,
+    createdBy:
+      String(quiz.owner_full_name || quiz.owner_name || loggedInUser).trim() ||
+      loggedInUser,
+    lastUpdated: formatDate(updatedAt),
+    created: formatDate(createdAt),
+    updatedAt,
+    createdAt,
+  };
+};
+
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
   const [loggedInUser] = useState(
     () => readLocalStorage("auth.name") || "شما"
   );
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const queryClient = useQueryClient();
+  const {
+    data: presentationSummaries = [],
+    isPending: loading,
+    isError: hasLoadError,
+    refetch: refetchPresentations,
+  } = useQuery(presentationListQuery());
+  const quizzes = useMemo(
+    () => presentationSummaries.map((quiz) => toDashboardQuiz(quiz, loggedInUser)),
+    [presentationSummaries, loggedInUser],
+  );
+  const loadError = hasLoadError
+    ? "بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید."
+    : null;
+  const refreshPresentations = useCallback(async () => {
+    const result = await refetchPresentations();
+    return !result.isError;
+  }, [refetchPresentations]);
+
   const [statusMessage, setStatusMessage] = useState(null);
   const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
   const [passwordPromptStatus, setPasswordPromptStatus] = useState(null);
@@ -174,63 +216,6 @@ export default function QuizManager({ onNewPresentation }) {
   const closeErrorModal = () => {
     setErrorModalOpen(false);
   };
-
-  // Load quizzes from API on mount
-  const [quizzes, setQuizzes] = useState([]);
-
-  const fetchQuizzes = useCallback(async (signal, { silent = false } = {}) => {
-    try {
-      if (!silent) {
-        setLoading(true);
-        setLoadError(null);
-      }
-      const data = await quizService.listPresentations({ signal });
-      if (!Array.isArray(data)) {
-        throw new Error("invalid_presentations_response");
-      }
-
-      const mappedQuizzes = data.map((quiz) => {
-        const updatedAt = safeTimestamp(quiz.updated_at);
-        const createdAt = safeTimestamp(quiz.created_at);
-        return {
-          id: quiz.id,
-          revision: Number(quiz.revision || 1),
-          name: localizeSystemTitle(quiz.title),
-          accessCode: quiz.access_code || "",
-          slides: Number(quiz.slide_count) || 0,
-          participants: Number(quiz.participant_count) || 0,
-          createdBy: String(quiz.owner_full_name || quiz.owner_name || loggedInUser).trim() || loggedInUser,
-          lastUpdated: formatDate(updatedAt),
-          created: formatDate(createdAt),
-          updatedAt,
-          createdAt,
-        };
-      });
-
-      setQuizzes(mappedQuizzes);
-      setSelectedQuizzes((prev) => {
-        const validIds = new Set(mappedQuizzes.map((quiz) => quiz.id));
-        return prev.filter((id) => validIds.has(id));
-      });
-      if (!silent) setLoadError(null);
-      return true;
-    } catch (err) {
-      if (err?.name === "AbortError") return false;
-      console.error("Error fetching presentations:", err);
-      if (!silent) {
-        setLoadError("بارگذاری ارائه‌ها انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.");
-      }
-      return false;
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [loggedInUser]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchQuizzes(controller.signal);
-    return () => controller.abort();
-  }, [fetchQuizzes]);
 
   useEffect(() => {
     if (!statusMessage) return;
@@ -248,6 +233,13 @@ export default function QuizManager({ onNewPresentation }) {
       setPasswordPromptVisible(true);
     }
   }, []);
+
+  useEffect(() => {
+    const validIds = new Set(quizzes.map((quiz) => quiz.id));
+    setSelectedQuizzes((previous) =>
+      previous.filter((id) => validIds.has(id)),
+    );
+  }, [quizzes]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("updated");
@@ -296,7 +288,11 @@ export default function QuizManager({ onNewPresentation }) {
       setCreationError(null);
       await createPresentationOnce({
         gate: creationGateRef,
-        create: quizService.createPresentation,
+        create: async (title) => {
+          const created = await quizService.createPresentation(title);
+          await queryClient.invalidateQueries({ queryKey: presentationKeys.list() });
+          return created;
+        },
         navigate: onNewPresentation,
       });
     } catch (err) {
@@ -400,8 +396,10 @@ export default function QuizManager({ onNewPresentation }) {
       }
 
       await quizService.deletePresentation(quizId);
-      setQuizzes((prev) => prev.filter((quiz) => quiz.id !== quizId));
       setSelectedQuizzes((prev) => prev.filter((id) => id !== quizId));
+      if (manageLoadingState) {
+        await refreshPresentations();
+      }
       return true;
     } catch (err) {
       console.error("Error deleting presentation:", err);
@@ -419,31 +417,23 @@ export default function QuizManager({ onNewPresentation }) {
 
     try {
       const currentQuiz = quizzes.find((quiz) => quiz.id === quizId);
-      const updated = await quizService.updateQuiz(quizId, {
+      await quizService.updateQuiz(quizId, {
         title: trimmedName,
         revision: currentQuiz?.revision,
       });
 
-      const updatedAt = safeTimestamp(updated?.updated_at) || Date.now();
-      setQuizzes((prev) =>
-        prev.map((quiz) =>
-          quiz.id === quizId
-            ? {
-                ...quiz,
-                name: trimmedName,
-                revision: Number(updated?.revision || quiz.revision),
-                updatedAt,
-                lastUpdated: formatDate(updatedAt),
-              }
-            : quiz
-        )
-      );
-      setStatusMessage({ type: "success", message: "نام ارائه تغییر کرد." });
+      const refreshed = await refreshPresentations();
+      setStatusMessage({
+        type: refreshed ? "success" : "error",
+        message: refreshed
+          ? "نام ارائه تغییر کرد."
+          : "نام ارائه تغییر کرد، اما به‌روزرسانی فهرست انجام نشد.",
+      });
       return true;
     } catch (err) {
       console.error("Error renaming presentation:", err);
       if (err.response?.status === 409 && err.response?.data?.error === "edit_conflict") {
-        const refreshed = await fetchQuizzes(undefined, { silent: true });
+        const refreshed = await refreshPresentations();
         setStatusMessage({
           type: "error",
           message: refreshed
@@ -506,14 +496,12 @@ export default function QuizManager({ onNewPresentation }) {
       if (!quiz) throw new Error("presentation_not_found");
 
       await quizService.resetPresentationResults(quizId);
-      setQuizzes((prev) =>
-        prev.map((item) =>
-          item.id === quizId ? { ...item, participants: 0 } : item
-        )
-      );
+      const refreshed = await refreshPresentations();
       setStatusMessage({
-        type: "success",
-        message: "نتایج ارائه با موفقیت پاک شد.",
+        type: refreshed ? "success" : "error",
+        message: refreshed
+          ? "نتایج ارائه با موفقیت پاک شد."
+          : "نتایج پاک شد، اما به‌روزرسانی فهرست انجام نشد.",
       });
       return true;
     } catch (err) {
@@ -552,7 +540,7 @@ export default function QuizManager({ onNewPresentation }) {
             results.push(...batchResults);
           }
           const failedCount = results.filter((result) => !result).length;
-          const refreshed = await fetchQuizzes(undefined, { silent: true });
+          const refreshed = await refreshPresentations();
 
           if (failedCount === 0) {
             setSelectedQuizzes([]);
@@ -612,26 +600,13 @@ export default function QuizManager({ onNewPresentation }) {
       const duplicated = await quizService.duplicatePresentation(quiz.id, newName);
       if (!duplicated?.id) throw new Error("invalid_duplicate_response");
 
-      const updatedAt = safeTimestamp(duplicated.updated_at) || Date.now();
-      const createdAt = safeTimestamp(duplicated.created_at) || updatedAt;
-      const newQuiz = {
-        id: duplicated.id,
-        revision: Number(duplicated.revision || 1),
-        name: localizeSystemTitle(duplicated.title || newName),
-        accessCode: duplicated.access_code || "",
-        slides: Number(duplicated.slide_count ?? duplicated.slides?.length ?? quiz.slides) || 0,
-        participants: Number(duplicated.participant_count) || 0,
-        createdBy: String(
-          duplicated.owner_full_name || duplicated.owner_name || quiz.createdBy || "شما"
-        ).trim() || "شما",
-        lastUpdated: formatDate(updatedAt),
-        created: formatDate(createdAt),
-        updatedAt,
-        createdAt,
-      };
-
-      setQuizzes((prev) => [...prev, newQuiz]);
-      setStatusMessage({ type: "success", message: "یک نسخه از ارائه ساخته شد." });
+      const refreshed = await refreshPresentations();
+      setStatusMessage({
+        type: refreshed ? "success" : "error",
+        message: refreshed
+          ? "یک نسخه از ارائه ساخته شد."
+          : "نسخه جدید ساخته شد، اما به‌روزرسانی فهرست انجام نشد.",
+      });
     } catch (err) {
       console.error("Error duplicating presentation:", err);
       setStatusMessage({
@@ -1647,7 +1622,7 @@ export default function QuizManager({ onNewPresentation }) {
                 className="mb-6 flex-wrap"
                 action={<Button
                   variant="outline"
-                  onClick={() => fetchQuizzes()}
+                  onClick={() => void refreshPresentations()}
                   className="border-danger-border bg-surface text-danger-ink hover:bg-danger-soft"
                 >
                   تلاش دوباره
@@ -1667,14 +1642,8 @@ export default function QuizManager({ onNewPresentation }) {
           onClose={() => setShowShareModal(null)}
           quizId={showShareModal}
           accessCode={quizzes.find((q) => q.id === showShareModal)?.accessCode}
-          onAccessCodeSaved={(updatedCode) => {
-            setQuizzes((prevQuizzes) =>
-              prevQuizzes.map((quiz) =>
-                quiz.id === showShareModal
-                  ? { ...quiz, accessCode: updatedCode }
-                  : quiz
-              )
-            );
+          onAccessCodeSaved={() => {
+            void queryClient.invalidateQueries({ queryKey: presentationKeys.list() });
           }}
         />
       )}
