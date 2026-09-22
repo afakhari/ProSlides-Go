@@ -393,7 +393,6 @@ export default function AuthPage() {
     setError,
     clearErrors,
     setFocus,
-    trigger,
     getValues,
     formState: { errors, isSubmitting: formSubmitting },
   } = useForm({
@@ -1089,7 +1088,7 @@ export default function AuthPage() {
 
         <form className="flex flex-col" onSubmit={submitForm}>
           <label
-            className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.email ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+            className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${emailError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
               }`}
           >
             <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
@@ -1099,20 +1098,13 @@ export default function AuthPage() {
               className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100 ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
                 }`}
               type="email"
-              name="email"
               autoComplete="email"
               placeholder="ایمیل شما"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                if (fieldErrors.email) {
-                  setFieldErrors((prev) => ({ ...prev, email: "" }));
-                }
-              }}
-              disabled={isVerify}
+              readOnly={isVerify}
+              aria-readonly={isVerify || undefined}
               required
               aria-invalid={Boolean(emailError)}
-              ref={emailRef}
+              {...register("email")}
             />
           </label>
           {emailError && (
@@ -1123,7 +1115,7 @@ export default function AuthPage() {
 
           {!isVerify && (
             <label
-              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.password ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${errors.password ? "border-[#fca5a5]" : "border-[#e5e7eb]"
                 }`}
             >
               <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
@@ -1132,19 +1124,11 @@ export default function AuthPage() {
               <input
                 className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type={showPassword ? "text" : "password"}
-                name="password"
                 autoComplete={isSignup ? "new-password" : "current-password"}
                 placeholder="رمز عبور"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors((prev) => ({ ...prev, password: "" }));
-                  }
-                }}
                 required
-                aria-invalid={Boolean(fieldErrors.password || passwordPolicyError)}
-                ref={passwordRef}
+                aria-invalid={Boolean(errors.password)}
+                {...register("password")}
               />
               <button
                 type="button"
@@ -1156,14 +1140,9 @@ export default function AuthPage() {
               </button>
             </label>
           )}
-          {!isVerify && fieldErrors.password && (
+          {!isVerify && errors.password && (
             <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
-              {fieldErrors.password}
-            </div>
-          )}
-          {!isVerify && isSignup && !fieldErrors.password && passwordPolicyError && (
-            <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
-              {passwordPolicyError}
+              {errors.password.message}
             </div>
           )}
           {!isVerify && isSignup && password.trim() && (
@@ -1184,14 +1163,14 @@ export default function AuthPage() {
                 ))}
               </div>
               <div className="mt-2">
-                حداقل ۸ کاراکتر استفاده کنید. از رمز عبوری که فقط عدد باشد خودداری کنید.
+                حداقل ۱۲ نویسه استفاده کنید. از رمز عبوری که فقط عدد باشد خودداری کنید.
               </div>
             </div>
           )}
 
           {isVerify ? (
             <label
-              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.code ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${verificationCodeError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
                 }`}
             >
               <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
@@ -1201,29 +1180,22 @@ export default function AuthPage() {
                 className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type="text"
                 inputMode="numeric"
-                name="verification-code"
                 placeholder="کد تأیید"
                 maxLength={6}
-                value={verificationCode}
-                onChange={(event) =>
-                  setVerificationCode(
-                    normalizeDigits(event.target.value).replace(/\D/g, "").slice(0, 6),
-                  )
-                }
-                onPaste={(event) => {
-                  const pasted = event.clipboardData.getData("text") || "";
-                  const cleaned = normalizeDigits(pasted).replace(/\D/g, "").slice(0, 6);
-                  if (cleaned) {
-                    event.preventDefault();
-                    setVerificationCode(cleaned);
-                  }
-                }}
                 autoComplete="one-time-code"
                 required
-                aria-invalid={Boolean(fieldErrors.code)}
-                ref={codeRef}
+                aria-invalid={Boolean(verificationCodeError)}
+                {...register("verificationCode", {
+                  setValueAs: (value) =>
+                    normalizeDigits(value).replace(/\D/g, "").slice(0, 6),
+                })}
               />
             </label>
+            {verificationCodeError && (
+              <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
+                {verificationCodeError}
+              </div>
+            )}
           ) : isSignup ? (
             <label
               className={`mb-1 flex items-center overflow-hidden rounded-xl border bg-white ${fullNameError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
@@ -1235,18 +1207,11 @@ export default function AuthPage() {
               <input
                 className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type="text"
-                name="full-name"
                 autoComplete="name"
                 placeholder="نام و نام خانوادگی"
-                value={fullName}
-                onChange={(event) => {
-                  setFullName(event.target.value);
-                  if (fieldErrors.full_name) {
-                    setFieldErrors((prev) => ({ ...prev, full_name: "" }));
-                  }
-                }}
                 required
                 aria-invalid={Boolean(fullNameError)}
+                {...register("fullName")}
               />
             </label>
           ) : (
