@@ -12,7 +12,7 @@ type ImageUrlDialogProps = {
   onConfirm: (url: string) => void;
 };
 
-export const validateImageUrl = (value: string): string | null => {
+const validateImageUrl = (value: string): string | null => {
   const trimmed = value.trim();
   if (!trimmed) return "آدرس تصویر را وارد کنید.";
   if (Array.from(trimmed).length > QUESTION_LIMITS.imageUrl) {
