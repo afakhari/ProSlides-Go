@@ -33,7 +33,7 @@ status and priorities live in `status/current.md`.
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
 | P2 | RHF + Zod form infrastructure is established and reset-password has migrated, but the large auth/register/verification screen still owns extensive manual field state and error mapping. | Migrate identity forms incrementally into `modules/identity`; keep UI primitives independent of RHF and preserve Google/OTP behavior with browser tests. |
-| P2 | Dashboard/report REST server state is manually fetched/cached in components. | Introduce one TanStack Query client through migrated identity/report slices using the existing typed fetch boundary and query cancellation signals. |
+| P2 | One TanStack Query client is established and reports use typed queries/infinite queries with cancellation and cursor pagination; dashboard and most identity REST state still use manual effects/state. | Extend the same query client incrementally to dashboard/identity REST reads while keeping editor draft state and live SSE outside the cache. |
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
 | P2 | Component/API-state coverage is thinner than protocol coverage. | Add Vitest + Testing Library + MSW for pending/success/validation/conflict/cancellation/reconnect states. |
