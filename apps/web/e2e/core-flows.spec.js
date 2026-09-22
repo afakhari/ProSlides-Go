@@ -463,7 +463,7 @@ test("question editor preserves typed draft semantics across save and edit confl
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
   await expectAccessible(page, "question editor");
 
-  const questionInput = page.getByLabel("متن سؤال");
+  const questionInput = page.getByRole("textbox", { name: "متن سؤال", exact: true });
   const timeInput = page.getByLabel("زمان پاسخ به ثانیه");
   await questionInput.fill("پایتخت ایران را انتخاب کنید");
   await timeInput.fill("۴۵");
@@ -558,7 +558,7 @@ test("question editor preserves typed draft semantics across save and edit confl
 
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeHidden();
   await page.getByRole("button", { name: "محتوا" }).click();
-  await expect(page.getByLabel("متن سؤال")).toHaveValue("نسخه جدید سرور");
+  await expect(page.getByRole("textbox", { name: "متن سؤال", exact: true })).toHaveValue("نسخه جدید سرور");
 
   expect(failures).toEqual([]);
 });
