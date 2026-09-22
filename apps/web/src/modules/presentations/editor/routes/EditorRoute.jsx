@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import QuestionCanvas from "../canvas/QuestionCanvas";
+import ContentCanvas from "../canvas/ContentCanvas";
 import LeaderboardPreview from "../canvas/LeaderboardCanvas";
 import QuizHeader from "../toolbar/EditorHeader";
 import Sidebar from "../inspector/QuestionInspector";
@@ -19,6 +20,7 @@ import Notice from "../../../../shared/ui/Notice";
 import { fa } from "../../../../shared/i18n/fa";
 import { useEditorStatus } from "../model/useEditorStatus.ts";
 import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
+import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -1010,6 +1012,9 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     <QuestionDraftProvider
       slide={showSidebar && activeSlideType === 1 ? activeSlide : null}
     >
+    <ContentDraftProvider
+      slide={showSidebar && activeSlideType === 2 ? activeSlide : null}
+    >
     <div
       className="relative flex h-full flex-col bg-gradient-to-b from-brand-soft to-canvas pb-20 pt-16 text-content md:pb-0"
       dir="rtl"
@@ -1120,21 +1125,13 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                   </div>
                 </div>
               ) : activeSlideType === 2 ? (
-                <div
-                  className="flex h-full w-full flex-col items-center justify-center gap-5 overflow-y-auto rounded-xl p-10 text-center"
-                  style={{
-                    color: quiz.text_color,
-                    backgroundColor: quiz.background_color,
-                    backgroundImage: quiz.background_image_url ? `url(${quiz.background_image_url})` : undefined,
-                    backgroundPosition: "center",
-                    backgroundSize: "cover",
-                  }}
-                >
-                  {activeSlide.content_image_url && (
-                    <img src={activeSlide.content_image_url} alt="" className="max-h-[45%] max-w-[80%] rounded-xl object-contain" />
-                  )}
-                  <h2 className="text-3xl font-bold">{activeSlide.title || "اسلاید محتوا"}</h2>
-                  {activeSlide.content_text && <p className="max-w-3xl whitespace-pre-wrap text-lg">{activeSlide.content_text}</p>}
+                <div className="flex h-full w-full items-center justify-center">
+                  <ContentCanvas
+                    slide={activeSlide}
+                    quizBackground={quiz.background_color}
+                    quizBackgroundImage={quiz.background_image_url}
+                    textColor={quiz.text_color}
+                  />
                 </div>
               ) : activeSlideType === 1 && activeSlide.question ? (
                 <div className="w-full h-full flex justify-center items-center">
@@ -1559,6 +1556,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         isLoading={false}
       />
     </div>
+    </ContentDraftProvider>
     </QuestionDraftProvider>
   );
 }
