@@ -43,6 +43,23 @@ export const verificationSchema = z.object({
   verificationCode: verificationCodeSchema,
 });
 
+const inactiveAuthField = z.string();
+
+export const loginFormSchema = loginSchema.extend({
+  verificationCode: inactiveAuthField,
+  fullName: inactiveAuthField,
+});
+
+export const registerFormSchema = registerSchema.extend({
+  verificationCode: inactiveAuthField,
+});
+
+export const verificationFormSchema = verificationSchema.extend({
+  password: inactiveAuthField,
+  fullName: inactiveAuthField,
+});
+
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 export type VerificationFormValues = z.infer<typeof verificationSchema>;
+export type AuthFormValues = z.infer<typeof registerFormSchema>;
