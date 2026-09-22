@@ -4,6 +4,7 @@ import { quizService } from "../../api/presentationRepository.ts";
 import { ApiError } from "../../../../shared/api/http.ts";
 import { useState, useEffect, useMemo } from "react";
 import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
+import { useOptionalDesignDraft } from "../model/useDesignDraftContext.ts";
 
 
 const buildDisplaySlides = (slidesData) => {
@@ -49,6 +50,7 @@ export default function SlidesPanel({
   onRefresh,
   onNotify
 }) {
+  const designController = useOptionalDesignDraft();
   const [isReordering, setIsReordering] = useState(false);
   const [localSlides, setLocalSlides] = useState([]);
   const [activeSlideType, setActiveSlideType] = useState(null); // ???? ???? ???? ????? slide_type ?????? ????
@@ -264,16 +266,22 @@ export default function SlidesPanel({
 
   // ???? ???? ?????? ???????? ??????
   const getSlideBackground = () => {
-    if (quizBackgroundImage) {
+    const backgroundImage =
+      designController?.draft.backgroundImageUrl ?? quizBackgroundImage;
+    const backgroundColor =
+      designController?.draft.backgroundColor ?? quizBackground;
+
+    if (backgroundImage) {
       return {
-        backgroundImage: `url(${quizBackgroundImage})`,
+        backgroundColor: backgroundColor || "#f3f4f6",
+        backgroundImage: `linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.18)), url(${JSON.stringify(backgroundImage)})`,
         backgroundSize: "cover",
         backgroundPosition: "center"
       };
     }
-    
+
     return {
-      backgroundColor: quizBackground || "#f3f4f6"
+      backgroundColor: backgroundColor || "#f3f4f6"
     };
   };
 
