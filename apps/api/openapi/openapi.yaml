@@ -1125,7 +1125,25 @@ components:
       type: object
       required: [error]
       properties:
-        error: { type: string }
+        error:
+          type: string
+          description: Stable machine-readable error code.
+        message:
+          type: string
+          description: Optional safe human-readable detail; clients should branch on error, not this text.
+        field_errors:
+          type: object
+          description: Optional field-scoped machine-readable validation codes.
+          additionalProperties:
+            type: array
+            items: { type: string }
+        retry_after_seconds:
+          type: integer
+          minimum: 0
+          description: Optional retry delay for bounded/rate-limited operations.
+        request_id:
+          type: string
+          description: Optional correlation identifier safe to expose to the client.
     Health:
       type: object
       required: [status]
