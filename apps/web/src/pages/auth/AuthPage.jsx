@@ -1,63 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { apiFetch } from "../../utils/apiFetch";
+
 import Seo from "../../components/Seo";
-
-function formatError(payload) {
-  if (!payload) return "خطایی رخ داد. دوباره تلاش کنید";
-  if (payload.error === "invalid_credentials") return "ایمیل یا رمز عبور نادرست است.";
-  if (payload.error === "email_taken") return "این ایمیل قبلاً ثبت شده است.";
-  if (payload.error === "invalid_request") return "اطلاعات واردشده معتبر نیست.";
-  if (payload.email) {
-    const message = Array.isArray(payload.email)
-      ? payload.email.join(", ")
-      : payload.email;
-    if (message.toLowerCase().includes("already")) {
-      return "این ایمیل قبلاً ثبت شده است";
-    }
-    return `ایمیل: ${message}`;
-  }
-  if (payload.detail) return payload.detail;
-  const keys = Object.keys(payload);
-  if (!keys.length) return "خطایی رخ داد. دوباره تلاش کنید.";
-  const firstKey = keys[0];
-  const value = payload[firstKey];
-  if (Array.isArray(value)) return `${firstKey}: ${value.join(", ")}`;
-  return `${firstKey}: ${value}`;
-}
-
-function normalizeErrorValue(value) {
-  if (Array.isArray(value)) return value.join(", ");
-  if (value === null || value === undefined) return "";
-  return String(value);
-}
-
-function getGoogleAuthErrorMessage(payload) {
-  const detail = normalizeErrorValue(payload?.detail || "");
-  if (!detail) return "";
-  const normalized = detail.toLowerCase();
-  if (normalized.includes("not configured")) {
-    return "ورود با گوگل در حال حاضر فعال نیست. لطفاً با پشتیبانی تماس بگیرید.";
-  }
-  if (normalized.includes("invalid google token")) {
-    return "ورود با گوگل ناموفق بود. لطفاً دوباره تلاش کنید.";
-  }
-  return "";
-}
-
-function extractFieldErrors(payload) {
-  if (!payload || typeof payload !== "object") return {};
-  const errors = {};
-  if (payload.email) errors.email = normalizeErrorValue(payload.email);
-  if (payload.username && !errors.email) {
-    errors.email = normalizeErrorValue(payload.username);
-  }
-  if (payload.password) errors.password = normalizeErrorValue(payload.password);
-  if (payload.full_name) errors.full_name = normalizeErrorValue(payload.full_name);
-  if (payload.code) errors.code = normalizeErrorValue(payload.code);
-  if (payload.detail) errors.form = normalizeErrorValue(payload.detail);
-  return errors;
-}
+import { identityApi } from "../../modules/identity/api/identityApi.ts";
+import {
+  identityErrorCode,
+  identityErrorMessage,
+  identityFieldErrors,
+  retryAfterSeconds,
+} from "../../modules/identity/api/identityErrors.ts";
 
 function isEmailValid(value) {
   if (!value) return false;
@@ -94,27 +45,6 @@ function getPasswordPolicyError(value) {
   return "";
 }
 
-function isDuplicateEmailError(payload) {
-  if (!payload || typeof payload !== "object") return false;
-  const message = normalizeErrorValue(payload.email || payload.detail || payload.error || "");
-  return /already|exist|used/i.test(message);
-}
-
-function isOtpExpiredError(payload) {
-  if (!payload || typeof payload !== "object") return false;
-  const message = normalizeErrorValue(payload.detail || "");
-  return /expired/i.test(message);
-}
-
-function isNetworkError(error) {
-  const message = error?.message || "";
-  return (
-    error?.name === "TypeError" ||
-    message.includes("Failed to fetch") ||
-    message.includes("NetworkError")
-  );
-}
-
 function getResendSeconds(payload, fallbackSeconds) {
   if (!payload || typeof payload !== "object") return fallbackSeconds;
   const seconds =
@@ -135,14 +65,6 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-async function parseJson(response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 const GOOGLE_COOKIE_HELP_URL =
