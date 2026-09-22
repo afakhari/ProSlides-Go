@@ -80,7 +80,7 @@ export default function QuestionOptionsEditor({
     <section aria-labelledby="question-options-heading">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 id="question-options-heading" className="text-sm font-semibold text-content">
+          <h3 id="question-options-heading" tabIndex={-1} className="text-sm font-semibold text-content outline-none">
             گزینه‌های پاسخ
           </h3>
           <p className="mt-1 text-xs leading-5 text-content-muted">
