@@ -1,4 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -6,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Seo from "../../../components/Seo";
 import { ApiError } from "../../../shared/api/http.ts";
 import { formatPersianNumber } from "../../../shared/forms/numbers.ts";
+import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
 import { identityApi } from "../api/identityApi.ts";
 import {
   resetPasswordSchema,
@@ -126,7 +126,7 @@ export default function ResetPasswordRoute() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: createZodResolver(resetPasswordSchema),
     mode: "onBlur",
     defaultValues: {
       password: "",
