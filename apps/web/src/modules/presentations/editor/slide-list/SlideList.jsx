@@ -1,6 +1,7 @@
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { GripVertical, Trash2, Trophy } from "lucide-react";
 import { quizService } from "../../api/presentationRepository.ts";
+import { ApiError } from "../../../../shared/api/http.ts";
 import { useState, useEffect, useMemo } from "react";
 import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 
@@ -125,7 +126,9 @@ export default function SlidesPanel({
       console.error("Failed to update slide order:", error);
       notify("جابه‌جایی اسلاید انجام نشد.", "error");
       setLocalSlides(previousSlides);
-      if (error.response?.status === 409 && onRefresh) await onRefresh();
+      if (error instanceof ApiError && error.code === "edit_conflict" && onRefresh) {
+        await onRefresh();
+      }
     } finally {
       setIsReordering(false);
     }
@@ -327,8 +330,7 @@ export default function SlidesPanel({
                   return (
                     <div
                       key={uniqueKey}
-                      onClick={() => handleSlideClick(slide)}
-                      className={`relative cursor-pointer border rounded-lg overflow-hidden transition-all
+                      className={`relative border rounded-lg overflow-hidden transition-all
                         w-full aspect-[16/9] max-w-[360px] mx-auto
                         ${isActive
                           ? "border-slate-600 outline-2 outline-slate-500 outline"
@@ -337,14 +339,26 @@ export default function SlidesPanel({
                       `}
                       style={slideBackground}
                     >
+                      <button
+                        type="button"
+                        onClick={() => handleSlideClick(slide)}
+                        aria-label={`انتخاب اسلاید ${slideTitle}`}
+                        aria-pressed={isActive}
+                        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                      >
+                        <span className="sr-only">انتخاب اسلاید {slideTitle}</span>
+                      </button>
+
                       {/* Delete button */}
                       <button
+                        type="button"
+                        aria-label={`حذف اسلاید ${slideTitle}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteSlide(slide[idKey], slide.slide_type);
                         }}
                         disabled={isReordering}
-                        className="absolute top-1 right-2 p-2 rounded-md bg-white/90 hover:bg-red-50 text-red-600 shadow-sm z-20 disabled:opacity-50"
+                        className="absolute top-1 right-2 z-20 rounded-md bg-surface/95 p-2 text-danger shadow-sm hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -403,8 +417,7 @@ export default function SlidesPanel({
                         <div
                           {...provided.draggableProps}
                           ref={provided.innerRef}
-                          onClick={() => handleSlideClick(slide)}
-                          className={`relative cursor-pointer border rounded-lg overflow-hidden transition-all
+                          className={`relative border rounded-lg overflow-hidden transition-all
                             w-full aspect-[16/9] max-w-[360px] mx-auto
                             ${isActive
                               ? "border-slate-600 outline-2 outline-slate-500 outline"
@@ -415,12 +428,24 @@ export default function SlidesPanel({
                           `}
                           style={mergedStyle}
                         >
+                          <button
+                            type="button"
+                            onClick={() => handleSlideClick(slide)}
+                            aria-label={`انتخاب اسلاید ${slideTitle}`}
+                            aria-pressed={isActive}
+                            className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                          >
+                            <span className="sr-only">انتخاب اسلاید {slideTitle}</span>
+                          </button>
+
                           {/* Drag handle */}
                           {!dragDisabled && (
                             <div
                               {...provided.dragHandleProps}
+                              aria-label={`جابه‌جایی اسلاید ${slideTitle}`}
+                              title="جابه‌جایی اسلاید"
                               onMouseDown={(e) => e.stopPropagation()}
-                              className="absolute top-1 right-11 p-1.5 bg-white/90 rounded-md shadow-sm cursor-grab hover:bg-white z-20 active:cursor-grabbing"
+                              className="absolute top-1 right-11 z-20 cursor-grab rounded-md bg-surface/95 p-1.5 shadow-sm hover:bg-surface active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                             >
                               <GripVertical className="w-5 h-5 text-gray-700" />
                             </div>
@@ -428,21 +453,26 @@ export default function SlidesPanel({
 
                           {/* Delete button */}
                           <button
+                            type="button"
+                            aria-label={`حذف اسلاید ${slideTitle}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteSlide(slide[idKey], slide.slide_type);
                             }}
                             disabled={isReordering}
-                            className="absolute top-1 right-2 p-2 rounded-md bg-white/90 hover:bg-red-50 text-red-600 shadow-sm z-20 disabled:opacity-50"
+                            className="absolute top-1 right-2 z-20 rounded-md bg-surface/95 p-2 text-danger shadow-sm hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
 
                           {/* Leaderboard indicator for question slides */}
                           {isQuestionSlide && hasLeaderboardAfter(slide) && (
-                            <div className="absolute top-1 left-2 p-2 bg-yellow-500 text-white text-xs rounded-md z-20 flex items-center gap-1">
-                              <Trophy className="w-3 h-3" />
-                              LB
+                            <div
+                              className="absolute top-1 left-2 z-20 flex items-center gap-1 rounded-md border border-warning-border bg-warning-soft p-2 text-xs font-semibold text-warning-ink"
+                              aria-label="نمایش جدول امتیازات بعد از این سؤال"
+                            >
+                              <Trophy className="w-3 h-3" aria-hidden="true" />
+                              جدول
                             </div>
                           )}
 
