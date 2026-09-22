@@ -32,6 +32,7 @@ import { getPresentationValidationError } from "../editor/model/validation";
 import { createPresentationOnce } from "../model/createPresentationFlow.ts";
 import Notice from "../../../shared/ui/Notice";
 import { fa } from "../../../shared/i18n/fa";
+import { normalizeDigits } from "../../../shared/forms/numbers.ts";
 
 const safeTimestamp = (value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -65,13 +66,8 @@ const persianNumberFormatter = new Intl.NumberFormat("fa-IR");
 const formatNumber = (value) =>
   persianNumberFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0);
 
-const normalizePersianDigits = (value = "") =>
-  String(value)
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
-
 const normalizePersianText = (value = "") =>
-  normalizePersianDigits(String(value).normalize("NFKC"))
+  normalizeDigits(String(value).normalize("NFKC"))
     .replace(/ي/g, "ی")
     .replace(/ك/g, "ک")
     .replace(/[‌\s]+/g, " ")
@@ -92,7 +88,7 @@ const getVersionInfo = (title) => {
     return { baseName: value || "ارائه بدون عنوان", version: 1 };
   }
 
-  const version = Number(normalizePersianDigits(match[1])) || 1;
+  const version = Number(normalizeDigits(match[1])) || 1;
   const baseName = value.slice(0, match.index).trim() || "ارائه بدون عنوان";
   return { baseName, version };
 };
@@ -241,6 +237,14 @@ export default function QuizManager({ onNewPresentation }) {
   const [renamingQuiz, setRenamingQuiz] = useState(null);
   const [newQuizName, setNewQuizName] = useState("");
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
+
+  useEffect(() => {
+    const validIds = new Set(quizzes.map((quiz) => quiz.id));
+    setSelectedQuizzes((current) =>
+      current.filter((id) => validIds.has(id)),
+    );
+  }, [quizzes]);
+
   const [deletingQuizIds, setDeletingQuizIds] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
