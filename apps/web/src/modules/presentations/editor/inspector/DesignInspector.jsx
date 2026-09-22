@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Trash2, Save, Link } from "lucide-react";
 import { quizService } from "../../api/presentationRepository.ts";
 import { ErrorModal } from "../../../../pages/quiz/manager/ErrorModal";
-import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 
 
 export default function DesignPanel({
