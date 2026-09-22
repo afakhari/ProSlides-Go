@@ -37,7 +37,7 @@ status and priorities live in `status/current.md`.
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
 | P2 | Component/API-state coverage is thinner than protocol coverage. | Add Vitest + Testing Library + MSW for pending/success/validation/conflict/cancellation/reconnect states. |
-| P2 | Architecture enforcement still relies partly on structural/source-regex tests. | Replace with dependency-boundary linting and dead-code/dependency checks where practical. |
+| P2 | Core dependency direction `app -> modules -> shared` is now lint-enforced for shared/module imports, while some finer-grained cross-module and dead-code checks still rely on convention/structural tests. | Add finer public-module API rules and dead-code/dependency analysis once the remaining legacy ownership has moved. |
 | P2 | Local Web Vitals are not production field performance. | Add privacy-safe RUM and release-tagged frontend error/performance observability before field-grade claims. |
 
 ## P3 tooling debt
