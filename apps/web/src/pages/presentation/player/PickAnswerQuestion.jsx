@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
-import { useLiveSession } from "../../../hooks/useLiveSession";
-import { createRequestId } from "../../../live/liveApi";
-import { useServerData } from "../../../hooks/useServerData";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
+import { createRequestId } from "../../../modules/live/api/liveApi";
+import { useServerData } from "../../../modules/live/react/useServerData";
 import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
 import { resolveQuestionTimer } from "../utils/questionTimerSync";
 
