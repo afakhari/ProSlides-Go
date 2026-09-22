@@ -1,230 +1,137 @@
-# Persian-first frontend professionalization plan
+# ProSlides frontend product and UX guidelines
 
-## Purpose and product direction
+## Purpose
 
-This document owns the experience sequence and acceptance gates for turning the
-current functional React client into a coherent, production-quality Persian
-product. `docs/frontend-architecture.md` owns technical boundaries and ADR 0003
-records the accepted architecture decision. If they disagree, reconcile them
-before implementation.
+This document owns durable Persian-first product experience rules. It does not
+track implementation phases or current source counts. Current status is in
+`status/current.md`; frontend debt is in `frontend-status.md`; historical
+F0-F5 delivery is archived in `archive/frontend-f0-f5-2026-08.md`.
 
-The target product language is Persian. User-facing application chrome,
-primary workflows, validation, empty states, loading states, and accessibility
-labels must be Persian and use RTL layout. API fields, code identifiers, URLs,
-logs, and developer documentation remain English.
+## Product language and direction
 
-Professional does not mean adding long or decorative animation. The product
-must feel continuous, predictable, fast, accessible, and visually consistent.
-Durable API behavior and the existing editor/live correctness boundaries must
-not be weakened for visual polish.
+Persian is the default user-facing language. Product chrome, validation, empty
+states, loading states and accessibility labels are Persian and RTL.
 
-## Audited baseline — 2026-08-28
+API fields, URLs, logs, code identifiers and developer documentation remain
+English. User-authored presentation content may be Persian, English or mixed
+and must use safe direction boundaries rather than forced alignment.
 
-A real-Chrome review at desktop and 390x844 reproduced the first critical flow:
+## Experience principles
 
-```text
-dashboard -> Creating button -> unrelated full-screen loader -> empty editor
-```
+1. Navigation preserves spatial context. Route/data loading uses a
+   context-shaped skeleton instead of unrelated full-screen loading.
+2. Every mutation exposes pending, success when needed, and recoverable error
+   behavior. Duplicate submission is blocked.
+3. Validation is actionable and stays near the relevant field.
+4. Disabled controls communicate why when the reason is not obvious.
+5. Empty states identify the next useful action.
+6. Unimplemented controls are hidden or explicitly unavailable.
+7. Motion is functional, normally short, and respects reduced-motion settings.
+8. Keyboard, focus, screen-reader behavior and touch targets are definition of
+   done, not post-launch polish.
+9. Runtime presentation theming may change visual mood without changing basic
+   interaction/accessibility semantics.
+10. Responsive behavior is designed, not merely shrunk.
 
-The F1-F5 work aligned dashboard/editor foundations, replaced the blank first
-step with type-first creation, and added responsive editor navigation and
-status recovery. Remaining routes still vary in color, density, language, and
-spatial structure; the editor also retains untranslated detail copy.
+## Design-system contract
 
-The pre-F1 source audit found 78 JS/TS/CSS files and about 18,300 nonblank
-lines. The current tree contains 49 JSX, 15 JS, 14 TS, and 7 TSX files.
-`tsconfig.json` checks TS/TSX, so most JSX remains outside static type coverage;
-ESLint now checks JS/JSX/TS/TSX. `App.jsx` is a small route composition root,
-production has no mock-data dependency, and the obsolete archive is deleted.
-F5 removed numeric dispatch and established measured quality budgets.
-`frontend-status.md` is the canonical debt, remedy, and claim boundary.
+All product areas share one semantic design-system kernel even when they use
+different themes.
 
-The live-quiz follow-up adds a public display-only theme contract and one
-mobile-first Persian participant shell across join, lobby, question, content,
-and personal result states. Background color/image and text color come from the
-presentation settings. Closed questions are never remounted as a new timed
-question, while `show_leaderboard_after` still issues the explicit leaderboard
-transition after closure.
+Shared semantics include:
 
-The initial styles contained roughly 381 direct color expressions, 75 inline
-style objects, and 169 physical-direction utilities. The first F2 slice now
-provides one semantic theme and one Tailwind import for dashboard/editor/share;
-unrelated routes retain direct/style-direction debt for their ordered phase.
-Static legacy imports also
-preload DnD and motion on the landing route (about 252 KiB gzip). Blindly
-removing manual chunks produced a 736 KiB raw entry in an experiment, so dead
-code removal and route isolation must precede chunk tuning.
+- typography hierarchy;
+- spacing rhythm;
+- radii and elevation;
+- focus treatment;
+- field/error/help behavior;
+- disabled/loading states;
+- dialog/menu/popover behavior;
+- feedback colors and live-region rules;
+- motion duration/easing categories.
 
-The latest real-Chrome run against the current Vite source completed register,
-dashboard creation, editor loading, access-code save, and share at 1440x900 and
-390x844. Inspected screenshots showed no visual regression; mobile document
-and client widths matched, title/code computed directions were RTL/LTR, and
-the browser reported zero console errors.
+Marketing, manager/dashboard, editor and live participant surfaces may use
+different theme values. A theme does not invent new meanings for "danger",
+"focus", "disabled" or "surface".
 
-## Experience rules for all frontend work
+## Forms
 
-1. Persian is the default user-facing language and page direction is RTL.
-2. Navigation preserves spatial context. Async route changes use a shell-shaped
-   skeleton, not a visually unrelated full-screen loader.
-3. Motion is functional, normally 160-220 ms, and disabled or reduced under
-   `prefers-reduced-motion`.
-4. Every mutation exposes pending, success, and recoverable error states. A
-   disabled control must explain why.
-5. Empty states identify the next useful action. They must not look like broken
-   or unfinished screens.
-6. One design-token system owns brand colors, typography, spacing, radii,
-   shadows, focus states, and semantic feedback colors.
-7. Responsive acceptance is required at desktop 1440x900 and mobile 390x844.
-8. Keyboard navigation, visible focus, named icon buttons, live status regions,
-   and reduced motion are part of completion, not a later cosmetic pass.
-9. Mock/demo data must not enter production flows. Unimplemented controls are
-   hidden or explicitly marked as unavailable.
-10. Large UI changes require real-browser snapshots before and after the change.
+Forms use semantic labels, descriptions and field errors. Errors should not be
+communicated by color alone.
 
-## Ordered delivery phases
+Persian/Arabic digit entry is accepted where users naturally type numeric
+values. Display formatting may use Persian digits, while API/domain
+representation stays canonical. Numeric identifiers remain strings.
 
-### Phase F0 — architecture and evidence baseline — complete
+Password policy/help copy must be generated from or tested against the actual
+validation contract so guidance cannot drift from backend/OpenAPI rules.
 
-- Audited routes, source size, typing, lint, styling, dependencies, bundle, and
-  the real-browser creation flow.
-- Accepted ADR 0003 and created `docs/frontend-architecture.md`.
-- Established one ordered F1-F5 track and corrected stale mock-data guidance.
+## Feedback and errors
 
-F0 changed documentation only; it does not claim the runtime has been migrated.
+Use one feedback policy:
 
-### Phase F1 — creation-to-editor continuity — complete 2026-08-28
+- field validation next to the field;
+- form-level errors near the form;
+- transient success/status in an accessible status region;
+- destructive confirmation through an accessible alert dialog;
+- network/server recovery with retained user context and retry when safe;
+- edit conflicts explain that newer server state exists and provide a clear
+  recovery action.
 
-Objective: make `ارائه جدید` feel like one continuous Persian workflow while
-establishing the first narrow `modules/presentations` and `shared/ui` seam.
+Do not expose raw backend/internal English messages as primary Persian UI copy.
+Use stable machine-readable error codes and localized client messages.
 
-- Keep visible progress in the dashboard while the create request commits.
-- Issue exactly one request and one navigation with explicit creation context,
-  then render an editor-shaped skeleton.
-- Replace the generic loader on the editor route.
-- Fade the loaded editor into the same shell without layout jump.
-- Add a Persian first-run empty state with a clear first-slide action.
-- Open slide-type selection after the first intentional draft action, not as an
-  accidental route side effect.
-- Localize every user-facing string introduced or touched by this flow.
-- Respect reduced-motion preference.
+## Responsive behavior
 
-Acceptance:
+Regression anchors remain 390x844 mobile and 1440x900 desktop. Test intermediate
+sizes when layout changes.
 
-- A single click creates exactly one presentation and performs one navigation.
-- Pending state is announced and duplicate clicks are blocked.
-- No unrelated background/loading screen flashes between dashboard and editor.
-- The final editor remains usable at 1440x900 and 390x844.
-- Create failure leaves the user on the dashboard with a Persian recoverable
-  error and no false success state.
-- Unit, lint, typecheck, build, and real-Chrome flow checks pass.
-- The browser trace or test proves the request and navigation counts.
+Editor/live controls must account for safe areas and virtual-keyboard pressure.
+Reusable components should respond to their container when appropriate rather
+than assuming the whole viewport defines available space.
 
-### Phase F2 — Persian app shell and design system — complete
+Avoid physical-direction assumptions. Prefer logical layout so RTL behavior is
+structural rather than a collection of exceptions.
 
-Completed first foundation slice on 2026-08-28:
+## Accessibility
 
-- `index.css` owns Tailwind plus brand, surface, content, semantic feedback,
-  focus, typography, radius, shadow, and motion tokens.
-- Typed `shared/ui/Notice.tsx` owns pending, success, warning, and error
-  announcements with polite/assertive live-region behavior.
-- Dashboard, editor, route skeleton, header, and share use the tokens and
-  shared notice; native alerts and the duplicate Tailwind import are removed
-  from that slice.
-- Share copy is Persian, its dialog has an accessible name, user-authored
-  titles use `dir="auto"`, and access codes/URLs use explicit LTR boundaries.
-- Lint, TS/TSX typecheck, 37 unit tests, build, real-Chrome desktop/mobile
-  screenshots, no-overflow measurement, and zero console errors passed.
+Target WCAG 2.2 AA.
 
-The fourth foundation slice completed on 2026-08-29: presentation/slide
-transport types are generated from checked-in OpenAPI and CI detects drift;
-editor domain types remain separate and no query cache was added.
+Required behavior includes:
 
-Remaining UX work moves forward with the ordered later phases:
-- Translate remaining editor/common-dialog copy after the catalog exists;
-  report and live translation remain outside the current narrow slice.
-- Finish keyboard focus containment/restoration for migrated dialogs and move
-  remaining dashboard/editor physical-direction styles to logical properties.
-- Continue hiding or explicitly marking non-functional editor controls.
+- semantic headings/landmarks/forms/tables;
+- visible, unobscured focus;
+- keyboard access to all actions;
+- accessible names for icon-only controls;
+- correct dialog focus containment/restoration;
+- no pointer-only essential interaction;
+- meaningful async/live announcements without noise;
+- reduced motion;
+- usable touch targets;
+- readable contrast across allowed runtime themes.
 
-Completed second foundation slice on 2026-08-28: dashboard/editor now share a
-persistent authenticated manager shell with route-local pending UI and a
-recoverable Persian error boundary. The typed Persian catalog is consumed by
-dashboard/editor/share. Lint, expanded typecheck, 39 unit tests, build, and all
-three system-Chrome E2E flows passed.
+Automated axe checks are a gate, not a substitute for keyboard/manual review.
 
-Completed third foundation slice on 2026-08-28: manager presentation reads and
-mutations use one typed shared JSON/API-error boundary with preserved CSRF,
-abort, revision, request-count, conflict, and auth-expiry behavior. Lint,
-typecheck, 42 unit tests, build, and all three system-Chrome E2E flows passed.
+## Motion
 
-### Phase F3 — editor information architecture and responsive refinement — complete
+Motion should explain continuity, hierarchy or state change. Avoid long
+decorative animation that delays work.
 
-- Simplify editor navigation and clarify canvas/panel hierarchy.
-- Make slide creation type-first and avoid abandoned draft slides.
-- Refine mobile header, bottom toolbar, sheets, and safe-area behavior.
-- Add consistent save state, dirty state, and conflict recovery affordances.
+Route/editor transitions may use platform/React transition capabilities where
+appropriate; richer live effects may use a motion library behind the route
+boundary. All effects require reduced-motion behavior.
 
-Completed 2026-08-29: dashboard, sharing, canonical editor model/API, and the
-editor route were migrated under the presentation module. Canvas, slide list,
-inspectors, and toolbar have explicit directories; the existing responsive
-mobile sheet/bottom toolbar keeps safe-area handling. New slides are persisted
-only after type selection, and a unified status model shows saved, dirty, and
-conflict states with reload recovery. Lint, typecheck, 46 unit tests, build,
-and all three system-Chrome E2E flows passed.
+## Browser acceptance
 
-### Phase F4 — maintainability, accessibility, and product cleanup
+Material UI changes should be checked in a real browser for:
 
-- Split oversized route/components behind stable domain boundaries.
-- Remove duplicated presentation runtime from `App.jsx`.
-- Remove production mock-data dependencies.
-- Complete keyboard, contrast, focus, screen-reader, and reduced-motion audit.
-- Add screenshot/interaction regression coverage for critical Persian flows.
+- desktop and mobile anchor sizes;
+- relevant intermediate/container states;
+- RTL and mixed LTR content;
+- keyboard focus/order;
+- reduced motion;
+- horizontal overflow;
+- console/network errors;
+- pending/error/recovery paths.
 
-Completed 2026-08-29: the 567-line `App.jsx` duplicate runtime and duplicate
-route branches were removed, leaving one route table and one catch-all. The
-typed Persian 404 route and shared header use semantic tokens, labels, visible
-focus, logical alignment, and explicit LTR access-code content. Production no
-longer imports `data/mockData`; live pages use empty bounded defaults and never
-fall back to a demo quiz. Two unreferenced mock-era components were removed and
-a unit gate prevents the router/runtime duplication and production mock imports
-from returning. Lint, typecheck, 47 unit tests, build, and the three existing
-system-Chrome interaction flows passed. The complete measured keyboard,
-screen-reader, contrast, RTL, reduced-motion, and performance audit remains the
-explicit F5 quality-closure gate.
-
-### Phase F5 — measured accessibility and performance hardening
-
-- Complete keyboard, focus-order, contrast, screen-reader, reduced-motion, and
-  RTL audits across critical flows.
-- Measure route bundles and Core Web Vitals, then set CI budgets from an
-  accepted baseline.
-- Remove dead imports before tuning explicit chunk boundaries; lazy-load route
-  code and heavy editors based on measurements.
-- Record browser evidence and close remaining UX gaps before returning priority
-  to production-readiness work.
-
-Completed 2026-08-29. Axe now gates WCAG 2/2.1/2.2 A/AA on critical stable
-states; Chrome checks keyboard focus, mobile overflow, RTL, reduced motion,
-local FCP/LCP/CLS, request counts, recovery navigation, and console/network
-failures. Measured contrast failures were fixed and the report's fake Upgrade
-control was removed. Named live join/answer commands and direct snapshot/event
-projection replaced numeric message dispatch. JS/JSX/TS/TSX lint is enforced,
-six unused production dependencies were removed, and native route splitting
-replaced substring manual chunks. The current accepted build is 80.50 KiB initial JS
-gzip, 17.40 KiB initial CSS gzip, 63.54 KiB largest route gzip, and zero initial
-module preloads; CI ceilings are checked during build. Full evidence and its
-local-only limitations are in `frontend-quality-baseline.md`.
-
-## Priority relationship to capacity work
-
-F1-F5 are the owner-prioritized implementation sequence. The production-like
-TLS 1k gate in `docs/capacity-plan.md` remains mandatory, unchanged, and
-unproven; it is queued after F5 rather than canceled. Frontend browser, bundle,
-or responsiveness results are never capacity evidence.
-
-## AI handoff protocol
-
-For every phase, update this document, `frontend-architecture.md`, `AGENTS.md`,
-and `AI_HANDOFF.md` with implemented scope, browser evidence, known gaps, and
-one exact next task. Do not mark a phase complete from static screenshots alone:
-verify API request count, navigation, error recovery, desktop, and mobile.
+Static screenshots alone do not prove interaction quality.
