@@ -533,6 +533,11 @@ export class LiveRuntime {
     const requestedId = String(identifier);
     this.publish({ connectionError: null });
     this.selectSession(requestedId);
+    let lifecycleVersion = this.lifecycleVersion;
+    let selectedId = requestedId;
+    const isCurrent = () =>
+      lifecycleVersion === this.lifecycleVersion &&
+      selectedId === this.selectedSessionId;
 
     try {
       if (this.role === "player") {
@@ -548,15 +553,23 @@ export class LiveRuntime {
       }
 
       let created = await this.transport.createLiveSession(requestedId, requestId);
+      if (!isCurrent()) return false;
       this.selectSession(created.id);
+      selectedId = created.id;
+      lifecycleVersion = this.lifecycleVersion;
       let next = await this.transport.getLiveSnapshot(created.id);
+      if (!isCurrent()) return false;
 
       if (next.session.state === "ended") {
         requestId = this.transport.createRequestId();
         this.safeStorageSet(createKey, requestId);
         created = await this.transport.createLiveSession(requestedId, requestId);
+        if (!isCurrent()) return false;
         this.selectSession(created.id);
+        selectedId = created.id;
+        lifecycleVersion = this.lifecycleVersion;
         next = await this.transport.getLiveSnapshot(created.id);
+        if (!isCurrent()) return false;
       }
 
       if (next.role === "manager" && next.session.state === "draft") {
@@ -577,12 +590,15 @@ export class LiveRuntime {
             throw error;
           }
         }
+        if (!isCurrent()) return false;
         next = await this.transport.getLiveSnapshot(next.session.id);
+        if (!isCurrent()) return false;
         if (next.session.state === "draft") {
           throw new Error("Live session could not enter the lobby");
         }
       }
 
+      if (!isCurrent()) return false;
       this.storeSnapshot(next);
       if (next.role === "manager") {
         await this.loadRoster(
@@ -592,10 +608,12 @@ export class LiveRuntime {
           false,
         );
       }
+      if (!isCurrent()) return false;
       this.publish({ isConnected: true });
       this.startStream();
       return true;
     } catch (error) {
+      if (!isCurrent()) return false;
       this.publish({
         connectionError: errorMessage(error),
         isConnected: false,
