@@ -117,9 +117,18 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const hasSidebarChanges = editorStatus.dirty.content;
   const hasAudioChanges = editorStatus.dirty.audio;
   const hasDesignChanges = editorStatus.dirty.design;
-  const setHasSidebarChanges = (dirty) => editorStatus.setDirty("content", Boolean(dirty));
-  const setHasAudioChanges = (dirty) => editorStatus.setDirty("audio", Boolean(dirty));
-  const setHasDesignChanges = (dirty) => editorStatus.setDirty("design", Boolean(dirty));
+  const setHasSidebarChanges = useCallback(
+    (dirty) => editorStatus.setDirty("content", Boolean(dirty)),
+    [editorStatus.setDirty],
+  );
+  const setHasAudioChanges = useCallback(
+    (dirty) => editorStatus.setDirty("audio", Boolean(dirty)),
+    [editorStatus.setDirty],
+  );
+  const setHasDesignChanges = useCallback(
+    (dirty) => editorStatus.setDirty("design", Boolean(dirty)),
+    [editorStatus.setDirty],
+  );
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [isAddingSlide, setIsAddingSlide] = useState(false);
   const [isCreatingSlide, setIsCreatingSlide] = useState(false);
