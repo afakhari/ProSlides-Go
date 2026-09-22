@@ -21,7 +21,7 @@ import {
   questionDraftToEditorSlide,
   validateQuestionDraft,
 } from "../model/questionDraft.ts";
-import { useQuestionDraft } from "../model/useQuestionDraft.ts";
+import { useRequiredQuestionDraft } from "../model/useQuestionDraftContext.ts";
 import ImageUrlDialog from "./ImageUrlDialog.tsx";
 import QuestionOptionsEditor from "./QuestionOptionsEditor.tsx";
 
@@ -104,7 +104,7 @@ function QuestionInspectorInner({
     setOptionImage,
     toggleCorrect,
     moveOption,
-  } = useQuestionDraft(slide);
+  } = useRequiredQuestionDraft();
 
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
