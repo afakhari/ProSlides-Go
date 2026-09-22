@@ -343,7 +343,9 @@ field-performance claims, collect privacy-safe RUM for Core Web Vitals and
 frontend error/route/API/SSE recovery signals with bounded metadata and release
 identification.
 
-## Migration order
+## Migration sequencing
+
+This list records sequencing constraints, not current completion status. Current completion and remaining debt are tracked in `status/current.md` and `frontend-status.md`.
 
 1. Standardize backend/frontend machine-readable error contracts.
 2. Converge design-system primitives and tokens.
