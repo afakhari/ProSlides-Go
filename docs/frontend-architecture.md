@@ -256,8 +256,7 @@ The runtime must preserve:
 - bounded manager roster pages;
 - authoritative server timer/deadline semantics.
 
-React context should expose the runtime, not contain the full protocol
-implementation indefinitely.
+React context exposes the runtime controller through a thin external-store adapter. Cursor, reconnect, roster and command state belong to `modules/live/runtime`, not to React lifecycle state.
 
 ## TypeScript
 
