@@ -421,7 +421,6 @@ export default function AuthPage() {
 
   const trimmedEmail = email.trim();
   const emailError = errors.email?.message || "";
-  const passwordPolicyError = isSignup ? errors.password?.message || "" : "";
   const fullNameError = isSignup ? errors.fullName?.message || "" : "";
   const verificationCodeError = isVerify
     ? errors.verificationCode?.message || ""
@@ -1090,7 +1089,7 @@ export default function AuthPage() {
               <MailIcon />
             </span>
             <input
-              className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100 ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+              className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-content-muted ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
                 }`}
               type="email"
               autoComplete="email"
@@ -1117,7 +1116,7 @@ export default function AuthPage() {
                 <LockIcon />
               </span>
               <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-content-muted"
                 type={showPassword ? "text" : "password"}
                 autoComplete={isSignup ? "new-password" : "current-password"}
                 placeholder="رمز عبور"
@@ -1173,7 +1172,7 @@ export default function AuthPage() {
                   <LockIcon />
                 </span>
                 <input
-                  className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
+                  className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-content-muted"
                   type="text"
                   inputMode="numeric"
                   placeholder="کد تأیید"
@@ -1202,7 +1201,7 @@ export default function AuthPage() {
                 <UserIcon />
               </span>
               <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
+                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-content-muted"
                 type="text"
                 autoComplete="name"
                 placeholder="نام و نام خانوادگی"
