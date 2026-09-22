@@ -360,7 +360,7 @@ export default function AuthRoute() {
 
         setStatus({
           type: "info",
-          message: \`کد ۶ رقمی به \${maskEmail(values.email)} ارسال شد. برای تأیید حساب آن را وارد کنید.\`,
+          message: `کد ۶ رقمی به ${maskEmail(values.email)} ارسال شد. برای تأیید حساب آن را وارد کنید.`,
         });
         setMode("verify");
         setValue("verificationCode", "");
@@ -505,7 +505,7 @@ export default function AuthRoute() {
       <Seo
         title={seoTitle}
         description="ورود یا ثبت‌نام در پرو اسلایدز برای ساخت و مدیریت ارائه‌های تعاملی با نظرسنجی زنده و کوییز."
-        canonical={\`https://proslides.ir/\${mode === "signup" ? "signup" : "login"}\`}
+        canonical={`https://proslides.ir/${mode === "signup" ? "signup" : "login"}`}
       />
       <AuthBackdrop decorate={!isVerify} />
       <AuthCard
