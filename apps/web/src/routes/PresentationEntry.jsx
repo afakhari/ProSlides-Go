@@ -80,11 +80,9 @@ const EMPTY_PRESENTATION = {
 };
 
 export default function PresentationEntry({ mode, role: explicitRole }) {
-  return (
-    <ServerDataProvider>
-      {mode === "accessCode" ? <AccessCodeResolver /> : <PresentationRouter explicitRole={explicitRole} />}
-    </ServerDataProvider>
-  );
+  return mode === "accessCode"
+    ? <AccessCodeResolver />
+    : <PresentationRouter explicitRole={explicitRole} />;
 }
 
 /* ------------------------ Access Code Resolver ------------------------ */
@@ -151,12 +149,13 @@ function AccessCodeResolver() {
     return (
       <AudioProvider>
         <LiveSessionProvider role="player">
-          <AppPresentation
-            roomId={String(resolvedData.session_id)}
-            role="player"
-            initialQuizData={resolvedMeta}
-          />
-          <LiveMessageHandler />
+          <ServerDataProvider>
+            <AppPresentation
+              roomId={String(resolvedData.session_id)}
+              role="player"
+              initialQuizData={resolvedMeta}
+            />
+          </ServerDataProvider>
         </LiveSessionProvider>
       </AudioProvider>
     );
@@ -167,15 +166,15 @@ function AccessCodeResolver() {
 
 /* ------------------------ Router Wrapper ------------------------ */
 function PresentationRouter({ explicitRole }) {
-  const { roomId, role: routeRole } = useParams();
-  const role = explicitRole || routeRole;
-  const liveRole = role === "player" ? "player" : "manager";
+  const { roomId } = useParams();
+  const role = explicitRole === "player" ? "player" : "manager";
 
   return (
     <AudioProvider>
-      <LiveSessionProvider role={liveRole}>
-        <AppPresentation roomId={roomId} role={role} />
-        <LiveMessageHandler />
+      <LiveSessionProvider role={role}>
+        <ServerDataProvider>
+          <AppPresentation roomId={roomId} role={role} />
+        </ServerDataProvider>
       </LiveSessionProvider>
     </AudioProvider>
   );
@@ -819,22 +818,4 @@ class PresentationErrorBoundary extends React.Component {
       </div>
     );
   }
-}
-
-/* ---------------- Live HTTP/SSE synchronization ---------------- */
-function LiveMessageHandler() {
-  const { snapshot, roster, lastEvent } = useLiveSession();
-  const { applyLiveSnapshot, applyLiveEvent } = useServerData();
-
-  useEffect(() => {
-    if (!snapshot) return;
-    applyLiveSnapshot(snapshot, roster);
-  }, [snapshot, roster, applyLiveSnapshot]);
-
-  useEffect(() => {
-    if (!lastEvent) return;
-    applyLiveEvent(lastEvent);
-  }, [lastEvent, applyLiveEvent]);
-
-  return null;
 }
