@@ -148,7 +148,7 @@ function AccessCodeResolver() {
   if (status === "success" && resolvedData) {
     return (
       <AudioProvider>
-        <LiveSessionProvider role="player">
+        <LiveSessionProvider key={`player:${String(resolvedData.session_id)}`} role="player">
           <ServerDataProvider>
             <AppPresentation
               roomId={String(resolvedData.session_id)}
@@ -171,7 +171,7 @@ function PresentationRouter({ explicitRole }) {
 
   return (
     <AudioProvider>
-      <LiveSessionProvider role={role}>
+      <LiveSessionProvider key={`${role}:${String(roomId || "unknown")}`} role={role}>
         <ServerDataProvider>
           <AppPresentation roomId={roomId} role={role} />
         </ServerDataProvider>
@@ -364,7 +364,7 @@ function AppPresentation({ roomId, role, initialQuizData }) {
         avatar: playerResumeProfile.avatar,
         clientUserId: getPersistedUserIdForRoom(roomId),
     }).then((ok) => {
-      if (!ok) playerResumeJoinSentRef.current = false;
+      if (ok !== true) playerResumeJoinSentRef.current = false;
     });
   }, [
     shouldAutoResumePlayerSession,
