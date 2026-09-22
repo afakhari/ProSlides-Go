@@ -1,5 +1,5 @@
 import { motion as Motion } from "framer-motion";
-import { useLiveSession } from "../../../hooks/useLiveSession";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
 
 export default function PlayerLeaderBoard({ quiz }) {
