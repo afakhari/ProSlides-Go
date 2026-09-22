@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { useLiveSession } from "../../../hooks/useLiveSession";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
 import { createClientUserId, DEFAULT_AVATAR, getPersistedUserIdForRoom, readStoredProfile, saveStoredProfile } from "./playerProfileStorage";
 
