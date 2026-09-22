@@ -114,7 +114,7 @@ function QuestionInspectorInner({
     kind: "closed",
   });
   const [imageTarget, setImageTarget] = useState<ImageTarget>(null);
-  const questionInputRef = useRef<HTMLInputElement>(null);
+  const questionInputRef = useRef<HTMLTextAreaElement>(null);
 
   const validationIssues = useMemo(
     () => validateQuestionDraft(draft),
@@ -306,11 +306,11 @@ function QuestionInspectorInner({
 
               <div className="mt-2 flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                  <input
+                  <textarea
                     ref={questionInputRef}
                     id="question-editor-text"
-                    type="text"
                     dir="auto"
+                    rows={3}
                     value={draft.text}
                     maxLength={QUESTION_LIMITS.text}
                     disabled={isSaving || conflictPending}
@@ -320,7 +320,7 @@ function QuestionInspectorInner({
                     }
                     onChange={(event) => setQuestionText(event.target.value)}
                     placeholder="سؤال خود را بنویسید…"
-                    className="h-11 w-full rounded-control border border-border-subtle bg-surface px-3 text-sm text-content outline-none transition placeholder:text-content-muted focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="min-h-24 w-full resize-y rounded-control border border-border-subtle bg-surface px-3 py-2.5 text-sm leading-6 text-content outline-none transition placeholder:text-content-muted focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                   {questionTextError && (
                     <p
