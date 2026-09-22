@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Save, X } from "lucide-react";
 
-import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 import { quizService } from "../../api/presentationRepository.ts";
 
 const editableContent = (slide) => ({
