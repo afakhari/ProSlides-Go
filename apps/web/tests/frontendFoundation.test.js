@@ -186,13 +186,15 @@ test("manager and player routes are explicit and reports use the typed query bou
 
 
 test("identity UI uses the typed module API instead of parsing transport responses", () => {
-  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
+  const auth = source("src/modules/identity/routes/AuthRoute.tsx");
+  const google = source("src/modules/identity/hooks/useGoogleIdentity.ts");
   const api = source("src/modules/identity/api/identityApi.ts");
   const errors = source("src/modules/identity/api/identityErrors.ts");
 
   assert.match(auth, /identityApi\.login/);
   assert.match(auth, /identityApi\.register/);
   assert.match(auth, /identityApi\.verifyEmail/);
+  assert.match(google, /onCredential/);
   assert.match(auth, /identityApi\.authenticateWithGoogle/);
   assert.doesNotMatch(auth, /apiFetch\(|parseJson\(|formatError\(|extractFieldErrors\(/);
   assert.match(api, /announceAuthExpiry:\s*false/);
@@ -202,13 +204,14 @@ test("identity UI uses the typed module API instead of parsing transport respons
 
 
 test("identity route validation is owned by module Zod schemas", () => {
-  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
+  const auth = source("src/modules/identity/routes/AuthRoute.tsx");
+  const card = source("src/modules/identity/ui/AuthCard.tsx");
   const schemas = source("src/modules/identity/model/authSchemas.ts");
 
   assert.match(auth, /registerSchema\.safeParse/);
   assert.match(auth, /loginSchema\.safeParse/);
   assert.match(auth, /verificationSchema\.safeParse/);
-  assert.match(auth, /normalizeDigits/);
+  assert.match(card, /normalizeDigits/);
   assert.match(schemas, /min\(12/);
   assert.match(schemas, /max\(128/);
   assert.match(schemas, /max\(100/);
@@ -253,21 +256,27 @@ test("live runtime ownership is module-scoped and React is only an adapter", () 
 });
 
 
-test("main identity fields are owned by React Hook Form", () => {
-  const auth = source("src/modules/identity/routes/AuthRoute.jsx");
+test("main identity fields are owned by React Hook Form with focused auth composition", () => {
+  const auth = source("src/modules/identity/routes/AuthRoute.tsx");
+  const card = source("src/modules/identity/ui/AuthCard.tsx");
+  const google = source("src/modules/identity/hooks/useGoogleIdentity.ts");
+  const timers = source("src/modules/identity/hooks/useVerificationTimers.ts");
 
-  assert.match(auth, /useForm\(/);
+  assert.match(auth, /useForm<AuthFormValues>/);
   assert.match(auth, /createZodResolver/);
-  assert.match(auth, /register\("email"\)/);
-  assert.match(auth, /register\("password"\)/);
-  assert.match(auth, /register\("verificationCode"/);
-  assert.match(auth, /register\("fullName"\)/);
-  assert.match(auth, /readOnly=\{isVerify\}/);
+  assert.match(card, /register\("email"\)/);
+  assert.match(card, /register\("password"\)/);
+  assert.match(card, /register\("verificationCode"/);
+  assert.match(card, /register\("fullName"\)/);
+  assert.match(card, /readOnly=\{isVerify\}/);
   assert.match(auth, /setError\(field, \{ type: "server", message \}\)/);
+  assert.match(auth, /useGoogleIdentity/);
+  assert.match(auth, /useVerificationTimers/);
+  assert.match(google, /accounts\?\.id/);
+  assert.match(timers, /expiresAt/);
+  assert.doesNotMatch(auth, /document\.createElement\("script"\)/);
+  assert.doesNotMatch(auth, /setTimeout\(/);
   assert.doesNotMatch(auth, /const \[email, setEmail\]/);
-  assert.doesNotMatch(auth, /const \[password, setPassword\]/);
-  assert.doesNotMatch(auth, /const \[verificationCode, setVerificationCode\]/);
-  assert.doesNotMatch(auth, /const \[fullName, setFullName\]/);
   assert.doesNotMatch(auth, /setFieldErrors\(/);
 });
 
