@@ -138,3 +138,22 @@ test("participant live UI is Persian, theme-driven, and disclosure-safe", () => 
   assert.doesNotMatch(question, />\s*(?:Submitted|Submit|Loading quiz|You voted)\s*</);
   assert.doesNotMatch(leaderboard, /players\.map|roster/);
 });
+
+
+test("shared design primitives use the ProSlides token vocabulary and accessible alert dialogs", () => {
+  const button = source("src/shared/ui/primitives/Button.tsx");
+  const variants = source("src/shared/ui/primitives/button.variants.ts");
+  const confirm = source("src/shared/ui/primitives/ConfirmDialog.tsx");
+
+  assert.match(button, /shared\/lib|\.\.\/\.\.\/lib\/cn/);
+  assert.match(variants, /bg-brand/);
+  assert.match(variants, /bg-danger/);
+  assert.match(variants, /ring-focus/);
+  assert.doesNotMatch(variants, /bg-primary|text-primary-foreground|ring-ring|border-input/);
+
+  assert.match(confirm, /@radix-ui\/react-alert-dialog/);
+  assert.match(confirm, /AlertDialogPrimitive\.Title/);
+  assert.match(confirm, /AlertDialogPrimitive\.Description/);
+  assert.match(confirm, /AlertDialogPrimitive\.Cancel/);
+  assert.match(confirm, /aria-busy/);
+});
