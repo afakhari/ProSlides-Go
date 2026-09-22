@@ -1,5 +1,5 @@
 import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
-import { Outlet, useLocation, useParams } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import RequireSession from "../../components/RequireSession.tsx";
 import EditorRouteSkeleton from "../../modules/presentations/editor/routes/EditorRouteSkeleton";
 import { fa } from "../../shared/i18n/fa";
@@ -80,8 +80,7 @@ function ManagerRouteFallback() {
 
 export default function ProtectedManagerShell() {
   const location = useLocation();
-  const { role = "manager" } = useParams();
-  const dashboardPath = `/${role}/panel`;
+  const dashboardPath = "/manager/panel";
   const [appNotice, setAppNotice] = useState<string | null>(null);
 
   useEffect(() => {
