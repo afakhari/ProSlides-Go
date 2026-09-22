@@ -463,13 +463,26 @@ test("question editor preserves typed draft semantics across save and edit confl
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
   await expectAccessible(page, "question editor");
 
+  const preview = page.getByRole("region", { name: "پیش‌نمایش سؤال" });
+  await expect(preview).toBeVisible();
   const questionInput = page.getByRole("textbox", { name: "متن سؤال", exact: true });
   const timeInput = page.getByLabel("زمان پاسخ به ثانیه");
   await questionInput.fill("پایتخت ایران را انتخاب کنید");
   await timeInput.fill("۴۵");
 
+  await expect(
+    preview.getByText("پایتخت ایران را انتخاب کنید", { exact: true }),
+  ).toBeVisible();
+  await expect(preview.getByText("۴۵ ثانیه", { exact: true })).toBeVisible();
+
   await page.getByRole("button", { name: "انتقال گزینه ۱ به پایین" }).click();
   await expect(page.getByPlaceholder("متن گزینه ۱")).toHaveValue("شیراز");
+  await expect(
+    preview.getByRole("article", { name: /گزینه ۱: شیراز/ }),
+  ).toBeVisible();
+  await expect(
+    preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("تغییرات ذخیره‌نشده دارید.")).toBeVisible();
 
   const saveResponsePromise = page.waitForResponse(
@@ -488,8 +501,29 @@ test("question editor preserves typed draft semantics across save and edit confl
   expect(savedSlide.content.options[0].text).toBe("شیراز");
   expect(savedSlide.content.options[0].order).toBe(1);
   await expect(page.getByText("همه تغییرات ذخیره شده است.")).toBeVisible();
+  await expect(
+    preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
+  ).toBeHidden();
 
+  await questionInput.fill("ویرایش موقت برای رد");
+  await expect(
+    preview.getByText("ویرایش موقت برای رد", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "بستن تنظیمات سؤال" }).click();
+  const discardDialog = page.getByRole("alertdialog");
+  await expect(discardDialog).toContainText("تغییرات ذخیره‌نشده این سؤال از بین می‌رود");
+  await discardDialog.getByRole("button", { name: "رد تغییرات" }).click();
+  await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeHidden();
+  await expect(
+    preview.getByText("پایتخت ایران را انتخاب کنید", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "محتوا" }).click();
+  await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeVisible();
   await questionInput.fill("نسخه محلی که نباید بی‌صدا از بین برود");
+  await expect(
+    preview.getByText("نسخه محلی که نباید بی‌صدا از بین برود", { exact: true }),
+  ).toBeVisible();
 
   await page.evaluate(
     async ({ presentationId, slideId, revision, content }) => {
@@ -548,6 +582,9 @@ test("question editor preserves typed draft semantics across save and edit confl
     page.getByText(/نسخه جدیدتری از این سؤال ذخیره شده است/),
   ).toBeVisible();
   await expect(questionInput).toHaveValue("نسخه محلی که نباید بی‌صدا از بین برود");
+  await expect(
+    preview.getByText("نسخه محلی که نباید بی‌صدا از بین برود", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "ذخیره تغییرات" })).toBeDisabled();
 
   await page.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
@@ -559,6 +596,7 @@ test("question editor preserves typed draft semantics across save and edit confl
   await expect(page.getByRole("complementary", { name: "تنظیمات سؤال" })).toBeHidden();
   await page.getByRole("button", { name: "محتوا" }).click();
   await expect(page.getByRole("textbox", { name: "متن سؤال", exact: true })).toHaveValue("نسخه جدید سرور");
+  await expect(preview.getByText("نسخه جدید سرور", { exact: true })).toBeVisible();
 
   expect(failures).toEqual([]);
 });
