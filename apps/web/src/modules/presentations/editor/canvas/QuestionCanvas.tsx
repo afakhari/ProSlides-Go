@@ -176,6 +176,7 @@ export default function QuestionCanvas({
               {preview.options.map((option) => (
                 <article
                   key={option.id}
+                  aria-label={`گزینه ${option.position}: ${option.text || `گزینه ${option.position}`}${option.isCorrect ? "، پاسخ صحیح" : ""}`}
                   className={`relative flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-start backdrop-blur-md ${
                     option.isCorrect
                       ? "border-emerald-300/80 bg-emerald-950/35"
