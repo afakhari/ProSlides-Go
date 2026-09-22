@@ -37,7 +37,7 @@ export default function TopBar({
     <div
       className={`fixed ${
         qrOpen ? "left-[20%] right-0" : "left-0 right-0"
-      } top-0 h-14 bg-pink-300 flex items-center justify-between px-5 z-50 transition-all duration-300 text-[color:var(--quiz-text)]`}
+      } top-0 h-14 bg-brand flex items-center justify-between px-5 z-50 transition-all duration-300 text-content-inverse`}
     >
       <div className="flex items-center gap-2">
         <button
@@ -61,12 +61,12 @@ export default function TopBar({
           برای ورود:{" "}
           <strong
             onClick={copyToClipboard}
-            className="cursor-pointer hover:text-blue-200 transition-colors relative"
+            className="cursor-pointer hover:text-brand-soft transition-colors relative"
             title="برای کپی کلیک کنید"
           >
             proslides.ir/{accessCode}
             {copiedLink && (
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-success-ink text-content-inverse text-xs px-2 py-1 rounded whitespace-nowrap">
                 کپی شد!
               </div>
             )}
