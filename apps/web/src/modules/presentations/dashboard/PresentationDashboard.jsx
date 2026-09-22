@@ -162,6 +162,8 @@ const removeLocalStorage = (key) => {
   }
 };
 
+const EMPTY_PRESENTATION_SUMMARIES = [];
+
 const toDashboardQuiz = (quiz, loggedInUser) => {
   const updatedAt = safeTimestamp(quiz.updated_at);
   const createdAt = safeTimestamp(quiz.created_at);
@@ -189,7 +191,7 @@ export default function QuizManager({ onNewPresentation }) {
   );
   const queryClient = useQueryClient();
   const {
-    data: presentationSummaries = [],
+    data: presentationSummaries = EMPTY_PRESENTATION_SUMMARIES,
     isPending: loading,
     isError: hasLoadError,
     refetch: refetchPresentations,
@@ -234,13 +236,6 @@ export default function QuizManager({ onNewPresentation }) {
     }
   }, []);
 
-  useEffect(() => {
-    const validIds = new Set(quizzes.map((quiz) => quiz.id));
-    setSelectedQuizzes((previous) =>
-      previous.filter((id) => validIds.has(id)),
-    );
-  }, [quizzes]);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("updated");
   const [showMenu, setShowMenu] = useState(null);
@@ -252,6 +247,14 @@ export default function QuizManager({ onNewPresentation }) {
   const [newQuizName, setNewQuizName] = useState("");
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
   const [deletingQuizIds, setDeletingQuizIds] = useState([]);
+
+  useEffect(() => {
+    const validIds = new Set(quizzes.map((quiz) => quiz.id));
+    setSelectedQuizzes((previous) => {
+      const next = previous.filter((id) => validIds.has(id));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [quizzes]);
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: "",
