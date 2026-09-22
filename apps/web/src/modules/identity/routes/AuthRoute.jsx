@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Seo from "../../../components/Seo";
@@ -10,21 +11,16 @@ import {
   retryAfterSeconds,
 } from "../api/identityErrors.ts";
 import {
-  emailSchema,
   loginSchema,
-  registerPasswordSchema,
   registerSchema,
   verificationSchema,
 } from "../model/authSchemas.ts";
 import { normalizeDigits } from "../../../shared/forms/numbers.ts";
-
-function isEmailValid(value) {
-  return emailSchema.safeParse(value).success;
-}
+import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
 
 function getPasswordStrength(value) {
   if (!value) {
-    return { score: 0, label: "Weak" };
+    return { score: 0, label: "ضعیف" };
   }
   const length = value.length;
   const hasLower = /[a-z]/.test(value);
@@ -43,11 +39,6 @@ function getPasswordStrength(value) {
   const label =
     score >= 4 ? "قوی" : score === 3 ? "خوب" : score === 2 ? "متوسط" : "ضعیف";
   return { score, label };
-}
-
-function getPasswordPolicyError(value) {
-  const result = registerPasswordSchema.safeParse(value);
-  return result.success ? "" : result.error.issues[0]?.message || "رمز عبور معتبر نیست.";
 }
 
 function getResendSeconds(payload, fallbackSeconds) {
@@ -362,21 +353,12 @@ export default function AuthPage() {
     return "login";
   }, [location.pathname, location.search]);
   const [mode, setMode] = useState(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
-  const emailRef = useRef(null);
-  const passwordRef = useRef(null);
-  const codeRef = useRef(null);
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
   const DEFAULT_OTP_TTL_SECONDS = 600;
   const PASSWORD_PROMPT_FLAG = "auth.promptSetPassword";
@@ -387,6 +369,42 @@ export default function AuthPage() {
 
   const isSignup = mode === "signup";
   const isVerify = mode === "verify";
+  const activeSchema = isVerify
+    ? verificationSchema
+    : isSignup
+      ? registerSchema
+      : loginSchema;
+  const formResolver = useMemo(
+    () => createZodResolver(activeSchema),
+    [activeSchema],
+  );
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+    setFocus,
+    getValues,
+    formState: { errors, isSubmitting: formSubmitting },
+  } = useForm({
+    resolver: formResolver,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+      verificationCode: "",
+      fullName: "",
+    },
+  });
+  const email = watch("email") || "";
+  const password = watch("password") || "";
+  const verificationCode = watch("verificationCode") || "";
+  const fullName = watch("fullName") || "";
+  const submitting = actionSubmitting || formSubmitting;
+
   const submitLabel = isVerify
     ? "تأیید"
     : isSignup
@@ -402,30 +420,16 @@ export default function AuthPage() {
   const seoCanonical = `https://proslides.ir/${isSignup ? "signup" : "login"}`;
 
   const trimmedEmail = email.trim();
-  const emailFormatError = useMemo(() => {
-    if (isVerify) return "";
-    if (!trimmedEmail) return "";
-    return isEmailValid(trimmedEmail) ? "" : "لطفاً یک ایمیل معتبر وارد کنید.";
-  }, [isVerify, trimmedEmail]);
-  const emailError = fieldErrors.email || emailFormatError;
-
-  const passwordPolicyError = useMemo(() => {
-    if (!isSignup) return "";
-    if (!password.trim()) return "";
-    return getPasswordPolicyError(password.trim());
-  }, [isSignup, password]);
+  const emailError = errors.email?.message || "";
+  const passwordPolicyError = isSignup ? errors.password?.message || "" : "";
+  const fullNameError = isSignup ? errors.fullName?.message || "" : "";
+  const verificationCodeError = isVerify
+    ? errors.verificationCode?.message || ""
+    : "";
   const passwordStrength = useMemo(
     () => getPasswordStrength(password.trim()),
     [password]
   );
-
-  const fullNameError = useMemo(() => {
-    if (!isSignup) return "";
-    if (fieldErrors.full_name) return fieldErrors.full_name;
-    if (!hasSubmitted) return "";
-    if (!fullName.trim()) return "نام و نام خانوادگی را وارد کنید.";
-    return "";
-  }, [fieldErrors.full_name, fullName, hasSubmitted, isSignup]);
 
   const otpExpired = isVerify && otpExpiresIn === 0;
 
@@ -470,22 +474,20 @@ export default function AuthPage() {
       navigate(`/${nextMode}`, { replace: true });
     }
     setStatus(null);
-    setFieldErrors({});
+    clearErrors();
     setResendCooldown(0);
-    setHasSubmitted(false);
     setOtpExpiresIn(0);
-    setPassword("");
-    setVerificationCode("");
+    setValue("password", "");
+    setValue("verificationCode", "");
   };
 
   const handleEditEmail = () => {
     setMode("login");
     setStatus(null);
-    setFieldErrors({});
+    clearErrors();
     setResendCooldown(0);
-    setHasSubmitted(false);
     setOtpExpiresIn(0);
-    setVerificationCode("");
+    setValue("verificationCode", "");
   };
 
   const maskEmail = (value) => {
@@ -566,21 +568,6 @@ export default function AuthPage() {
     }
   }, [isVerify, otpExpiresIn, trimmedEmail]);
 
-  useEffect(() => {
-    if (!hasSubmitted) return;
-    if (emailError && emailRef.current) {
-      emailRef.current.focus();
-      return;
-    }
-    if ((fieldErrors.password || passwordPolicyError) && passwordRef.current) {
-      passwordRef.current.focus();
-      return;
-    }
-    if (fieldErrors.code && codeRef.current) {
-      codeRef.current.focus();
-    }
-  }, [hasSubmitted, emailError, fieldErrors, passwordPolicyError]);
-
   const startResendCooldown = (seconds) => {
     const safeSeconds = Math.max(0, seconds || 0);
     setResendCooldown(safeSeconds);
@@ -636,6 +623,21 @@ export default function AuthPage() {
     navigate("/manager/panel");
   }, [navigate]);
 
+  const applyServerFieldErrors = useCallback((error) => {
+    const fieldErrors = identityFieldErrors(error);
+    const entries = [
+      ["email", fieldErrors.email],
+      ["password", fieldErrors.password],
+      ["fullName", fieldErrors.full_name],
+      ["verificationCode", fieldErrors.code],
+    ].filter(([, message]) => Boolean(message));
+
+    for (const [field, message] of entries) {
+      setError(field, { type: "server", message });
+    }
+    if (entries[0]) setFocus(entries[0][0]);
+  }, [setError, setFocus]);
+
   const handleGoogleResponse = useCallback(
     async (response) => {
       if (!response?.credential) {
@@ -646,7 +648,7 @@ export default function AuthPage() {
         return;
       }
 
-      setSubmitting(true);
+      setActionSubmitting(true);
       setStatus(null);
       try {
         const payload = await identityApi.authenticateWithGoogle({
@@ -665,16 +667,16 @@ export default function AuthPage() {
 
         navigateToDashboard();
       } catch (error) {
-        setFieldErrors(identityFieldErrors(error));
+        applyServerFieldErrors(error);
         setStatus({
           type: "error",
           message: identityErrorMessage(error, "ورود با گوگل ناموفق بود."),
         });
       } finally {
-        setSubmitting(false);
+        setActionSubmitting(false);
       }
     },
-    [navigateToDashboard]
+    [applyServerFieldErrors, navigateToDashboard]
   );
 
   useEffect(() => {
@@ -747,16 +749,18 @@ export default function AuthPage() {
     window.google.accounts.id.prompt(handleGooglePromptMoment);
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (values) => {
     let payload;
     try {
       payload = await identityApi.login({
-        email: email.trim(),
-        password: password.trim(),
+        email: values.email.trim(),
+        password: values.password,
       });
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "email_not_verified") {
+        setValue("password", "");
+        clearErrors();
         setMode("verify");
         setStatus({
           type: "info",
@@ -771,8 +775,8 @@ export default function AuthPage() {
       throw error;
     }
 
-    setAuthEmail(trimmedEmail);
-    const resolvedName = payload?.display_name || fullName.trim();
+    setAuthEmail(values.email.trim());
+    const resolvedName = payload?.display_name || getValues("fullName").trim();
     if (resolvedName) {
       localStorage.setItem("auth.name", resolvedName);
     }
@@ -781,7 +785,8 @@ export default function AuthPage() {
   };
 
   const handleForgotPassword = async () => {
-    if (!email.trim()) {
+    const currentEmail = getValues("email").trim();
+    if (!currentEmail) {
       setStatus({
         type: "error",
         message: "برای بازیابی رمز عبور، ابتدا ایمیل خود را وارد کنید.",
@@ -789,16 +794,16 @@ export default function AuthPage() {
       return;
     }
 
-    setSubmitting(true);
+    setActionSubmitting(true);
     setStatus(null);
     try {
-      await identityApi.requestPasswordReset({ email: email.trim() });
+      await identityApi.requestPasswordReset({ email: currentEmail });
       setStatus({
         type: "info",
         message: "راهنمای بازیابی رمز عبور به ایمیل شما ارسال شد.",
       });
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       setStatus({
         type: "error",
         message: identityErrorMessage(
@@ -807,22 +812,21 @@ export default function AuthPage() {
         ),
       });
     } finally {
-      setSubmitting(false);
+      setActionSubmitting(false);
     }
   };
 
-  const handleSignup = async () => {
-    const trimmedName = fullName.trim();
+  const handleSignup = async (values) => {
+    const trimmedName = values.fullName.trim();
     let responsePayload;
     try {
       responsePayload = await identityApi.register({
-        email: email.trim(),
-        password: password.trim(),
+        email: values.email.trim(),
+        password: values.password,
         display_name: trimmedName,
       });
     } catch (error) {
-      setHasSubmitted(true);
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "email_taken") {
         setStatus({
           type: "email-exists",
@@ -837,7 +841,7 @@ export default function AuthPage() {
     if (trimmedName) {
       localStorage.setItem("auth.name", trimmedName);
     }
-    setAuthEmail(trimmedEmail);
+    setAuthEmail(values.email.trim());
 
     if (responsePayload?.is_active) {
       navigateToDashboard();
@@ -846,28 +850,29 @@ export default function AuthPage() {
 
     setStatus({
       type: "info",
-      message: `کد ۶ رقمی به ${maskEmail(email)} ارسال شد. برای تأیید حساب آن را وارد کنید.`,
+      message: `کد ۶ رقمی به ${maskEmail(values.email)} ارسال شد. برای تأیید حساب آن را وارد کنید.`,
     });
     setMode("verify");
+    setValue("verificationCode", "");
+    clearErrors();
     startResendCooldown(getResendSeconds(responsePayload, 60));
     startOtpExpiry(
       getOtpExpirySeconds(responsePayload, DEFAULT_OTP_TTL_SECONDS)
     );
   };
 
-  const handleVerify = async () => {
-    setSubmitting(true);
+  const handleVerify = async (values) => {
     setStatus(null);
     try {
       await identityApi.verifyEmail({
-        email: email.trim(),
-        code: verificationCode.trim(),
+        email: values.email.trim(),
+        code: values.verificationCode,
       });
 
-      setAuthEmail(trimmedEmail);
+      setAuthEmail(values.email.trim());
       navigateToDashboard();
     } catch (error) {
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       if (identityErrorCode(error) === "verification_expired") {
         setOtpExpiresIn(0);
       }
@@ -878,13 +883,12 @@ export default function AuthPage() {
             : "error",
         message: identityErrorMessage(error, "امکان تأیید ایمیل وجود ندارد."),
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
   const handleResendVerification = async () => {
-    if (!email.trim()) {
+    const currentEmail = getValues("email").trim();
+    if (!currentEmail) {
       setStatus({
         type: "error",
         message: "برای ارسال مجدد کد، ایمیل خود را وارد کنید.",
@@ -892,11 +896,11 @@ export default function AuthPage() {
       return;
     }
 
-    setSubmitting(true);
+    setActionSubmitting(true);
     setStatus(null);
     try {
       const payload = await identityApi.resendVerification({
-        email: email.trim(),
+        email: currentEmail,
       });
       setStatus({
         type: "info",
@@ -904,12 +908,11 @@ export default function AuthPage() {
       });
       startResendCooldown(getResendSeconds(payload, 60));
       startOtpExpiry(getOtpExpirySeconds(payload, DEFAULT_OTP_TTL_SECONDS));
-      setVerificationCode("");
+      setValue("verificationCode", "");
     } catch (error) {
-      setHasSubmitted(true);
       const retrySeconds = retryAfterSeconds(error, resendCooldown);
       if (retrySeconds > 0) setResendCooldown(retrySeconds);
-      setFieldErrors(identityFieldErrors(error));
+      applyServerFieldErrors(error);
       setStatus({
         type: "error",
         message: identityErrorMessage(
@@ -918,38 +921,29 @@ export default function AuthPage() {
         ),
       });
     } finally {
-      setSubmitting(false);
+      setActionSubmitting(false);
     }
   };
 
-  const submitForm = async () => {
-    if (!isReady) return;
-    setSubmitting(true);
+  const submitForm = handleFormSubmit(async (values) => {
     setStatus(null);
-    setHasSubmitted(true);
-    setFieldErrors({});
+    clearErrors();
+
     try {
       if (isVerify) {
-        await handleVerify();
+        await handleVerify(values);
       } else if (isSignup) {
-        await handleSignup();
+        await handleSignup(values);
       } else {
-        await handleLogin();
+        await handleLogin(values);
       }
     } catch (error) {
       setStatus({
         type: "error",
         message: identityErrorMessage(error),
       });
-    } finally {
-      setSubmitting(false);
     }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    submitForm();
-  };
+  });
 
   return (
     <div
@@ -1087,9 +1081,9 @@ export default function AuthPage() {
           </div>
         )}
 
-        <form className="flex flex-col" onSubmit={handleSubmit}>
+        <form className="flex flex-col" onSubmit={submitForm}>
           <label
-            className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.email ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+            className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${emailError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
               }`}
           >
             <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
@@ -1099,20 +1093,13 @@ export default function AuthPage() {
               className={`flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100 ${isVerify ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
                 }`}
               type="email"
-              name="email"
               autoComplete="email"
               placeholder="ایمیل شما"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                if (fieldErrors.email) {
-                  setFieldErrors((prev) => ({ ...prev, email: "" }));
-                }
-              }}
-              disabled={isVerify}
+              readOnly={isVerify}
+              aria-readonly={isVerify || undefined}
               required
               aria-invalid={Boolean(emailError)}
-              ref={emailRef}
+              {...register("email")}
             />
           </label>
           {emailError && (
@@ -1123,7 +1110,7 @@ export default function AuthPage() {
 
           {!isVerify && (
             <label
-              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.password ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${errors.password ? "border-[#fca5a5]" : "border-[#e5e7eb]"
                 }`}
             >
               <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
@@ -1132,19 +1119,11 @@ export default function AuthPage() {
               <input
                 className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type={showPassword ? "text" : "password"}
-                name="password"
                 autoComplete={isSignup ? "new-password" : "current-password"}
                 placeholder="رمز عبور"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors((prev) => ({ ...prev, password: "" }));
-                  }
-                }}
                 required
-                aria-invalid={Boolean(fieldErrors.password || passwordPolicyError)}
-                ref={passwordRef}
+                aria-invalid={Boolean(errors.password)}
+                {...register("password")}
               />
               <button
                 type="button"
@@ -1156,14 +1135,9 @@ export default function AuthPage() {
               </button>
             </label>
           )}
-          {!isVerify && fieldErrors.password && (
+          {!isVerify && errors.password && (
             <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
-              {fieldErrors.password}
-            </div>
-          )}
-          {!isVerify && isSignup && !fieldErrors.password && passwordPolicyError && (
-            <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
-              {passwordPolicyError}
+              {errors.password.message}
             </div>
           )}
           {!isVerify && isSignup && password.trim() && (
@@ -1184,46 +1158,41 @@ export default function AuthPage() {
                 ))}
               </div>
               <div className="mt-2">
-                حداقل ۸ کاراکتر استفاده کنید. از رمز عبوری که فقط عدد باشد خودداری کنید.
+                حداقل ۱۲ نویسه استفاده کنید. از رمز عبوری که فقط عدد باشد خودداری کنید.
               </div>
             </div>
           )}
 
           {isVerify ? (
-            <label
-              className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${fieldErrors.code ? "border-[#fca5a5]" : "border-[#e5e7eb]"
-                }`}
-            >
-              <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
-                <LockIcon />
-              </span>
-              <input
-                className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
-                type="text"
-                inputMode="numeric"
-                name="verification-code"
-                placeholder="کد تأیید"
-                maxLength={6}
-                value={verificationCode}
-                onChange={(event) =>
-                  setVerificationCode(
-                    normalizeDigits(event.target.value).replace(/\D/g, "").slice(0, 6),
-                  )
-                }
-                onPaste={(event) => {
-                  const pasted = event.clipboardData.getData("text") || "";
-                  const cleaned = normalizeDigits(pasted).replace(/\D/g, "").slice(0, 6);
-                  if (cleaned) {
-                    event.preventDefault();
-                    setVerificationCode(cleaned);
-                  }
-                }}
-                autoComplete="one-time-code"
-                required
-                aria-invalid={Boolean(fieldErrors.code)}
-                ref={codeRef}
-              />
-            </label>
+            <>
+              <label
+                className={`mb-3 flex items-center overflow-hidden rounded-xl border bg-white sm:mb-2 ${verificationCodeError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
+                  }`}
+              >
+                <span className="flex h-12 w-12 items-center justify-center border-r border-[#e5e7eb] text-[#6b7280]">
+                  <LockIcon />
+                </span>
+                <input
+                  className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="کد تأیید"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  required
+                  aria-invalid={Boolean(verificationCodeError)}
+                  {...register("verificationCode", {
+                    setValueAs: (value) =>
+                      normalizeDigits(value).replace(/\D/g, "").slice(0, 6),
+                  })}
+                />
+              </label>
+              {verificationCodeError && (
+                <div className="mb-3 text-left text-xs text-[#b91c1c] sm:mb-2">
+                  {verificationCodeError}
+                </div>
+              )}
+            </>
           ) : isSignup ? (
             <label
               className={`mb-1 flex items-center overflow-hidden rounded-xl border bg-white ${fullNameError ? "border-[#fca5a5]" : "border-[#e5e7eb]"
@@ -1235,18 +1204,11 @@ export default function AuthPage() {
               <input
                 className="flex-1 border-none bg-transparent px-3 text-sm text-[#1f2937] outline-none placeholder:text-black placeholder:opacity-100"
                 type="text"
-                name="full-name"
                 autoComplete="name"
                 placeholder="نام و نام خانوادگی"
-                value={fullName}
-                onChange={(event) => {
-                  setFullName(event.target.value);
-                  if (fieldErrors.full_name) {
-                    setFieldErrors((prev) => ({ ...prev, full_name: "" }));
-                  }
-                }}
                 required
                 aria-invalid={Boolean(fullNameError)}
+                {...register("fullName")}
               />
             </label>
           ) : (
