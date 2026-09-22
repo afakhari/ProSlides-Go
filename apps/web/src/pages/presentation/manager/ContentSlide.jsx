@@ -1,7 +1,7 @@
 import React from "react";
 import TopBar from "../../../components/TopBar";
 import Footer from "../../../components/Footer";
-import { useLiveSession } from "../../../hooks/useLiveSession";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { participantTheme } from "../../../modules/live/participant/theme";
 
 export default function ManagerContentSlide({
