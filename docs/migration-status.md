@@ -1,120 +1,57 @@
-# Go migration status
+# Legacy-to-Go migration parity
 
-## Executive summary
+This document records product-parity decisions from the Django/Rust migration.
+It is not the current project-status source. See `status/current.md` for current
+priorities and production-readiness state.
 
-As of 2026-08-28, the active React product flows have functional backend
-coverage in Go. The historical Django/Rust implementation remains available in
-Git history and on `master`, but it is not part of this branch's runtime.
+## Parity summary
 
-The migration is estimated at **about 85% overall**. This is a delivery-roadmap
-estimate, not test coverage and not a 10,000-user capacity claim. Product/API
-parity is complete; production certification still requires secrets,
-observability, load evidence, infrastructure hardening, cutover, and rollback.
+Active product flows no longer require Django or Rust services.
 
-## Product parity matrix
-
-| Product behavior | Go implementation | Status |
+| Product behavior | Go implementation | Parity |
 |---|---|---|
-| register, login, logout, current user | opaque PostgreSQL sessions, HttpOnly cookies, CSRF | complete |
-| email verification and resend | hashed OTP, TTL, resend delay, attempt limit, SMTP delivery | complete; provider config required in deployment |
-| forgot/reset password | one-time hashed token, TTL, SMTP reset link | complete; provider config required in deployment |
-| Google login | RS256/JWKS signature, issuer, audience, expiry, and verified-email checks | complete; matching client IDs required |
-| dashboard and owner presentation CRUD | list, create, update, delete, duplicate, settings | complete |
-| editor/content model | slides, content, questions/options, atomic zero-based insertion/movement/compaction | complete |
-| start and control live quiz | create session, resolve join code, manager commands, optimistic versioning | complete |
-| participant lifecycle | idempotent join, scoped credential cookie, role checks | complete |
-| answers and scoring | deadline/state enforcement, idempotency, replaceable scoring, durable aggregate | complete |
-| participant snapshot | public state, active slide, self/score, aggregate count, `last_event_id` only | complete |
-| presenter roster/leaderboard | manager-only, limit at most 100, stable keyset pagination | complete |
-| live delivery | snapshot-first SSE, durable replay, bounded process broker, slow-client recovery | complete |
-| question results | owner-only option counts and stable keyset-ranked answer rows | complete |
-| reports | bounded Go presentation/results queries consumed by React | complete for current product UI |
-
-No active React flow needs a Django or Rust service. Django admin is a framework
-operations UI rather than a product endpoint and is intentionally not cloned.
-Media remains URL metadata because the legacy product did not expose a required
-binary-upload API; managed object storage is a separate production capability.
+| register/login/logout/current user | opaque PostgreSQL sessions, HttpOnly cookies, CSRF | implemented |
+| email verification/resend | hashed OTP, TTL/attempt/resend controls, SMTP adapter | implemented; provider config required |
+| forgot/reset password | one-time hashed token, TTL, SMTP reset link | implemented; provider config required |
+| Google login | signed ID-token/JWKS/issuer/audience/expiry/email verification | implemented; provider config required |
+| presentation CRUD/settings | owner-scoped PostgreSQL API | implemented |
+| editor/content model | validated slides/questions/options, revisions and atomic ordering | implemented |
+| live session control | HTTP commands, request idempotency and state versions | implemented |
+| participant lifecycle | scoped credential, idempotent join and same-session restore | implemented |
+| answers/scoring | deadline/state enforcement, durable answers and aggregate score | implemented |
+| role-scoped snapshots | participant-safe snapshot; bounded manager snapshot | implemented |
+| roster/leaderboard | manager-only keyset pagination | implemented |
+| live delivery | snapshot-first SSE, durable replay and bounded fan-out | implemented |
+| question/report results | owner-scoped bounded reads from Go-owned durable data | implemented |
 
 ## Deliberate boundary changes
 
-- Django JWT access/refresh storage was replaced with opaque server sessions and
-  CSRF-protected cookie authentication.
-- The old full quiz/live export was split into a bounded presentation definition,
-  role-scoped snapshot, manager roster pages, and owner result pages.
-- Rust result ingestion and its second score ledger were removed. Durable Go
-  answers are authoritative for scores and reports.
-- Persistent presentation access codes are owner-selected, case-insensitively
-  unique, reused by new sessions, and atomically synchronized to the current
-  non-ended session; replacing an active code invalidates the old public link.
-- The historical Google path did not prove token signatures. Go deliberately
-  performs full provider verification; weakening it would be a security defect,
-  not useful parity.
+The migration intentionally did not reproduce several legacy implementation
+choices:
 
-## Frontend status
+- Django JWT access/refresh browser storage became opaque server-side sessions
+  with cookie auth and CSRF.
+- Full quiz/live exports became bounded presentation definitions plus
+  role-scoped live snapshots and paginated result/roster reads.
+- Rust result ingestion and its second score ledger were removed; Go answers are
+  authoritative.
+- Persistent access codes are owner-selected and synchronized with the active
+  non-ended session.
+- Google token handling verifies signatures and claims instead of reproducing
+  weaker legacy behavior.
+- Django admin was not recreated as a product feature.
+- Media remains URL metadata until an object-storage capability is designed as a
+  separate product/operations concern.
 
-The dashboard, editor, reports, authentication, presenter, and participant
-runtime use the Go API. Live play uses HTTP commands plus SSE; active routes do
-not open the legacy WebSocket client. Participant state types cannot retain a
-complete roster or correctness metadata.
+## Frontend migration relationship
 
-The established login/register/recovery presentation was preserved. The main
-`AuthPage.jsx` remains the large, custom-designed screen; migration work changed
-its transport and provider integration rather than replacing the design.
+The historical F0-F5 frontend modernization program is archived in
+`archive/frontend-f0-f5-2026-08.md`. Its completion did not make the entire
+client modular or TypeScript. Current frontend debt is tracked in
+`frontend-status.md`.
 
-Frontend professionalization F0-F5 is complete and verified. The
-partial JavaScript-to-TypeScript migration has 49 JSX, 15 JS, 14 TS, and 7 TSX
-files; most JSX UI remains outside `tsc`, but JS/JSX/TS/TSX lint, axe/browser
-quality checks, named live commands, route splitting, and bundle budgets are
-enforced. Oversized legacy JSX and styling debt are maintainability follow-up,
-not blockers for the completed F0-F5 acceptance track.
-Participant join, waiting, question, content, and personal-result screens now
-share a Persian RTL mobile shell driven by display-safe presentation theme
-metadata. Closed questions are not projected as fresh questions, and the
-after-question leaderboard transition remains explicit. Presentation API/model,
-dashboard, sharing, and editor UI follow the
-incremental `app -> modules -> shared` target. Detailed constraints and F0-F5
-gates are in [frontend-architecture.md](frontend-architecture.md); UX
-acceptance is in [frontend-professionalization.md](frontend-professionalization.md).
-The quality/debt matrix and remedies are in [frontend-status.md](frontend-status.md).
+## Production boundary
 
-## Verification evidence
-
-The latest completed revision (`8ae78d9`, 2026-08-19) passed:
-
-- all Go tests and `go vet`, including SMTP and Google adapter tests;
-- OpenAPI parsing;
-- web lint, TypeScript checking, 23 unit tests, and production build;
-- the real Docker Compose matrix for identity, owner CRUD/settings, atomic slide
-  operations, live commands, idempotent join/answer, scoped snapshots,
-  participant non-disclosure, multi-page manager ordering, per-question results,
-  aggregate-only events, concurrent joins, and SSE replay;
-- both GitHub Actions workflows for the pushed revision.
-
-The later `d118d4b` revision added three system-Chrome Playwright smoke flows
-covering responsive auth, registration/login/logout, presentation and slide
-creation, reports/history, and invalid join codes. Compose/browser smoke is
-functional evidence, not load evidence.
-
-The 2026-08-23 editor hardening adds strict Go validation for editable slide
-definitions, monotonic presentation/slide revisions with conditional
-`If-Match` writes, atomic settings-key merges, a TypeScript editor domain/API
-boundary, content-slide editing, stable ID-based selection, shared
-save/present validation, and conflict recovery. Web lint/typecheck, 31 unit
-tests, production build, Go tests/vet, API/web image builds, health/readiness,
-and the preserved-volume Compose matrix passed; the matrix explicitly rejects
-a stale metadata overwrite with 409. No browser run was used for this change.
-
-## Remaining work, in order
-
-1. Provision production SMTP, Google, database, Redis, origin, and TLS secrets
-   through the deployment platform; never commit them.
-2. Repeat the locally successful two-run 1k HTTP/SSE protocol on named
-   production-like infrastructure through TLS, including cold readiness and
-   continuous pool/query/lock/CPU/heap capture. This gate remains mandatory and
-   unproven; frontend work does not satisfy it.
-3. Add event retention, production backup/restore evidence, and full rollout
-   drain verification, then pass 5k and 10k on named production-like
-   infrastructure and exercise feature-flagged cutover/rollback.
-
-See [capacity-plan.md](capacity-plan.md) for objective gates and
-[configuration.md](configuration.md) for deployment inputs.
+Functional parity is not production certification. Production readiness still
+depends on the gates in `status/current.md`, `capacity-plan.md`,
+`deployment-runbook.md` and `operations-runbook.md`.
