@@ -232,16 +232,22 @@ test("dashboard presentation server state is owned by TanStack Query", () => {
 });
 
 
-test("live API runtime and React ownership live inside the live module", () => {
+test("live runtime ownership is module-scoped and React is only an adapter", () => {
   const entry = source("src/routes/PresentationEntry.jsx");
   const liveContext = source("src/modules/live/react/LiveSessionContext.jsx");
   const serverContext = source("src/modules/live/react/ServerDataContext.jsx");
+  const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
   const liveApi = source("src/modules/live/api/liveApi.ts");
 
   assert.match(entry, /modules\/live\/react\/LiveSessionContext/);
   assert.match(entry, /modules\/live\/api\/liveApi/);
-  assert.match(liveContext, /\.\.\/api\/liveApi/);
-  assert.match(liveContext, /\.\.\/runtime\/protocol/);
+  assert.match(liveContext, /createLiveRuntime/);
+  assert.match(liveContext, /useSyncExternalStore/);
+  assert.doesNotMatch(liveContext, /streamLiveEvents|applyLiveAction|getLiveSnapshot|planLiveNavigation/);
+  assert.match(runtime, /\.\.\/api\/liveApi/);
+  assert.match(runtime, /\.\/protocol/);
+  assert.match(runtime, /class LiveRuntime/);
+  assert.match(runtime, /resetInternals/);
   assert.match(serverContext, /\.\.\/runtime\/protocol/);
   assert.match(liveApi, /\.\/types/);
 });
