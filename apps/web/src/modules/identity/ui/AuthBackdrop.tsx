@@ -16,7 +16,7 @@ function Cloud({
 }
 
 function ArcticStar({ className, style }: { className: string; style?: CSSProperties }) {
-  return <div aria-hidden="true" className={\`\${className} flex items-center justify-center text-[64px]\`} style={style}>❄️</div>;
+  return <div aria-hidden="true" className={`${className} flex items-center justify-center text-[64px]`} style={style}>❄️</div>;
 }
 
 function Wand({ className, style }: { className: string; style?: CSSProperties }) {
