@@ -30,7 +30,7 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
     "src/modules/presentations/sharing/ShareDialog.jsx",
     "src/modules/presentations/dashboard/PresentationDashboard.jsx",
     "src/modules/presentations/editor/routes/EditorRoute.jsx",
-    "src/modules/presentations/editor/inspector/QuestionInspector.jsx",
+    "src/modules/presentations/editor/inspector/QuestionInspector.tsx",
     "src/modules/presentations/editor/slide-list/SlideList.jsx",
   ];
   const combined = paths.map(source).join("\n");
@@ -294,4 +294,29 @@ test("live projection is derived directly from authoritative snapshot and roster
   assert.match(entry, /key=\{`player:\$\{String\(resolvedData\.session_id\)\}`\}/);
   assert.match(entry, /key=\{`\$\{role\}:\$\{String\(roomId \|\| "unknown"\)\}`\}/);
   assert.match(entry, /if \(ok !== true\) playerResumeJoinSentRef\.current = false/);
+});
+
+
+test("question editor keeps draft, validation, transport and accessibility responsibilities separated", () => {
+  const inspector = source("src/modules/presentations/editor/inspector/QuestionInspector.tsx");
+  const options = source("src/modules/presentations/editor/inspector/QuestionOptionsEditor.tsx");
+  const draft = source("src/modules/presentations/editor/model/questionDraft.ts");
+  const hook = source("src/modules/presentations/editor/model/useQuestionDraft.ts");
+  const editorModel = source("src/modules/presentations/model/editor.ts");
+
+  assert.match(inspector, /useQuestionDraft/);
+  assert.match(inspector, /error instanceof ApiError/);
+  assert.match(inspector, /slide_has_results/);
+  assert.match(inspector, /conflictPending/);
+  assert.match(inspector, /تغییرات محلی شما/);
+  assert.doesNotMatch(inspector, /error\.response\?\./);
+  assert.doesNotMatch(inspector, /useState\([^\n]*localSlide/);
+  assert.match(options, /انتقال گزینه/);
+  assert.match(options, /aria-pressed/);
+  assert.match(options, /QUESTION_LIMITS\.minOptions/);
+  assert.match(draft, /questionDraftReducer/);
+  assert.match(draft, /questionDraftToEditorSlide/);
+  assert.match(hook, /questionDraftEquals/);
+  assert.match(editorModel, /QUESTION_LIMITS/);
+  assert.match(editorModel, /validateEditorQuestion/);
 });
