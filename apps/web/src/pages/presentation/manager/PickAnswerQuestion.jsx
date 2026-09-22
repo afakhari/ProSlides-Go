@@ -6,8 +6,8 @@ import { getColorForUser } from "../../../lib/colorUtils";
 import { participantTheme } from "../../../modules/live/participant/theme";
 import { resolveQuestionTimer } from "../utils/questionTimerSync";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
-import { useLiveSession } from "../../../hooks/useLiveSession";
-import { useServerData } from "../../../hooks/useServerData";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
+import { useServerData } from "../../../modules/live/react/useServerData";
 import { EMPTY_FOOTER_STATS } from "../../../modules/live/model/runtimeDefaults";
 // import { useLocation, useNavigate } from "react-router-dom";
 
