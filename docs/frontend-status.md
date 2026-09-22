@@ -21,7 +21,7 @@ status and priorities live in `status/current.md`.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P0 | API error payloads are too weakly standardized; some frontend code infers semantics from optional fields/human text. | Define a stable machine-readable OpenAPI error shape with code, optional field errors, retry metadata and request/debug correlation; map it once at the shared API boundary. |
+| P1 | The API error contract now formally supports machine code, field errors, retry metadata and request correlation, but most backend handlers still emit only the existing `error` code and legacy identity UI still has bespoke mapping. | Populate richer metadata where useful and migrate remaining consumers to the shared typed `ApiError` boundary without parsing human text. |
 | P1 | TypeScript coverage is partial; active JSX is outside `tsc`. | Migrate feature/domain boundaries deliberately, not by mechanical extension renames. |
 | P1 | Legacy top-level `pages/components/contexts/hooks/services/utils/routes/live` ownership still coexists with `app/modules/shared`. | Move active areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
 | P1 | Live protocol/reconnect/roster state remains heavily embedded in React context. | Extract a typed `modules/live/api + runtime + react` boundary, then retire duplicate projections/compatibility state. |
@@ -32,7 +32,7 @@ status and priorities live in `status/current.md`.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P2 | Identity/password forms contain extensive manual field state, validation, server-error mapping and submit lifecycle code. | Introduce RHF + Zod for ordinary forms after the API error contract is stable; keep design primitives independent of RHF. |
+| P2 | RHF + Zod form infrastructure is established and reset-password has migrated, but the large auth/register/verification screen still owns extensive manual field state and error mapping. | Migrate identity forms incrementally into `modules/identity`; keep UI primitives independent of RHF and preserve Google/OTP behavior with browser tests. |
 | P2 | Dashboard/report REST server state is manually fetched/cached in components. | Introduce one TanStack Query client through migrated identity/report slices using the existing typed fetch boundary and query cancellation signals. |
 | P2 | Editor inspectors contain large custom draft/dirty/validation logic. | Keep editor state domain-driven; split inspector responsibilities and use form tooling only for suitable subforms. |
 | P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
