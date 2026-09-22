@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { motion as Motion } from "framer-motion";
-import { useLiveSession } from "../../../hooks/useLiveSession";
+import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { participantTheme } from "../../../modules/live/participant/theme";
 
 const podiumStyle = {
