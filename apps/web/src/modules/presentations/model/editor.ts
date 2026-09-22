@@ -39,9 +39,9 @@ export interface EditorSlide {
 }
 
 export interface EditorPresentation {
-	quiz_id: string;
-	revision: number;
-	access_code: string;
+  quiz_id: string;
+  revision: number;
+  access_code: string;
   title: string;
   quiz_name: string;
   background_color: string;
@@ -58,52 +58,235 @@ export type QuestionLike = Omit<Partial<EditorQuestion>, "options"> & {
   options?: Array<Partial<EditorOption> & { option_text?: string }>;
 };
 
-export const getQuestionValidationError = (question: QuestionLike | null | undefined): string | null => {
-  if (!question || typeof question !== "object") return "پیش از اجرا یک سؤال اضافه کنید.";
+export const QUESTION_LIMITS = {
+  title: 500,
+  text: 10_000,
+  optionText: 2_000,
+  optionId: 128,
+  imageUrl: 4_096,
+  minOptions: 2,
+  maxOptions: 100,
+  minDurationSeconds: 1,
+  maxDurationSeconds: 86_400,
+} as const;
 
+export type QuestionValidationField =
+  | "question"
+  | "question_text"
+  | "question_image"
+  | "question_type"
+  | "options"
+  | "option_text"
+  | "option_image"
+  | "question_time"
+  | "points"
+  | "partial_scoring";
+
+export type QuestionValidationIssue = {
+  code: string;
+  field: QuestionValidationField;
+  message: string;
+  optionId?: string;
+};
+
+const textLength = (value: unknown): number =>
+  Array.from(String(value ?? "")).length;
+
+export const validateEditorQuestion = (
+  question: QuestionLike | null | undefined,
+): QuestionValidationIssue[] => {
+  if (!question || typeof question !== "object") {
+    return [{
+      code: "question_required",
+      field: "question",
+      message: "پیش از اجرا یک سؤال اضافه کنید.",
+    }];
+  }
+
+  const issues: QuestionValidationIssue[] = [];
   const text = String(question.text ?? question.question_text ?? "").trim();
-  if (!text) return "متن سؤال را وارد کنید.";
+  const title = String(question.title ?? "");
+  const imageUrl = String(question.image_url ?? question.question_image ?? "");
+
+  if (!text) {
+    issues.push({
+      code: "question_text_required",
+      field: "question_text",
+      message: "متن سؤال را وارد کنید.",
+    });
+  } else if (textLength(text) > QUESTION_LIMITS.text) {
+    issues.push({
+      code: "question_text_too_long",
+      field: "question_text",
+      message: `متن سؤال نمی‌تواند بیشتر از ${QUESTION_LIMITS.text.toLocaleString("fa-IR")} نویسه باشد.`,
+    });
+  }
+
+  if (textLength(title) > QUESTION_LIMITS.title) {
+    issues.push({
+      code: "question_title_too_long",
+      field: "question_text",
+      message: `عنوان سؤال نمی‌تواند بیشتر از ${QUESTION_LIMITS.title.toLocaleString("fa-IR")} نویسه باشد.`,
+    });
+  }
+
+  if (textLength(imageUrl) > QUESTION_LIMITS.imageUrl) {
+    issues.push({
+      code: "question_image_too_long",
+      field: "question_image",
+      message: "آدرس تصویر سؤال بیش از حد طولانی است.",
+    });
+  }
 
   const options = Array.isArray(question.options) ? question.options : [];
-  if (options.length < 2) return "حداقل دو گزینه اضافه کنید.";
-  if (options.length > 100) return "هر سؤال حداکثر ۱۰۰ گزینه می‌تواند داشته باشد.";
-  if (options.some((option) => !String(option.text ?? option.option_text ?? "").trim())) {
-    return "هر گزینه باید متن داشته باشد.";
+  if (options.length < QUESTION_LIMITS.minOptions) {
+    issues.push({
+      code: "options_too_few",
+      field: "options",
+      message: "حداقل دو گزینه اضافه کنید.",
+    });
   }
-  const ids = options.map((option) => String(option.option_id ?? "").trim());
-  if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
-    return "شناسه گزینه‌ها باید یکتا باشد.";
+  if (options.length > QUESTION_LIMITS.maxOptions) {
+    issues.push({
+      code: "options_too_many",
+      field: "options",
+      message: `هر سؤال حداکثر ${QUESTION_LIMITS.maxOptions.toLocaleString("fa-IR")} گزینه می‌تواند داشته باشد.`,
+    });
+  }
+
+  const ids: string[] = [];
+  for (const option of options) {
+    const id = String(option.option_id ?? "").trim();
+    const optionText = String(option.text ?? option.option_text ?? "").trim();
+    const optionImage = String(option.image_url ?? "");
+
+    ids.push(id);
+
+    if (!optionText) {
+      issues.push({
+        code: "option_text_required",
+        field: "option_text",
+        optionId: id || undefined,
+        message: "برای هر گزینه متن وارد کنید.",
+      });
+    } else if (textLength(optionText) > QUESTION_LIMITS.optionText) {
+      issues.push({
+        code: "option_text_too_long",
+        field: "option_text",
+        optionId: id || undefined,
+        message: `متن هر گزینه حداکثر ${QUESTION_LIMITS.optionText.toLocaleString("fa-IR")} نویسه می‌تواند باشد.`,
+      });
+    }
+
+    if (!id || textLength(id) > QUESTION_LIMITS.optionId) {
+      issues.push({
+        code: "option_id_invalid",
+        field: "options",
+        optionId: id || undefined,
+        message: "شناسه گزینه معتبر نیست.",
+      });
+    }
+
+    if (textLength(optionImage) > QUESTION_LIMITS.imageUrl) {
+      issues.push({
+        code: "option_image_too_long",
+        field: "option_image",
+        optionId: id || undefined,
+        message: "آدرس تصویر گزینه بیش از حد طولانی است.",
+      });
+    }
+  }
+
+  const nonEmptyIds = ids.filter(Boolean);
+  if (new Set(nonEmptyIds).size !== nonEmptyIds.length) {
+    issues.push({
+      code: "option_ids_duplicate",
+      field: "options",
+      message: "شناسه گزینه‌ها باید یکتا باشد.",
+    });
   }
 
   const type = question.question_type;
-  if (type !== "single" && type !== "multiple") return "نوع معتبری برای سؤال انتخاب کنید.";
+  if (type !== "single" && type !== "multiple") {
+    issues.push({
+      code: "question_type_invalid",
+      field: "question_type",
+      message: "نوع معتبری برای سؤال انتخاب کنید.",
+    });
+  }
+
   const correctCount = options.filter((option) => option.is_correct === true).length;
-  if (correctCount === 0) return "حداقل یک گزینه صحیح انتخاب کنید.";
-  if (type === "single" && correctCount !== 1) return "سؤال تک‌گزینه‌ای دقیقاً یک گزینه صحیح نیاز دارد.";
-  if (type === "single" && question.partial_scoring === true) return "امتیازدهی جزئی فقط برای سؤال چندگزینه‌ای در دسترس است.";
+  if (correctCount === 0) {
+    issues.push({
+      code: "correct_answer_required",
+      field: "options",
+      message: "حداقل یک گزینه صحیح انتخاب کنید.",
+    });
+  } else if (type === "single" && correctCount !== 1) {
+    issues.push({
+      code: "single_correct_answer_required",
+      field: "options",
+      message: "سؤال تک‌گزینه‌ای دقیقاً یک گزینه صحیح نیاز دارد.",
+    });
+  }
+
+  if (type === "single" && question.partial_scoring === true) {
+    issues.push({
+      code: "partial_scoring_not_supported",
+      field: "partial_scoring",
+      message: "امتیازدهی جزئی فقط برای سؤال چندگزینه‌ای در دسترس است.",
+    });
+  }
 
   const duration = Number(question.question_time ?? question.time_limit);
-  if (!Number.isInteger(duration) || duration < 1 || duration > 86400) {
-    return "زمان سؤال باید بین ۱ تا ۸۶۴۰۰ ثانیه باشد.";
+  if (
+    !Number.isInteger(duration) ||
+    duration < QUESTION_LIMITS.minDurationSeconds ||
+    duration > QUESTION_LIMITS.maxDurationSeconds
+  ) {
+    issues.push({
+      code: "question_time_invalid",
+      field: "question_time",
+      message: "زمان سؤال باید بین ۱ ثانیه تا ۲۴ ساعت باشد.",
+    });
   }
 
   const minPoints = Number(question.min_point);
   const maxPoints = Number(question.max_point);
-  if (!Number.isInteger(minPoints) || minPoints < 0 || !Number.isInteger(maxPoints) || maxPoints < 1 || minPoints > maxPoints) {
-    return "حداقل و حداکثر امتیاز باید عدد صحیح باشند و ۰ ≤ حداقل ≤ حداکثر.";
+  if (
+    !Number.isSafeInteger(minPoints) ||
+    minPoints < 0 ||
+    !Number.isSafeInteger(maxPoints) ||
+    maxPoints < 1 ||
+    minPoints > maxPoints
+  ) {
+    issues.push({
+      code: "points_invalid",
+      field: "points",
+      message: "امتیازها باید عدد صحیح باشند و ۰ ≤ حداقل ≤ حداکثر.",
+    });
   }
 
-  return null;
+  return issues;
 };
 
-export const getPresentationValidationError = (presentation: Pick<EditorPresentation, "slides">): string | null => {
+export const getQuestionValidationError = (
+  question: QuestionLike | null | undefined,
+): string | null => validateEditorQuestion(question)[0]?.message ?? null;
+
+export const getPresentationValidationError = (
+  presentation: Pick<EditorPresentation, "slides">,
+): string | null => {
   if (!presentation.slides.length) return "برای اجرا حداقل یک اسلاید اضافه کنید.";
   for (const slide of presentation.slides) {
     if (slide.slide_type === 1) {
       const error = getQuestionValidationError(slide.question);
       if (error) return error;
     }
-    if (slide.slide_type === 2 && !String(slide.title || slide.content_text || slide.content_image_url || "").trim()) {
+    if (
+      slide.slide_type === 2 &&
+      !String(slide.title || slide.content_text || slide.content_image_url || "").trim()
+    ) {
       return "پیش از اجرا به همه اسلایدهای محتوایی مطلب اضافه کنید.";
     }
   }
