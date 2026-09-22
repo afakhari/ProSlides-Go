@@ -29,7 +29,6 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
   const [connectionError, setConnectionError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
-  const [lastEvent, setLastEvent] = useState(null);
   const [lastJoinResult, setLastJoinResult] = useState(null);
   const [roster, setRoster] = useState([]);
   const [rosterOrder, setRosterOrder] = useState("joined");
@@ -200,7 +199,6 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
             onEvent: (event) => {
               if (!shouldApplyLiveEvent(cursorRef.current, event)) return;
               cursorRef.current = advanceLiveCursor(cursorRef.current, event);
-              setLastEvent(event);
               retry = 500;
               if (event.name === "presence.updated") {
                 const delta = Number(event.payload?.participant_delta || 0);
@@ -349,7 +347,7 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
 
   return (
     <LiveSessionContext.Provider value={{
-      isConnected, connectionError, sessionId, snapshot, lastEvent, lastJoinResult,
+      isConnected, connectionError, sessionId, snapshot, lastJoinResult,
       roster, rosterOrder, hasMoreRoster, isRosterLoading,
       participantCount: snapshot?.participant_count || 0,
       connect, disconnect, joinParticipant, submitAnswer, sendNavigation, sendEnd,
