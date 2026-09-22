@@ -54,8 +54,7 @@ Strengths already in place:
 
 Remaining frontend debt is tracked in `../frontend-status.md`. The largest
 architectural gaps are incomplete TypeScript coverage, legacy top-level
-`pages/components/services/utils/routes` ownership, an oversized React live runtime, incomplete design-system convergence, thin component/API-state
-coverage; the CI browser gate includes a real manager/participant live lifecycle.
+`pages/components/services/utils/routes` ownership, incomplete design-system convergence and thin component/API-state coverage; the CI browser gate includes a real manager/participant live lifecycle.
 
 ## Active priorities
 
@@ -68,8 +67,7 @@ These are independent tracks. A change in one track does not waive another.
    foundation through the remaining identity/editor surfaces without adding
    parallel HTTP or state abstractions.
 3. **Frontend modularization:** continue TypeScript/module migration through
-   the remaining identity UI composition and live runtime, while preserving editor/live
-   correctness. Reports and the manager presentation list now use the shared Query cache, and live transport/protocol/React ownership is under `modules/live`.
+   the remaining identity UI composition and legacy presentation surfaces while preserving editor/live correctness. Reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
 4. **Quality:** continue replacing source-regex checks with structural tooling
    and add component/API-state tests around migrated identity, report, editor and
    live recovery states.
