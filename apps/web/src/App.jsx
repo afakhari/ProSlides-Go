@@ -6,7 +6,7 @@ import RequireSession from "./components/RequireSession.tsx";
 import EditorRouteSkeleton from "./modules/presentations/editor/routes/EditorRouteSkeleton";
 import LandingPage from "./pages/landing/LandingPage";
 
-const AuthPage = lazy(() => import("./pages/auth/AuthPage"));
+const AuthPage = lazy(() => import("./modules/identity/routes/AuthRoute"));
 const ResetPasswordPage = lazy(() => import("./modules/identity/routes/ResetPasswordRoute.tsx"));
 const TeamPage = lazy(() => import("./pages/team/TeamPage"));
 const ReportRoute = lazy(() => import("./modules/reports/routes/ReportRoute.tsx"));
