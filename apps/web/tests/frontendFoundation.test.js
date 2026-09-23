@@ -75,18 +75,20 @@ test("presentation transport types come from the checked-in OpenAPI output", () 
   assert.doesNotMatch(service, /interface SlideDTO/);
 });
 
-test("F3 owns presentation UI and creates slides only after type selection", () => {
+test("F3 owns presentation UI and keeps slide mutations behind a typed editor boundary", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
-  const addStart = route.indexOf("const addNewSlide");
-  const deleteStart = route.indexOf("const deleteSlide", addStart);
-  const addFlow = route.slice(addStart, deleteStart);
+  const mutations = source("src/modules/presentations/editor/model/useEditorSlideMutations.ts");
 
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /\.\.\/api\/presentationRepository/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /\.\.\/api\/presentationRepository/);
   assert.match(route, /useEditorStatus/);
-  assert.match(route, /isCreatingSlide/);
-  assert.doesNotMatch(addFlow, /quizService\.createSlide/);
-  assert.match(route, /await quizService\.createSlide\(quiz\.quiz_id, newSlideData, quiz\.revision\)/);
+  assert.match(route, /useEditorSlideMutations/);
+  assert.doesNotMatch(route, /quizService\.(?:createSlide|updateSlide|deleteSlide)/);
+  assert.doesNotMatch(route, /error\.response/);
+  assert.match(mutations, /quizService\.createSlide/);
+  assert.match(mutations, /quizService\.updateSlide/);
+  assert.match(mutations, /quizService\.deleteSlide/);
+  assert.match(mutations, /error instanceof ApiError/);
 });
 
 test("F4 keeps the app router compositional and mock fixtures out of production", () => {
