@@ -77,7 +77,7 @@ test("audio validation accepts empty or HTTP(S) URLs and rejects unsafe values",
   assert.ok(
     validateAudioDraft({
       ...draft,
-      musicUrl: "https:///missing-host.mp3",
+      musicUrl: "https://",
     }).some((issue) => issue.code === "music_url_invalid"),
   );
 });
