@@ -1,58 +1,57 @@
 # Frontend status and remaining debt
 
-Last reviewed: 2026-09-23.
+Last reviewed: 2026-09-24.
 
-This file tracks frontend debt and the boundary of claims. Project-wide current
-status and priorities live in `status/current.md`.
+This file tracks frontend debt and claim boundaries. Project-wide current state
+and priorities live in `status/current.md`.
+
+## Rollback baseline
+
+The active frontend baseline after the repository rollback is:
+
+```
+960dbce
+```
+
+Changes after this baseline are not considered part of the current mainline
+state unless they are reintroduced through a reviewed change.
 
 ## Current strengths
 
 | Area | Evidence/implementation |
 |---|---|
 | Product flow | Identity, dashboard, editor, reports and live flows use the Go HTTP/SSE boundary. |
-| Live correctness | A typed runtime controller owns snapshot/cursor/reconnect/roster/command state; React is a thin adapter, projections are single-sourced from snapshot + roster, and protocol/unit coverage guards ordering, retry and disclosure invariants. |
-| Presentation contract | Generated OpenAPI transport types and editor domain adapters exist; revision conflicts are recoverable. |
-| Persian UX | Participant live surfaces are Persian/RTL and consume display-safe presentation theming; editor/client copy has continued moving to Persian. |
-| Accessibility | Critical stable routes have axe/browser checks, focus/reduced-motion/overflow assertions. |
-| Performance | Build budgets enforce initial JS/CSS, largest route/file and zero initial preloads. |
-| Routing/bundle | Heavy route code is lazy-loaded instead of preloaded into the entry route. |
+| Live correctness | Live runtime ownership remains separated from React rendering concerns, with snapshot/cursor/reconnect/roster responsibilities isolated. |
+| Presentation contract | Generated API types and typed domain boundaries exist where migrated; revision conflict handling follows explicit recovery flows. |
+| Accessibility | Stable routes have accessibility checks and interaction assertions. |
+| Performance | Build budgets and lazy route loading guard against unnecessary frontend growth. |
 
-## P0/P1 architecture debt
+## Architecture debt
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P2 | The API error contract and identity UI now use stable machine codes through the shared typed `ApiError` boundary; most backend handlers still emit only the code and optional retry metadata. | Add structured field errors/correlation metadata only where they provide concrete UX or operational value; do not return to parsing human-readable server text. |
-| P1 | TypeScript coverage is partial; active JSX is outside `tsc`. | Migrate feature/domain boundaries deliberately, not by mechanical extension renames. |
-| P1 | Legacy top-level `pages/components/services/utils/routes` ownership still coexists with `app/modules/shared`; active live API/runtime/React ownership has moved into `modules/live`. | Continue moving active legacy areas by vertical slice and enforce `app -> modules -> shared` with dependency tooling. |
-| P2 | Core Button/ConfirmDialog primitives now use the ProSlides semantic token vocabulary and Radix AlertDialog, but legacy routes still contain direct colors and ad-hoc controls. | Continue route-by-route token migration, move remaining reusable controls into shared primitives/patterns, and add headless primitives only where keyboard/focus behavior warrants them. |
-| P2 | Playwright runs in CI against a real API/PostgreSQL/Redis stack and now covers a manager + participant lifecycle through join, answer, leaderboard, participant reconnect and manager end-state. | Extend the browser gate only when a material uncovered live behavior is identified; keep protocol/unit tests as the denser correctness layer. |
+| P1 | TypeScript migration is incomplete. Some legacy JSX ownership remains outside the typed module boundaries. | Continue migration by feature/domain boundary, not by mechanical file extension changes. |
+| P1 | Legacy top-level ownership (`pages/components/services/utils/routes`) still coexists with the target `app/modules/shared` structure. | Continue vertical migrations and enforce dependency direction. |
+| P2 | Design-system adoption is incomplete. Some legacy surfaces may still contain direct styling decisions instead of semantic tokens. | Continue route-by-route migration to shared primitives and semantic tokens. |
+| P2 | Component and API-state testing is thinner than protocol/integration coverage. | Add focused tests for pending, validation, conflict, recovery and cancellation states. |
 
-## P2 product/maintainability debt
+## Editor status
 
-| Priority | Weakness / risk | Required remedy |
-|---:|---|---|
-| P2 | Identity transport/error handling, Zod schemas and RHF field ownership are module-owned. The auth route is now TSX orchestration over focused module UI plus dedicated Google Identity and persisted verification-timer hooks. | Add component/API-state coverage for identity pending/error/recovery states and continue TypeScript migration at the remaining presentation/editor boundaries; do not re-centralize auth state in the route. |
-| P2 | One TanStack Query client owns reports and the manager presentation list with cancellation; remaining REST reads should migrate only where cache ownership is useful. | Continue incremental module-owned Query adoption while keeping editor draft state and live SSE outside the cache. |
-| P2 | Question, content, presentation design and presentation audio use typed domain drafts with explicit baseline/dirty/save/discard ownership. Panel confirmation, unsaved-browser protection, notices, responsive overlays, slide mutation/selection/reorder ownership, SlideList, EditorRoute, EditorHeader and EditorToolbar are typed; the sharing boundary now consumes the shared ApiError contract. | Finish small legacy editor UI/token cleanup and add denser component/API-state coverage without duplicating draft ownership or creating a giant form. |
-| P2 | Styling debt remains on legacy routes: direct colors, inline objects and physical direction utilities. | Migrate route-by-route to semantic tokens/logical properties and record browser comparisons. |
-| P2 | Browser coverage now includes question-authoring save/reorder/Persian-number/edit-conflict recovery, content-authoring live preview/discard/save/conflict recovery, presentation-design contrast-safe preview/discard/save/conflict recovery, and presentation-audio validation/save/discard/conflict recovery on the real API stack; focused component/API-state coverage is still thinner than protocol coverage. | Add Vitest + Testing Library + MSW for dense pending/success/validation/conflict/cancellation states where browser tests would be too slow or broad. |
-| P2 | Core dependency direction `app -> modules -> shared` is now lint-enforced for shared/module imports, while some finer-grained cross-module and dead-code checks still rely on convention/structural tests. | Add finer public-module API rules and dead-code/dependency analysis once the remaining legacy ownership has moved. |
-| P2 | Local Web Vitals are not production field performance. | Add privacy-safe RUM and release-tagged frontend error/performance observability before field-grade claims. |
+Editor domain work should preserve explicit ownership boundaries:
 
-## P3 tooling debt
+- drafts remain owned by their domain modules;
+- live state must not be merged into editor draft state;
+- preview state must not duplicate authoring ownership;
+- conflict recovery must preserve user work.
 
-- The project should move from the `rolldown-vite` preview alias to stable
-  Vite 8 in a dedicated compatibility-tested upgrade.
-- React/Tailwind/Router/TypeScript major/minor upgrades should be isolated from
-  architecture migration so failures have one cause.
-- Review development dependency advisories separately; do not use broad
-  `npm audit fix` as architecture work.
+Remaining editor work should focus on cleanup, consistency, accessibility and
+coverage rather than introducing another large restructuring pass.
 
 ## Claim boundary
 
-The frontend should not be described as fully modular, fully TypeScript,
-field-performance certified, or complete-live-browser certified until the
-corresponding items above are closed.
+The frontend should not be described as fully modular, fully TypeScript, or
+complete until the corresponding migration and verification work is closed.
 
-The historical F0-F5 program established a useful baseline. Its dated evidence
-is preserved separately and does not waive current debt.
+Historical evidence remains tied to the commit and environment where it was
+measured and should not automatically be treated as evidence for the current
+branch.
