@@ -123,15 +123,15 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const hasDesignChanges = editorStatus.dirty.design;
   const setHasSidebarChanges = useCallback(
     (dirty) => editorStatus.setDirty("content", Boolean(dirty)),
-    [editorStatus.setDirty],
+    [editorStatus],
   );
   const setHasAudioChanges = useCallback(
     (dirty) => editorStatus.setDirty("audio", Boolean(dirty)),
-    [editorStatus.setDirty],
+    [editorStatus],
   );
   const setHasDesignChanges = useCallback(
     (dirty) => editorStatus.setDirty("design", Boolean(dirty)),
-    [editorStatus.setDirty],
+    [editorStatus],
   );
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [isAddingSlide, setIsAddingSlide] = useState(false);
@@ -235,7 +235,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const reloadAudioConflict = useCallback(async () => {
     await refreshQuiz();
     editorStatus.clearConflict();
-  }, [editorStatus.clearConflict, refreshQuiz]);
+  }, [editorStatus, refreshQuiz]);
 
   useEffect(() => {
     return () => {
