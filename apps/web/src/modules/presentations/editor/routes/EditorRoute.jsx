@@ -5,7 +5,7 @@ import ContentCanvas from "../canvas/ContentCanvas";
 import LeaderboardPreview from "../canvas/LeaderboardCanvas";
 import QuizHeader from "../toolbar/EditorHeader";
 import Sidebar from "../inspector/QuestionInspector";
-import SlidesPanel from "../slide-list/SlideList";
+import SlidesPanel from "../slide-list/SlideList.tsx";
 import RightToolbar from "../toolbar/EditorToolbar";
 import DesignPanel from "../inspector/DesignInspector";
 import AudioPanel from "../inspector/AudioInspector.tsx";
@@ -26,6 +26,8 @@ import { useEditorPanelController } from "../model/useEditorPanelController.ts";
 import { useEditorViewport } from "../model/useEditorViewport.ts";
 import { useUnsavedChangesGuard } from "../model/useUnsavedChangesGuard.ts";
 import { useEditorSlideMutations } from "../model/useEditorSlideMutations.ts";
+import { useEditorSlideOrder } from "../model/useEditorSlideOrder.ts";
+import { useEditorSlideSelection } from "../model/useEditorSlideSelection.ts";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -113,11 +115,7 @@ export default function EditorPage() {
 
 function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) {
 
-  const [activeSlideId, setActiveSlideId] = useState(
-    () => quiz.slides?.[0]?.slide_id || null
-  );
   const navigate = useNavigate();
-  const [activeSlideType, setActiveSlideType] = useState(null);
   const [leaderboardPreviewData, setLeaderboardPreviewData] = useState({});
   const [leaderboardError, setLeaderboardError] = useState(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState({});
@@ -141,10 +139,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const { notice, showNotice } = useEditorNotice();
 
   const slides = quiz.slides;
-  const activeSlide = slides.find((slide) => slide.slide_id === activeSlideId) || slides[0] || null;
-  const activeLeaderboardEntries = activeSlide?.slide_id
-    ? leaderboardPreviewData[activeSlide.slide_id] || []
-    : [];
   const presentStatus = (() => {
     if (hasUnsavedChanges) {
       return { ready: false, reason: "پیش از اجرا، تغییرات را ذخیره یا رها کنید." };
@@ -175,6 +169,22 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     confirmDialog,
   } = panels;
 
+  const selection = useEditorSlideSelection({
+    slides,
+    hasContentChanges: hasSidebarChanges,
+    discardContentChanges: () => setHasSidebarChanges(false),
+    closeSlidesPanel: () => panels.closePanel("slides"),
+    requestConfirmation: panels.requestConfirmation,
+  });
+  const {
+    activeSlide,
+    activeSlideId,
+    activeSlideType,
+  } = selection;
+  const activeLeaderboardEntries = activeSlide?.slide_id
+    ? leaderboardPreviewData[activeSlide.slide_id] || []
+    : [];
+
   const recoverConflict = useCallback(async () => {
     const message = "نسخه جدیدتری روی سرور وجود داشت؛ آخرین نسخه بارگذاری شد.";
     editorStatus.reportConflict(message);
@@ -186,8 +196,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     activeSlide,
     updatePresentation: updateQuiz,
     refreshPresentation: refreshQuiz,
-    setActiveSlideId,
-    setActiveSlideType,
+    selectSlide: selection.selectSlideImmediate,
     activateContentPanel: () => panels.activateTab("content"),
     closeSlidesPanel: () => panels.closePanel("slides"),
     recoverConflict,
@@ -203,25 +212,17 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     typeSelectionMode,
   } = slideMutations;
 
+  const slideOrder = useEditorSlideOrder({
+    presentation: quiz,
+    updatePresentation: updateQuiz,
+    refreshPresentation: refreshQuiz,
+    recoverConflict,
+    showNotice,
+    disabled: hasUnsavedChanges,
+  });
+
   useUnsavedChangesGuard(hasUnsavedChanges);
   const isMobile = useEditorViewport(panels.overlayOpen || showTypeBox);
-
-  useEffect(() => {
-    if (!slides.length) {
-      if (activeSlideId !== null) setActiveSlideId(null);
-      return;
-    }
-    if (!slides.some((slide) => slide.slide_id === activeSlideId)) {
-      setActiveSlideId(slides[0].slide_id);
-    }
-  }, [slides, activeSlideId]);
-
-  useEffect(() => {
-    if (!activeSlide) return;
-    if (activeSlideType === null || activeSlideType === activeSlide.slide_type) {
-      setActiveSlideType(activeSlide.slide_type);
-    }
-  }, [activeSlide, activeSlideType]);
 
   const reloadAudioConflict = useCallback(async () => {
     await refreshQuiz();
@@ -256,17 +257,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   }, [activeSlideType, activeSlide?.slide_id, loadLeaderboardPreview]);
 
 
-  const handleDeleteLeaderboardAndRefresh = async () => {
-    try {
-      if (refreshQuiz) {
-        await refreshQuiz();
-      }
-    } catch (error) {
-      console.error("Failed to refresh after leaderboard update:", error);
-    }
-  };
-
-
   const handleTabClick = panels.toggleTab;
 
   const handleConfirm = panels.confirmPendingAction;
@@ -289,31 +279,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     });
   };
 
-  const proceedWithSlideChange = (id) => {
-    const slide = slides.find((s) => s.slide_id === id);
-    if (slide) {
-      setActiveSlideId(slide.slide_id);
-    }
-  };
-
-  const requestSlideChange = (id, closeSlidesPanel = false) => {
-    const apply = () => {
-      setHasSidebarChanges(false);
-      proceedWithSlideChange(id);
-      if (closeSlidesPanel) panels.closePanel("slides");
-    };
-
-    if (hasSidebarChanges && id !== activeSlide?.slide_id) {
-      panels.requestConfirmation(apply);
-      return;
-    }
-
-    apply();
-  };
-
-  const handleSetActiveSlideId = (id) => requestSlideChange(id);
-  const handleSetActiveSlideIdForMobile = (id) => requestSlideChange(id, true);
-
   const handleCloseAudioPanel = () => panels.closePanel("audio");
   const handleCloseDesignPanel = () => panels.closePanel("design");
 
@@ -329,19 +294,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     }
 
     close();
-  };
-
-  // ???? ???? ???? ????? ????? ??????
-  const getSlideTitle = (slide) => {
-    if (slide.slide_type === 1 && slide.question) {
-      return slide.question.text || "اسلاید سؤال";
-    } else if (slide.slide_type === 2) {
-      return slide.title || slide.content_text || "اسلاید محتوا";
-    } else if (slide.slide_type === 3) {
-      return slide.title || "جدول امتیازات";
-    }
-    // return `Slide ${slide.order}`;
-    return "سؤالی هنوز ساخته نشده";
   };
 
   const addNewSlide = slideMutations.beginAddSlide;
