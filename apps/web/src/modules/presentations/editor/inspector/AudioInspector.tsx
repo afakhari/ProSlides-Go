@@ -327,6 +327,7 @@ export default function AudioInspector({
                     src={normalizedUrl}
                     controls
                     preload="metadata"
+                    aria-label="پیش‌نمایش صدای ارائه"
                     className="w-full"
                     onLoadStart={() => setPreviewState("loading")}
                     onCanPlay={() => setPreviewState("ready")}
