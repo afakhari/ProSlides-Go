@@ -14,7 +14,7 @@ import {
   convertSlideToContent,
   convertSlideToQuestion,
   createSlideForChoice,
-  nextSlideIdAfterDeletion,
+  activeSlideIdAfterDeletion,
   replacePresentationSlide,
   slideChoiceToMode,
   type SlideTypeChoice,
@@ -179,9 +179,10 @@ export function useEditorSlideMutations({
         return;
       }
 
-      const nextSlideId = nextSlideIdAfterDeletion(
+      const nextSlideId = activeSlideIdAfterDeletion(
         presentation.slides,
         slideId,
+        activeSlide?.slide_id ?? null,
       );
 
       try {
