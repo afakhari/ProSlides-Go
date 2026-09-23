@@ -8,18 +8,26 @@ import {
 } from "./audioDraft.ts";
 
 export function useAudioDraft(presentation: EditorPresentation) {
-  const initial = useMemo(
-    () => createAudioDraft(presentation),
-    [presentation],
-  );
+  const initial = createAudioDraft(presentation);
   const [state, dispatch] = useReducer(audioDraftReducer, {
     baseline: initial,
     draft: initial,
   });
 
+  const presentationId = presentation.quiz_id;
+  const presentationRevision = presentation.revision;
+  const presentationMusicUrl = presentation.music_url;
+
   useEffect(() => {
-    dispatch({ type: "reset", draft: initial });
-  }, [initial]);
+    dispatch({
+      type: "sync",
+      draft: {
+        presentationId,
+        revision: presentationRevision,
+        musicUrl: String(presentationMusicUrl || "").trim(),
+      },
+    });
+  }, [presentationId, presentationRevision, presentationMusicUrl]);
 
   const dirty = useMemo(
     () => !audioDraftEquals(state.baseline, state.draft),
