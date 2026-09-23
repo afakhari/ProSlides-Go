@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/proslides/proslides/internal/identity"
 )
@@ -116,11 +117,11 @@ func decodePresentationInput(w http.ResponseWriter, r *http.Request, requireTitl
 		errJSON(w, 400, "invalid_request")
 		return body, false
 	}
-	if body.Title != nil && (*body.Title == "" || len(*body.Title) > 500) {
+	if body.Title != nil && (*body.Title == "" || utf8.RuneCountInString(*body.Title) > 500) {
 		errJSON(w, 400, "invalid_request")
 		return body, false
 	}
-	if len(body.Settings) > 0 && !validJSONObject(body.Settings) {
+	if len(body.Settings) > 0 && (!validJSONObject(body.Settings) || validatePresentationSettings(body.Settings) != nil) {
 		errJSON(w, 400, "invalid_request")
 		return body, false
 	}
