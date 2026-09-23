@@ -26,8 +26,8 @@ test("shared notice exposes assertive errors and polite pending or success state
 
 test("F2 dashboard editor and share slice has no native alerts and owns direction boundaries", () => {
   const paths = [
-    "src/modules/presentations/editor/toolbar/EditorHeader.jsx",
-    "src/modules/presentations/sharing/ShareDialog.jsx",
+    "src/modules/presentations/editor/toolbar/EditorHeader.tsx",
+    "src/modules/presentations/sharing/ShareDialog.tsx",
     "src/modules/presentations/dashboard/PresentationDashboard.jsx",
     "src/modules/presentations/editor/routes/EditorRoute.tsx",
     "src/modules/presentations/editor/inspector/QuestionInspector.tsx",
@@ -36,8 +36,8 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
   const combined = paths.map(source).join("\n");
 
   assert.doesNotMatch(combined, /(?:window\.)?alert\s*\(/);
-  assert.match(source("src/modules/presentations/editor/toolbar/EditorHeader.jsx"), /dir="auto"/);
-  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /dir="ltr"/);
+  assert.match(source("src/modules/presentations/editor/toolbar/EditorHeader.tsx"), /dir="auto"/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /dir="ltr"/);
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /dir="auto"/);
 });
 
@@ -59,7 +59,7 @@ test("typed Persian catalog is consumed by manager dashboard editor and share", 
   assert.match(catalog, /as const/);
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /fa\.dashboard\.title/);
   assert.match(source("src/modules/presentations/editor/routes/EditorRoute.tsx"), /fa\.managerShell\.backToDashboard/);
-  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /fa\.share\.title/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /fa\.share\.title/);
 });
 
 test("presentation transport types come from the checked-in OpenAPI output", () => {
@@ -83,7 +83,7 @@ test("F3 owns presentation UI and keeps slide mutation selection and reorder beh
   const slideList = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
 
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /\.\.\/api\/presentationRepository/);
-  assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /\.\.\/api\/presentationRepository/);
+  assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /\.\.\/api\/presentationRepository/);
   assert.match(route, /useEditorStatus/);
   assert.match(route, /useEditorSlideMutations/);
   assert.match(route, /useEditorSlideSelection/);
