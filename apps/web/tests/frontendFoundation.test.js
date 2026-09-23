@@ -31,7 +31,7 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
     "src/modules/presentations/dashboard/PresentationDashboard.jsx",
     "src/modules/presentations/editor/routes/EditorRoute.jsx",
     "src/modules/presentations/editor/inspector/QuestionInspector.tsx",
-    "src/modules/presentations/editor/slide-list/SlideList.jsx",
+    "src/modules/presentations/editor/slide-list/SlideList.tsx",
   ];
   const combined = paths.map(source).join("\n");
 
@@ -75,20 +75,29 @@ test("presentation transport types come from the checked-in OpenAPI output", () 
   assert.doesNotMatch(service, /interface SlideDTO/);
 });
 
-test("F3 owns presentation UI and keeps slide mutations behind a typed editor boundary", () => {
+test("F3 owns presentation UI and keeps slide mutation selection and reorder behind typed editor boundaries", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
   const mutations = source("src/modules/presentations/editor/model/useEditorSlideMutations.ts");
+  const selection = source("src/modules/presentations/editor/model/useEditorSlideSelection.ts");
+  const order = source("src/modules/presentations/editor/model/useEditorSlideOrder.ts");
+  const slideList = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
 
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /\.\.\/api\/presentationRepository/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /\.\.\/api\/presentationRepository/);
   assert.match(route, /useEditorStatus/);
   assert.match(route, /useEditorSlideMutations/);
-  assert.doesNotMatch(route, /quizService\.(?:createSlide|updateSlide|deleteSlide)/);
+  assert.match(route, /useEditorSlideSelection/);
+  assert.match(route, /useEditorSlideOrder/);
+  assert.doesNotMatch(route, /quizService\.(?:createSlide|updateSlide|deleteSlide|reorderSlides)/);
   assert.doesNotMatch(route, /error\.response/);
   assert.match(mutations, /quizService\.createSlide/);
   assert.match(mutations, /quizService\.updateSlide/);
   assert.match(mutations, /quizService\.deleteSlide/);
   assert.match(mutations, /error instanceof ApiError/);
+  assert.match(selection, /slideId !== selection\.slideId \|\| slideType !== selection\.slideType/);
+  assert.match(order, /quizService\.reorderSlides/);
+  assert.match(order, /disabled: hasUnsavedChanges|disabled = false/);
+  assert.doesNotMatch(slideList, /quizService|ApiError/);
 });
 
 test("F4 keeps the app router compositional and mock fixtures out of production", () => {
@@ -402,7 +411,7 @@ test("design editor shares one typed presentation draft across all preview surfa
   const question = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const content = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
   const leaderboard = source("src/modules/presentations/editor/canvas/LeaderboardCanvas.tsx");
-  const slides = source("src/modules/presentations/editor/slide-list/SlideList.jsx");
+  const slides = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
   const provider = source("src/modules/presentations/editor/model/DesignDraftProvider.tsx");
   const draft = source("src/modules/presentations/editor/model/designDraft.ts");
 
