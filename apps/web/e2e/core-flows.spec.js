@@ -216,6 +216,7 @@ test("mobile participant entry uses the public quiz theme", async ({ page }) => 
           title: "مسابقه رنگ‌ها",
           background_color: "#0f766e",
           background_image_url: "",
+          music_url: "",
           text_color: "#ffffff",
         },
       }),
@@ -1070,6 +1071,193 @@ test("design editor projects a contrast-safe presentation draft and preserves co
   await expect(inspector).toBeVisible();
   await expect(backgroundInput).toHaveValue("#111111");
   await expect(textInput).toHaveValue("#ffffff");
+
+  expect(failures).toEqual([]);
+});
+
+
+test("audio editor validates, saves, discards, and preserves local draft across conflicts", async ({ page }) => {
+  test.setTimeout(90000);
+  const failures = watchRuntime(page);
+  const unique = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+  const email = "audio-editor-" + unique + "@example.com";
+  const tinyWav = Buffer.from(
+    "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=",
+    "base64",
+  );
+
+  await page.route("https://audio.example.test/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "audio/wav",
+      body: tinyWav,
+    });
+  });
+
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill("BrowserPass!42");
+  await page.locator('input[name="fullName"]').fill("مدیر تست صدای ارائه");
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/manager\/panel$/);
+
+  const fixture = await page.evaluate(async () => {
+    const cookieValue = (name) => {
+      const prefix = encodeURIComponent(name) + "=";
+      const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+      return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+    };
+    const headers = new Headers({ "Content-Type": "application/json" });
+    const csrf = cookieValue("proslides_csrf");
+    if (csrf) headers.set("X-CSRF-Token", csrf);
+    const response = await fetch("/api/v1/presentations", {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: JSON.stringify({
+        title: "تست صدای ارائه",
+        settings: {},
+      }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error("create presentation failed: " + response.status);
+    }
+    return { presentationId: body.id };
+  });
+
+  await page.goto("/manager/panel/" + fixture.presentationId);
+  await page.getByRole("button", { name: "صدا", exact: true }).click();
+
+  const inspector = page.getByRole("complementary", {
+    name: "تنظیمات صدای ارائه",
+  });
+  await expect(inspector).toBeVisible();
+  await expectAccessible(page, "audio editor");
+
+  const urlInput = inspector.getByRole("textbox", {
+    name: "نشانی صدا",
+    exact: true,
+  });
+  const saveButton = inspector.getByRole("button", {
+    name: "ذخیره صدا",
+  });
+
+  await urlInput.fill("javascript:alert(1)");
+  await expect(
+    inspector.getByText(/آدرس فایل صوتی باید با http:\/\/ یا https:\/\//),
+  ).toBeVisible();
+  await expect(saveButton).toBeDisabled();
+
+  await urlInput.fill("https://audio.example.test/saved.wav");
+  await expect(saveButton).toBeEnabled();
+  await expect(
+    inspector.getByText("تغییرات صدای ذخیره‌نشده دارید.", { exact: true }),
+  ).toBeVisible();
+
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith(
+        "/api/v1/presentations/" + fixture.presentationId,
+      ),
+  );
+  await saveButton.click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(200);
+  const savedPresentation = await saveResponse.json();
+  expect(savedPresentation.settings.music_url).toBe(
+    "https://audio.example.test/saved.wav",
+  );
+  await expect(
+    inspector.getByText(/تنظیمات صدا ذخیره شده است/),
+  ).toBeVisible();
+  await expect(saveButton).toBeDisabled();
+
+  await urlInput.fill("https://audio.example.test/temporary.wav");
+  await inspector
+    .getByRole("button", { name: "بستن تنظیمات صدای ارائه" })
+    .click();
+  const discardDialog = page.getByRole("alertdialog");
+  await expect(discardDialog).toContainText(
+    "تغییرات ذخیره‌نشده صدای ارائه از بین می‌رود",
+  );
+  await discardDialog.getByRole("button", { name: "رد تغییرات" }).click();
+  await expect(inspector).toBeHidden();
+
+  await page.getByRole("button", { name: "صدا", exact: true }).click();
+  await expect(inspector).toBeVisible();
+  await expect(urlInput).toHaveValue("https://audio.example.test/saved.wav");
+
+  await urlInput.fill("https://audio.example.test/local.wav");
+
+  await page.evaluate(
+    async ({ presentationId, revision }) => {
+      const cookieValue = (name) => {
+        const prefix = encodeURIComponent(name) + "=";
+        const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        "If-Match": String(revision),
+      });
+      const csrf = cookieValue("proslides_csrf");
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+
+      const response = await fetch(
+        "/api/v1/presentations/" + presentationId,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            settings: {
+              music_url: "https://audio.example.test/server.wav",
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error("external audio mutation failed: " + response.status);
+      }
+    },
+    {
+      presentationId: fixture.presentationId,
+      revision: savedPresentation.revision,
+    },
+  );
+
+  const conflictResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.status() === 409 &&
+      new URL(response.url()).pathname.endsWith(
+        "/api/v1/presentations/" + fixture.presentationId,
+      ),
+  );
+  await saveButton.click();
+  await conflictResponsePromise;
+
+  await expect(
+    inspector.getByText(/نسخه جدیدتری از تنظیمات ارائه روی سرور وجود دارد/),
+  ).toBeVisible();
+  await expect(urlInput).toHaveValue("https://audio.example.test/local.wav");
+  await expect(saveButton).toBeDisabled();
+
+  await inspector.getByRole("button", { name: "بارگذاری نسخه سرور" }).click();
+  const conflictDialog = page.getByRole("alertdialog");
+  await expect(conflictDialog).toContainText(
+    "تغییرات صدای محلی از بین می‌رود",
+  );
+  await conflictDialog
+    .getByRole("button", { name: "بارگذاری نسخه سرور" })
+    .click();
+
+  await expect(inspector).toBeHidden();
+  await page.getByRole("button", { name: "صدا", exact: true }).click();
+  await expect(inspector).toBeVisible();
+  await expect(urlInput).toHaveValue("https://audio.example.test/server.wav");
 
   expect(failures).toEqual([]);
 });
