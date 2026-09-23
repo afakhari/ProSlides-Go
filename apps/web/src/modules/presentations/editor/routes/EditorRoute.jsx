@@ -8,7 +8,7 @@ import Sidebar from "../inspector/QuestionInspector";
 import SlidesPanel from "../slide-list/SlideList";
 import RightToolbar from "../toolbar/EditorToolbar";
 import DesignPanel from "../inspector/DesignInspector";
-import AudioPanel from "../inspector/AudioInspector";
+import AudioPanel from "../inspector/AudioInspector.tsx";
 import ContentSidebar from "../inspector/ContentInspector";
 import { quizService } from "../../api/presentationRepository.ts";
 import { getPresentationValidationError } from "../model/validation";
@@ -143,7 +143,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const [isMobile, setIsMobile] = useState(false);
   const [notice, setNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
-  const [audioSaveNotice, setAudioSaveNotice] = useState(null);
   const hasUnsavedChanges = editorStatus.hasUnsavedChanges;
 
   const slides = quiz.slides;
@@ -232,6 +231,11 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     editorStatus.reportConflict(message);
     await refreshQuiz();
   }, [editorStatus, refreshQuiz]);
+
+  const reloadAudioConflict = useCallback(async () => {
+    await refreshQuiz();
+    editorStatus.clearConflict();
+  }, [editorStatus.clearConflict, refreshQuiz]);
 
   useEffect(() => {
     return () => {
@@ -1419,7 +1423,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
         {showAudioPanel && (
           <div
-            className="bg-white rounded-xl shadow p-4 overflow-y-auto w-full md:h-full md:w-1/3 lg:w-1/4 md:static fixed inset-x-0 bottom-0 top-14 z-50"
+            className="fixed inset-x-0 bottom-0 top-14 z-50 w-full overflow-y-auto rounded-panel border border-border-subtle bg-surface p-4 shadow-panel md:static md:h-full md:w-1/3 lg:w-1/4"
             style={
               isMobile
                 ? {
@@ -1429,24 +1433,15 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
                 : undefined
             }
           >
-            {activeSlide && (
-              <AudioPanel
-                slide={activeSlide}
-                onClose={handleCloseAudioPanel}
-                quiz={quiz}
-                updateQuiz={updateQuiz}
-                setAudioSaveNotice={setAudioSaveNotice}
-                onDirtyChange={setHasAudioChanges}
-                onConflict={recoverConflict}
-              />
-            )}
+            <AudioPanel
+              onClose={handleCloseAudioPanel}
+              quiz={quiz}
+              onQuizUpdated={updateQuiz}
+              onDirtyChange={setHasAudioChanges}
+              onConflict={reloadAudioConflict}
+              onNotify={showNotice}
+            />
           </div>
-        )}
-
-        {audioSaveNotice && (
-          <Notice tone="success" className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 shadow-lg">
-            {audioSaveNotice}
-          </Notice>
         )}
 
         {/* ----- RightToolbar ----- */}
