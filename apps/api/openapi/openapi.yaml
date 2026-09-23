@@ -757,10 +757,8 @@ components:
         music_url:
           type: string
           maxLength: 4096
-          pattern: '^\s*(?:https?://[^/\s?#]+(?:[/?#]\S*)?)?\s*
-
-        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}
- }
+          pattern: '^\\s*(?:https?://[^/\\s?#]+(?:[/?#]\\S*)?)?\\s*$'
+        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     CreatePresentationRequest:
       type: object
       required: [title]
@@ -987,8 +985,7 @@ components:
         background_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
         background_image_url: { type: string }
         music_url: { type: string, maxLength: 4096 }
-        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}
- }
+        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     ParticipantLiveSnapshot:
       type: object
       required: [role, session, participant, participant_count, last_event_id]
