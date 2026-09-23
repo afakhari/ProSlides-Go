@@ -1,11 +1,21 @@
 # Current project status
 
-Last reviewed: 2026-09-23
+Last reviewed: 2026-09-24
 
 This is the single current-state document for ProSlides. Architecture documents
-describe durable rules, ADRs explain decisions, evidence documents record dated
-measurements, and Git records history. Do not copy a full current-state section
-into other documents.
+define durable rules, ADRs explain decisions, evidence documents record dated
+measurements, and Git records history.
+
+## Baseline
+
+The current mainline frontend baseline after rollback is:
+
+```
+960dbce
+```
+
+Changes removed from main after this point are historical changes and require a
+new reviewed migration before becoming part of the active state.
 
 ## Product and architecture
 
@@ -13,89 +23,55 @@ ProSlides is an interactive presentation platform with a React/Vite frontend and
 a Go modular-monolith backend.
 
 - Browser commands and queries use HTTP.
-- Live server-to-client delivery uses SSE.
+- Live delivery uses SSE.
 - PostgreSQL is the durable source of truth.
-- Redis is used for readiness/rate limits and may accelerate ephemeral live work,
-  but it is not a durable ledger.
-- The frontend target is a modular TypeScript SPA with dependency flow
-  `app -> modules -> shared`.
-- Production capacity must be demonstrated by the staged workload in
-  `../capacity-plan.md`; local evidence is not a production claim.
+- Redis is used for operational and ephemeral workloads, not as the durable
+  product ledger.
+- Frontend architecture targets a modular TypeScript application with:
 
-## Current implementation
+```
+app -> modules -> shared
+```
 
-### Backend
+## Frontend current state
 
-The active product flows are implemented on the Go API: cookie/session identity,
-presentation/editor CRUD, revisions and edit conflicts, access codes, live
-sessions, idempotent commands/answers, role-scoped snapshots, durable SSE replay,
-participant rejoin, scoring, roster pagination, and reports.
+The frontend is functional but is not yet a fully modular TypeScript
+application.
 
-Known production-readiness work remains: provider secret provisioning,
-production-like TLS load evidence, retention policy, backup/restore evidence,
-rollout/drain verification, sampled cross-component traces, and staged 5k/10k
-capacity proof.
+Current strengths:
 
-### Frontend
+- React/Vite application structure with lazy loading.
+- Typed API boundaries where migrated.
+- Explicit editor domain ownership direction.
+- Live runtime separation from React rendering concerns.
+- Accessibility, build and regression checks for verified flows.
 
-The frontend is functional and regression-gated for its verified flows, but it
-is not yet a fully modular TypeScript application.
+Remaining work:
 
-Strengths already in place:
-
-- React 19/Vite SPA with route-level lazy loading;
-- OpenAPI-generated presentation transport types with drift checking;
-- a shared typed JSON/API-error boundary and one TanStack Query REST cache;
-- explicit presentation editor domain mapping and revision conflict recovery, with typed question, content, design and presentation-audio drafts; audio uses the same save/discard/conflict discipline and validated HTTP(S) contract, while visual drafts are shared with their preview surfaces so unsaved authoring state is previewed without duplicating ownership;
-- semantic CSS tokens on migrated surfaces;
-- Persian/RTL participant experience and mixed-content direction handling;
-- bundle budgets, axe checks, CI-gated Playwright flows, and protocol/unit coverage;
-- snapshot/SSE recovery and stable live request IDs;
-- a typed live runtime controller for cursor/reconnect/roster/command ownership behind a thin React adapter.
-
-Remaining frontend debt is tracked in `../frontend-status.md`. The largest
-architectural gaps are incomplete TypeScript coverage, legacy top-level
-`pages/components/services/utils/routes` ownership, incomplete design-system convergence and thin component/API-state coverage; the CI browser gate includes a real manager/participant live lifecycle.
+- complete TypeScript migration;
+- remove remaining legacy ownership boundaries;
+- continue design-system convergence;
+- increase focused component/API-state coverage.
 
 ## Active priorities
 
-These are independent tracks. A change in one track does not waive another.
-
-1. **Production capacity:** repeat the 1k HTTP/SSE protocol twice on a named
-   production-like single-API topology through TLS with cold readiness and
-   continuous pool/query/lock/CPU/heap evidence.
-2. **Frontend foundation:** continue the shared error/form/design-system
-   foundation through the remaining identity/editor surfaces without adding
-   parallel HTTP or state abstractions.
-3. **Frontend modularization:** continue TypeScript/module migration through
-   legacy presentation/editor surfaces while preserving editor/live correctness. Question, content, design and audio authoring now have typed domain draft ownership; visual drafts project into live-style previews and presentation audio is validated end-to-end. Editor shell concerns such as panel confirmation, unsaved-browser protection, transient notices, compact viewport locking, slide creation/deletion and type-conversion mutations now live behind typed module hooks/models. Slide selection, synthetic leaderboard selection, structural mutations and reorder persistence live behind typed editor boundaries; the slide list and editor route are typed TSX, and the editor header/toolbar plus presentation sharing boundary now use typed props and the shared ApiError contract. Remaining editor work is smaller legacy UI/token cleanup and denser component/API-state coverage, without re-centralizing draft ownership. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
-4. **Quality:** continue replacing source-regex checks with structural tooling
-   and add component/API-state tests around migrated identity, report, editor and
-   live recovery states.
+1. Keep frontend and backend contracts stable.
+2. Continue frontend modularization through small vertical slices.
+3. Preserve editor draft ownership, conflict recovery and live separation.
+4. Improve verification coverage before larger architectural changes.
 
 ## Documentation rules
 
 - Current state belongs here.
-- Durable architecture belongs in `../architecture.md` and
-  `../frontend-architecture.md`.
-- UX rules belong in `../frontend-professionalization.md`.
-- Frontend debt/claim boundaries belong in `../frontend-status.md`.
-- Measured historical evidence stays in its dated evidence document.
-- Decisions belong in `../decisions/`.
-- Do not maintain a second AI-only copy of repository state.
+- Architecture rules belong in architecture documents.
+- Frontend debt belongs in `frontend-status.md`.
+- Historical evidence must remain tied to its original commit and environment.
 
 ## Verification baseline
 
-For ordinary material changes, run the applicable subset of:
+Applicable verification commands should be run before material changes:
 
 ```sh
-# API
-cd apps/api
-go fmt ./...
-go test ./...
-go vet ./...
-
-# Web
 cd apps/web
 npm ci
 npm run api:types:check
@@ -103,14 +79,4 @@ npm run lint
 npm run typecheck
 npm run test:unit
 npm run build
-npm run test:e2e
 ```
-
-The Playwright suite requires a reachable Go API. Capacity changes additionally
-follow `../capacity-plan.md` and the k6/reconciliation procedure.
-
-## Evidence freshness
-
-Dated evidence remains valid only for the commit/topology it records. It must
-not be silently promoted to evidence for the current tree, production field
-performance, or a larger capacity level.
