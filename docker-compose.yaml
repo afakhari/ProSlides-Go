@@ -75,7 +75,7 @@ services:
         hard: 65535
 
   postgres:
-    image: ${BASE_REGISTRY:-docker.io/library}/postgres:17.5-alpine3.21
+    image: ${BASE_REGISTRY:-docker.io/library}/postgres:16.15-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-proslides}
       POSTGRES_USER: ${POSTGRES_USER:-proslides}
