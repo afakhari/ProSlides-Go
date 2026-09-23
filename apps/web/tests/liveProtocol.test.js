@@ -245,7 +245,7 @@ test("access codes resolve through the Go live API", async () => {
     return new Response(JSON.stringify({
       session_id: "session",
       presentation_id: "presentation",
-      presentation: { title: "آزمون", background_color: "#123456", background_image_url: "", text_color: "#ffffff" },
+      presentation: { title: "آزمون", background_color: "#123456", background_image_url: "", music_url: "https://example.test/theme.mp3", text_color: "#ffffff" },
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -255,6 +255,7 @@ test("access codes resolve through the Go live API", async () => {
     const result = await resolveLiveSession("JOIN CODE");
     assert.equal(result.session_id, "session");
     assert.equal(result.presentation.background_color, "#123456");
+    assert.equal(result.presentation.music_url, "https://example.test/theme.mp3");
   } finally {
     globalThis.fetch = originalFetch;
   }
