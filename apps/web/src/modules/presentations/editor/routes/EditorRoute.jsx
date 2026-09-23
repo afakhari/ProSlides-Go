@@ -25,6 +25,7 @@ import { useEditorNotice } from "../model/useEditorNotice.ts";
 import { useEditorPanelController } from "../model/useEditorPanelController.ts";
 import { useEditorViewport } from "../model/useEditorViewport.ts";
 import { useUnsavedChangesGuard } from "../model/useUnsavedChangesGuard.ts";
+import { useEditorSlideMutations } from "../model/useEditorSlideMutations.ts";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -136,13 +137,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     (dirty) => editorStatus.setDirty("design", Boolean(dirty)),
     [editorStatus],
   );
-  const [isSelectingType, setIsSelectingType] = useState(false);
-  const [isAddingSlide, setIsAddingSlide] = useState(false);
-  const [isCreatingSlide, setIsCreatingSlide] = useState(false);
-  const addSlideGateRef = useRef(false);
-  const [typeSelectionError, setTypeSelectionError] = useState(null);
-  const [typeSelectionNotice, setTypeSelectionNotice] = useState(null);
-  const [typeSelectionMode, setTypeSelectionMode] = useState(null);
   const hasUnsavedChanges = editorStatus.hasUnsavedChanges;
   const { notice, showNotice } = useEditorNotice();
 
@@ -160,7 +154,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     return { ready: true, reason: "شروع ارائه" };
   })();
 
-  const [showTypeBox, setShowTypeBox] = useState(false);
   const panels = useEditorPanelController({
     dirty: {
       content: hasSidebarChanges,
@@ -182,6 +175,34 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     confirmDialog,
   } = panels;
 
+  const recoverConflict = useCallback(async () => {
+    const message = "نسخه جدیدتری روی سرور وجود داشت؛ آخرین نسخه بارگذاری شد.";
+    editorStatus.reportConflict(message);
+    await refreshQuiz();
+  }, [editorStatus, refreshQuiz]);
+
+  const slideMutations = useEditorSlideMutations({
+    presentation: quiz,
+    activeSlide,
+    updatePresentation: updateQuiz,
+    refreshPresentation: refreshQuiz,
+    setActiveSlideId,
+    setActiveSlideType,
+    activateContentPanel: () => panels.activateTab("content"),
+    closeSlidesPanel: () => panels.closePanel("slides"),
+    recoverConflict,
+    showNotice,
+    requestConfirmation: panels.requestConfirmation,
+  });
+  const {
+    showTypeBox,
+    isSelectingType,
+    isAddingSlide,
+    typeSelectionError,
+    typeSelectionNotice,
+    typeSelectionMode,
+  } = slideMutations;
+
   useUnsavedChangesGuard(hasUnsavedChanges);
   const isMobile = useEditorViewport(panels.overlayOpen || showTypeBox);
 
@@ -201,12 +222,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       setActiveSlideType(activeSlide.slide_type);
     }
   }, [activeSlide, activeSlideType]);
-
-  const recoverConflict = useCallback(async () => {
-    const message = "نسخه جدیدتری روی سرور وجود داشت؛ آخرین نسخه بارگذاری شد.";
-    editorStatus.reportConflict(message);
-    await refreshQuiz();
-  }, [editorStatus, refreshQuiz]);
 
   const reloadAudioConflict = useCallback(async () => {
     await refreshQuiz();
@@ -329,403 +344,33 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     return "سؤالی هنوز ساخته نشده";
   };
 
-  // ????? ?????? ????
-  const addNewSlide = () => {
-    if (addSlideGateRef.current) return null;
-    addSlideGateRef.current = true;
-    setIsAddingSlide(true);
-    setIsCreatingSlide(true);
-    setTypeSelectionError(null);
-    setTypeSelectionMode(null);
-    setShowTypeBox(true);
-    return null;
-  };
+  const addNewSlide = slideMutations.beginAddSlide;
+  const deleteSlide = slideMutations.deleteSlide;
 
-
-
-  // ??? ??????
-  const deleteSlide = async (slideId) => {
-    try {
-      // ??? ?? ????
-      const deletedSlide = slides.find((slide) => slide.slide_id === slideId);
-      await quizService.deleteSlide(quiz.quiz_id, slideId, deletedSlide?.revision);
-
-      // ??????????? state
-      const slideIndex = slides.findIndex((s) => s.slide_id === slideId);
-      const updatedSlides = slides.filter((s) => s.slide_id !== slideId);
-
-      const nextSlide = updatedSlides[Math.min(slideIndex, updatedSlides.length - 1)] || null;
-      setActiveSlideId(nextSlide?.slide_id || null);
-      await refreshQuiz();
-    } catch (error) {
-      console.error("Failed to delete slide:", error);
-      showNotice("حذف اسلاید انجام نشد.", "error");
-    }
-  };
-
-  // ????? ??? ????
   const handleTypeChangeClick = () => {
-    if (isSelectingType) {
-      return;
-    }
+    if (isSelectingType) return;
+
+    const openTypeSelection = () => {
+      setHasSidebarChanges(false);
+      handleCloseSidebarPanel(true);
+      slideMutations.openTypeSelection();
+    };
+
     if (hasSidebarChanges) {
-      panels.requestConfirmation(() => {
-        setHasSidebarChanges(false);
-        handleCloseSidebarPanel(true);
-        proceedWithTypeChange();
-      }, {
+      panels.requestConfirmation(openTypeSelection, {
         title: "تغییر نوع سؤال",
         description:
           "تغییرات ذخیره‌نشده‌ای دارید. پیش از تغییر نوع سؤال آن‌ها را کنار بگذارید؟",
       });
       return;
     }
-    proceedWithTypeChange();
+
+    slideMutations.openTypeSelection();
   };
 
-  const proceedWithTypeChange = () => {
-    setTypeSelectionError(null);
-    setTypeSelectionMode(null);
-    panels.closePanel("slides");
-    setShowTypeBox(true);
-  };
-
-  const cancelTypeSelection = () => {
-    setShowTypeBox(false);
-    setTypeSelectionError(null);
-    if (isCreatingSlide) {
-      setIsCreatingSlide(false);
-      setIsAddingSlide(false);
-      addSlideGateRef.current = false;
-    }
-  };
-
-  const applyQuestionTypeChange = async ({
-    currentQuestion,
-    questionType,
-    quizId,
-    slideId,
-    requestedMode,
-  }) => {
-    try {
-      setIsSelectingType(true);
-      setTypeSelectionError(null);
-      setTypeSelectionMode(requestedMode);
-      let nextQuestion;
-
-      if (!currentQuestion || !currentQuestion.question_id) {
-        nextQuestion = {
-          question_id: String(slideId),
-          title: "",
-          text: "سؤال جدید",
-          question_text: "سؤال جدید",
-          question_type: questionType,
-          min_point: 0,
-          max_point: 100,
-          time_limit: 10,
-          question_time: 10,
-          image_url: "",
-          question_image: "",
-          faster_answers_more_points: false,
-          partial_scoring: false,
-          options: [
-            { option_id: globalThis.crypto.randomUUID(), text: "گزینه ۱", is_correct: true, image_url: "", order: 1 },
-            { option_id: globalThis.crypto.randomUUID(), text: "گزینه ۲", is_correct: false, image_url: "", order: 2 },
-          ],
-        };
-      } else {
-        const existingOptions = [...(currentQuestion.options || [])];
-        while (existingOptions.length < 2) {
-          existingOptions.push({
-            option_id: globalThis.crypto.randomUUID(),
-            text: `گزینه ${existingOptions.length + 1}`,
-            is_correct: existingOptions.length === 0,
-            image_url: "",
-            order: existingOptions.length + 1,
-          });
-        }
-        const firstCorrectIndex = existingOptions.findIndex(
-          (option) => option.is_correct
-        );
-        const indexToKeepTrue = firstCorrectIndex !== -1 ? firstCorrectIndex : 0;
-        const nextOptions = questionType === "single"
-          ? existingOptions.map((option, index) => ({
-              ...option,
-              is_correct: index === indexToKeepTrue,
-              order: index + 1,
-            }))
-          : existingOptions.map((option, index) => ({
-              ...option,
-              is_correct: firstCorrectIndex === -1 ? index === 0 : option.is_correct,
-              order: index + 1,
-            }));
-
-        nextQuestion = {
-          ...currentQuestion,
-          question_type: questionType,
-          partial_scoring:
-            questionType === "multiple" && currentQuestion.partial_scoring === true,
-          options: nextOptions,
-        };
-      }
-
-      const updatedSlide = await quizService.updateSlide(quizId, slideId, {
-        ...activeSlide,
-        slide_type: 1,
-        question: nextQuestion,
-      });
-
-      // ??????????? ?? state ????
-      const updatedSlides = slides.map((s) =>
-        s.slide_id === slideId ? updatedSlide : s
-      );
-
-      updateQuiz({
-        ...quiz,
-        revision: quiz.revision + 1,
-        slides: updatedSlides,
-      });
-      setTypeSelectionNotice(
-        `نوع سؤال به ${requestedMode === "single" ? "تک‌گزینه‌ای" : "چندگزینه‌ای"} تغییر کرد.`
-      );
-      setTimeout(() => {
-        setTypeSelectionNotice(null);
-      }, 2500);
-      setShowTypeBox(false);
-      panels.activateTab("content");
-    } catch (error) {
-      console.error("Error changing question type:", error);
-
-      if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
-        await recoverConflict();
-        setTypeSelectionError("این سؤال جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.");
-      } else if (error.response?.status === 409 && error.response?.data?.error === "slide_has_results") {
-        setTypeSelectionError("این اسلاید نتیجه زنده دارد. پیش از تغییر نوع، نتایج ارائه را بازنشانی کنید.");
-      } else if (error.response?.status === 400) {
-        const errorMsg = error.response.data;
-        setTypeSelectionError(
-          typeof errorMsg === "string"
-            ? errorMsg
-            : "اعمال این تغییر ممکن نشد. دوباره تلاش کنید."
-        );
-      } else {
-        setTypeSelectionError("خطای غیرمنتظره رخ داد. دوباره تلاش کنید.");
-      }
-    } finally {
-      setIsSelectingType(false);
-    }
-  };
-
-  const handleSelectType = async (type) => {
-    if (isCreatingSlide) {
-      if (isSelectingType) return;
-      const isContent = type === "Content Slide";
-      const questionType = type === "Single Choice" ? "single" : "multiple";
-      const slideId = globalThis.crypto.randomUUID();
-      const question = isContent ? null : {
-        question_id: slideId,
-        title: "",
-        text: "سؤال جدید",
-        question_text: "سؤال جدید",
-        question_type: questionType,
-        min_point: 0,
-        max_point: 100,
-        time_limit: 10,
-        question_time: 10,
-        image_url: "",
-        question_image: "",
-        faster_answers_more_points: false,
-        partial_scoring: false,
-        options: [
-          { option_id: globalThis.crypto.randomUUID(), text: "گزینه ۱", is_correct: true, image_url: "", order: 1 },
-          { option_id: globalThis.crypto.randomUUID(), text: "گزینه ۲", is_correct: false, image_url: "", order: 2 },
-        ],
-      };
-      const newSlideData = {
-        slide_id: slideId,
-        revision: 1,
-        order: slides.length,
-        slide_type: isContent ? 2 : 1,
-        show_leaderboard_after: false,
-        title: isContent ? "اسلاید محتوایی جدید" : "",
-        content_text: "",
-        content_image_url: "",
-        question,
-      };
-      try {
-        setIsSelectingType(true);
-        setTypeSelectionMode(isContent ? "content" : questionType);
-        const createdSlide = await quizService.createSlide(quiz.quiz_id, newSlideData, quiz.revision);
-        updateQuiz({ ...quiz, revision: quiz.revision + 1, slides: [...slides, createdSlide] });
-        setActiveSlideId(createdSlide.slide_id);
-        setActiveSlideType(createdSlide.slide_type);
-        setShowTypeBox(false);
-        panels.activateTab("content");
-        setIsCreatingSlide(false);
-        setIsAddingSlide(false);
-        addSlideGateRef.current = false;
-        showNotice("اسلاید ساخته شد.", "success");
-      } catch (error) {
-        if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
-          await recoverConflict();
-          setTypeSelectionError("ارائه تغییر کرده بود؛ آخرین نسخه بارگذاری شد.");
-        } else {
-          setTypeSelectionError("ساخت اسلاید انجام نشد. دوباره تلاش کنید.");
-        }
-      } finally {
-        setIsSelectingType(false);
-      }
-      return;
-    }
-    if (!activeSlide || ![1, 2].includes(activeSlide.slide_type)) return;
-    if (isSelectingType) return;
-
-    const isContent = type === "Content Slide";
-    const questionType = type === "Single Choice" ? "single" : "multiple";
-    const quizId = quiz.quiz_id;
-    const slideId = activeSlide.slide_id;
-    const requestedMode = isContent ? "content" : type === "Single Choice" ? "single" : "multiple";
-    try {
-      setIsSelectingType(true);
-      setTypeSelectionError(null);
-      setTypeSelectionMode(requestedMode);
-
-      const applyContentTypeChange = async () => {
-        try {
-          setIsSelectingType(true);
-          const updatedSlide = await quizService.updateSlide(quizId, slideId, {
-            ...activeSlide,
-            slide_type: 2,
-            question: null,
-            title: activeSlide.title || "اسلاید محتوایی جدید",
-            content_text: activeSlide.content_text || "",
-            content_image_url: activeSlide.content_image_url || "",
-            show_leaderboard_after: false,
-          });
-          handleSlideUpdated(updatedSlide);
-          setTypeSelectionNotice("نوع اسلاید به محتوا تغییر کرد.");
-          setShowTypeBox(false);
-          panels.activateTab("content");
-        } catch (error) {
-          if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
-            await recoverConflict();
-            setTypeSelectionError("این اسلاید جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.");
-          } else if (error.response?.status === 409 && error.response?.data?.error === "slide_has_results") {
-            setTypeSelectionError("این اسلاید نتیجه زنده دارد. پیش از تغییر نوع، نتایج ارائه را بازنشانی کنید.");
-          } else {
-            setTypeSelectionError("تبدیل این اسلاید ممکن نشد. دوباره تلاش کنید.");
-          }
-        } finally {
-          setIsSelectingType(false);
-        }
-      };
-
-      if (isContent) {
-        if (activeSlide.slide_type === 2) {
-          setShowTypeBox(false);
-          panels.activateTab("content");
-          return;
-        }
-        if (activeSlide.question) {
-          setIsSelectingType(false);
-          panels.requestConfirmation(applyContentTypeChange, {
-            title: "تبدیل به اسلاید محتوایی؟",
-            description: "سؤال و گزینه‌های آن با محتوا جایگزین می‌شوند. ادامه می‌دهید؟",
-            confirmText: "تبدیل",
-            cancelText: "انصراف",
-          });
-          return;
-        }
-        await applyContentTypeChange();
-        return;
-      }
-
-      const currentQuestion = activeSlide.question;
-
-      if (activeSlide.slide_type === 2) {
-        setIsSelectingType(false);
-        panels.requestConfirmation(
-          () => applyQuestionTypeChange({
-            currentQuestion: null,
-            questionType,
-            quizId,
-            slideId,
-            requestedMode,
-          }),
-          {
-            title: "تبدیل به سؤال؟",
-            description: "اسلاید محتوایی با یک سؤال جدید جایگزین می‌شود. ادامه می‌دهید؟",
-            confirmText: "تبدیل",
-            cancelText: "انصراف",
-          },
-        );
-        return;
-      }
-
-      if (currentQuestion?.question_type === questionType) {
-        setTypeSelectionNotice(
-          `نوع سؤال هم‌اکنون ${requestedMode === "single" ? "تک‌گزینه‌ای" : "چندگزینه‌ای"} است.`
-        );
-        setTimeout(() => {
-          setTypeSelectionNotice(null);
-        }, 2000);
-        setShowTypeBox(false);
-        panels.activateTab("content");
-        return;
-      }
-
-      if (currentQuestion?.question_type === "multiple" && questionType === "single") {
-        setIsSelectingType(false);
-        panels.requestConfirmation(() => {
-          void applyQuestionTypeChange({
-            currentQuestion,
-            questionType,
-            quizId,
-            slideId,
-            requestedMode,
-          });
-        }, {
-          title: "تغییر به تک‌گزینه‌ای؟",
-          description:
-            "در حالت تک‌گزینه‌ای فقط یک گزینه صحیح باقی می‌ماند. ادامه می‌دهید؟",
-          confirmText: "ادامه",
-          cancelText: "انصراف",
-        });
-        return;
-      }
-
-      await applyQuestionTypeChange({
-        currentQuestion,
-        questionType,
-        quizId,
-        slideId,
-        requestedMode,
-      });
-    } catch (error) {
-      console.error("Error resolving question type change:", error);
-      setTypeSelectionError("خطای غیرمنتظره رخ داد. دوباره تلاش کنید.");
-    } finally {
-      setIsSelectingType(false);
-    }
-  };
-
-
-
-  // ???? ???? ??????????? ?????? ?? ?? ????? ?? Sidebar
-  const handleSlideUpdated = (updatedSlide) => {
-    // ??????????? ?????? ?? state ????
-    const updatedSlides = slides.map((s) =>
-      s.slide_id === updatedSlide.slide_id ? updatedSlide : s
-    );
-
-    updateQuiz({
-      ...quiz,
-      revision: quiz.revision + 1,
-      slides: updatedSlides,
-    });
-
-    setActiveSlideId(updatedSlide.slide_id);
-  };
+  const cancelTypeSelection = slideMutations.cancelTypeSelection;
+  const handleSelectType = slideMutations.selectType;
+  const handleSlideUpdated = slideMutations.applyUpdatedSlide;
 
   // Present
   // const handlePresent = () => {
