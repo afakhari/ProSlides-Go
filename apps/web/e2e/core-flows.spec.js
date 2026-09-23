@@ -1038,7 +1038,7 @@ test("design editor projects a contrast-safe presentation draft and preserves co
   await conflictResponsePromise;
 
   await expect(
-    inspector.getByText(/نسخه جدیدتری از طراحی ارائه روی سرور وجود دارد/),
+    inspector.getByText(/طراحی ارائه جای دیگری تغییر کرده است/),
   ).toBeVisible();
   await expect(backgroundInput).toHaveValue("#eff6ff");
   await expect.poll(async () =>
