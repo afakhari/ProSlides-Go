@@ -9,7 +9,6 @@ export const clearAuthStorage = () => {
 export const AUTH_EXPIRED_EVENT = "auth:expired";
 export const AUTH_EXPIRED_STORAGE_KEY = "auth.expiredAt";
 export const APP_NOTICE_EVENT = "app:notice";
-export const UNSAVED_CHANGES_KEY = "app.unsavedChanges";
 
 let authExpiredDispatched = false;
 let lastNotice = { code: "", at: 0 };
