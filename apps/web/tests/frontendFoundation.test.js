@@ -34,10 +34,19 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
     "src/modules/presentations/editor/slide-list/SlideList.tsx",
   ];
   const combined = paths.map(source).join("\n");
+  const header = source("src/modules/presentations/editor/toolbar/EditorHeader.tsx");
+  const toolbar = source("src/modules/presentations/editor/toolbar/EditorToolbar.tsx");
+  const share = source("src/modules/presentations/sharing/ShareDialog.tsx");
 
   assert.doesNotMatch(combined, /(?:window\.)?alert\s*\(/);
-  assert.match(source("src/modules/presentations/editor/toolbar/EditorHeader.tsx"), /dir="auto"/);
-  assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /dir="ltr"/);
+  assert.match(header, /dir="auto"/);
+  assert.match(share, /dir="ltr"/);
+  assert.doesNotMatch(header, /error\.response/);
+  assert.doesNotMatch(share, /error\?*\.response|error\.response/);
+  assert.match(header, /error instanceof ApiError/);
+  assert.match(share, /error instanceof ApiError/);
+  assert.match(toolbar, /border-e/);
+  assert.doesNotMatch(toolbar, /violet-|border-r/);
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /dir="auto"/);
 });
 
