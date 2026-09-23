@@ -5,7 +5,7 @@ import { LiveSessionProvider } from "../modules/live/react/LiveSessionContext";
 import { ServerDataProvider } from "../modules/live/react/ServerDataContext";
 import { useServerData } from "../modules/live/react/useServerData";
 import { useLiveSession } from "../modules/live/react/useLiveSession";
-import { AudioProvider, useAudio } from "../contexts/AudioContext";
+import { AudioProvider, useAudio } from "../contexts/AudioContext.tsx";
 import { getPresentation, resolveLiveSession } from "../modules/live/api/liveApi";
 import { presentationSlideToLegacy } from "../modules/live/runtime/protocol";
 import { hasLeaderboardEntries } from "../pages/presentation/utils/leaderboardUtils";
