@@ -29,7 +29,7 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
     "src/modules/presentations/editor/toolbar/EditorHeader.jsx",
     "src/modules/presentations/sharing/ShareDialog.jsx",
     "src/modules/presentations/dashboard/PresentationDashboard.jsx",
-    "src/modules/presentations/editor/routes/EditorRoute.jsx",
+    "src/modules/presentations/editor/routes/EditorRoute.tsx",
     "src/modules/presentations/editor/inspector/QuestionInspector.tsx",
     "src/modules/presentations/editor/slide-list/SlideList.tsx",
   ];
@@ -58,7 +58,7 @@ test("typed Persian catalog is consumed by manager dashboard editor and share", 
   assert.match(catalog, /export const fa =/);
   assert.match(catalog, /as const/);
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /fa\.dashboard\.title/);
-  assert.match(source("src/modules/presentations/editor/routes/EditorRoute.jsx"), /fa\.managerShell\.backToDashboard/);
+  assert.match(source("src/modules/presentations/editor/routes/EditorRoute.tsx"), /fa\.managerShell\.backToDashboard/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.jsx"), /fa\.share\.title/);
 });
 
@@ -76,7 +76,7 @@ test("presentation transport types come from the checked-in OpenAPI output", () 
 });
 
 test("F3 owns presentation UI and keeps slide mutation selection and reorder behind typed editor boundaries", () => {
-  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const mutations = source("src/modules/presentations/editor/model/useEditorSlideMutations.ts");
   const selection = source("src/modules/presentations/editor/model/useEditorSlideSelection.ts");
   const order = source("src/modules/presentations/editor/model/useEditorSlideOrder.ts");
@@ -311,7 +311,7 @@ test("live projection is derived directly from authoritative snapshot and roster
 
 
 test("question editor keeps one typed draft across inspector and canvas", () => {
-  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/QuestionInspector.tsx");
   const canvas = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const options = source("src/modules/presentations/editor/inspector/QuestionOptionsEditor.tsx");
@@ -349,7 +349,7 @@ test("question editor keeps one typed draft across inspector and canvas", () => 
 
 
 test("content editor shares one typed draft across inspector and canvas", () => {
-  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/ContentInspector.tsx");
   const canvas = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
   const provider = source("src/modules/presentations/editor/model/ContentDraftProvider.tsx");
@@ -377,7 +377,7 @@ test("content editor shares one typed draft across inspector and canvas", () => 
 
 
 test("audio editor uses one typed presentation draft and accessible native preview", () => {
-  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/AudioInspector.tsx");
   const draft = source("src/modules/presentations/editor/model/audioDraft.ts");
   const hook = source("src/modules/presentations/editor/model/useAudioDraft.ts");
@@ -406,7 +406,7 @@ test("audio editor uses one typed presentation draft and accessible native previ
 });
 
 test("design editor shares one typed presentation draft across all preview surfaces", () => {
-  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/DesignInspector.tsx");
   const question = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const content = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
