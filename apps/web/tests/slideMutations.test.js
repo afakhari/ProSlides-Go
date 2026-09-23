@@ -6,7 +6,7 @@ import {
   convertSlideToContent,
   convertSlideToQuestion,
   createSlideForChoice,
-  nextSlideIdAfterDeletion,
+  activeSlideIdAfterDeletion,
   replacePresentationSlide,
 } from "../src/modules/presentations/editor/model/slideMutations.ts";
 
@@ -159,11 +159,27 @@ test("presentation helpers keep revision and active-neighbor semantics determini
   };
 
   assert.equal(
-    nextSlideIdAfterDeletion(presentation.slides, "slide-2"),
+    activeSlideIdAfterDeletion(
+      presentation.slides,
+      "slide-2",
+      "slide-1",
+    ),
+    "slide-1",
+  );
+  assert.equal(
+    activeSlideIdAfterDeletion(
+      presentation.slides,
+      "slide-2",
+      "slide-2",
+    ),
     "slide-3",
   );
   assert.equal(
-    nextSlideIdAfterDeletion(presentation.slides, "slide-3"),
+    activeSlideIdAfterDeletion(
+      presentation.slides,
+      "slide-3",
+      "slide-3",
+    ),
     "slide-2",
   );
 
