@@ -55,6 +55,7 @@ type PublicLivePresentation struct {
 	Title              string `json:"title"`
 	BackgroundColor    string `json:"background_color"`
 	BackgroundImageURL string `json:"background_image_url"`
+	MusicURL           string `json:"music_url"`
 	TextColor          string `json:"text_color"`
 }
 type AnswerResult struct {
