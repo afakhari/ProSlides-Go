@@ -81,9 +81,7 @@ export function useEditorPanelController({
     const current = activeTab;
     const currentDirtyPanel = current ? panelForTab(current) : null;
     const leavingDirtyPanel =
-      currentDirtyPanel !== null &&
-      dirty[currentDirtyPanel] &&
-      (current !== tab || current === tab);
+      currentDirtyPanel !== null && dirty[currentDirtyPanel];
 
     const apply = () => {
       if (currentDirtyPanel && dirty[currentDirtyPanel]) {
