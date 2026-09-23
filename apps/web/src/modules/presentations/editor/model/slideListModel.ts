@@ -78,3 +78,28 @@ export const presentationAfterReorder = (
     revision: slide.revision + 1,
   })),
 });
+
+export const getSlideListTitle = (slide: SlideListItem): string => {
+  if (slide.slide_type === 1 && slide.question) {
+    return slide.question.text || "اسلاید سؤال";
+  }
+  if (slide.slide_type === 2) {
+    return slide.title || slide.content_text || "اسلاید محتوا";
+  }
+  if (slide.slide_type === 3) {
+    return slide.title || "جدول امتیازات";
+  }
+  return "سؤالی هنوز ساخته نشده";
+};
+
+export const getSlideListTypeLabel = (
+  slide: SlideListItem,
+): string => {
+  if (slide.slide_type === 3) return "جدول امتیازات";
+  if (slide.slide_type === 2) return "محتوا";
+  if (slide.slide_type === 1 && slide.question) {
+    if (slide.question.question_type === "single") return "تک‌گزینه‌ای";
+    if (slide.question.question_type === "multiple") return "چندگزینه‌ای";
+  }
+  return "انتخاب نشده";
+};
