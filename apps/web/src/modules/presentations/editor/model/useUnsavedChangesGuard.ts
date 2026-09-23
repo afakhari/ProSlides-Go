@@ -1,19 +1,19 @@
 import { useEffect } from "react";
 
-import { UNSAVED_CHANGES_KEY } from "../../../../utils/auth";
+import { UNSAVED_CHANGES_STORAGE_KEY } from "../../../../shared/browser/storageKeys.ts";
 
 export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
     if (hasUnsavedChanges) {
-      localStorage.setItem(UNSAVED_CHANGES_KEY, "1");
+      localStorage.setItem(UNSAVED_CHANGES_STORAGE_KEY, "1");
     } else {
-      localStorage.removeItem(UNSAVED_CHANGES_KEY);
+      localStorage.removeItem(UNSAVED_CHANGES_STORAGE_KEY);
     }
 
     return () => {
-      localStorage.removeItem(UNSAVED_CHANGES_KEY);
+      localStorage.removeItem(UNSAVED_CHANGES_STORAGE_KEY);
     };
   }, [hasUnsavedChanges]);
 
