@@ -167,6 +167,17 @@ export const appendPresentationSlide = (
   slides: [...presentation.slides, createdSlide],
 });
 
+export const removePresentationSlide = (
+  presentation: EditorPresentation,
+  deletedSlideId: string,
+): EditorPresentation => ({
+  ...presentation,
+  revision: presentation.revision + 1,
+  slides: presentation.slides.filter(
+    (slide) => slide.slide_id !== deletedSlideId,
+  ),
+});
+
 export const activeSlideIdAfterDeletion = (
   slides: EditorSlide[],
   deletedSlideId: string,
