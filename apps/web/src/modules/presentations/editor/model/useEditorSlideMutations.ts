@@ -34,8 +34,10 @@ type UseEditorSlideMutationsOptions = {
   activeSlide: EditorSlide | null;
   updatePresentation: (presentation: EditorPresentation) => void;
   refreshPresentation: () => void | Promise<void>;
-  setActiveSlideId: (slideId: string | null) => void;
-  setActiveSlideType: (slideType: SlideType | null) => void;
+  selectSlide: (
+    slideId: string | null,
+    slideType?: SlideType | null,
+  ) => void;
   activateContentPanel: () => void;
   closeSlidesPanel: () => void;
   recoverConflict: () => void | Promise<void>;
@@ -57,8 +59,7 @@ export function useEditorSlideMutations({
   activeSlide,
   updatePresentation,
   refreshPresentation,
-  setActiveSlideId,
-  setActiveSlideType,
+  selectSlide,
   activateContentPanel,
   closeSlidesPanel,
   recoverConflict,
@@ -107,9 +108,9 @@ export function useEditorSlideMutations({
       updatePresentation(
         replacePresentationSlide(presentation, updatedSlide),
       );
-      setActiveSlideId(updatedSlide.slide_id);
+      selectSlide(updatedSlide.slide_id, updatedSlide.slide_type);
     },
-    [presentation, setActiveSlideId, updatePresentation],
+    [presentation, selectSlide, updatePresentation],
   );
 
   const resetCreationGate = useCallback(() => {
@@ -217,7 +218,7 @@ export function useEditorSlideMutations({
         return;
       }
 
-      setActiveSlideId(nextSlideId);
+      selectSlide(nextSlideId);
 
       try {
         await refreshPresentation();
@@ -238,7 +239,7 @@ export function useEditorSlideMutations({
       presentation,
       recoverConflict,
       refreshPresentation,
-      setActiveSlideId,
+      selectSlide,
       showNotice,
       updatePresentation,
     ],
@@ -350,8 +351,7 @@ export function useEditorSlideMutations({
         updatePresentation(
           appendPresentationSlide(presentation, createdSlide),
         );
-        setActiveSlideId(createdSlide.slide_id);
-        setActiveSlideType(createdSlide.slide_type);
+        selectSlide(createdSlide.slide_id, createdSlide.slide_type);
         setShowTypeBox(false);
         activateContentPanel();
         resetCreationGate();
@@ -372,8 +372,7 @@ export function useEditorSlideMutations({
       isSelectingType,
       presentation,
       resetCreationGate,
-      setActiveSlideId,
-      setActiveSlideType,
+      selectSlide,
       showNotice,
       updatePresentation,
     ],
@@ -490,6 +489,63 @@ export function useEditorSlideMutations({
     ],
   );
 
+  const deleteLeaderboardSlide = useCallback(
+    async (sourceSlideId: string) => {
+      const sourceSlide = presentation.slides.find(
+        (slide) =>
+          slide.slide_id === sourceSlideId && slide.slide_type === 1,
+      );
+      if (!sourceSlide) {
+        showNotice(
+          "اسلاید سؤال مربوط به جدول امتیازات دیگر وجود ندارد.",
+          "warning",
+        );
+        await refreshPresentation();
+        return;
+      }
+
+      try {
+        const updatedSlide = await quizService.deleteLeaderboardSlide(
+          presentation.quiz_id,
+          sourceSlide,
+        );
+        updatePresentation(
+          replacePresentationSlide(presentation, updatedSlide),
+        );
+        showNotice("جدول امتیازات حذف شد.", "success");
+      } catch (error) {
+        if (error instanceof ApiError && error.isConflict) {
+          await recoverConflict();
+          showNotice(
+            "این اسلاید جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
+            "warning",
+          );
+          return;
+        }
+        if (
+          error instanceof ApiError &&
+          error.code === "slide_has_results"
+        ) {
+          showNotice(
+            "این اسلاید نتیجه زنده دارد و جدول امتیازات آن فعلاً قابل حذف نیست.",
+            "warning",
+          );
+          return;
+        }
+
+        console.error("Failed to delete leaderboard slide:", error);
+        showNotice("حذف جدول امتیازات انجام نشد.", "error");
+      }
+    },
+    [
+      presentation,
+      recoverConflict,
+      refreshPresentation,
+      showNotice,
+      updatePresentation,
+    ],
+  );
+
   return {
     showTypeBox,
     isSelectingType,
@@ -503,6 +559,7 @@ export function useEditorSlideMutations({
     cancelTypeSelection,
     selectType,
     deleteSlide,
+    deleteLeaderboardSlide,
     applyUpdatedSlide,
   };
 }
