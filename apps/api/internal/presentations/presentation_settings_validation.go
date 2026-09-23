@@ -31,17 +31,22 @@ func validatePresentationSettings(raw json.RawMessage) error {
 		}
 	}
 
-	if value, ok := values["background_image_url"]; ok {
-		var imageURL string
-		if json.Unmarshal(value, &imageURL) != nil || utf8.RuneCountInString(imageURL) > 4096 {
+	for _, key := range []string{"background_image_url", "music_url"} {
+		value, ok := values[key]
+		if !ok {
+			continue
+		}
+		var resourceURL string
+		if json.Unmarshal(value, &resourceURL) != nil || utf8.RuneCountInString(resourceURL) > 4096 {
 			return errInvalidPresentationSettings
 		}
-		imageURL = strings.TrimSpace(imageURL)
-		if imageURL != "" {
-			parsed, err := url.ParseRequestURI(imageURL)
-			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-				return errInvalidPresentationSettings
-			}
+		resourceURL = strings.TrimSpace(resourceURL)
+		if resourceURL == "" {
+			continue
+		}
+		parsed, err := url.ParseRequestURI(resourceURL)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return errInvalidPresentationSettings
 		}
 	}
 
