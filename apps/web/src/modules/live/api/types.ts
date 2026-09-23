@@ -88,6 +88,7 @@ export interface LiveSessionLocator {
     title: string;
     background_color: string;
     background_image_url: string;
+    music_url: string;
     text_color: string;
   };
 }
