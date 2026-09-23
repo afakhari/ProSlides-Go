@@ -167,14 +167,19 @@ export const appendPresentationSlide = (
   slides: [...presentation.slides, createdSlide],
 });
 
-export const nextSlideIdAfterDeletion = (
+export const activeSlideIdAfterDeletion = (
   slides: EditorSlide[],
   deletedSlideId: string,
+  activeSlideId: string | null,
 ): string | null => {
+  if (activeSlideId && activeSlideId !== deletedSlideId) {
+    return activeSlideId;
+  }
+
   const deletedIndex = slides.findIndex(
     (slide) => slide.slide_id === deletedSlideId,
   );
-  if (deletedIndex < 0) return null;
+  if (deletedIndex < 0) return activeSlideId;
 
   const remaining = slides.filter(
     (slide) => slide.slide_id !== deletedSlideId,
