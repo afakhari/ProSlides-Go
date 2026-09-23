@@ -364,6 +364,36 @@ test("content editor shares one typed draft across inspector and canvas", () => 
 });
 
 
+
+test("audio editor uses one typed presentation draft and accessible native preview", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
+  const inspector = source("src/modules/presentations/editor/inspector/AudioInspector.tsx");
+  const draft = source("src/modules/presentations/editor/model/audioDraft.ts");
+  const hook = source("src/modules/presentations/editor/model/useAudioDraft.ts");
+  const provider = source("src/contexts/AudioContext.tsx");
+  const entry = source("src/routes/PresentationEntry.jsx");
+
+  assert.match(route, /AudioInspector\.tsx/);
+  assert.match(route, /<AudioPanel/);
+  assert.doesNotMatch(route, /setAudioSaveNotice/);
+  assert.doesNotMatch(route, /activeSlide\s*&&\s*\([\s\S]{0,120}<AudioPanel/);
+  assert.match(inspector, /useAudioDraft\(quiz\)/);
+  assert.match(inspector, /error instanceof ApiError/);
+  assert.match(inspector, /conflictPending/);
+  assert.match(inspector, /<audio/);
+  assert.match(inspector, /controls/);
+  assert.match(inspector, /aria-invalid/);
+  assert.doesNotMatch(inspector, /ErrorModal/);
+  assert.doesNotMatch(inspector, /error\.response\?\./);
+  assert.doesNotMatch(inspector, /localAudio|originalAudio|setHasChanges/);
+  assert.match(draft, /audioDraftReducer/);
+  assert.match(draft, /audioDraftToUpdate/);
+  assert.match(hook, /audioDraftEquals/);
+  assert.match(provider, /createContext<AudioContextValue \| null>/);
+  assert.doesNotMatch(provider, /createOscillator|webkitAudioContext/);
+  assert.match(entry, /setQuizMusic\(remoteQuiz\?\.music_url \|\| ""\)/);
+});
+
 test("design editor shares one typed presentation draft across all preview surfaces", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.jsx");
   const inspector = source("src/modules/presentations/editor/inspector/DesignInspector.tsx");
