@@ -204,7 +204,7 @@ func TestUpdatePresentationAndReplaceSlideAreOwnerScoped(t *testing.T) {
 	store := &fakeStore{}
 	NewHTTP(fakeSessions{}, store).Register(m)
 
-	update := httptest.NewRequest(http.MethodPatch, "/api/v1/presentations/p", strings.NewReader(`{"title":"Renamed","settings":{"background_color":"#fff"}}`))
+	update := httptest.NewRequest(http.MethodPatch, "/api/v1/presentations/p", strings.NewReader(`{"title":"Renamed","settings":{"background_color":"#112233"}}`))
 	update.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
 	update.Header.Set("X-CSRF-Token", "csrf")
 	update.Header.Set("If-Match", "7")
@@ -309,5 +309,30 @@ func TestQuestionResultsAreOwnerScopedAndBounded(t *testing.T) {
 	m.ServeHTTP(badResult, bad)
 	if badResult.Code != http.StatusBadRequest {
 		t.Fatalf("bad limit status=%d", badResult.Code)
+	}
+}
+
+
+func TestUpdatePresentationRejectsInvalidDesignSettings(t *testing.T) {
+	m := http.NewServeMux()
+	store := &fakeStore{}
+	NewHTTP(fakeSessions{}, store).Register(m)
+
+	for _, body := range []string{
+		`{"settings":{"background_color":"#fff"}}`,
+		`{"settings":{"text_color":"white"}}`,
+		`{"settings":{"background_image_url":"javascript:alert(1)"}}`,
+	} {
+		request := httptest.NewRequest(http.MethodPatch, "/api/v1/presentations/p", strings.NewReader(body))
+		request.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
+		request.Header.Set("X-CSRF-Token", "csrf")
+		request.Header.Set("If-Match", "7")
+
+		result := httptest.NewRecorder()
+		m.ServeHTTP(result, request)
+
+		if result.Code != http.StatusBadRequest {
+			t.Fatalf("body=%s status=%d", body, result.Code)
+		}
 	}
 }
