@@ -676,6 +676,7 @@ export interface components {
         PresentationSettingsInput: {
             background_color?: string;
             background_image_url?: string;
+            music_url?: string;
             text_color?: string;
         } & {
             [key: string]: unknown;
@@ -861,6 +862,7 @@ export interface components {
             title: string;
             background_color: string;
             background_image_url: string;
+            music_url: string;
             text_color: string;
         };
         ParticipantLiveSnapshot: {
