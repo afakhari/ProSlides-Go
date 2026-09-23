@@ -105,3 +105,53 @@ test("audio validation counts Unicode characters and serialization preserves rev
     revision: 11,
   });
 });
+
+
+test("audio draft rebases unrelated presentation revisions without losing local edits", () => {
+  const baseline = createAudioDraft(presentation);
+  const dirtyState = audioDraftReducer(
+    { baseline, draft: baseline },
+    { type: "music-url", value: "https://audio.example.test/local.mp3" },
+  );
+
+  const rebased = audioDraftReducer(dirtyState, {
+    type: "sync",
+    draft: {
+      ...baseline,
+      revision: 12,
+    },
+  });
+
+  assert.equal(rebased.baseline.revision, 12);
+  assert.equal(rebased.baseline.musicUrl, baseline.musicUrl);
+  assert.equal(rebased.draft.revision, 12);
+  assert.equal(
+    rebased.draft.musicUrl,
+    "https://audio.example.test/local.mp3",
+  );
+  assert.equal(audioDraftEquals(rebased.baseline, rebased.draft), false);
+});
+
+test("audio draft retains stale revision when persisted audio changes concurrently", () => {
+  const baseline = createAudioDraft(presentation);
+  const dirtyState = audioDraftReducer(
+    { baseline, draft: baseline },
+    { type: "music-url", value: "https://audio.example.test/local.mp3" },
+  );
+
+  const reconciled = audioDraftReducer(dirtyState, {
+    type: "sync",
+    draft: {
+      ...baseline,
+      revision: 12,
+      musicUrl: "https://audio.example.test/server.mp3",
+    },
+  });
+
+  assert.deepEqual(reconciled, dirtyState);
+  assert.equal(reconciled.draft.revision, 11);
+  assert.equal(
+    reconciled.draft.musicUrl,
+    "https://audio.example.test/local.mp3",
+  );
+});
