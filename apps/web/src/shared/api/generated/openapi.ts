@@ -673,17 +673,20 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        PresentationSettingsInput: {
+            background_color?: string;
+            background_image_url?: string;
+            text_color?: string;
+        } & {
+            [key: string]: unknown;
+        };
         CreatePresentationRequest: {
             title: string;
-            settings?: {
-                [key: string]: unknown;
-            };
+            settings?: components["schemas"]["PresentationSettingsInput"];
         };
         UpdatePresentationRequest: {
             title?: string;
-            settings?: {
-                [key: string]: unknown;
-            };
+            settings?: components["schemas"]["PresentationSettingsInput"];
         };
         SetAccessCodeRequest: {
             access_code: string;
