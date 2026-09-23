@@ -33,7 +33,7 @@ func (s *snapshotStore) ResolveSession(_ context.Context, code string) (SessionL
 	}
 	return SessionLocator{
 		SessionID: testSessionID, PresentationID: testPresentationID,
-		Presentation: PublicLivePresentation{Title: "آزمون نمونه", BackgroundColor: "#123456", BackgroundImageURL: "https://example.test/theme.webp", TextColor: "#ffffff"},
+		Presentation: PublicLivePresentation{Title: "آزمون نمونه", BackgroundColor: "#123456", BackgroundImageURL: "https://example.test/theme.webp", MusicURL: "https://example.test/theme.mp3", TextColor: "#ffffff"},
 	}, nil
 }
 func (s *snapshotStore) Join(context.Context, string, string, string, string, []byte) (Participant, bool, error) {
@@ -213,7 +213,7 @@ func TestResolveSessionUsesPublicJoinCode(t *testing.T) {
 	var payload struct {
 		Presentation PublicLivePresentation `json:"presentation"`
 	}
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil || payload.Presentation.BackgroundColor != "#123456" || payload.Presentation.TextColor != "#ffffff" || payload.Presentation.Title != "آزمون نمونه" {
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil || payload.Presentation.BackgroundColor != "#123456" || payload.Presentation.MusicURL != "https://example.test/theme.mp3" || payload.Presentation.TextColor != "#ffffff" || payload.Presentation.Title != "آزمون نمونه" {
 		t.Fatalf("resolve theme = %#v, err = %v", payload.Presentation, err)
 	}
 
