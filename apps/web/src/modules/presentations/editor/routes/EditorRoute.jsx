@@ -381,27 +381,20 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         {!isMobile && (
           <aside className="w-full max-h-[40vh] overflow-y-auto rounded-2xl border border-brand-border bg-surface p-4 shadow-sm md:h-full md:max-h-none md:w-1/4 lg:w-1/5">
             <SlidesPanel
-              slides={slides}
-              activeSlideId={activeSlide?.slide_id}
-              setActiveSlideId={handleSetActiveSlideId}
-              setActiveSlideTypeParent={setActiveSlideType}
+              slides={slideOrder.orderedSlides}
+              activeSlideId={activeSlideId}
+              activeSlideType={activeSlideType}
+              onSelectSlide={(slideId, slideType) =>
+                selection.requestSlideSelection(slideId, slideType)
+              }
               addNewSlide={addNewSlide}
               deleteSlide={deleteSlide}
-              onSlidesReordered={(updatedSlides) => {
-                updateQuiz({
-                  ...quiz,
-                  slides: updatedSlides,
-                });
-              }}
-              onRefresh={handleDeleteLeaderboardAndRefresh}
-              idKey="slide_id"
-              titleKey="slide_type"
-            getSlideTitle={getSlideTitle}
-            quizId={quiz.quiz_id}
-            presentationRevision={quiz.revision}
-            quizBackground={quiz.background_color}
-            quizBackgroundImage={quiz.background_image_url}
-            onNotify={showNotice}
+              deleteLeaderboardSlide={slideMutations.deleteLeaderboardSlide}
+              quizBackground={quiz.background_color}
+              quizBackgroundImage={quiz.background_image_url}
+              isReordering={slideOrder.isReordering}
+              reorderDisabled={hasUnsavedChanges}
+              onReorder={slideOrder.reorderSlides}
           />
         </aside>
         )}
@@ -808,29 +801,24 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
               </button>
             </div>
             <SlidesPanel
-              slides={slides}
-              activeSlideId={activeSlide?.slide_id}
-              setActiveSlideId={(id) => {
-                handleSetActiveSlideIdForMobile(id);
-              }}
-              setActiveSlideTypeParent={setActiveSlideType}
+              slides={slideOrder.orderedSlides}
+              activeSlideId={activeSlideId}
+              activeSlideType={activeSlideType}
+              onSelectSlide={(slideId, slideType) =>
+                selection.requestSlideSelection(
+                  slideId,
+                  slideType,
+                  true,
+                )
+              }
               addNewSlide={addNewSlide}
               deleteSlide={deleteSlide}
-              onSlidesReordered={(updatedSlides) => {
-                updateQuiz({
-                  ...quiz,
-                  slides: updatedSlides,
-                });
-              }}
-              onRefresh={handleDeleteLeaderboardAndRefresh}
-              idKey="slide_id"
-              titleKey="slide_type"
-              getSlideTitle={getSlideTitle}
-              quizId={quiz.quiz_id}
-              presentationRevision={quiz.revision}
+              deleteLeaderboardSlide={slideMutations.deleteLeaderboardSlide}
               quizBackground={quiz.background_color}
               quizBackgroundImage={quiz.background_image_url}
-              onNotify={showNotice}
+              isReordering={slideOrder.isReordering}
+              reorderDisabled={hasUnsavedChanges}
+              onReorder={slideOrder.reorderSlides}
             />
           </div>
         </div>
