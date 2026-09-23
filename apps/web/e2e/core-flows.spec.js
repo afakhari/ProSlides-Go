@@ -1242,7 +1242,7 @@ test("audio editor validates, saves, discards, and preserves local draft across 
   await conflictResponsePromise;
 
   await expect(
-    inspector.getByText(/نسخه جدیدتری از تنظیمات ارائه روی سرور وجود دارد/),
+    inspector.getByText(/تنظیمات ارائه جای دیگری تغییر کرده است/),
   ).toBeVisible();
   await expect(urlInput).toHaveValue("https://audio.example.test/local.wav");
   await expect(saveButton).toBeDisabled();
