@@ -757,7 +757,7 @@ components:
         music_url:
           type: string
           maxLength: 4096
-          pattern: '^\\s*(?:https?://[^/\\s?#]+(?:[/?#]\\S*)?)?\\s*$'
+          pattern: '^\s*(?:https?://[^/\s?#]+(?:[/?#]\S*)?)?\s*$'
         text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     CreatePresentationRequest:
       type: object
