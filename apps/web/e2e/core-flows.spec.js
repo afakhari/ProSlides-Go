@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
