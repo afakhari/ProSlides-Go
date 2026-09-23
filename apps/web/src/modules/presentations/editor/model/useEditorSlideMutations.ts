@@ -15,6 +15,7 @@ import {
   convertSlideToQuestion,
   createSlideForChoice,
   activeSlideIdAfterDeletion,
+  removePresentationSlide,
   replacePresentationSlide,
   slideChoiceToMode,
   type SlideTypeChoice,
@@ -191,9 +192,6 @@ export function useEditorSlideMutations({
           slideId,
           deletedSlide.revision,
         );
-        setActiveSlideId(nextSlideId);
-        await refreshPresentation();
-        showNotice("اسلاید حذف شد.", "success");
       } catch (error) {
         if (error instanceof ApiError && error.isConflict) {
           await recoverConflict();
@@ -216,6 +214,23 @@ export function useEditorSlideMutations({
 
         console.error("Failed to delete slide:", error);
         showNotice("حذف اسلاید انجام نشد. دوباره تلاش کنید.", "error");
+        return;
+      }
+
+      setActiveSlideId(nextSlideId);
+
+      try {
+        await refreshPresentation();
+        showNotice("اسلاید حذف شد.", "success");
+      } catch (error) {
+        console.error("Slide deleted but presentation refresh failed:", error);
+        updatePresentation(
+          removePresentationSlide(presentation, slideId),
+        );
+        showNotice(
+          "اسلاید حذف شد، اما تازه‌سازی ارائه کامل نشد. وضعیت محلی به‌روز شده است.",
+          "warning",
+        );
       }
     },
     [
@@ -225,6 +240,7 @@ export function useEditorSlideMutations({
       refreshPresentation,
       setActiveSlideId,
       showNotice,
+      updatePresentation,
     ],
   );
 
