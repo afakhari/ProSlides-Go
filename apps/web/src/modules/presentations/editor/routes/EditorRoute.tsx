@@ -646,7 +646,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }: 
                 {/* ???? ???? ???? ???? */}
                 <div className="w-full flex justify-end mb-4">
                   <button
-                    onClick={handleCloseSidebarPanel}
+                    onClick={() => handleCloseSidebarPanel()}
                     className="rounded-lg p-2 transition-colors hover:bg-danger-soft"
                   >
                     <X className="w-5 h-5 text-gray-500" />
@@ -731,7 +731,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }: 
                     <Sidebar
                       quizId={quiz.quiz_id}
                       slide={activeSlide}
-                      activeSlideType={activeSlideType}
                       onClose={handleCloseSidebarPanel}
                       onDirtyChange={setHasSidebarChanges}
                       onSlideUpdated={handleSlideUpdated}
