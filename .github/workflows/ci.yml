@@ -75,7 +75,7 @@ jobs:
             "alpine:3.21"
             "node:22-alpine"
             "nginx:1.27-alpine"
-            "postgres:17.5-alpine3.21"
+            "postgres:16.15-alpine"
             "redis:7.4.3-alpine"
           )
 
