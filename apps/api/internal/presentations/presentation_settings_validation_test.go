@@ -2,6 +2,7 @@ package presentations
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -46,7 +47,7 @@ func TestValidatePresentationSettingsAcceptsEmptyImageAndAdditionalSettings(t *t
 }
 
 func TestValidatePresentationSettingsRejectsOversizedBackgroundImageURL(t *testing.T) {
-	longURL := "https://example.com/" + string(make([]rune, 4096))
+	longURL := "https://example.com/" + strings.Repeat("ع", 4096)
 	raw, err := json.Marshal(map[string]any{
 		"background_image_url": longURL,
 	})
