@@ -3,7 +3,7 @@ ARG BASE_REGISTRY=docker.io/library
 FROM ${BASE_REGISTRY}/golang:1.26-alpine AS build
 WORKDIR /src
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
