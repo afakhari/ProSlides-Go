@@ -44,7 +44,7 @@ type UseEditorSlideMutationsOptions = {
     pending?: boolean,
   ) => void;
   requestConfirmation: (
-    action: () => void | Promise<void>,
+    action: () => void,
     options?: ConfirmOptions,
   ) => void;
 };
@@ -381,7 +381,9 @@ export function useEditorSlideMutations({
 
         if (activeSlide.question) {
           requestConfirmation(
-            () => applyContentTypeChange(activeSlide),
+            () => {
+              void applyContentTypeChange(activeSlide);
+            },
             {
               title: "تبدیل به اسلاید محتوایی؟",
               description:
@@ -400,12 +402,13 @@ export function useEditorSlideMutations({
       const currentQuestion = activeSlide.question;
       if (activeSlide.slide_type === 2) {
         requestConfirmation(
-          () =>
-            applyQuestionTypeChange(
+          () => {
+            void applyQuestionTypeChange(
               activeSlide,
               requestedMode,
               requestedMode,
-            ),
+            );
+          },
           {
             title: "تبدیل به سؤال؟",
             description:
@@ -432,12 +435,13 @@ export function useEditorSlideMutations({
         requestedMode === "single"
       ) {
         requestConfirmation(
-          () =>
-            applyQuestionTypeChange(
+          () => {
+            void applyQuestionTypeChange(
               activeSlide,
               requestedMode,
               requestedMode,
-            ),
+            );
+          },
           {
             title: "تغییر به تک‌گزینه‌ای؟",
             description:
