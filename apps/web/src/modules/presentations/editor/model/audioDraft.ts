@@ -18,6 +18,7 @@ export type AudioDraftState = {
 export type AudioDraftAction =
   | { type: "reset"; draft: AudioDraft }
   | { type: "saved"; draft: AudioDraft }
+  | { type: "sync"; draft: AudioDraft }
   | { type: "music-url"; value: string };
 
 export type AudioValidationIssue = {
@@ -46,6 +47,37 @@ export const createAudioDraft = (
   musicUrl: String(presentation.music_url || "").trim(),
 });
 
+export const reconcileAudioDraftState = (
+  state: AudioDraftState,
+  incoming: AudioDraft,
+): AudioDraftState => {
+  if (incoming.presentationId !== state.baseline.presentationId) {
+    return { baseline: incoming, draft: incoming };
+  }
+
+  const dirty = state.draft.musicUrl !== state.baseline.musicUrl;
+  if (!dirty) {
+    return { baseline: incoming, draft: incoming };
+  }
+
+  if (incoming.musicUrl !== state.baseline.musicUrl) {
+    return state;
+  }
+
+  if (incoming.revision <= state.baseline.revision) {
+    return state;
+  }
+
+  return {
+    baseline: incoming,
+    draft: {
+      ...state.draft,
+      presentationId: incoming.presentationId,
+      revision: incoming.revision,
+    },
+  };
+};
+
 export function audioDraftReducer(
   state: AudioDraftState,
   action: AudioDraftAction,
@@ -54,6 +86,8 @@ export function audioDraftReducer(
     case "reset":
     case "saved":
       return { baseline: action.draft, draft: action.draft };
+    case "sync":
+      return reconcileAudioDraftState(state, action.draft);
     case "music-url":
       return {
         ...state,
