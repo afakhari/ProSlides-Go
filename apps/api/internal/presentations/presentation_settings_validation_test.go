@@ -2,7 +2,6 @@ package presentations
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
@@ -46,9 +45,15 @@ func TestValidatePresentationSettingsAcceptsEmptyImageAndAdditionalSettings(t *t
 	}
 }
 
-func TestPresentationTitleLengthUsesUnicodeCharacters(t *testing.T) {
-	title := strings.Repeat("ع", 500)
-	if utf8Count := len([]rune(title)); utf8Count != 500 {
-		t.Fatalf("unexpected rune count: %d", utf8Count)
+func TestValidatePresentationSettingsRejectsOversizedBackgroundImageURL(t *testing.T) {
+	longURL := "https://example.com/" + string(make([]rune, 4096))
+	raw, err := json.Marshal(map[string]any{
+		"background_image_url": longURL,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validatePresentationSettings(raw); err == nil {
+		t.Fatal("oversized background image URL accepted")
 	}
 }
