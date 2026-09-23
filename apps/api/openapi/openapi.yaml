@@ -749,7 +749,24 @@ components:
       type: object
       additionalProperties: true
       properties:
-        background_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}
+        background_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        background_image_url:
+          type: string
+          maxLength: 4096
+          pattern: '^\\s*(?:https?://[^/\\s?#]+(?:[/?#]\\S*)?)?\\s*$'
+        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+    CreatePresentationRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 500 }
+        settings: { $ref: '#/components/schemas/PresentationSettingsInput' }
+    UpdatePresentationRequest:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 500 }
+        settings: { $ref: '#/components/schemas/PresentationSettingsInput' }
     SetAccessCodeRequest:
       type: object
       required: [access_code]
