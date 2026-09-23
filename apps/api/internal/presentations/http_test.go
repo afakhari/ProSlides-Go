@@ -313,7 +313,7 @@ func TestQuestionResultsAreOwnerScopedAndBounded(t *testing.T) {
 }
 
 
-func TestUpdatePresentationRejectsInvalidDesignSettings(t *testing.T) {
+func TestUpdatePresentationRejectsInvalidKnownSettings(t *testing.T) {
 	m := http.NewServeMux()
 	store := &fakeStore{}
 	NewHTTP(fakeSessions{}, store).Register(m)
@@ -322,6 +322,7 @@ func TestUpdatePresentationRejectsInvalidDesignSettings(t *testing.T) {
 		`{"settings":{"background_color":"#fff"}}`,
 		`{"settings":{"text_color":"white"}}`,
 		`{"settings":{"background_image_url":"javascript:alert(1)"}}`,
+		`{"settings":{"music_url":"javascript:alert(1)"}}`,
 	} {
 		request := httptest.NewRequest(http.MethodPatch, "/api/v1/presentations/p", strings.NewReader(body))
 		request.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
