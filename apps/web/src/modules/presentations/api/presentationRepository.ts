@@ -7,6 +7,15 @@ type PresentationDTO = components["schemas"]["Presentation"];
 type PresentationSummaryDTO = components["schemas"]["PresentationSummary"];
 type AccessCodeResultDTO = components["schemas"]["AccessCodeResult"];
 
+export type QuestionLeaderboardEntry = {
+  rust_session_id: string;
+  player_name: string;
+  avatar: string;
+  score: number;
+  rank: number;
+  time_taken: number | null;
+};
+
 export { ApiError as QuizServiceError } from "../../../shared/api/http.ts";
 
 type RequestOptions = ApiRequestOptions;
@@ -221,15 +230,25 @@ export const quizService = {
       throw error;
     }
   },
-  getQuestionLeaderboard: async (quizID: string, slideID: string) => {
-    const page = await quizService.getQuestionResults(quizID, slideID, 100) as { leaderboard?: Array<Record<string, unknown>> } | null;
+  getQuestionLeaderboard: async (
+    quizID: string,
+    slideID: string,
+  ): Promise<QuestionLeaderboardEntry[]> => {
+    const page = await quizService.getQuestionResults(
+      quizID,
+      slideID,
+      100,
+    ) as { leaderboard?: Array<Record<string, unknown>> } | null;
     return (page?.leaderboard || []).map((item) => ({
-      rust_session_id: item.participant_id,
-      player_name: item.display_name,
-      avatar: item.avatar || "",
-      score: Number(item.score || 0),
-      rank: Number(item.rank || 0),
-      time_taken: item.time_taken_ms == null ? null : Number(item.time_taken_ms) / 1000,
+      rust_session_id: stringValue(item.participant_id),
+      player_name: stringValue(item.display_name),
+      avatar: stringValue(item.avatar),
+      score: numberValue(item.score, 0),
+      rank: numberValue(item.rank, 0),
+      time_taken:
+        item.time_taken_ms == null
+          ? null
+          : numberValue(item.time_taken_ms, 0) / 1000,
     }));
   },
   getSlidesFromAPI: (quizID: string) => quizService.getQuiz(quizID),
