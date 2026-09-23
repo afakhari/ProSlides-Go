@@ -219,6 +219,7 @@ export function useEditorSlideMutations({
       }
     },
     [
+      activeSlide?.slide_id,
       presentation,
       recoverConflict,
       refreshPresentation,
