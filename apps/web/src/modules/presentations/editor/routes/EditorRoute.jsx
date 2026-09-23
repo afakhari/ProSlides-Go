@@ -12,7 +12,6 @@ import AudioPanel from "../inspector/AudioInspector.tsx";
 import ContentSidebar from "../inspector/ContentInspector";
 import { quizService } from "../../api/presentationRepository.ts";
 import { getPresentationValidationError } from "../model/validation";
-import { UNSAVED_CHANGES_KEY } from "../../../../utils/auth";
 import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 import EditorRouteSkeleton from "./EditorRouteSkeleton";
@@ -22,6 +21,10 @@ import { useEditorStatus } from "../model/useEditorStatus.ts";
 import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
 import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
 import DesignDraftProvider from "../model/DesignDraftProvider.tsx";
+import { useEditorNotice } from "../model/useEditorNotice.ts";
+import { useEditorPanelController } from "../model/useEditorPanelController.ts";
+import { useEditorViewport } from "../model/useEditorViewport.ts";
+import { useUnsavedChangesGuard } from "../model/useUnsavedChangesGuard.ts";
 
 export default function EditorPage() {
   const { roomId } = useParams();
@@ -140,10 +143,8 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const [typeSelectionError, setTypeSelectionError] = useState(null);
   const [typeSelectionNotice, setTypeSelectionNotice] = useState(null);
   const [typeSelectionMode, setTypeSelectionMode] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [notice, setNotice] = useState(null);
-  const noticeTimeoutRef = useRef(null);
   const hasUnsavedChanges = editorStatus.hasUnsavedChanges;
+  const { notice, showNotice } = useEditorNotice();
 
   const slides = quiz.slides;
   const activeSlide = slides.find((slide) => slide.slide_id === activeSlideId) || slides[0] || null;
@@ -159,43 +160,30 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     return { ready: true, reason: "شروع ارائه" };
   })();
 
-  const [activeTab, setActiveTab] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [showDesignPanel, setShowDesignPanel] = useState(false);
-  const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showTypeBox, setShowTypeBox] = useState(false);
-  const [showSlidesPanel, setShowSlidesPanel] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState({
-    isOpen: false,
-    title: "",
-    description: "",
-    onConfirm: null,
-    confirmText: "",
-    cancelText: "",
+  const panels = useEditorPanelController({
+    dirty: {
+      content: hasSidebarChanges,
+      audio: hasAudioChanges,
+      design: hasDesignChanges,
+    },
+    discard: {
+      content: () => setHasSidebarChanges(false),
+      audio: () => setHasAudioChanges(false),
+      design: () => setHasDesignChanges(false),
+    },
   });
+  const {
+    activeTab,
+    showSidebar,
+    showDesignPanel,
+    showAudioPanel,
+    showSlidesPanel,
+    confirmDialog,
+  } = panels;
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (hasUnsavedChanges) {
-      localStorage.setItem(UNSAVED_CHANGES_KEY, "1");
-    } else {
-      localStorage.removeItem(UNSAVED_CHANGES_KEY);
-    }
-    return () => {
-      localStorage.removeItem(UNSAVED_CHANGES_KEY);
-    };
-  }, [hasUnsavedChanges]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleBeforeUnload = (event) => {
-      if (!hasUnsavedChanges) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  useUnsavedChangesGuard(hasUnsavedChanges);
+  const isMobile = useEditorViewport(panels.overlayOpen || showTypeBox);
 
   useEffect(() => {
     if (!slides.length) {
@@ -214,18 +202,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     }
   }, [activeSlide, activeSlideType]);
 
-  const showNotice = useCallback((message, tone = "info", pending = false) => {
-    setNotice({ message, tone, pending });
-    if (noticeTimeoutRef.current) {
-      clearTimeout(noticeTimeoutRef.current);
-    }
-    if (!pending) {
-      noticeTimeoutRef.current = setTimeout(() => {
-        setNotice(null);
-      }, 3000);
-    }
-  }, []);
-
   const recoverConflict = useCallback(async () => {
     const message = "نسخه جدیدتری روی سرور وجود داشت؛ آخرین نسخه بارگذاری شد.";
     editorStatus.reportConflict(message);
@@ -236,63 +212,6 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     await refreshQuiz();
     editorStatus.clearConflict();
   }, [editorStatus, refreshQuiz]);
-
-  useEffect(() => {
-    return () => {
-      if (noticeTimeoutRef.current) {
-        clearTimeout(noticeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-    const media = window.matchMedia("(max-width: 767px), (max-height: 600px)");
-    const handleChange = () => setIsMobile(media.matches);
-    handleChange();
-    if (media.addEventListener) {
-      media.addEventListener("change", handleChange);
-    } else {
-      media.addListener(handleChange);
-    }
-    return () => {
-      if (media.removeEventListener) {
-        media.removeEventListener("change", handleChange);
-      } else {
-        media.removeListener(handleChange);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const shouldLock =
-      isMobile &&
-      (showSlidesPanel ||
-        showSidebar ||
-        showDesignPanel ||
-        showAudioPanel ||
-        showTypeBox);
-    if (shouldLock) {
-      document.body.classList.add("overflow-hidden");
-    } else {
-      document.body.classList.remove("overflow-hidden");
-    }
-    return () => {
-      document.body.classList.remove("overflow-hidden");
-    };
-  }, [
-    isMobile,
-    showSlidesPanel,
-    showSidebar,
-    showDesignPanel,
-    showAudioPanel,
-    showTypeBox,
-  ]);
 
   const loadLeaderboardPreview = useCallback(async (slideId) => {
     if (!slideId) return;
@@ -333,160 +252,25 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   };
 
 
-  // ????? ???? ?????? ?????
-  const handleTabClick = (tabId) => {
-    if (showSidebar && hasSidebarChanges) {
-      const isTogglingSidebar = tabId === "content" && showSidebar;
-      const isLeavingSidebar = tabId !== "content";
-      if (isTogglingSidebar || isLeavingSidebar) {
-        setConfirmDialog({
-          isOpen: true,
-          title: "تغییرات ذخیره‌نشده",
-          description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-          onConfirm: () => {
-            setHasSidebarChanges(false);
-            proceedTabChange(tabId);
-          },
-          confirmText: "رد تغییرات",
-          cancelText: "ادامه ویرایش",
-        });
-        return;
-      }
-    }
+  const handleTabClick = panels.toggleTab;
 
-    if (showAudioPanel && hasAudioChanges) {
-      const isTogglingAudio = tabId === "audio" && showAudioPanel;
-      const isLeavingAudio = tabId !== "audio";
-      if (isTogglingAudio || isLeavingAudio) {
-        setConfirmDialog({
-          isOpen: true,
-          title: "تغییرات ذخیره‌نشده",
-          description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-          onConfirm: () => {
-            setHasAudioChanges(false);
-            proceedTabChange(tabId);
-          },
-          confirmText: "رد تغییرات",
-          cancelText: "ادامه ویرایش",
-        });
-        return;
-      }
-    }
-
-    if (showDesignPanel && hasDesignChanges) {
-      const isTogglingDesign = tabId === "design" && showDesignPanel;
-      const isLeavingDesign = tabId !== "design";
-      if (isTogglingDesign || isLeavingDesign) {
-        setConfirmDialog({
-          isOpen: true,
-          title: "تغییرات ذخیره‌نشده",
-          description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-          onConfirm: () => {
-            setHasDesignChanges(false);
-            proceedTabChange(tabId);
-          },
-          confirmText: "رد تغییرات",
-          cancelText: "ادامه ویرایش",
-        });
-        return;
-      }
-    }
-
-    proceedTabChange(tabId);
-  };
-
-  const proceedTabChange = (tabId) => {
-    if (tabId === "slides") {
-      setShowSlidesPanel((prev) => {
-        const next = !prev;
-        setShowSidebar(false);
-        setShowDesignPanel(false);
-        setShowAudioPanel(false);
-        setActiveTab(next ? tabId : null);
-        return next;
-      });
-      return;
-    }
-    if (tabId === "audio") {
-      setShowAudioPanel((prev) => {
-        const next = !prev;
-        setShowSidebar(false);
-        setShowDesignPanel(false);
-        setShowSlidesPanel(false);
-        setActiveTab(next ? tabId : null);
-        return next;
-      });
-      return;
-    }
-    if (tabId === "content") {
-      setShowSidebar((prev) => {
-        const next = !prev;
-        setShowDesignPanel(false);
-        setShowAudioPanel(false);
-        setShowSlidesPanel(false);
-        setActiveTab(next ? tabId : null);
-        return next;
-      });
-      return;
-    }
-    if (tabId === "design") {
-      setShowDesignPanel((prev) => {
-        const next = !prev;
-        setShowSidebar(false);
-        setShowAudioPanel(false);
-        setShowSlidesPanel(false);
-        setActiveTab(next ? tabId : null);
-        return next;
-      });
-      return;
-    }
-
-    setShowSidebar(false);
-    setShowDesignPanel(false);
-    setShowAudioPanel(false);
-    setShowSlidesPanel(false);
-    setActiveTab(null);
-  };
-
-  const handleConfirm = () => {
-    if (confirmDialog.onConfirm) {
-      confirmDialog.onConfirm();
-    }
-    closeConfirmDialog();
-  };
-
-  const closeConfirmDialog = () => {
-    setConfirmDialog({
-      isOpen: false,
-      title: "",
-      description: "",
-      onConfirm: null,
-      confirmText: "",
-      cancelText: "",
-    });
-  };
-
-  const handleCancel = () => {
-    closeConfirmDialog();
-  };
+  const handleConfirm = panels.confirmPendingAction;
+  const handleCancel = panels.closeConfirmDialog;
 
   const handleExitPanel = () => {
     if (!hasUnsavedChanges) {
       navigate("/manager/panel");
       return;
     }
-    setConfirmDialog({
-      isOpen: true,
+
+    panels.requestConfirmation(() => {
+      setHasSidebarChanges(false);
+      setHasAudioChanges(false);
+      setHasDesignChanges(false);
+      navigate("/manager/panel");
+    }, {
       title: "خروج از ویرایشگر؟",
       description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-      onConfirm: () => {
-        setHasSidebarChanges(false);
-        setHasAudioChanges(false);
-        setHasDesignChanges(false);
-        navigate("/manager/panel");
-      },
-      confirmText: "رد تغییرات",
-      cancelText: "ادامه ویرایش",
     });
   };
 
@@ -497,74 +281,39 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
     }
   };
 
-  const handleSetActiveSlideId = (id) => {
+  const requestSlideChange = (id, closeSlidesPanel = false) => {
+    const apply = () => {
+      setHasSidebarChanges(false);
+      proceedWithSlideChange(id);
+      if (closeSlidesPanel) panels.closePanel("slides");
+    };
+
     if (hasSidebarChanges && id !== activeSlide?.slide_id) {
-      setConfirmDialog({
-        isOpen: true,
-        title: "تغییرات ذخیره‌نشده",
-        description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-        onConfirm: () => {
-          setHasSidebarChanges(false);
-          proceedWithSlideChange(id);
-        },
-        confirmText: "رد تغییرات",
-        cancelText: "ادامه ویرایش",
-      });
+      panels.requestConfirmation(apply);
       return;
     }
 
-    proceedWithSlideChange(id);
+    apply();
   };
 
-  const handleSetActiveSlideIdForMobile = (id) => {
-    if (hasSidebarChanges && id !== activeSlide?.slide_id) {
-      setConfirmDialog({
-        isOpen: true,
-        title: "تغییرات ذخیره‌نشده",
-        description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-        onConfirm: () => {
-          setHasSidebarChanges(false);
-          proceedWithSlideChange(id);
-          setShowSlidesPanel(false);
-        },
-        confirmText: "رد تغییرات",
-        cancelText: "ادامه ویرایش",
-      });
-      return;
-    }
+  const handleSetActiveSlideId = (id) => requestSlideChange(id);
+  const handleSetActiveSlideIdForMobile = (id) => requestSlideChange(id, true);
 
-    proceedWithSlideChange(id);
-    setShowSlidesPanel(false);
-  };
-
-  const handleCloseAudioPanel = () => {
-    setShowAudioPanel(false);
-    setActiveTab(null);
-  };
-
-  const handleCloseDesignPanel = () => {
-    setShowDesignPanel(false);
-    setActiveTab(null);
-  };
+  const handleCloseAudioPanel = () => panels.closePanel("audio");
+  const handleCloseDesignPanel = () => panels.closePanel("design");
 
   const handleCloseSidebarPanel = (forceClose = false) => {
+    const close = () => {
+      setHasSidebarChanges(false);
+      panels.closePanel("content");
+    };
+
     if (!forceClose && hasSidebarChanges) {
-      setConfirmDialog({
-        isOpen: true,
-        title: "تغییرات ذخیره‌نشده",
-        description: "تغییرات ذخیره‌نشده‌ای دارید. آن‌ها را کنار بگذارید؟",
-        onConfirm: () => {
-          setHasSidebarChanges(false);
-          setShowSidebar(false);
-          setActiveTab(null);
-        },
-        confirmText: "رد تغییرات",
-        cancelText: "ادامه ویرایش",
-      });
+      panels.requestConfirmation(close);
       return;
     }
-    setShowSidebar(false);
-    setActiveTab(null);
+
+    close();
   };
 
   // ???? ???? ???? ????? ????? ??????
@@ -641,7 +390,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
   const proceedWithTypeChange = () => {
     setTypeSelectionError(null);
     setTypeSelectionMode(null);
-    setShowSlidesPanel(false);
+    panels.closePanel("slides");
     setShowTypeBox(true);
   };
 
@@ -747,10 +496,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         setTypeSelectionNotice(null);
       }, 2500);
       setShowTypeBox(false);
-      setShowSidebar(true);
-      setShowDesignPanel(false);
-      setShowAudioPanel(false);
-      setActiveTab("content");
+      panels.activateTab("content");
     } catch (error) {
       console.error("Error changing question type:", error);
 
@@ -1456,7 +1202,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         <div className="fixed inset-0 z-50 md:hidden">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => setShowSlidesPanel(false)}
+            onClick={() => panels.closePanel("slides")}
           ></div>
           <div
             className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-2xl p-4 overflow-y-auto"
@@ -1467,7 +1213,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-gray-800">اسلایدها</h2>
               <button
-                onClick={() => setShowSlidesPanel(false)}
+                onClick={() => panels.closePanel("slides")}
                 className="p-2 rounded-lg hover:bg-gray-100 transition"
               >
                 <X className="w-5 h-5 text-gray-500" />
