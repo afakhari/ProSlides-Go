@@ -1,6 +1,6 @@
 # Current project status
 
-Last reviewed: 2026-09-22
+Last reviewed: 2026-09-23
 
 This is the single current-state document for ProSlides. Architecture documents
 describe durable rules, ADRs explain decisions, evidence documents record dated
@@ -46,7 +46,7 @@ Strengths already in place:
 - React 19/Vite SPA with route-level lazy loading;
 - OpenAPI-generated presentation transport types with drift checking;
 - a shared typed JSON/API-error boundary and one TanStack Query REST cache;
-- explicit presentation editor domain mapping and revision conflict recovery, with typed question, content and design drafts shared by their inspectors and preview surfaces so unsaved authoring state is previewed without duplicating ownership;
+- explicit presentation editor domain mapping and revision conflict recovery, with typed question, content, design and presentation-audio drafts; audio uses the same save/discard/conflict discipline and validated HTTP(S) contract, while visual drafts are shared with their preview surfaces so unsaved authoring state is previewed without duplicating ownership;
 - semantic CSS tokens on migrated surfaces;
 - Persian/RTL participant experience and mixed-content direction handling;
 - bundle budgets, axe checks, CI-gated Playwright flows, and protocol/unit coverage;
@@ -68,7 +68,7 @@ These are independent tracks. A change in one track does not waive another.
    foundation through the remaining identity/editor surfaces without adding
    parallel HTTP or state abstractions.
 3. **Frontend modularization:** continue TypeScript/module migration through
-   legacy presentation/editor surfaces while preserving editor/live correctness. Question, content and design authoring now have typed domain draft ownership plus live preview projection from the same drafts; the next editor slice is audio convergence, followed by route-level orchestration cleanup. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
+   legacy presentation/editor surfaces while preserving editor/live correctness. Question, content, design and audio authoring now have typed domain draft ownership; visual drafts project into live-style previews, presentation audio is validated end-to-end and exposed through the public live locator, and the next editor task is route-level orchestration cleanup. Identity auth composition is split into a TSX route, focused module UI and dedicated Google/verification hooks; reports and the manager presentation list use the shared Query cache, and live transport/runtime/React ownership is under `modules/live` with the stateful runtime extracted from React.
 4. **Quality:** continue replacing source-regex checks with structural tooling
    and add component/API-state tests around migrated identity, report, editor and
    live recovery states.
