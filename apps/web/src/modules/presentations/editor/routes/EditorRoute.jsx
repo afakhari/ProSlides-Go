@@ -369,18 +369,14 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       return;
     }
     if (hasSidebarChanges) {
-      setConfirmDialog({
-        isOpen: true,
+      panels.requestConfirmation(() => {
+        setHasSidebarChanges(false);
+        handleCloseSidebarPanel(true);
+        proceedWithTypeChange();
+      }, {
         title: "تغییر نوع سؤال",
         description:
           "تغییرات ذخیره‌نشده‌ای دارید. پیش از تغییر نوع سؤال آن‌ها را کنار بگذارید؟",
-        onConfirm: () => {
-          setHasSidebarChanges(false);
-          handleCloseSidebarPanel(true);
-          proceedWithTypeChange();
-        },
-        confirmText: "رد تغییرات",
-        cancelText: "ادامه ویرایش",
       });
       return;
     }
@@ -564,8 +560,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
         setActiveSlideId(createdSlide.slide_id);
         setActiveSlideType(createdSlide.slide_type);
         setShowTypeBox(false);
-        setShowSidebar(true);
-        setActiveTab("content");
+        panels.activateTab("content");
         setIsCreatingSlide(false);
         setIsAddingSlide(false);
         addSlideGateRef.current = false;
@@ -610,10 +605,7 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
           handleSlideUpdated(updatedSlide);
           setTypeSelectionNotice("نوع اسلاید به محتوا تغییر کرد.");
           setShowTypeBox(false);
-          setShowSidebar(true);
-          setShowDesignPanel(false);
-          setShowAudioPanel(false);
-          setActiveTab("content");
+          panels.activateTab("content");
         } catch (error) {
           if (error.response?.status === 409 && error.response?.data?.error === "edit_conflict") {
             await recoverConflict();
@@ -631,17 +623,14 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
       if (isContent) {
         if (activeSlide.slide_type === 2) {
           setShowTypeBox(false);
-          setShowSidebar(true);
-          setActiveTab("content");
+          panels.activateTab("content");
           return;
         }
         if (activeSlide.question) {
           setIsSelectingType(false);
-          setConfirmDialog({
-            isOpen: true,
+          panels.requestConfirmation(applyContentTypeChange, {
             title: "تبدیل به اسلاید محتوایی؟",
             description: "سؤال و گزینه‌های آن با محتوا جایگزین می‌شوند. ادامه می‌دهید؟",
-            onConfirm: applyContentTypeChange,
             confirmText: "تبدیل",
             cancelText: "انصراف",
           });
@@ -655,14 +644,21 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
 
       if (activeSlide.slide_type === 2) {
         setIsSelectingType(false);
-        setConfirmDialog({
-          isOpen: true,
-          title: "تبدیل به سؤال؟",
-          description: "اسلاید محتوایی با یک سؤال جدید جایگزین می‌شود. ادامه می‌دهید؟",
-          onConfirm: () => applyQuestionTypeChange({ currentQuestion: null, questionType, quizId, slideId, requestedMode }),
-          confirmText: "تبدیل",
-          cancelText: "انصراف",
-        });
+        panels.requestConfirmation(
+          () => applyQuestionTypeChange({
+            currentQuestion: null,
+            questionType,
+            quizId,
+            slideId,
+            requestedMode,
+          }),
+          {
+            title: "تبدیل به سؤال؟",
+            description: "اسلاید محتوایی با یک سؤال جدید جایگزین می‌شود. ادامه می‌دهید؟",
+            confirmText: "تبدیل",
+            cancelText: "انصراف",
+          },
+        );
         return;
       }
 
@@ -674,29 +670,24 @@ function QuestionEditor({ quiz, updateQuiz, refreshQuiz, createdPresentation }) 
           setTypeSelectionNotice(null);
         }, 2000);
         setShowTypeBox(false);
-        setShowSidebar(true);
-        setShowDesignPanel(false);
-        setShowAudioPanel(false);
-        setActiveTab("content");
+        panels.activateTab("content");
         return;
       }
 
       if (currentQuestion?.question_type === "multiple" && questionType === "single") {
         setIsSelectingType(false);
-        setConfirmDialog({
-          isOpen: true,
+        panels.requestConfirmation(() => {
+          void applyQuestionTypeChange({
+            currentQuestion,
+            questionType,
+            quizId,
+            slideId,
+            requestedMode,
+          });
+        }, {
           title: "تغییر به تک‌گزینه‌ای؟",
           description:
             "در حالت تک‌گزینه‌ای فقط یک گزینه صحیح باقی می‌ماند. ادامه می‌دهید؟",
-          onConfirm: () => {
-            applyQuestionTypeChange({
-              currentQuestion,
-              questionType,
-              quizId,
-              slideId,
-              requestedMode,
-            });
-          },
           confirmText: "ادامه",
           cancelText: "انصراف",
         });
