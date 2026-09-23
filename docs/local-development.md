@@ -47,6 +47,13 @@ docker compose down
 Do not use `down -v`: it permanently deletes the local PostgreSQL and Redis
 volumes.
 
+The local Compose PostgreSQL major version is 16. Minor 16.x image updates may
+reuse the existing volume. A change to PostgreSQL 17 or newer requires an
+explicit major-version migration with `pg_upgrade` or dump/restore and must not
+be bundled into an unrelated image-registry change. If PostgreSQL becomes
+unhealthy after an image change, inspect `docker compose logs --no-color
+--tail=200 postgres` before removing the volume.
+
 ## Hot-reload development
 
 Start dependencies only:
