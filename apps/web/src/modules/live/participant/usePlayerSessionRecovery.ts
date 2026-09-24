@@ -4,6 +4,7 @@ import {
   DEFAULT_AVATAR,
   getPersistedUserIdForRoom,
   readStoredProfile,
+  saveStoredProfile,
   type StoredPlayerProfile,
 } from "../model/playerProfileStorage.ts";
 import {
@@ -82,12 +83,14 @@ export function usePlayerSessionRecovery({
   useEffect(() => {
     if (!enabled || !lastJoinResult) return;
 
-    setProfile({
+    const nextProfile: StoredPlayerProfile = {
       room_id: String(roomId ?? ""),
       name: lastJoinResult.displayName,
       avatar: lastJoinResult.avatar || DEFAULT_AVATAR,
       user_id: lastJoinResult.clientUserId,
-    });
+    };
+    saveStoredProfile(nextProfile);
+    setProfile(nextProfile);
   }, [enabled, lastJoinResult, roomId]);
 
   useEffect(() => {
