@@ -15,6 +15,21 @@ test("Tailwind and semantic theme have one CSS source", () => {
   assert.match(indexCss, /--color-danger:/);
 });
 
+test("ordinary REST transport is owned by shared api without legacy utility shims", () => {
+  const http = source("src/shared/api/http.ts");
+  const utils = readdirSync(new URL("../src/utils/", import.meta.url));
+
+  assert.match(http, /export const buildApiUrl/);
+  assert.match(http, /proslides_csrf/);
+  assert.match(http, /credentials: "include"/);
+  assert.match(http, /export async function requestJson/);
+  assert.doesNotMatch(http, /utils\/apiFetch|utils\/api/);
+  assert.deepEqual(
+    utils.filter((name) => /^api(?:Fetch)?\.[jt]s$/.test(name)),
+    [],
+  );
+});
+
 test("shared notice exposes assertive errors and polite pending or success states", () => {
   const notice = source("src/shared/ui/Notice.tsx");
 
