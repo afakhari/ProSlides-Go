@@ -3,7 +3,6 @@ import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import type {
   LegacyContentSlide,
-  LegacyLiveUser,
   LegacyQuestionResult,
   LegacyQuestionSlide,
 } from "../model/serverData.ts";
@@ -21,7 +20,6 @@ type PlayerViewProps = {
   quiz: LivePresentationModel;
   currentQuestion: LegacyQuestionSlide | null;
   currentContent: LegacyContentSlide | null;
-  leaderboardResults: LegacyLiveUser[] | null;
   questionResults: LegacyQuestionResult | null;
   partialQuestionResults: LegacyQuestionResult | null;
   snapshot: LiveSnapshot | null;
@@ -36,7 +34,6 @@ export function PlayerPresentationView({
   quiz,
   currentQuestion,
   currentContent,
-  leaderboardResults,
   questionResults,
   partialQuestionResults,
   snapshot,
@@ -47,11 +44,7 @@ export function PlayerPresentationView({
 }: PlayerViewProps) {
   if (currentContent) {
     return (
-      <PlayerContentSlide
-        roomId={roomId}
-        quiz={quiz}
-        content={currentContent}
-      />
+      <PlayerContentSlide quiz={quiz} content={currentContent} />
     );
   }
 
