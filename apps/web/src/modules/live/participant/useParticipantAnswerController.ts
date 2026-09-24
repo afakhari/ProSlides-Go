@@ -48,6 +48,7 @@ export function useParticipantAnswerController({
 }): ParticipantAnswerController {
   const { submitAnswer, isConnected, connectionError } = useLiveSession();
   const identity = questionRunIdentity(question);
+  const timerScope = `${String(roomId ?? "unknown")}:${identity}`;
   const questionRef = useRef(question);
   questionRef.current = question;
   const activeIdentityRef = useRef(identity);
@@ -59,6 +60,7 @@ export function useParticipantAnswerController({
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+  const [initializedTimerScope, setInitializedTimerScope] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [submitState, setSubmitState] =
@@ -85,7 +87,8 @@ export function useParticipantAnswerController({
     setSubmitMessage("");
     pendingRef.current = null;
     inFlightAttemptRef.current = null;
-  }, [identity, roomId]);
+    setInitializedTimerScope(timerScope);
+  }, [identity, roomId, timerScope]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -112,7 +115,7 @@ export function useParticipantAnswerController({
   }, [identity, totalSeconds]);
 
   useEffect(() => {
-    if (timeLeft > 0) return;
+    if (initializedTimerScope !== timerScope || timeLeft > 0) return;
     if (
       submitState === "idle" ||
       submitState === "retryable"
@@ -125,7 +128,13 @@ export function useParticipantAnswerController({
           : "زمان پاسخ‌گویی پایان یافت.",
       );
     }
-  }, [selectedIndexes.length, submitState, timeLeft]);
+  }, [
+    initializedTimerScope,
+    selectedIndexes.length,
+    submitState,
+    timeLeft,
+    timerScope,
+  ]);
 
   const sendAttempt = useCallback(
     async (attempt: PendingAttempt) => {
