@@ -263,12 +263,11 @@ export default function AuthRoute() {
   const handleLogin = useCallback(
     async (values: AuthFormValues) => {
       try {
-        const payload = await identityApi.login({
+        await identityApi.login({
           email: values.email.trim(),
           password: values.password,
         });
 
-        void payload;
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
