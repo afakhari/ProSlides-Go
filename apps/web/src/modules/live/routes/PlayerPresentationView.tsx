@@ -29,30 +29,24 @@ type PlayerViewProps = {
 };
 
 type LegacyPlayerPageProps = Record<string, unknown>;
+type LegacyPlayerPageModule = {
+  default: ComponentType<LegacyPlayerPageProps>;
+};
 
-const PlayerJoinPage = lazy(
-  () =>
-    import("../../../pages/presentation/player/JoinPage") as Promise<{
-      default: ComponentType<LegacyPlayerPageProps>;
-    }>,
+const lazyLegacyPlayerPage = (loader: () => Promise<unknown>) =>
+  lazy(async () => (await loader()) as LegacyPlayerPageModule);
+
+const PlayerJoinPage = lazyLegacyPlayerPage(
+  () => import("../../../pages/presentation/player/JoinPage"),
 );
-const PlayerPickAnswerQuestion = lazy(
-  () =>
-    import("../../../pages/presentation/player/PickAnswerQuestion") as Promise<{
-      default: ComponentType<LegacyPlayerPageProps>;
-    }>,
+const PlayerPickAnswerQuestion = lazyLegacyPlayerPage(
+  () => import("../../../pages/presentation/player/PickAnswerQuestion"),
 );
-const PlayerLeaderBoard = lazy(
-  () =>
-    import("../../../pages/presentation/player/LeaderBoard") as Promise<{
-      default: ComponentType<LegacyPlayerPageProps>;
-    }>,
+const PlayerLeaderBoard = lazyLegacyPlayerPage(
+  () => import("../../../pages/presentation/player/LeaderBoard"),
 );
-const PlayerContentSlide = lazy(
-  () =>
-    import("../../../pages/presentation/player/ContentSlide") as Promise<{
-      default: ComponentType<LegacyPlayerPageProps>;
-    }>,
+const PlayerContentSlide = lazyLegacyPlayerPage(
+  () => import("../../../pages/presentation/player/ContentSlide"),
 );
 
 export function PlayerPresentationView({
