@@ -1,9 +1,13 @@
-import { useState, type FormEvent } from "react";
-import EmojiPicker, { Theme } from "emoji-picker-react";
+import { lazy, Suspense, useState, type FormEvent } from "react";
 
 import type { LivePresentationModel } from "../../model/presentation.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
 import { useParticipantJoinController } from "../useParticipantJoinController.ts";
+
+const ParticipantAvatarPicker = lazy(async () => {
+  const module = await import("./ParticipantAvatarPicker.tsx");
+  return { default: module.ParticipantAvatarPicker };
+});
 
 type ParticipantJoinPageProps = {
   roomId?: string;
@@ -151,17 +155,23 @@ export function ParticipantJoinPage({
                 className="mt-3 overflow-hidden rounded-2xl"
                 dir="ltr"
               >
-                <EmojiPicker
-                  onEmojiClick={({ emoji }) => {
-                    controller.setAvatar(emoji);
-                    setShowPicker(false);
-                  }}
-                  theme={Theme.DARK}
-                  width="100%"
-                  height={320}
-                  searchPlaceholder="جست‌وجوی ایموجی"
-                  previewConfig={{ showPreview: false }}
-                />
+                <Suspense
+                  fallback={
+                    <div
+                      className="grid h-80 place-items-center bg-slate-950 text-sm text-white/70"
+                      role="status"
+                    >
+                      در حال آماده‌سازی انتخاب آواتار…
+                    </div>
+                  }
+                >
+                  <ParticipantAvatarPicker
+                    onSelect={(emoji) => {
+                      controller.setAvatar(emoji);
+                      setShowPicker(false);
+                    }}
+                  />
+                </Suspense>
               </div>
             ) : null}
           </fieldset>
