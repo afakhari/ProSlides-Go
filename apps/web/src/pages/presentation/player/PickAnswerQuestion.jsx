@@ -3,7 +3,7 @@ import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { createRequestId } from "../../../modules/live/api/liveApi";
 import { useServerData } from "../../../modules/live/react/useServerData";
 import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
-import { resolveQuestionTimer } from "../utils/questionTimerSync";
+import { resolveQuestionTimer } from "../../../modules/live/model/questionTimer";
 
 const LEGACY_ANSWER_QUEUE_KEY = "presentation_answer_queue_v1";
 const getAnswerQueueKey = (roomId) =>
