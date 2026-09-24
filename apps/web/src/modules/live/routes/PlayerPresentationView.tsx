@@ -1,4 +1,3 @@
-import Waiting from "../../../pages/loading/LoadingPage";
 import type { PlayerLastActive } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
@@ -10,6 +9,7 @@ import { ParticipantContentSlide } from "../participant/ui/ParticipantContentSli
 import { ParticipantJoinPage } from "../participant/ui/ParticipantJoinPage.tsx";
 import { ParticipantLeaderboard } from "../participant/ui/ParticipantLeaderboard.tsx";
 import { ParticipantQuestion } from "../participant/ui/ParticipantQuestion.tsx";
+import { ParticipantWaiting } from "../participant/ui/ParticipantWaiting.tsx";
 import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
 import type { LiveSnapshot } from "../api/types.ts";
 
@@ -95,7 +95,7 @@ export function PlayerPresentationView({
   }
 
   if (hasSeenActiveSlide && profile) {
-    return <Waiting message="در حال همگام‌سازی جلسه…" />;
+    return <ParticipantWaiting quiz={quiz} />;
   }
 
   return <ParticipantJoinPage roomId={roomId} quiz={quiz} />;
