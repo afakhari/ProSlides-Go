@@ -8,6 +8,7 @@ import {
   getResendSeconds,
   maskEmail,
   resolveAuthMode,
+  resolveAuthReturnPath,
 } from "../src/modules/identity/model/authFlow.ts";
 import { remainingSecondsUntil } from "../src/modules/identity/hooks/useVerificationTimers.ts";
 
@@ -16,6 +17,17 @@ test("auth route mode follows explicit route/query ownership", () => {
   assert.equal(resolveAuthMode("/signup", ""), "signup");
   assert.equal(resolveAuthMode("/auth", "?mode=signup"), "signup");
   assert.equal(resolveAuthMode("/auth", "?mode=login"), "login");
+});
+
+test("auth return paths only resume protected manager destinations", () => {
+  assert.equal(resolveAuthReturnPath("?from=%2Fmanager%2Fpanel"), "/manager/panel");
+  assert.equal(
+    resolveAuthReturnPath("?from=%2Fmanager%2Fpanel%2Fpresentation-1%3Ftab%3Dreport"),
+    "/manager/panel/presentation-1?tab=report",
+  );
+  assert.equal(resolveAuthReturnPath("?from=https%3A%2F%2Fevil.example"), "/manager/panel");
+  assert.equal(resolveAuthReturnPath("?from=%2F%2Fevil.example"), "/manager/panel");
+  assert.equal(resolveAuthReturnPath("?from=%2Fteam"), "/manager/panel");
 });
 
 test("verification timing helpers preserve deadlines instead of extending expired codes", () => {

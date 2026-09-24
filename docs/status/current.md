@@ -8,14 +8,10 @@ measurements, and Git records history.
 
 ## Baseline
 
-The current mainline frontend baseline after rollback is:
-
-```
-960dbce
-```
-
-Changes removed from main after this point are historical changes and require a
-new reviewed migration before becoming part of the active state.
+Commit `960dbce` is the historical rollback anchor from 2026-09-23, not the
+current mainline SHA. Work after that anchor is part of the active product only
+when it has been reintroduced through reviewed changes and merged to `main`.
+Git remains authoritative for the exact current commit.
 
 ## Product and architecture
 
@@ -27,38 +23,56 @@ a Go modular-monolith backend.
 - PostgreSQL is the durable source of truth.
 - Redis is used for operational and ephemeral workloads, not as the durable
   product ledger.
-- Frontend architecture targets a modular TypeScript application with:
+- Frontend architecture is converging on a modular TypeScript application with:
 
-```
+```text
 app -> modules -> shared
 ```
 
 ## Frontend current state
 
-The frontend is functional but is not yet a fully modular TypeScript
-application.
+The frontend is functional and increasingly typed/modular, but is not yet a
+fully migrated TypeScript application.
 
 Current strengths:
 
-- React/Vite application structure with lazy loading.
-- Typed API boundaries where migrated.
-- Explicit editor domain ownership direction.
-- Live runtime separation from React rendering concerns.
-- Accessibility, build and regression checks for verified flows.
+- React/Vite with checked lazy route splitting and bundle budgets.
+- React Router data routing owns the application route tree, protected-manager
+  session loading, route pending state and route error boundaries.
+- The protected-session query shares the same TanStack Query client and typed
+  identity API boundary used by the application instead of maintaining a
+  parallel component-local fetch lifecycle.
+- Generated OpenAPI transport types and typed module/domain boundaries are used
+  where migrated.
+- Question, content, design and audio editor slices use explicit typed draft
+  ownership and preserve local work across edit conflicts.
+- Live snapshot/cursor/reconnect/roster ownership is separated from React
+  rendering and ordinary REST caching.
+- Browser acceptance covers core auth/dashboard/report flows, manager/player
+  live lifecycle with reconnect, and the principal editor draft/conflict flows.
 
 Remaining work:
 
-- complete TypeScript migration;
-- remove remaining legacy ownership boundaries;
-- continue design-system convergence;
-- increase focused component/API-state coverage.
+- complete TypeScript migration of active JSX/JS boundaries;
+- migrate remaining legacy top-level ownership into `app/modules/shared`;
+- finish ordinary REST/API ownership convergence and remove compatibility
+  utilities after their callers migrate;
+- continue design-system/RTL convergence on legacy surfaces;
+- add focused component/API-state tests between domain unit tests and browser
+  end-to-end coverage;
+- upgrade major framework/toolchain versions only in isolated compatibility
+  changes after their runtime requirements are satisfied.
 
 ## Active priorities
 
-1. Keep frontend and backend contracts stable.
-2. Continue frontend modularization through small vertical slices.
-3. Preserve editor draft ownership, conflict recovery and live separation.
-4. Improve verification coverage before larger architectural changes.
+1. Keep frontend/backend contracts and verified editor/live correctness stable.
+2. Continue frontend modularization through small vertical slices, starting at
+   high-leverage application and domain boundaries rather than cosmetic leaves.
+3. Remove duplicate ownership and compatibility adapters as soon as the
+   migrated boundary has equivalent verification.
+4. Increase component/API-state verification before broad UI restructuring.
+5. Keep performance, accessibility, Persian/RTL and cancellation behavior as
+   completion criteria for each slice.
 
 ## Documentation rules
 
@@ -79,4 +93,5 @@ npm run lint
 npm run typecheck
 npm run test:unit
 npm run build
+npm run test:e2e
 ```

@@ -29,7 +29,8 @@ import {
   Users,
 } from "lucide-react";
 import ShareMenu from "../sharing/ShareDialog";
-import { apiFetch } from "../../../utils/apiFetch";
+import { identityApi } from "../../identity/api/identityApi.ts";
+import { identityKeys } from "../../identity/api/sessionQuery.ts";
 import { clearAuthStorage } from "../../../utils/auth";
 import { getPresentationValidationError } from "../editor/model/validation";
 import { createPresentationOnce } from "../model/createPresentationFlow.ts";
@@ -541,13 +542,11 @@ export default function QuizManager({ onNewPresentation }) {
   const handleLogout = async () => {
     setShowProfileMenu(false);
     try {
-      const response = await apiFetch("/auth/logout", { method: "POST" });
-      if (!response.ok) {
-        console.warn("Logout request failed:", response.statusText);
-      }
+      await identityApi.logout();
     } catch (err) {
       console.warn("Logout error:", err);
     } finally {
+      queryClient.removeQueries({ queryKey: identityKeys.session() });
       clearAuthStorage();
       navigate("/auth");
     }
@@ -574,18 +573,7 @@ export default function QuizManager({ onNewPresentation }) {
     setPasswordPromptLoading(true);
     setPasswordPromptStatus(null);
     try {
-      const response = await apiFetch("/auth/password/reset", {
-        method: "POST",
-        auth: false,
-        json: { email },
-      });
-      if (!response.ok) {
-        throw new Error(
-          response.status === 503
-            ? "سامانه ارسال ایمیل در حال حاضر در دسترس نیست."
-            : "ارسال لینک تعیین رمز عبور انجام نشد."
-        );
-      }
+      await identityApi.requestPasswordReset({ email });
       clearPasswordPrompt();
       setStatusMessage({
         type: "success",

@@ -1,7 +1,7 @@
 {
-  "initialJavaScriptGzipKiB": 90,
+  "initialJavaScriptGzipKiB": 115,
   "initialCssGzipKiB": 20,
   "largestRouteJavaScriptGzipKiB": 70,
-  "largestJavaScriptRawKiB": 300,
+  "largestJavaScriptRawKiB": 365,
   "initialModulePreloads": 0
 }

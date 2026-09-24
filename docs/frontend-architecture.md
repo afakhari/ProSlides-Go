@@ -109,9 +109,22 @@ source-string tests as the migration progresses.
 
 ## Routing
 
-Use React Router data routing for one static route tree with nested layouts,
-route-level pending UI and route error boundaries. Keep the Vite SPA and Nginx
-fallback; SSR/framework migration requires a separate measured need.
+Use React Router data routing for one static route tree created outside the
+React render tree and rendered through `RouterProvider`. Route modules may use
+`route.lazy` to preserve code splitting while loaders/actions remain part of
+the router lifecycle. Nested layouts, route-level pending UI and route error
+boundaries are router concerns, not duplicated component-local lifecycle
+machines.
+
+Protected-route identity checks use the shared TanStack Query client and typed
+identity API. Loaders may call `ensureQueryData`/prefetch the same query
+definition used by components; they must not create a second session cache or a
+parallel raw-fetch abstraction. Authentication failures redirect explicitly,
+while network/server failures surface through route recovery UI rather than
+being misclassified as logout.
+
+Keep the Vite SPA and Nginx fallback; SSR/framework migration requires a
+separate measured need.
 
 Target route ownership:
 
@@ -355,5 +368,8 @@ This list records sequencing constraints, not current completion status. Current
 6. Extract typed live runtime from React context.
 7. Add component/API-state tests and CI browser lifecycle gating.
 8. Upgrade major toolchain pieces in isolated, compatibility-tested changes.
+   Framework major upgrades must satisfy their declared React/Node runtime
+   requirements before adoption; do not combine them with unrelated architecture
+   migrations.
 
 Do not combine these migrations into one rewrite.
