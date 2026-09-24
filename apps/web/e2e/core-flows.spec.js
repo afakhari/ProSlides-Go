@@ -89,6 +89,16 @@ test("landing, protected navigation, and responsive auth layout", async ({ page 
     ),
   ).toBe(0);
 
+  await page.goto("/team");
+  await expect(page.getByRole("heading", { name: "تیم ما", exact: true })).toBeVisible();
+  await expect(page.getByText("توسعه اولیه Rust", { exact: false })).toBeVisible();
+  await expect(page.getByText("توسعه اولیه Django", { exact: false })).toBeVisible();
+  await expect(page.getByText("backend فعال ProSlides اکنون بر Go استوار است", { exact: false })).toBeVisible();
+  await expectAccessible(page, "team");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expectNoOverflow(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
+
   await page.goto("/manager/panel");
   await expect(page).toHaveURL(/\/auth\?from=%2Fmanager%2Fpanel$/);
   await expect(page.locator('input[name="email"]')).toBeVisible();
