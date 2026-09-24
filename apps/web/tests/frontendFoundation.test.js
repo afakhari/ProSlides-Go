@@ -207,8 +207,11 @@ test("participant live UI is Persian, theme-driven, and disclosure-safe", () => 
   const shell = source("src/modules/live/participant/ParticipantShell.tsx");
   const theme = source("src/modules/live/participant/theme.ts");
   const sharedTheme = source("src/shared/styles/presentationTheme.ts");
-  const question = source("src/pages/presentation/player/PickAnswerQuestion.jsx");
-  const leaderboard = source("src/pages/presentation/player/LeaderBoard.jsx");
+  const question = source("src/modules/live/participant/ui/ParticipantQuestion.tsx");
+  const leaderboard = source("src/modules/live/participant/ui/ParticipantLeaderboard.tsx");
+  const answerController = source(
+    "src/modules/live/participant/useParticipantAnswerController.ts",
+  );
 
   assert.match(entry, /data\.presentation\.background_color/);
   assert.match(entry, /data\.presentation\.text_color/);
@@ -218,6 +221,9 @@ test("participant live UI is Persian, theme-driven, and disclosure-safe", () => 
   assert.match(question, /ثبت پاسخ/);
   assert.doesNotMatch(question, />\s*(?:Submitted|Submit|Loading quiz|You voted)\s*</);
   assert.doesNotMatch(leaderboard, /players\.map|roster/);
+  assert.doesNotMatch(question, /answer\s*===\s*true|is_correct|correctness/);
+  assert.doesNotMatch(answerController, /localStorage|sessionStorage|answer_queue/);
+  assert.match(answerController, /selectedIndexes/);
 });
 
 
@@ -395,7 +401,22 @@ test("live presentation route owns a typed role composition without a legacy bri
     managerUiFiles.filter((name) => /\.(?:js|jsx)$/.test(name)).length,
     0,
   );
-  assert.match(playerView, /matchingQuestionResult/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantJoinPage\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantQuestion\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantLeaderboard\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantContentSlide\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantWaiting\.tsx/);
+  assert.doesNotMatch(
+    playerView,
+    /lazyLegacyPlayerPage|pages\/presentation\/player|pages\/loading/,
+  );
+  const participantUiFiles = readdirSync(
+    new URL("../src/modules/live/participant/ui/", import.meta.url),
+  );
+  assert.equal(
+    participantUiFiles.filter((name) => /\.(?:js|jsx)$/.test(name)).length,
+    0,
+  );
   assert.match(contract, /interface LivePresentationModel/);
   assert.match(contract, /interface AppPresentationProps/);
   assert.doesNotMatch(contract, /AppPresentationComponent/);
@@ -434,6 +455,26 @@ test("live manager synchronization is owned by a typed manager controller", () =
   assert.match(controller, /findLeaderboardSlideIndex/);
   assert.match(controller, /sessionState === "ended"/);
   assert.match(controller, /Product requirement: presentation flow is forward-only/);
+});
+
+test("participant interaction controllers own join retries and answer attempts", () => {
+  const join = source(
+    "src/modules/live/participant/useParticipantJoinController.ts",
+  );
+  const answer = source(
+    "src/modules/live/participant/useParticipantAnswerController.ts",
+  );
+  const attempt = source("src/modules/live/participant/answerAttempt.ts");
+
+  assert.match(join, /joinParticipant/);
+  assert.match(join, /scheduleRetry/);
+  assert.match(join, /Math\.min\(1000 \* 2 \*\* attempt, 10_000\)/);
+  assert.match(answer, /createRequestId/);
+  assert.match(answer, /pendingRef/);
+  assert.match(answer, /retryable/);
+  assert.doesNotMatch(answer, /localStorage|sessionStorage/);
+  assert.match(attempt, /option_index/);
+  assert.doesNotMatch(attempt, /user_id|submit_time/);
 });
 
 test("live player recovery is owned by a typed participant controller", () => {
