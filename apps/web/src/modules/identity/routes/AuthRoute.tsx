@@ -21,6 +21,7 @@ import {
   getResendSeconds,
   maskEmail,
   resolveAuthMode,
+  resolveAuthReturnPath,
   type AuthMode,
   type AuthStatus,
 } from "../model/authFlow.ts";
@@ -155,8 +156,8 @@ export default function AuthRoute() {
   ]);
 
   const navigateToDashboard = useCallback(() => {
-    navigate("/manager/panel");
-  }, [navigate]);
+    navigate(resolveAuthReturnPath(location.search));
+  }, [location.search, navigate]);
 
   const storeAuthEmail = useCallback((value: string) => {
     if (value) localStorage.setItem("auth.email", value);
