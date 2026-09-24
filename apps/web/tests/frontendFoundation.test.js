@@ -86,6 +86,17 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(dashboard, /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/);
 });
 
+test("editor presentation reads are cancelled when the route unmounts", () => {
+  const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
+  const repository = source("src/modules/presentations/api/presentationRepository.ts");
+
+  assert.match(route, /new AbortController\(\)/);
+  assert.match(route, /getEditorQuiz\(quizId, \{ signal \}\)/);
+  assert.match(route, /controller\.abort\(\)/);
+  assert.match(route, /signal\?\.aborted/);
+  assert.match(repository, /getEditorQuiz: async \(quizID: string, options\?: RequestOptions\)/);
+});
+
 test("typed Persian catalog is consumed by manager dashboard editor and share", () => {
   const catalog = source("src/shared/i18n/fa.ts");
 
