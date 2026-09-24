@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import EmojiPicker from "emoji-picker-react";
+import EmojiPicker, { Theme } from "emoji-picker-react";
 
 import type { LivePresentationModel } from "../../model/presentation.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
@@ -156,7 +156,7 @@ export function ParticipantJoinPage({
                     controller.setAvatar(emoji);
                     setShowPicker(false);
                   }}
-                  theme="dark"
+                  theme={Theme.DARK}
                   width="100%"
                   height={320}
                   searchPlaceholder="جست‌وجوی ایموجی"
