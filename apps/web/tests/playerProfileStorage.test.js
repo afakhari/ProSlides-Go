@@ -7,7 +7,7 @@ import {
   readStoredProfile,
   saveStoredProfile,
   getPersistedUserIdForRoom,
-} from "../src/pages/presentation/player/playerProfileStorage.js";
+} from "../src/modules/live/model/playerProfileStorage.ts";
 
 const createMemoryStorage = () => {
   const store = new Map();
