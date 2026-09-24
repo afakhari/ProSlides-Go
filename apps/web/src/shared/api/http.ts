@@ -21,7 +21,9 @@ export const getApiBase = (): string => {
 export const buildApiUrl = (path = ""): string => {
   const base = getApiBase();
   if (!path) return base;
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) {
+    throw new TypeError("API request paths must be relative to the configured base URL.");
+  }
 
   return `${base}/${path.replace(/^\/+/, "")}`;
 };
