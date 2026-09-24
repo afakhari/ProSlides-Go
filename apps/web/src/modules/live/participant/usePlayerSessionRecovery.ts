@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
+  DEFAULT_AVATAR,
   getPersistedUserIdForRoom,
   readStoredProfile,
   type StoredPlayerProfile,
@@ -17,6 +18,7 @@ import type {
   LegacyQuestionSlide,
 } from "../model/serverData.ts";
 import type { LiveSessionContextValue } from "../react/liveSessionContext.ts";
+import type { LiveJoinResult } from "../runtime/LiveRuntime.ts";
 
 type UsePlayerSessionRecoveryOptions = {
   enabled: boolean;
@@ -27,6 +29,7 @@ type UsePlayerSessionRecoveryOptions = {
   isConnected: boolean;
   connect: LiveSessionContextValue["connect"];
   joinParticipant: LiveSessionContextValue["joinParticipant"];
+  lastJoinResult: LiveJoinResult | null;
 };
 
 export type PlayerSessionRecovery = {
@@ -45,6 +48,7 @@ export function usePlayerSessionRecovery({
   isConnected,
   connect,
   joinParticipant,
+  lastJoinResult,
 }: UsePlayerSessionRecoveryOptions): PlayerSessionRecovery {
   const [hasSeenActiveSlide, setHasSeenActiveSlide] = useState(
     () => enabled && readPlayerSeenActive(roomId),
@@ -53,23 +57,34 @@ export function usePlayerSessionRecovery({
     () => (enabled ? readPlayerLastActive(roomId) : null),
   );
   const joinSentRef = useRef(false);
-
-  const profile = useMemo(
+  const [profile, setProfile] = useState<StoredPlayerProfile | null>(
     () => (enabled ? readStoredProfile(roomId) : null),
-    [enabled, roomId],
   );
 
   useEffect(() => {
     if (!enabled) {
       setHasSeenActiveSlide(false);
       setLastActive(null);
+      setProfile(null);
       joinSentRef.current = false;
       return;
     }
 
     setHasSeenActiveSlide(readPlayerSeenActive(roomId));
     setLastActive(readPlayerLastActive(roomId));
+    setProfile(readStoredProfile(roomId));
   }, [enabled, roomId]);
+
+  useEffect(() => {
+    if (!enabled || !lastJoinResult) return;
+
+    setProfile({
+      room_id: String(roomId ?? ""),
+      name: lastJoinResult.displayName,
+      avatar: lastJoinResult.avatar || DEFAULT_AVATAR,
+      user_id: lastJoinResult.clientUserId,
+    });
+  }, [enabled, lastJoinResult, roomId]);
 
   useEffect(() => {
     if (!enabled) return;
