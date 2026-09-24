@@ -30,7 +30,6 @@ function ManagerLeaderBoard({
     modalLeaderboardResults,
   } = useServerData();
 
-  // Ø­Ø°Ù state Ø¯Ø§Ø®Ù„ÛŒ Ùˆ ÙÙ‚Ø· Ø§Ø³ØªÙØ§Ø¯Ù‡ Ø§Ø² Ø¯Ø§Ø¯Ù‡ context
 
   // Get the question ID from the previous slide (leaderboard usually comes after a question)
   // NOTE: slide indices are 0-based, but currentSlide appears to be 1-based
@@ -47,11 +46,8 @@ function ManagerLeaderBoard({
     previousQuestionId && typeof getLeaderboardForQuestion === "function"
       ? getLeaderboardForQuestion(previousQuestionId)
       : null;
-  // Ù‡Ù…ÛŒØ´Ù‡ Ø¢Ø®Ø±ÛŒÙ† Ù„ÛŒØ¯Ø±Ø¨Ø±Ø¯ Ù…Ø¹ØªØ¨Ø± Ø±Ø§ Ù†Ú¯Ù‡ Ø¯Ø§Ø± Ùˆ Ø§Ú¯Ø± Ø¯Ø§Ø¯Ù‡ Ø¬Ø¯ÛŒØ¯ Ù†ÛŒØ§Ù…Ø¯ØŒ Ù¾Ø§Ú© Ù†Ú©Ù†
-  // Ø§Ú¯Ø± Ù‡ÛŒÚ† Ø¯Ø§Ø¯Ù‡â€ŒØ§ÛŒ Ø¨Ø±Ø§ÛŒ Ø§Ø³Ù„Ø§ÛŒØ¯ ÙØ¹Ù„ÛŒ Ù†Ø¨ÙˆØ¯ØŒ Ø¢Ø®Ø±ÛŒÙ† Ù„ÛŒØ¯Ø±Ø¨Ø±Ø¯ Ù…Ø¹ØªØ¨Ø± Ø±Ø§ Ù†Ù…Ø§ÛŒØ´ Ø¨Ø¯Ù‡
   let dataToUse = leaderboardForThisQuestion || leaderboardResults;
 
-  // Ø§Ú¯Ø± Ø¯Ø§Ø¯Ù‡ ÙØ¹Ù„ÛŒ Ø®Ø§Ù„ÛŒ Ø§Ø³ØªØŒ Ø§Ø² Ø¢Ø®Ø±ÛŒÙ† Ø¯Ø§Ø¯Ù‡ Ù…Ø¹ØªØ¨Ø± Ø§Ø³ØªÙØ§Ø¯Ù‡ Ú©Ù†
   if (
     !dataToUse ||
     (Array.isArray(dataToUse) && dataToUse.length === 0) ||
@@ -68,7 +64,6 @@ function ManagerLeaderBoard({
     }
   }
 
-  // ÙÙ‚Ø· Ø¯Ø§Ø¯Ù‡ Ø±Ø§ Ø§Ø² context Ù…ÛŒâ€ŒÚ¯ÛŒØ±ÛŒÙ… Ùˆ Ù‡ÛŒÚ† ÙˆÙ‚Øª setPlayers Ù†Ù…ÛŒâ€ŒØ²Ù†ÛŒÙ…
   const results = useMemo(
     () => dataToUse?.results || dataToUse || [],
     [dataToUse]
@@ -80,7 +75,6 @@ function ManagerLeaderBoard({
   debugLog("  - dataToUse:", dataToUse);
   debugLog("  - derived results:", results);
 
-  // Ù‡Ù…ÛŒØ´Ù‡ Ø§Ø² rank Ø³Ø±ÙˆØ± Ø§Ø³ØªÙØ§Ø¯Ù‡ Ú©Ù† Ùˆ Ù‡ÛŒÚ†ÙˆÙ‚Øª index Ø±Ø§ Ø¬Ø§ÛŒÚ¯Ø²ÛŒÙ† Ù†Ú©Ù†
   const players = useMemo(
     () =>
       Array.isArray(results)
@@ -107,7 +101,6 @@ function ManagerLeaderBoard({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
 
-  // Ù‡ÛŒÚ† Ù¾ÛŒØ§Ù… Ù…Ø³ØªÙ‚ÛŒÙ…ÛŒ Ø§Ø² Ø³Ø±ÙˆØ± Ù¾Ø±Ø¯Ø§Ø²Ø´ Ù†Ù…ÛŒâ€ŒØ´ÙˆØ¯ØŒ ÙÙ‚Ø· Ø¯Ø§Ø¯Ù‡ context Ø§Ø³ØªÙØ§Ø¯Ù‡ Ù…ÛŒâ€ŒØ´ÙˆØ¯
 
   // Handle navigation and update server data
   const handleNext = async () => {
@@ -195,16 +188,14 @@ function ManagerLeaderBoard({
             {/* Title and player count */}
             <div className="text-center w-full">
               <h2 className="text-6xl text-[color:var(--quiz-text)] font-bold mb-4">
-                Leaderboard
+                جدول امتیازات
               </h2>
               <p className="text-[color:var(--quiz-text-muted)] text-lg mt-2">
-                {participantCount} players
+                {Number(participantCount || 0).toLocaleString("fa-IR")} شرکت‌کننده
               </p>
             </div>
 
-            {/* Scrollable players list â€” only this area will scroll when long */}
             <div className="mt-6 flex-1 w-full max-w-4xl">
-              {/* Scrollable players list â€” only this area will scroll when long */}
               <div
                 className="mt-2 flex-1 overflow-auto w-full min-h-0 no-scrollbar"
                 style={{ maxHeight: "calc(100vh - 260px)" }}
@@ -290,27 +281,13 @@ function ManagerLeaderBoard({
                                   {hovered === p.rank && (
                                     <div className="flex gap-2">
                                       <button
+                                        type="button"
                                         onClick={() => handleToggleBlur(p.rank)}
-                                        className="bg-white/90 text-gray-800 px-2 py-1 rounded-lg text-sm hover:bg-white"
+                                        className="bg-white/90 text-gray-800 px-2 py-1 rounded-lg text-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                        aria-label={isHidden ? `نمایش نام ${p.name}` : `پنهان کردن نام ${p.name}`}
                                       >
-                                        ðŸ‘ï¸
+                                        👁️
                                       </button>
-                                      {/* <button
-                                        onClick={() =>
-                                          handleClick("âœï¸ Edit", p.name)
-                                        }
-                                        className="bg-white/90 text-blue-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                                      >
-                                        âœï¸
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          handleClick("ðŸ“ž Call", p.name)
-                                        }
-                                        className="bg-white/90 text-green-600 px-2 py-1 rounded-lg text-sm hover:bg-white"
-                                      >
-                                        ðŸ“ž
-                                      </button> */}
                                     </div>
                                   )}
                                 </div>
@@ -319,7 +296,7 @@ function ManagerLeaderBoard({
 
                             {/* Score */}
                             <div className="relative w-[10%] text-[color:var(--quiz-text)] font-semibold ml-3">
-                              {Math.round(p.total_points)}p{" "}
+                              {Math.round(p.total_points).toLocaleString("fa-IR")} امتیاز{" "}
                               {Number.isFinite(p.new_points) && (
                                 <span className="text-[color:var(--quiz-text-muted)] text-sm">
                                   +{Math.round(p.new_points)}
@@ -347,13 +324,6 @@ function ManagerLeaderBoard({
               )}
             </div>
           </section>
-          {/* <button
-
-          className="mt-[25px] mx-[10px] w-[calc(100%-20px)] p-[14px] border-none rounded-[10px]  font-bold cursor-pointer transition-all duration-300 text-2xl bg-white text-[#6c2bd9] disabled:opacity-60 disabled:cursor-not-allowed"
-          onClick={() => navigate("/PollPage")}
-        >
-          leader board
-        </button> */}
         </main>
 
         <Footer
@@ -381,19 +351,21 @@ function ManagerLeaderBoard({
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">ðŸ†</span>
+                  <span className="text-4xl">🏆</span>
                   <div>
                     <h2 className="text-white text-3xl font-bold">
-                      Leaderboard
+                      جدول امتیازات
                     </h2>
                     <p className="text-gray-400 text-sm">
-                      {(modalLeaderboardResults || []).length} players
+                      {(modalLeaderboardResults || []).length.toLocaleString("fa-IR")} شرکت‌کننده
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowLeaderboardModal(false)}
                   className="text-white hover:text-gray-300 text-3xl border-none bg-transparent cursor-pointer leading-none"
+                  aria-label="بستن جدول امتیازات"
                 >
                   ×
                 </button>
@@ -409,7 +381,6 @@ function ManagerLeaderBoard({
                   );
                   debugLog("[LeaderBoard] Max score:", maxScore);
 
-                  // Ø¯Ø±ØµØ¯ Ø§Ù…ØªÛŒØ§Ø² Ù†Ø³Ø¨Øª Ø¨Ù‡ Ù†ÙØ± Ø§ÙˆÙ„
                   const calcPercent = (score) => {
                     if (maxScore === 0) return 0;
                     return (score / maxScore) * 100;
@@ -464,7 +435,7 @@ function ManagerLeaderBoard({
                           )}
                         </div>
                         <div className="text-white font-bold text-xl shrink-0 w-20 text-right">
-                          {Math.round(score)}p
+                          {Math.round(score).toLocaleString("fa-IR")} امتیاز
                         </div>
                       </div>
                     );
