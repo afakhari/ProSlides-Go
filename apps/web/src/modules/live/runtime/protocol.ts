@@ -86,16 +86,17 @@ export const shouldApplyLiveEvent = (
 export const advanceLiveCursor = (
   cursor: LiveCursor,
   event: LiveEvent,
-): LiveCursor => ({
-  eventId: Math.max(
-    finiteNumber(cursor.eventId),
-    finiteNumber(event.event_id),
-  ),
-  stateVersion: Math.max(
-    finiteNumber(cursor.stateVersion),
-    finiteNumber(event.state_version),
-  ),
-});
+): LiveCursor => {
+  if (!shouldApplyLiveEvent(cursor, event)) return cursor;
+
+  return {
+    eventId: finiteNumber(event.event_id, cursor.eventId),
+    stateVersion: Math.max(
+      finiteNumber(cursor.stateVersion),
+      finiteNumber(event.state_version),
+    ),
+  };
+};
 
 export const liveCursorFromSnapshot = (
   snapshot: LiveSnapshot,
