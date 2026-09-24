@@ -91,8 +91,8 @@ test("landing, protected navigation, and responsive auth layout", async ({ page 
 
   await page.goto("/team");
   await expect(page.getByRole("heading", { name: "تیم ما", exact: true })).toBeVisible();
-  await expect(page.getByText("توسعه اولیه Rust", { exact: false })).toBeVisible();
-  await expect(page.getByText("توسعه اولیه Django", { exact: false })).toBeVisible();
+  await expect(page.getByText("توسعه اولیه Rust", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("توسعه اولیه Django", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("backend فعال ProSlides اکنون بر Go استوار است", { exact: false })).toBeVisible();
   await expectAccessible(page, "team");
   await page.setViewportSize({ width: 375, height: 812 });
