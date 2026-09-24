@@ -1,46 +1,42 @@
-import React, { useState, useEffect, useRef, lazy } from "react";
-import { useParams } from "react-router-dom";
+import React, { lazy, useEffect, useRef, useState } from "react";
 
-import { LiveSessionProvider } from "../modules/live/react/LiveSessionProvider";
-import { ServerDataProvider } from "../modules/live/react/ServerDataProvider";
-import { useServerData } from "../modules/live/react/useServerData";
-import { useLiveSession } from "../modules/live/react/useLiveSession";
-import { AudioProvider, useAudio } from "../contexts/AudioContext.tsx";
-import { getPresentation, resolveLiveSession } from "../modules/live/api/liveApi";
-import { presentationSlideToLegacy } from "../modules/live/runtime/protocol";
-import { hasLeaderboardEntries } from "../modules/live/model/leaderboard";
-import { resolveQuestionTimer } from "../modules/live/model/questionTimer";
+import { useAudio } from "../../../contexts/AudioContext.tsx";
+import Waiting from "../../../pages/loading/LoadingPage";
+import FinalLeaderboard from "../../../pages/presentation/manager/FinalLeaderboard";
+import { getPresentation } from "../api/liveApi.ts";
+import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import {
   getPersistedUserIdForRoom,
   readStoredProfile,
-} from "../modules/live/model/playerProfileStorage";
-
-import Waiting from "../pages/loading/LoadingPage";
-import FinalLeaderboard from "../pages/presentation/manager/FinalLeaderboard";
+} from "../model/playerProfileStorage.ts";
+import { resolveQuestionTimer } from "../model/questionTimer.ts";
+import { useLiveSession } from "../react/useLiveSession.ts";
+import { useServerData } from "../react/useServerData.ts";
+import { presentationSlideToLegacy } from "../runtime/protocol.js";
 
 const ManagerJoinPage = lazy(() =>
-  import("../pages/presentation/manager/JoinPage")
+  import("../../../pages/presentation/manager/JoinPage")
 );
 const ManagerPickAnswerQuestion = lazy(() =>
-  import("../pages/presentation/manager/PickAnswerQuestion")
+  import("../../../pages/presentation/manager/PickAnswerQuestion")
 );
 const ManagerLeaderBoard = lazy(() =>
-  import("../pages/presentation/manager/LeaderBoard")
+  import("../../../pages/presentation/manager/LeaderBoard")
 );
 const ManagerContentSlide = lazy(() =>
-  import("../pages/presentation/manager/ContentSlide")
+  import("../../../pages/presentation/manager/ContentSlide")
 );
 const PlayerJoinPage = lazy(() =>
-  import("../pages/presentation/player/JoinPage")
+  import("../../../pages/presentation/player/JoinPage")
 );
 const PlayerPickAnswerQuestion = lazy(() =>
-  import("../pages/presentation/player/PickAnswerQuestion")
+  import("../../../pages/presentation/player/PickAnswerQuestion")
 );
 const PlayerLeaderBoard = lazy(() =>
-  import("../pages/presentation/player/LeaderBoard")
+  import("../../../pages/presentation/player/LeaderBoard")
 );
 const PlayerContentSlide = lazy(() =>
-  import("../pages/presentation/player/ContentSlide")
+  import("../../../pages/presentation/player/ContentSlide")
 );
 
 const isQuestionSlide = (slide) =>
@@ -79,109 +75,8 @@ const EMPTY_PRESENTATION = {
   text_color: "#111827",
 };
 
-export default function PresentationEntry({ mode, role: explicitRole }) {
-  return mode === "accessCode"
-    ? <AccessCodeResolver />
-    : <PresentationRouter explicitRole={explicitRole} />;
-}
-
-/* ------------------------ Access Code Resolver ------------------------ */
-function AccessCodeResolver() {
-  const { accessCode } = useParams();
-  const [status, setStatus] = useState("loading"); // loading | error | success
-  const [resolvedData, setResolvedData] = useState(null);
-  const [resolvedMeta, setResolvedMeta] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-    const resolveCode = async () => {
-      try {
-        const data = await resolveLiveSession(accessCode);
-
-        if (!mounted) return;
-
-        if (data.session_id) {
-          setResolvedData(data);
-          setResolvedMeta({
-            quiz_id: data.presentation_id,
-            title: data.presentation.title,
-            access_code: accessCode,
-            background: {
-              color: data.presentation.background_color,
-              image: data.presentation.background_image_url,
-              text_color: data.presentation.text_color,
-            },
-            music_url: data.presentation.music_url || "",
-            slides: [],
-            text_color: data.presentation.text_color,
-          });
-          setStatus("success");
-        } else {
-          // Invalid access code
-          setStatus("error");
-        }
-      } catch (err) {
-        if (err?.status !== 404) {
-          console.error("[AccessCodeResolver] Error:", err);
-        }
-        if (mounted) setStatus("error");
-      }
-    };
-
-    resolveCode();
-    return () => {
-      mounted = false;
-    };
-  }, [accessCode]);
-
-  // Loading state
-  if (status === "loading") {
-    return <Waiting message="در حال ورود به کوئیز…" />;
-  }
-
-  // Error state
-  if (status === "error") {
-    return <Waiting message="کد ورود معتبر نیست" />;
-  }
-
-  // Success - render player presentation directly (URL stays the same)
-  if (status === "success" && resolvedData) {
-    return (
-      <AudioProvider>
-        <LiveSessionProvider key={`player:${String(resolvedData.session_id)}`} role="player">
-          <ServerDataProvider>
-            <AppPresentation
-              roomId={String(resolvedData.session_id)}
-              role="player"
-              initialQuizData={resolvedMeta}
-            />
-          </ServerDataProvider>
-        </LiveSessionProvider>
-      </AudioProvider>
-    );
-  }
-
-  return <Waiting />;
-}
-
-/* ------------------------ Router Wrapper ------------------------ */
-function PresentationRouter({ explicitRole }) {
-  const { roomId } = useParams();
-  const role = explicitRole === "player" ? "player" : "manager";
-
-  return (
-    <AudioProvider>
-      <LiveSessionProvider key={`${role}:${String(roomId || "unknown")}`} role={role}>
-        <ServerDataProvider>
-          <AppPresentation roomId={roomId} role={role} />
-        </ServerDataProvider>
-      </LiveSessionProvider>
-    </AudioProvider>
-  );
-}
-
 /* ------------------------ Main Flow ------------------------ */
-function AppPresentation({ roomId, role, initialQuizData }) {
+export function AppPresentation({ roomId, role, initialQuizData = null }) {
   const playerActiveSlideSeenKey = `presentation_player_seen_active_v1:${String(
     roomId || "unknown"
   )}`;

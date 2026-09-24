@@ -51,13 +51,16 @@ Current strengths:
   ownership and preserve local work across edit conflicts.
 - Live snapshot/cursor/reconnect/roster ownership is separated from React
   rendering and ordinary REST caching; typed React providers/hooks expose the
-  runtime through `useSyncExternalStore`.
+  runtime through `useSyncExternalStore`, and the live route entry is owned by
+  `modules/live/routes/PresentationEntry.tsx` behind an explicit typed bridge
+  to the still-migrating presentation flow.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 
 Remaining work:
 
-- complete TypeScript migration of active JSX/JS boundaries;
+- complete TypeScript migration of active JSX/JS boundaries, including the
+  remaining live presentation orchestration and role-specific UI leaves;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser
