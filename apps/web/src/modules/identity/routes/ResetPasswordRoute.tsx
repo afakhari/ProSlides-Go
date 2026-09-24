@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import Seo from "../../../components/Seo";
+import Seo from "../../../shared/ui/Seo.tsx";
 import { ApiError } from "../../../shared/api/http.ts";
 import { formatPersianNumber } from "../../../shared/forms/numbers.ts";
 import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
