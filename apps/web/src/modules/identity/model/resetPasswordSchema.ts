@@ -1,12 +1,10 @@
 import { z } from "zod";
 
+import { newPasswordSchema } from "./authSchemas.ts";
+
 export const resetPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(12, "رمز عبور باید حداقل ۱۲ نویسه باشد.")
-      .max(128, "رمز عبور نمی‌تواند بیشتر از ۱۲۸ نویسه باشد.")
-      .refine((value) => !/^\d+$/.test(value), "رمز عبور نمی‌تواند فقط شامل اعداد باشد."),
+    password: newPasswordSchema,
     confirmPassword: z.string().min(1, "تکرار رمز عبور را وارد کنید."),
   })
   .refine((values) => values.password === values.confirmPassword, {
