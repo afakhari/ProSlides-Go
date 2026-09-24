@@ -128,7 +128,7 @@ export function ManagerAccountMenu({
         className={`flex cursor-pointer items-center justify-center rounded-full bg-brand font-semibold text-content-inverse transition-colors hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
           compact ? "h-9 w-9 text-sm" : "h-10 w-10"
         }`}
-        aria-label={`حساب کاربری ${displayName}`}
+        aria-label="باز کردن منوی حساب"
         aria-haspopup="menu"
         aria-expanded={open}
         title={displayName}
