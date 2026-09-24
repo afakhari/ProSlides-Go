@@ -447,7 +447,6 @@ test("audio editor uses one typed presentation draft and accessible native previ
   const draft = source("src/modules/presentations/editor/model/audioDraft.ts");
   const hook = source("src/modules/presentations/editor/model/useAudioDraft.ts");
   const provider = source("src/contexts/AudioContext.tsx");
-  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
 
   assert.match(route, /AudioInspector\.tsx/);
   assert.match(route, /<AudioPanel/);
