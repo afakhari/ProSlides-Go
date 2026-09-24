@@ -370,19 +370,30 @@ test("main identity fields are owned by React Hook Form with focused auth compos
   assert.doesNotMatch(auth, /setFieldErrors\(/);
 });
 
-test("live presentation route exposes one explicit typed bridge to the legacy flow", () => {
+test("live presentation route owns a typed role composition without a legacy bridge", () => {
   const entry = source("src/modules/live/routes/PresentationEntry.tsx");
+  const flow = source("src/modules/live/routes/PresentationFlow.tsx");
+  const managerView = source("src/modules/live/routes/ManagerPresentationView.tsx");
+  const playerView = source("src/modules/live/routes/PlayerPresentationView.tsx");
   const contract = source("src/modules/live/model/presentation.ts");
 
-  assert.match(entry, /AppPresentation as AppPresentationComponent/);
+  assert.match(entry, /from "\.\/PresentationFlow\.tsx"/);
+  assert.doesNotMatch(entry, /AppPresentation as AppPresentationComponent/);
   assert.match(entry, /useState<LivePresentationModel \| null>/);
+  assert.match(flow, /AppPresentationProps/);
+  assert.match(flow, /<ManagerPresentationView/);
+  assert.match(flow, /<PlayerPresentationView/);
+  assert.match(managerView, /useNavigate/);
+  assert.doesNotMatch(managerView, /window\.location\.href/);
+  assert.match(playerView, /matchingQuestionResult/);
   assert.match(contract, /interface LivePresentationModel/);
   assert.match(contract, /interface AppPresentationProps/);
+  assert.doesNotMatch(contract, /AppPresentationComponent/);
   assert.doesNotMatch(entry, /\bany\b/);
 });
 
 test("live presentation loading uses the shared REST boundary and a typed route model loader", () => {
-  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const flow = source("src/modules/live/routes/PresentationFlow.tsx");
   const loader = source("src/modules/live/routes/useLivePresentationModel.ts");
   const presentationApi = source("src/modules/live/api/presentationApi.ts");
   const liveApi = source("src/modules/live/api/liveApi.ts");
@@ -399,7 +410,7 @@ test("live presentation loading uses the shared REST boundary and a typed route 
 });
 
 test("live manager synchronization is owned by a typed manager controller", () => {
-  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const flow = source("src/modules/live/routes/PresentationFlow.tsx");
   const controller = source(
     "src/modules/live/manager/useManagerPresentationController.ts",
   );
@@ -416,7 +427,7 @@ test("live manager synchronization is owned by a typed manager controller", () =
 });
 
 test("live player recovery is owned by a typed participant controller", () => {
-  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const flow = source("src/modules/live/routes/PresentationFlow.tsx");
   const recovery = source(
     "src/modules/live/participant/usePlayerSessionRecovery.ts",
   );
@@ -524,7 +535,7 @@ test("audio editor uses one typed presentation draft and accessible native previ
   const inspector = source("src/modules/presentations/editor/inspector/AudioInspector.tsx");
   const draft = source("src/modules/presentations/editor/model/audioDraft.ts");
   const hook = source("src/modules/presentations/editor/model/useAudioDraft.ts");
-  const provider = source("src/contexts/AudioContext.tsx");
+  const provider = source("src/modules/live/react/AudioProvider.tsx");
 
   assert.match(route, /AudioInspector\.tsx/);
   assert.match(route, /<AudioPanel/);
@@ -544,7 +555,7 @@ test("audio editor uses one typed presentation draft and accessible native previ
   assert.match(hook, /audioDraftEquals/);
   assert.match(provider, /createContext<AudioContextValue \| null>/);
   assert.doesNotMatch(provider, /createOscillator|webkitAudioContext/);
-  assert.match(source("src/modules/live/routes/PresentationFlow.jsx"), /setQuizMusic\(remoteQuiz\?\.music_url \|\| ""\)/);
+  assert.match(source("src/modules/live/routes/PresentationFlow.tsx"), /setQuizMusic\(remoteQuiz\?\.music_url \?\? ""\)/);
 });
 
 test("design editor shares one typed presentation draft across all preview surfaces", () => {
