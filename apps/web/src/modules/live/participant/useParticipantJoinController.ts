@@ -38,6 +38,8 @@ export function useParticipantJoinController(
   const [joinError, setJoinError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const joinSentRef = useRef(false);
+  const retryBlockedRef = useRef(false);
+  const retryTimerRef = useRef(0);
 
   const {
     connect,
@@ -46,6 +48,23 @@ export function useParticipantJoinController(
     lastJoinResult,
     connectionError,
   } = useLiveSession();
+
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    },
+    [],
+  );
+
+  const scheduleRetry = () => {
+    if (retryBlockedRef.current) return;
+    retryBlockedRef.current = true;
+    const delay = Math.min(1000 * 2 ** attempt, 10_000);
+    retryTimerRef.current = window.setTimeout(() => {
+      retryBlockedRef.current = false;
+      setAttempt((value) => value + 1);
+    }, delay);
+  };
 
   useEffect(() => {
     const next = readStoredProfile(roomId);
@@ -56,25 +75,23 @@ export function useParticipantJoinController(
     setValidation("");
     setJoinError("");
     setAttempt(0);
+    retryBlockedRef.current = false;
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = 0;
     joinSentRef.current = false;
   }, [roomId]);
 
   useEffect(() => {
     if (isEditing || !isJoining || !roomId || isConnected) return;
 
+    if (retryBlockedRef.current) return;
     let cancelled = false;
-    let retryTimer = 0;
     void connect(roomId).then((ok) => {
-      if (cancelled || ok) return;
-      retryTimer = window.setTimeout(
-        () => setAttempt((value) => value + 1),
-        Math.min(1000 * 2 ** attempt, 10_000),
-      );
+      if (!cancelled && !ok) scheduleRetry();
     });
 
     return () => {
       cancelled = true;
-      if (retryTimer) window.clearTimeout(retryTimer);
     };
   }, [attempt, connect, isConnected, isEditing, isJoining, roomId]);
 
@@ -97,6 +114,7 @@ export function useParticipantJoinController(
     }).then((outcome) => {
       if (cancelled) return;
       if (outcome === true) {
+        setAttempt(0);
         setIsJoining(false);
         setJoinError("");
         return;
@@ -108,7 +126,9 @@ export function useParticipantJoinController(
         );
         setIsEditing(true);
         setIsJoining(false);
+        return;
       }
+      scheduleRetry();
     });
 
     return () => {
@@ -122,6 +142,7 @@ export function useParticipantJoinController(
     joinParticipant,
     name,
     roomId,
+    attempt,
   ]);
 
   useEffect(() => {
