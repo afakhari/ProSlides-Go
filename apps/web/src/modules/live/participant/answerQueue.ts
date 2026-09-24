@@ -1,6 +1,7 @@
 import type { LiveAnswerInput } from "../runtime/LiveRuntime.ts";
 
 const LEGACY_ANSWER_QUEUE_KEY = "presentation_answer_queue_v1";
+const LEGACY_ROOM_QUEUE_PREFIX = "presentation_answer_queue_v2:";
 const ANSWER_QUEUE_PREFIX = "presentation_answer_queue_v3:";
 
 type RoomId = string | number | null | undefined;
@@ -23,11 +24,32 @@ const storageOrNull = (): StorageLike | null => {
 const queueKey = (roomId: RoomId) =>
   `${ANSWER_QUEUE_PREFIX}${String(roomId ?? "unknown")}`;
 
+const legacyRoomQueueKey = (roomId: RoomId) =>
+  `${LEGACY_ROOM_QUEUE_PREFIX}${String(roomId ?? "unknown")}`;
+
 const answerKey = (answer: QueuedParticipantAnswer) =>
   `${answer.user_id}:${String(answer.question_id)}:${String(answer.run_id ?? "na")}`;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizeLegacyQueuedAnswer = (
+  value: unknown,
+): QueuedParticipantAnswer | null => {
+  if (!isRecord(value) || !Array.isArray(value.options_result)) return null;
+  const selected = value.options_result
+    .map((option, index) => {
+      if (!isRecord(option) || option.picked !== true) return null;
+      const candidate = Number(option.option_index ?? option.option_id ?? index);
+      return Number.isInteger(candidate) && candidate >= 0 ? candidate : null;
+    })
+    .filter((index): index is number => index !== null);
+
+  return normalizeQueuedAnswer({
+    ...value,
+    selected_option_indexes: selected,
+  });
+};
 
 const normalizeQueuedAnswer = (
   value: unknown,
@@ -79,12 +101,27 @@ export const readQueuedParticipantAnswers = (
 ): QueuedParticipantAnswer[] => {
   try {
     const raw = storage?.getItem(queueKey(roomId));
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(normalizeQueuedAnswer)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map(normalizeQueuedAnswer)
+        .filter((answer): answer is QueuedParticipantAnswer => answer !== null);
+    }
+
+    const legacyRaw = storage?.getItem(legacyRoomQueueKey(roomId));
+    if (!legacyRaw) return [];
+    const legacyParsed: unknown = JSON.parse(legacyRaw);
+    if (!Array.isArray(legacyParsed)) return [];
+
+    const migrated = legacyParsed
+      .map(normalizeLegacyQueuedAnswer)
       .filter((answer): answer is QueuedParticipantAnswer => answer !== null);
+    if (migrated.length > 0) {
+      storage?.setItem(queueKey(roomId), JSON.stringify(migrated));
+    }
+    storage?.removeItem(legacyRoomQueueKey(roomId));
+    return migrated;
   } catch {
     return [];
   }
@@ -150,12 +187,15 @@ export const pruneQueuedParticipantAnswers = (
   roomId: RoomId,
   questionId: string | number | null | undefined,
   runId: string | number | null | undefined,
+  userId?: string | null,
   storage: StorageLike | null = storageOrNull(),
 ): void => {
   writeQueuedParticipantAnswers(
     roomId,
-    readQueuedParticipantAnswers(roomId, storage).filter((answer) =>
-      isAnswerForQuestionRun(answer, questionId, runId),
+    readQueuedParticipantAnswers(roomId, storage).filter(
+      (answer) =>
+        isAnswerForQuestionRun(answer, questionId, runId) &&
+        (!userId || answer.user_id === userId),
     ),
     storage,
   );
@@ -171,6 +211,7 @@ export const flushQueuedParticipantAnswers = async (
   roomId: RoomId,
   questionId: string | number | null | undefined,
   runId: string | number | null | undefined,
+  userId: string,
   submitAnswer: (
     answer: LiveAnswerInput,
   ) => Promise<true | false | "rejected">,
@@ -183,7 +224,10 @@ export const flushQueuedParticipantAnswers = async (
   let transportFailed = false;
 
   for (const answer of current) {
-    if (!isAnswerForQuestionRun(answer, questionId, runId)) {
+    if (
+      answer.user_id !== userId ||
+      !isAnswerForQuestionRun(answer, questionId, runId)
+    ) {
       continue;
     }
 
