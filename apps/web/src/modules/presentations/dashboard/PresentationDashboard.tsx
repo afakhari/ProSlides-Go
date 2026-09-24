@@ -18,7 +18,6 @@ import {
   presentationListQuery,
 } from "../api/presentationQueries.ts";
 import {
-  Search,
   MoreVertical,
   Pencil,
   Play,
@@ -1292,7 +1291,7 @@ export default function PresentationDashboardRoute() {
                 <button
                   type="button"
                   onClick={handleBottomBarSelectAll}
-                  className="text-sm hover:text-gray-300 transition flex items-center gap-2"
+                  className="flex items-center gap-2 text-sm transition hover:text-content-subtle"
                 >
                   <span className="text-lg" aria-hidden="true">⚡</span>
                   انتخاب همه نتایج فعلی
@@ -1310,7 +1309,7 @@ export default function PresentationDashboardRoute() {
             <button
               type="button"
               onClick={() => setSelectedQuizzes([])}
-              className="ms-4 hover:bg-gray-600 rounded p-1 transition"
+              className="ms-4 rounded p-1 transition hover:bg-content-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               aria-label="لغو انتخاب ارائه‌ها"
             >
               <X className="w-5 h-5" aria-hidden="true" />
