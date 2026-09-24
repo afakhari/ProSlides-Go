@@ -24,7 +24,7 @@ const lazyPresentationEntry = (
   role?: "manager" | "player",
 ) => async () => {
   const { default: PresentationEntry } = await import(
-    "../../routes/PresentationEntry.jsx"
+    "../../modules/live/routes/PresentationEntry.tsx"
   );
 
   return {
