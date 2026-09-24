@@ -54,12 +54,13 @@ Current strengths:
   runtime through `useSyncExternalStore`. The live route entry and role
   composition are owned by typed `modules/live/routes` boundaries. Manager
   presentation UI, presenter controls, local QR generation, lobby, question,
-  leaderboard, content and final-result surfaces are now owned by typed
-  `modules/live/manager/ui` code rather than legacy top-level pages/components.
-  Player resume/persistence and reconnect/join recovery remain isolated in a
-  typed participant controller, while manager question/content/leaderboard
-  reconciliation and presenter navigation remain isolated in a typed manager
-  controller. Presentation loading is cancellable and uses the shared ordinary
+  leaderboard, content and final-result surfaces are owned by typed
+  `modules/live/manager/ui` code. Participant join, room-scoped profile
+  persistence, reconnect recovery, answer queue/receipt recovery, question UI,
+  leaderboard/content and final-result states are likewise owned by typed
+  `modules/live/participant` boundaries rather than legacy top-level pages.
+  Manager question/content/leaderboard reconciliation and presenter navigation
+  remain isolated in a typed manager controller. Presentation loading is cancellable and uses the shared ordinary
   REST boundary; the dedicated live transport remains focused on session
   commands, snapshots, roster and SSE.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
@@ -68,7 +69,7 @@ Current strengths:
 Remaining work:
 
 - complete TypeScript migration of active JSX/JS boundaries, beginning with
-  the remaining participant live UI leaves and player compatibility adapter;
+  marketing, dashboard and remaining compatibility utilities;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser
