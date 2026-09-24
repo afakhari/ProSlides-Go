@@ -23,17 +23,20 @@ const storageOrNull = (): StorageLike | null => {
   }
 };
 
-const keyFor = (
-  roomId: RoomId,
-  questionId: string | number | null | undefined,
-  runId: string | number | null | undefined,
-) =>
-  `${PREFIX}${String(roomId ?? "unknown")}:${String(
-    questionId ?? "unknown",
-  )}:${String(runId ?? "na")}`;
+const keyForRoom = (roomId: RoomId) =>
+  `${PREFIX}${String(roomId ?? "unknown")}`;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const sameRun = (
+  receipt: ParticipantAnswerReceipt,
+  questionId: string | number | null | undefined,
+  runId: string | number | null | undefined,
+) =>
+  questionId != null &&
+  String(receipt.question_id) === String(questionId) &&
+  (runId == null || String(receipt.run_id ?? "na") === String(runId));
 
 export const readParticipantAnswerReceipt = (
   roomId: RoomId,
@@ -42,7 +45,7 @@ export const readParticipantAnswerReceipt = (
   storage: StorageLike | null = storageOrNull(),
 ): ParticipantAnswerReceipt | null => {
   try {
-    const raw = storage?.getItem(keyFor(roomId, questionId, runId));
+    const raw = storage?.getItem(keyForRoom(roomId));
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (
@@ -51,20 +54,20 @@ export const readParticipantAnswerReceipt = (
         parsed.status !== "sent" &&
         parsed.status !== "rejected") ||
       typeof parsed.request_id !== "string" ||
-      !Array.isArray(parsed.selected_option_indexes)
+      !Array.isArray(parsed.selected_option_indexes) ||
+      (typeof parsed.question_id !== "string" &&
+        typeof parsed.question_id !== "number")
     ) {
       return null;
     }
+
     const selected = parsed.selected_option_indexes.map(Number);
     if (selected.some((index) => !Number.isInteger(index) || index < 0)) {
       return null;
     }
-    return {
-      question_id:
-        typeof parsed.question_id === "string" ||
-        typeof parsed.question_id === "number"
-          ? parsed.question_id
-          : String(questionId ?? ""),
+
+    const receipt: ParticipantAnswerReceipt = {
+      question_id: parsed.question_id,
       run_id:
         typeof parsed.run_id === "string" || typeof parsed.run_id === "number"
           ? parsed.run_id
@@ -74,6 +77,8 @@ export const readParticipantAnswerReceipt = (
       status: parsed.status,
       updated_at: Number(parsed.updated_at || 0),
     };
+
+    return sameRun(receipt, questionId, runId) ? receipt : null;
   } catch {
     return null;
   }
@@ -85,10 +90,7 @@ export const writeParticipantAnswerReceipt = (
   storage: StorageLike | null = storageOrNull(),
 ): void => {
   try {
-    storage?.setItem(
-      keyFor(roomId, receipt.question_id, receipt.run_id),
-      JSON.stringify(receipt),
-    );
+    storage?.setItem(keyForRoom(roomId), JSON.stringify(receipt));
   } catch {
     // Receipt persistence improves reload behavior but is not authoritative.
   }
@@ -96,12 +98,10 @@ export const writeParticipantAnswerReceipt = (
 
 export const removeParticipantAnswerReceipt = (
   roomId: RoomId,
-  questionId: string | number | null | undefined,
-  runId: string | number | null | undefined,
   storage: StorageLike | null = storageOrNull(),
 ): void => {
   try {
-    storage?.removeItem(keyFor(roomId, questionId, runId));
+    storage?.removeItem(keyForRoom(roomId));
   } catch {
     // Best effort.
   }
