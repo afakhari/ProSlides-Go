@@ -410,9 +410,10 @@ test("manager and participant complete a live question lifecycle with reconnect"
     });
     await expect(participant.getByText("امتیاز شما")).toBeVisible();
 
-    const endButton = manager.getByRole("button", { name: "پایان پرزنتیشن" });
-    await endButton.click();
-    await endButton.click();
+    await manager.getByRole("button", { name: "پایان ارائه", exact: true }).click();
+    const endDialog = manager.getByRole("alertdialog");
+    await expect(endDialog).toBeVisible();
+    await endDialog.getByRole("button", { name: "پایان ارائه", exact: true }).click();
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
     ).toBeVisible({ timeout: 15000 });
