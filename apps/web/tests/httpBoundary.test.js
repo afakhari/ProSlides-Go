@@ -11,9 +11,9 @@ test("ordinary REST URL construction stays centralized in the shared HTTP bounda
   assert.equal(buildApiUrl(), "/api/v1");
   assert.equal(buildApiUrl("/presentations"), "/api/v1/presentations");
   assert.equal(buildApiUrl("auth/me"), "/api/v1/auth/me");
-  assert.equal(
-    buildApiUrl("https://api.example.test/v2/resource"),
-    "https://api.example.test/v2/resource",
+  assert.throws(
+    () => buildApiUrl("https://api.example.test/v2/resource"),
+    /must be relative/,
   );
 });
 
