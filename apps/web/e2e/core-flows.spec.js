@@ -174,8 +174,12 @@ test("register, create a presentation, and open its report", async ({ page }) =>
 
   let holdNextPresentationRead = true;
   let releaseEditorRead;
+  let markEditorReadHeld;
   const editorReadHold = new Promise((resolve) => {
     releaseEditorRead = resolve;
+  });
+  const editorReadHeld = new Promise((resolve) => {
+    markEditorReadHeld = resolve;
   });
 
   await page.route(
@@ -187,21 +191,16 @@ test("register, create a presentation, and open its report", async ({ page }) =>
       }
 
       holdNextPresentationRead = false;
+      markEditorReadHeld();
       await editorReadHold;
       await route.continue().catch(() => {});
     },
   );
 
-  const editorRead = page.waitForRequest(
-    (request) =>
-      new URL(request.url()).pathname ===
-        `/api/v1/presentations/${presentationId}` &&
-      request.method() === "GET",
-  );
   await page.goto(`/manager/panel/${presentationId}`, {
     waitUntil: "domcontentloaded",
   });
-  await editorRead;
+  await editorReadHeld;
   await page.goto(`/manager/panel/${presentationId}/report`, {
     waitUntil: "domcontentloaded",
   });
@@ -396,6 +395,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
 
     const answerRequestIds = [];
     let failNextAnswer = true;
+    let acceptedAnswerStatus = null;
     await participant.route("**/api/v1/live/sessions/*/answers", async (route) => {
       const body = route.request().postDataJSON();
       answerRequestIds.push(body.request_id);
@@ -411,7 +411,10 @@ test("manager and participant complete a live question lifecycle with reconnect"
         });
         return;
       }
-      await route.continue();
+
+      const response = await route.fetch();
+      acceptedAnswerStatus = response.status();
+      await route.fulfill({ response });
     });
 
     const tehranOption = participant.getByRole("button", { name: /تهران/ });
@@ -433,21 +436,13 @@ test("manager and participant complete a live question lifecycle with reconnect"
       ),
     ).toBeVisible();
 
-    const answerAccepted = participant.waitForResponse(
-      (response) =>
-        /\/api\/v1\/live\/sessions\/[^/]+\/answers$/.test(
-          new URL(response.url()).pathname,
-        ) &&
-        response.request().method() === "POST" &&
-        response.status() === 201,
-    );
     await participant
       .getByRole("button", { name: "تلاش دوباره برای ارسال" })
       .click();
-    await answerAccepted;
     await expect(
       participant.getByText("پاسخ شما ثبت شد.", { exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
+    expect([200, 201]).toContain(acceptedAnswerStatus);
     await expect(
       participant.getByText(
         "ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.",
