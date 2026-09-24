@@ -80,7 +80,7 @@ export function useParticipantAnswerController({
   result: propResult = null,
 }: UseParticipantAnswerControllerOptions): ParticipantAnswerController {
   const { questionResults, partialQuestionResults } = useServerData();
-  const { submitAnswer, isConnected } = useLiveSession();
+  const { submitAnswer, isConnected, snapshot } = useLiveSession();
 
   const questionId = question.question_id;
   const runId = normalizeRunId(question.run_id);
@@ -120,8 +120,15 @@ export function useParticipantAnswerController({
     }
     retryAttemptRef.current = 0;
     clearLegacyParticipantAnswerQueue();
-    const userId = getPersistedUserIdForRoom(roomId);
-    pruneQueuedParticipantAnswers(roomId, questionId, runId, userId);
+    const queueOwnerId =
+      getPersistedUserIdForRoom(roomId) ??
+      (snapshot?.role === "participant" ? snapshot.participant.id : null);
+    pruneQueuedParticipantAnswers(
+      roomId,
+      questionId,
+      runId,
+      queueOwnerId,
+    );
 
     const currentQuestion = questionRef.current;
     const timer = resolveQuestionTimer({
@@ -154,7 +161,7 @@ export function useParticipantAnswerController({
 
     const queued = readQueuedParticipantAnswers(roomId).find(
       (answer) =>
-        answer.user_id === userId &&
+        answer.user_id === queueOwnerId &&
         String(answer.question_id) === String(questionId) &&
         (runId == null ||
           String(answer.run_id ?? "na") === String(runId)),
@@ -173,7 +180,7 @@ export function useParticipantAnswerController({
     setSubmitted(false);
     setSubmitStatus("idle");
     setSubmitMessage("");
-  }, [identity, questionId, roomId, runId]);
+  }, [identity, questionId, roomId, runId, snapshot]);
 
   useEffect(() => {
     let frame = 0;
@@ -200,14 +207,16 @@ export function useParticipantAnswerController({
     if (!isConnected) return;
 
     let cancelled = false;
-    const userId = getPersistedUserIdForRoom(roomId);
-    if (!userId) return;
+    const queueOwnerId =
+      getPersistedUserIdForRoom(roomId) ??
+      (snapshot?.role === "participant" ? snapshot.participant.id : null);
+    if (!queueOwnerId) return;
 
     void flushQueuedParticipantAnswers(
       roomId,
       questionId,
       runId,
-      userId,
+      queueOwnerId,
       submitAnswer,
     ).then(({ sentKeys, rejectedKeys, remaining }) => {
       if (cancelled) return;
@@ -265,6 +274,7 @@ export function useParticipantAnswerController({
     questionId,
     roomId,
     runId,
+    snapshot,
     submitAnswer,
   ]);
 
@@ -301,8 +311,10 @@ export function useParticipantAnswerController({
       return;
     }
 
-    const userId = getPersistedUserIdForRoom(roomId);
-    if (!userId) {
+    const queueOwnerId =
+      getPersistedUserIdForRoom(roomId) ??
+      (snapshot?.role === "participant" ? snapshot.participant.id : null);
+    if (!queueOwnerId) {
       setSubmitStatus("missing_identity");
       setSubmitMessage(
         "هویت شرکت‌کننده معتبر نیست. دوباره وارد جلسه شوید.",
@@ -314,7 +326,7 @@ export function useParticipantAnswerController({
       request_id: createRequestId(),
       question_id: questionId,
       selected_option_indexes: [...selectedIndexes].sort((a, b) => a - b),
-      user_id: userId,
+      user_id: queueOwnerId,
       run_id: runId,
     };
 
@@ -370,7 +382,7 @@ export function useParticipantAnswerController({
         status: "rejected",
         updated_at: Date.now(),
       });
-      setSubmitted(false);
+      setSubmitted(true);
       setSubmitStatus("rejected");
       setSubmitMessage(
         "زمان پاسخ‌گویی پایان یافته یا پاسخ توسط جلسه پذیرفته نشد.",
@@ -396,6 +408,7 @@ export function useParticipantAnswerController({
     roomId,
     runId,
     selectedIndexes,
+    snapshot,
     submitAnswer,
     submitted,
   ]);
