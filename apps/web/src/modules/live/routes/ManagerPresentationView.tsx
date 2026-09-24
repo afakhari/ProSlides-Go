@@ -36,7 +36,6 @@ export function ManagerPresentationView({
     totalSlides,
     isSynced,
     handleNext,
-    handlePrevious,
     handleEndGame,
   } = controller;
 
@@ -44,10 +43,9 @@ export function ManagerPresentationView({
     return <Waiting message="در حال همگام‌سازی جلسه…" />;
   }
 
-  const sharedProps = {
+  const stageProps = {
     roomId,
     onNext: handleNext,
-    onPrevious: handlePrevious,
     currentSlide,
     totalSlides,
     quiz,
@@ -56,25 +54,28 @@ export function ManagerPresentationView({
 
   switch (view) {
     case "ManagerJoinPage":
-      return <ManagerJoinPage {...sharedProps} />;
+      return (
+        <ManagerJoinPage
+          roomId={roomId}
+          onNext={handleNext}
+          quiz={quiz}
+        />
+      );
     case "ManagerPickAnswerQuestion":
       return (
         <ManagerPickAnswerQuestion
-          {...sharedProps}
+          {...stageProps}
           isRemoteReady={isRemoteReady}
         />
       );
     case "ManagerLeaderBoard":
       return (
-        <ManagerLeaderBoard
-          {...sharedProps}
-          isRemoteReady={isRemoteReady}
-        />
+<ManagerLeaderBoard {...stageProps} />
       );
     case "ManagerContentSlide":
       return (
         <ManagerContentSlide
-          {...sharedProps}
+          {...stageProps}
           content={currentContent}
         />
       );
