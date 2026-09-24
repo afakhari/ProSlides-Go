@@ -3,7 +3,7 @@ import EmojiPicker from "emoji-picker-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { ParticipantShell } from "../../../modules/live/participant/ParticipantShell";
-import { createClientUserId, DEFAULT_AVATAR, getPersistedUserIdForRoom, readStoredProfile, saveStoredProfile } from "./playerProfileStorage";
+import { createClientUserId, DEFAULT_AVATAR, getPersistedUserIdForRoom, readStoredProfile, saveStoredProfile } from "../../../modules/live/model/playerProfileStorage";
 
 export default function PlayerJoinPage({ roomId, quiz }) {
   const restored = readStoredProfile(roomId);
