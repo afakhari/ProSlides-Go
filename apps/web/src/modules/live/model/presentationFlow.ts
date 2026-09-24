@@ -2,7 +2,6 @@ import type { LivePresentationModel } from "./presentation.ts";
 import type {
   LegacyContentSlide,
   LegacyLiveSlide,
-  LegacyQuestionResult,
   LegacyQuestionSlide,
 } from "./serverData.ts";
 
@@ -170,22 +169,6 @@ export const isContentSlide = (
   isRecord(slide) &&
   !isQuestionSlide(slide) &&
   hasContentPayload(slide);
-
-export const matchingQuestionResult = (
-  currentQuestion: LegacyQuestionSlide,
-  ...candidates: Array<LegacyQuestionResult | null | undefined>
-): LegacyQuestionResult | null => {
-  const currentId = currentQuestion.question_id;
-  if (currentId == null) return null;
-
-  return (
-    candidates.find(
-      (candidate) =>
-        candidate?.question_id != null &&
-        String(candidate.question_id) === String(currentId),
-    ) ?? null
-  );
-};
 
 export type PresentationSlide = LegacyLiveSlide | null;
 

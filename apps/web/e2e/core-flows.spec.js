@@ -174,8 +174,12 @@ test("register, create a presentation, and open its report", async ({ page }) =>
 
   let holdNextPresentationRead = true;
   let releaseEditorRead;
+  let markEditorReadHeld;
   const editorReadHold = new Promise((resolve) => {
     releaseEditorRead = resolve;
+  });
+  const editorReadHeld = new Promise((resolve) => {
+    markEditorReadHeld = resolve;
   });
 
   await page.route(
@@ -187,21 +191,16 @@ test("register, create a presentation, and open its report", async ({ page }) =>
       }
 
       holdNextPresentationRead = false;
+      markEditorReadHeld();
       await editorReadHold;
       await route.continue().catch(() => {});
     },
   );
 
-  const editorRead = page.waitForRequest(
-    (request) =>
-      new URL(request.url()).pathname ===
-        `/api/v1/presentations/${presentationId}` &&
-      request.method() === "GET",
-  );
   await page.goto(`/manager/panel/${presentationId}`, {
     waitUntil: "domcontentloaded",
   });
-  await editorRead;
+  await editorReadHeld;
   await page.goto(`/manager/panel/${presentationId}/report`, {
     waitUntil: "domcontentloaded",
   });
@@ -279,6 +278,8 @@ test("manager and participant complete a live question lifecycle with reconnect"
   const participantContext = await browser.newContext();
   const manager = await managerContext.newPage();
   const participant = await participantContext.newPage();
+  manager.setDefaultTimeout(15000);
+  participant.setDefaultTimeout(15000);
   const managerFailures = watchRuntime(manager);
   const participantFailures = watchRuntime(participant);
 
@@ -394,9 +395,52 @@ test("manager and participant complete a live question lifecycle with reconnect"
       manager.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
     ).toBeVisible({ timeout: 15000 });
 
-    await participant.getByRole("button", { name: /تهران/ }).click();
+    const answerRequestIds = [];
+    let failNextAnswer = true;
+    let acceptedAnswerStatus = null;
+    await participant.route("**/api/v1/live/sessions/*/answers", async (route) => {
+      const body = route.request().postDataJSON();
+      answerRequestIds.push(body.request_id);
+      if (failNextAnswer) {
+        failNextAnswer = false;
+        await route.fulfill({
+          status: 418,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "temporary_answer_failure",
+            message: "temporary answer failure",
+          }),
+        });
+        return;
+      }
+
+      const response = await route.fetch();
+      acceptedAnswerStatus = response.status();
+      await route.fulfill({ response });
+    });
+
+    const tehranOption = participant.getByRole("button", { name: /تهران/ });
+    await tehranOption.click();
+    await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+
     await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
-    await expect(participant.getByText("پاسخ شما ثبت شد.", { exact: true })).toBeVisible();
+    await expect(
+      participant.getByText(
+        "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+    await participant
+      .getByRole("button", { name: "تلاش دوباره برای ارسال" })
+      .click();
+    await expect(
+      participant.getByText("پاسخ شما ثبت شد.", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    expect([200, 201]).toContain(acceptedAnswerStatus);
+    expect(answerRequestIds).toHaveLength(2);
+    expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
+    await participant.unroute("**/api/v1/live/sessions/*/answers");
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
@@ -417,6 +461,10 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
     ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByRole("heading", { name: "نتیجه نهایی شما" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(participant.getByText("جلسه پایان یافت")).toBeVisible();
 
     expect(managerFailures).toEqual([]);
     expect(participantFailures).toEqual([]);

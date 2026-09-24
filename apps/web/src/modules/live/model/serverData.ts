@@ -74,7 +74,6 @@ export interface ProjectedServerData {
 }
 
 export interface ServerDataFields extends ProjectedServerData {
-  partialQuestionResults: LegacyQuestionResult | null;
   managerLastLeaderboard: LegacyLiveUser[] | null;
   modalLeaderboardResults: LegacyLiveUser[] | null;
 }

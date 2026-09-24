@@ -18,7 +18,6 @@ const EMPTY_PROJECTION: ServerDataFields = {
   participantCount: 0,
   users: [],
   questionResults: null,
-  partialQuestionResults: null,
   leaderboardResults: null,
   managerLastLeaderboard: null,
   modalLeaderboardResults: null,

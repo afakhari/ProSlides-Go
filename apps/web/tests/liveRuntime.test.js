@@ -486,3 +486,159 @@ test("disconnect during manager connect cannot resurrect stale session state", a
   runtime.destroy();
 });
 
+
+
+test("successful participant answer retry clears the transient submission error", async () => {
+  let attempts = 0;
+  const requestIds = [];
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000030",
+      submitLiveAnswer: async (_id, input) => {
+        attempts += 1;
+        requestIds.push(input.request_id);
+        if (attempts === 1) throw new Error("temporary answer failure");
+        return { score_delta: 100 };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  const answer = {
+    request_id: "00000000-0000-4000-8000-000000000031",
+    question_id: "11111111-1111-4111-8111-111111111111",
+    selected_option_indexes: [0],
+  };
+
+  assert.equal(await runtime.submitAnswer(answer), false);
+  assert.equal(runtime.getState().connectionError, null);
+
+  assert.equal(await runtime.submitAnswer(answer), true);
+  assert.equal(runtime.getState().connectionError, null);
+  assert.deepEqual(requestIds, [answer.request_id, answer.request_id]);
+
+  runtime.destroy();
+});
+
+
+test("participant answer validation rejects malformed option indexes before transport", async () => {
+  let submissions = 0;
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      submitLiveAnswer: async () => {
+        submissions += 1;
+        return { score_delta: 0 };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "q1",
+      selected_option_indexes: [1, 1],
+    }),
+    "rejected",
+  );
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "q1",
+      selected_option_indexes: [-1],
+    }),
+    "rejected",
+  );
+  assert.equal(submissions, 0);
+  runtime.destroy();
+});
+
+
+test("participant answer HTTP remains available while SSE is reconnecting", async () => {
+  let submissions = 0;
+  const participantSnapshot = {
+    role: "participant",
+    session: {
+      id: "session",
+      presentation_id: "presentation",
+      state: "question_open",
+      state_version: 2,
+      active_slide_id: "q1",
+      ends_at: new Date(Date.now() + 30_000).toISOString(),
+      remaining_seconds: 30,
+    },
+    participant: {
+      id: "participant",
+      display_name: "Player",
+      avatar: "🙂",
+      score: 0,
+    },
+    participant_count: 1,
+    last_event_id: 2,
+  };
+
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    sleep: async (_milliseconds, signal) =>
+      new Promise((resolve) => {
+        signal.addEventListener("abort", resolve, { once: true });
+      }),
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000040",
+      joinLiveSession: async () => ({
+        id: "participant",
+        display_name: "Player",
+        avatar: "🙂",
+      }),
+      getLiveSnapshot: async () => participantSnapshot,
+      streamLiveEvents: async () => {
+        throw new Error("sse temporarily unavailable");
+      },
+      submitLiveAnswer: async (_id, input) => {
+        submissions += 1;
+        assert.deepEqual(input.selected_option_indexes, [0]);
+        return {
+          answer_id: "answer",
+          score_delta: 100,
+          duplicate: false,
+        };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  assert.equal(
+    await runtime.joinParticipant({
+      name: "Player",
+      avatar: "🙂",
+      clientUserId: "00000000-0000-4000-8000-000000000041",
+    }),
+    true,
+  );
+
+  for (let index = 0; index < 20 && runtime.getState().isConnected; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  assert.equal(runtime.getState().isConnected, false);
+  assert.equal(
+    runtime.getState().connectionError,
+    "sse temporarily unavailable",
+  );
+
+  assert.equal(
+    await runtime.submitAnswer({
+      request_id: "00000000-0000-4000-8000-000000000042",
+      question_id: "q1",
+      selected_option_indexes: [0],
+    }),
+    true,
+  );
+  assert.equal(submissions, 1);
+  assert.equal(runtime.getState().isConnected, false);
+  assert.equal(
+    runtime.getState().connectionError,
+    "sse temporarily unavailable",
+  );
+
+  runtime.destroy();
+});

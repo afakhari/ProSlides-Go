@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  clearLegacyParticipantArtifacts,
   getPersistedUserIdForRoom,
   readStoredProfile,
   type StoredPlayerProfile,
@@ -58,6 +59,10 @@ export function usePlayerSessionRecovery({
     () => (enabled ? readStoredProfile(roomId) : null),
     [enabled, roomId],
   );
+
+  useEffect(() => {
+    if (enabled) clearLegacyParticipantArtifacts(roomId);
+  }, [enabled, roomId]);
 
   useEffect(() => {
     if (!enabled) {

@@ -1,16 +1,16 @@
-import { lazy, type ComponentType } from "react";
-
-import Waiting from "../../../pages/loading/LoadingPage";
-import { matchingQuestionResult, type PlayerLastActive } from "../model/presentationFlow.ts";
+import type { PlayerLastActive } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import type {
   LegacyContentSlide,
-  LegacyLiveUser,
-  LegacyQuestionResult,
   LegacyQuestionSlide,
 } from "../model/serverData.ts";
-import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
+import { ParticipantContentSlide } from "../participant/ui/ParticipantContentSlide.tsx";
+import { ParticipantFinalResult } from "../participant/ui/ParticipantFinalResult.tsx";
+import { ParticipantJoinPage } from "../participant/ui/ParticipantJoinPage.tsx";
+import { ParticipantLeaderboard } from "../participant/ui/ParticipantLeaderboard.tsx";
+import { ParticipantQuestion } from "../participant/ui/ParticipantQuestion.tsx";
+import { ParticipantWaiting } from "../participant/ui/ParticipantWaiting.tsx";
 import type { LiveSnapshot } from "../api/types.ts";
 
 type PlayerViewProps = {
@@ -18,55 +18,25 @@ type PlayerViewProps = {
   quiz: LivePresentationModel;
   currentQuestion: LegacyQuestionSlide | null;
   currentContent: LegacyContentSlide | null;
-  leaderboardResults: LegacyLiveUser[] | null;
-  questionResults: LegacyQuestionResult | null;
-  partialQuestionResults: LegacyQuestionResult | null;
   snapshot: LiveSnapshot | null;
   hasLeaderboard: boolean;
   hasSeenActiveSlide: boolean;
   lastActive: PlayerLastActive | null;
-  profile: StoredPlayerProfile | null;
 };
-
-type LegacyPlayerPageProps = Record<string, unknown>;
-type LegacyPlayerPageModule = {
-  default: ComponentType<LegacyPlayerPageProps>;
-};
-
-const lazyLegacyPlayerPage = (loader: () => Promise<unknown>) =>
-  lazy(async () => (await loader()) as LegacyPlayerPageModule);
-
-const PlayerJoinPage = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/JoinPage"),
-);
-const PlayerPickAnswerQuestion = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/PickAnswerQuestion"),
-);
-const PlayerLeaderBoard = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/LeaderBoard"),
-);
-const PlayerContentSlide = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/ContentSlide"),
-);
 
 export function PlayerPresentationView({
   roomId,
   quiz,
   currentQuestion,
   currentContent,
-  leaderboardResults,
-  questionResults,
-  partialQuestionResults,
   snapshot,
   hasLeaderboard,
   hasSeenActiveSlide,
   lastActive,
-  profile,
 }: PlayerViewProps) {
   if (currentContent) {
     return (
-      <PlayerContentSlide
-        roomId={roomId}
+      <ParticipantContentSlide
         quiz={quiz}
         content={currentContent}
       />
@@ -74,29 +44,24 @@ export function PlayerPresentationView({
   }
 
   if (currentQuestion) {
-    const result = matchingQuestionResult(
-      currentQuestion,
-      questionResults,
-      partialQuestionResults,
-    );
     return (
-      <PlayerPickAnswerQuestion
+      <ParticipantQuestion
         roomId={roomId}
         question={currentQuestion}
-        result={result}
         quiz={quiz}
       />
     );
   }
 
+  if (
+    snapshot?.role === "participant" &&
+    snapshot.session.state === "ended"
+  ) {
+    return <ParticipantFinalResult quiz={quiz} />;
+  }
+
   if (hasLeaderboard) {
-    return (
-      <PlayerLeaderBoard
-        roomId={roomId}
-        players={leaderboardResults ?? []}
-        quiz={quiz}
-      />
-    );
+    return <ParticipantLeaderboard quiz={quiz} />;
   }
 
   if (
@@ -123,19 +88,18 @@ export function PlayerPresentationView({
       fallbackTimer.remainingSeconds > 0
     ) {
       return (
-        <PlayerPickAnswerQuestion
+        <ParticipantQuestion
           roomId={roomId}
           question={fallbackQuestion}
-          result={null}
           quiz={quiz}
         />
       );
     }
   }
 
-  if (hasSeenActiveSlide && profile) {
-    return <Waiting message="در حال همگام‌سازی جلسه…" />;
+  if (hasSeenActiveSlide) {
+    return <ParticipantWaiting quiz={quiz} />;
   }
 
-  return <PlayerJoinPage roomId={roomId} quiz={quiz} />;
+  return <ParticipantJoinPage roomId={roomId} quiz={quiz} />;
 }
