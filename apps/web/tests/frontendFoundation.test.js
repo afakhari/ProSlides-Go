@@ -171,7 +171,7 @@ test("F4 keeps the app router compositional and mock fixtures out of production"
   assert.match(router, /lazy: lazyPresentationEntry/);
   assert.doesNotMatch(router, /AppPresentation|AccessCodeResolver|LiveMessageAdapter/);
   assert.doesNotMatch(productionSource, /from\s+["'][^"']*data\/mockData["']/);
-  assert.match(source("src/routes/PresentationEntry.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
+  assert.match(source("src/modules/live/routes/PresentationFlow.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
 });
 
 test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live commands", () => {
@@ -190,7 +190,7 @@ test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live comma
 });
 
 test("participant live UI is Persian, theme-driven, and disclosure-safe", () => {
-  const entry = source("src/routes/PresentationEntry.jsx");
+  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
   const shell = source("src/modules/live/participant/ParticipantShell.tsx");
   const theme = source("src/modules/live/participant/theme.ts");
   const sharedTheme = source("src/shared/styles/presentationTheme.ts");
@@ -304,14 +304,14 @@ test("dashboard presentation server state is owned by TanStack Query", () => {
 
 
 test("live runtime ownership is module-scoped and React is only an adapter", () => {
-  const entry = source("src/routes/PresentationEntry.jsx");
+  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
   const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
   const serverContext = source("src/modules/live/react/ServerDataProvider.tsx");
   const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
   const liveApi = source("src/modules/live/api/liveApi.ts");
 
-  assert.match(entry, /modules\/live\/react\/LiveSessionProvider/);
-  assert.match(entry, /modules\/live\/api\/liveApi/);
+  assert.match(entry, /\.\.\/react\/LiveSessionProvider\.tsx/);
+  assert.match(entry, /\.\.\/api\/liveApi\.ts/);
   assert.match(liveContext, /createLiveRuntime/);
   assert.match(liveContext, /useSyncExternalStore/);
   assert.doesNotMatch(liveContext, /streamLiveEvents|applyLiveAction|getLiveSnapshot|planLiveNavigation/);
@@ -360,7 +360,8 @@ test("main identity fields are owned by React Hook Form with focused auth compos
 test("live projection is derived directly from authoritative snapshot and roster", () => {
   const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
   const projectionContext = source("src/modules/live/react/ServerDataProvider.tsx");
-  const entry = source("src/routes/PresentationEntry.jsx");
+  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
+  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
 
   assert.match(projectionContext, /useLiveSession/);
   assert.match(projectionContext, /projectLiveSnapshot\(snapshot, roster\)/);
@@ -446,7 +447,7 @@ test("audio editor uses one typed presentation draft and accessible native previ
   const draft = source("src/modules/presentations/editor/model/audioDraft.ts");
   const hook = source("src/modules/presentations/editor/model/useAudioDraft.ts");
   const provider = source("src/contexts/AudioContext.tsx");
-  const entry = source("src/routes/PresentationEntry.jsx");
+  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
 
   assert.match(route, /AudioInspector\.tsx/);
   assert.match(route, /<AudioPanel/);
@@ -466,7 +467,7 @@ test("audio editor uses one typed presentation draft and accessible native previ
   assert.match(hook, /audioDraftEquals/);
   assert.match(provider, /createContext<AudioContextValue \| null>/);
   assert.doesNotMatch(provider, /createOscillator|webkitAudioContext/);
-  assert.match(entry, /setQuizMusic\(remoteQuiz\?\.music_url \|\| ""\)/);
+  assert.match(source("src/modules/live/routes/PresentationFlow.jsx"), /setQuizMusic\(remoteQuiz\?\.music_url \|\| ""\)/);
 });
 
 test("design editor shares one typed presentation draft across all preview surfaces", () => {
