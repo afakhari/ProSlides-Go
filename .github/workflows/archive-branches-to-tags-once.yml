@@ -1,0 +1,100 @@
+name: One-time archive branch migration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/archive-branches-to-tags-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.repository == 'afakhari/ProSlides-Go'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Preserve archive branches as tags and delete branch refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          archives=(
+            "archive/amin/add-leaderboard-data"
+            "archive/amin/auth-permission"
+            "archive/amin/feat/go-platform-foundation"
+            "archive/amin/feature-django-connection"
+            "archive/amin/feature-end-management"
+            "archive/amin/feature-format-data"
+            "archive/amin/feature-post-leaderboard"
+            "archive/amin/fixbug-connection-lost"
+            "archive/amin/fixbug-last-slide"
+            "archive/amin/landing-page"
+            "archive/amin/leaderboard-highlight"
+            "archive/amin/master"
+            "archive/amin/quiz-manager-front"
+            "archive/amin/send-leaderboard-player"
+            "archive/amin/404page"
+            "archive/origin/codex/add-e2e-websocket-tests-for-gaming-scenarios"
+            "archive/origin/codex/fix-cargo-run-error-after-update"
+            "archive/origin/codex/fix-cargo-run-error-after-update-houtas"
+            "archive/origin/codex/review-recent-commits-for-presentation-issue"
+            "archive/origin/codex-tqdnwf"
+            "archive/origin/master"
+            "archive/origin/test-auth-permissions"
+            "archive/stash/feature-auth-permissions"
+            "archive/stash/master"
+          )
+
+          for branch in "${archives[@]}"; do
+            if [[ "$branch" != archive/* ]]; then
+              echo "Refusing non-archive migration target: $branch" >&2
+              exit 1
+            fi
+
+            remote_line="$(git ls-remote --heads origin "refs/heads/$branch")"
+            if [[ -z "$remote_line" ]]; then
+              echo "Archive branch already absent: $branch"
+              continue
+            fi
+            branch_sha="$(awk '{print $1}' <<<"$remote_line")"
+
+            tag_line="$(git ls-remote --tags origin "refs/tags/$branch" | head -n 1 || true)"
+            if [[ -n "$tag_line" ]]; then
+              peeled_line="$(git ls-remote --tags origin "refs/tags/$branch^{}" | head -n 1 || true)"
+              tag_sha="$(awk '{print $1}' <<<"${peeled_line:-$tag_line}")"
+              if [[ "$tag_sha" != "$branch_sha" ]]; then
+                echo "Existing tag points elsewhere: $branch" >&2
+                exit 1
+              fi
+              echo "Matching archive tag already exists: $branch"
+            else
+              echo "Creating archive tag $branch at $branch_sha"
+              git tag "$branch" "$branch_sha"
+              git push origin "refs/tags/$branch"
+            fi
+
+            echo "Deleting archive branch $branch"
+            git push origin --delete "$branch"
+          done
+
+          if git ls-remote --exit-code --heads origin "chore/archive-branches-to-tags" >/dev/null 2>&1; then
+            git push origin --delete "chore/archive-branches-to-tags"
+          fi
+
+      - name: Remove this one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout --detach origin/main
+          git rm .github/workflows/archive-branches-to-tags-once.yml
+          git commit -m "chore: remove one-time archive migration workflow"
+          git push origin HEAD:main
