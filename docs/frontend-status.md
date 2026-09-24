@@ -17,7 +17,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
 | REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
-| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; the React provider/hooks adapter is typed, the live route entry is module-owned and typed, and `useSyncExternalStore` exposes runtime state without duplicating live lifecycle ownership. |
+| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; the React provider/hooks adapter and live route entry are typed, player resume/persistence is isolated in a participant controller, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
 | Accessibility | Stable routes have axe/interaction checks and the migrated editor slices use accessible feedback/dialog primitives. |
 | Verification | Browser acceptance includes auth/dashboard/report, manager/player live reconnect, and the principal editor draft/conflict flows. |
@@ -48,11 +48,11 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 After the HTTP-boundary inversion, the highest-value boundaries are:
 
-1. type and decompose the remaining `PresentationFlow.jsx` orchestration
-   behind the explicit live presentation contract without changing live
-   protocol semantics;
-2. migrate manager/player live UI leaves from legacy `pages` ownership as
-   their contracts become typed;
+1. extract the remaining manager synchronization/navigation controller from
+   `PresentationFlow.jsx` behind typed presentation-state helpers without
+   changing live protocol semantics;
+2. reduce the remaining JSX flow to role composition, then migrate manager/player
+   live UI leaves from legacy `pages` ownership as their contracts become typed;
 3. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
 4. remove emptied legacy roots and add stronger dependency/dead-code tooling.
