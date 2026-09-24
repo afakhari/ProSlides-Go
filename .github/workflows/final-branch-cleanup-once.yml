@@ -1,0 +1,56 @@
+name: One-time final branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/final-branch-cleanup-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.repository == 'afakhari/ProSlides-Go'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Delete final stale branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "fix/archive-tag-migration-refspec"
+            "chore/final-branch-cleanup"
+          )
+
+          for branch in "${branches[@]}"; do
+            if [[ "$branch" == "main" || "$branch" == archive/* ]]; then
+              echo "Refusing unsafe cleanup target: $branch" >&2
+              exit 1
+            fi
+
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              git push origin ":refs/heads/$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+      - name: Remove this one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout --detach origin/main
+          git rm .github/workflows/final-branch-cleanup-once.yml
+          git commit -m "chore: remove final branch cleanup workflow"
+          git push origin HEAD:main
