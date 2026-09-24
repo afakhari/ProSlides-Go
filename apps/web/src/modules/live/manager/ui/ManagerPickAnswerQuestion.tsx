@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getColorForUser } from "../../../../shared/lib/playerColor.ts";
 import { isQuestionSlide } from "../../model/presentationFlow.ts";
@@ -50,17 +50,18 @@ export function ManagerPickAnswerQuestion({
     String(currentQuestion.question_id) ===
       String(liveCurrentQuestion.question_id);
 
-  const timerQuestion = useMemo<LegacyQuestionSlide | null>(() => {
-    if (!currentQuestion) return null;
-    if (!liveMatchesDefinition || !liveCurrentQuestion) return currentQuestion;
-    return {
-      ...currentQuestion,
-      run_id: liveCurrentQuestion.run_id ?? currentQuestion.run_id,
-      remaining_seconds:
-        liveCurrentQuestion.remaining_seconds ??
-        currentQuestion.remaining_seconds,
-    };
-  }, [currentQuestion, liveCurrentQuestion, liveMatchesDefinition]);
+  const timerRunId = liveMatchesDefinition
+    ? liveCurrentQuestion?.run_id ?? currentQuestion?.run_id
+    : currentQuestion?.run_id;
+  const timerRemainingSeconds = liveMatchesDefinition
+    ? liveCurrentQuestion?.remaining_seconds ??
+      currentQuestion?.remaining_seconds
+    : currentQuestion?.remaining_seconds;
+  const timerIdentity =
+    currentQuestion?.question_id == null
+      ? null
+      : `${String(currentQuestion.question_id)}:${String(timerRunId ?? "na")}`;
+  const activeTimerIdentityRef = useRef<string | null>(null);
 
   const [timerState, setTimerState] = useState<TimerState>({
     remaining: 0,
@@ -69,7 +70,8 @@ export function ManagerPickAnswerQuestion({
   });
 
   useEffect(() => {
-    if (!timerQuestion) {
+    if (!currentQuestion || !timerIdentity) {
+      activeTimerIdentityRef.current = null;
       setTimerState({
         remaining: 0,
         anchorStartMs: Date.now(),
@@ -78,17 +80,33 @@ export function ManagerPickAnswerQuestion({
       return;
     }
 
+    // Presence/roster updates may project a fresh question object with a stale
+    // remaining_seconds value. The timer anchor belongs to the question run,
+    // so preserve it until the run identity actually changes.
+    if (activeTimerIdentityRef.current === timerIdentity) return;
+
     const resolved = resolveQuestionTimer({
-      question: timerQuestion,
+      question: {
+        ...currentQuestion,
+        run_id: timerRunId,
+        remaining_seconds: timerRemainingSeconds,
+      },
       roomId,
       role: "manager",
     });
+    activeTimerIdentityRef.current = timerIdentity;
     setTimerState({
       remaining: resolved.remainingSeconds,
       anchorStartMs: resolved.anchorStartMs,
       totalSeconds: resolved.totalSeconds,
     });
-  }, [timerQuestion, roomId, currentSlide]);
+  }, [
+    currentQuestion,
+    roomId,
+    timerIdentity,
+    timerRemainingSeconds,
+    timerRunId,
+  ]);
 
   const resultMatches =
     currentQuestion?.question_id != null &&
@@ -120,7 +138,7 @@ export function ManagerPickAnswerQuestion({
   const totalVotes = votes.reduce((sum, count) => sum + count, 0);
 
   useEffect(() => {
-    if (!timerQuestion || showResults || timerState.totalSeconds <= 0) return;
+    if (!currentQuestion || showResults || timerState.totalSeconds <= 0) return;
 
     const interval = window.setInterval(() => {
       const elapsed = (Date.now() - timerState.anchorStartMs) / 1000;
@@ -132,7 +150,7 @@ export function ManagerPickAnswerQuestion({
 
     return () => window.clearInterval(interval);
   }, [
-    timerQuestion,
+    currentQuestion,
     showResults,
     timerState.anchorStartMs,
     timerState.totalSeconds,
