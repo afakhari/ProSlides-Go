@@ -76,7 +76,7 @@ const EMPTY_PRESENTATION = {
 };
 
 /* ------------------------ Main Flow ------------------------ */
-export function AppPresentation({ roomId, role, initialQuizData }) {
+export function AppPresentation({ roomId, role, initialQuizData = null }) {
   const playerActiveSlideSeenKey = `presentation_player_seen_active_v1:${String(
     roomId || "unknown"
   )}`;
