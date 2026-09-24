@@ -156,6 +156,12 @@ export function useParticipantAnswerController({
           return;
         }
 
+        // Never expose a clickable terminal/retry state while this attempt is
+        // still marked in flight. A fast retry click must not be discarded.
+        if (inFlightAttemptRef.current === attemptKey) {
+          inFlightAttemptRef.current = null;
+        }
+
         if (outcome === true) {
           pendingRef.current = null;
           setSubmitState("sent");
