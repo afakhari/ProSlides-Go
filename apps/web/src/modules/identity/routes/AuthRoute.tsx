@@ -159,10 +159,6 @@ export default function AuthRoute() {
     navigate(resolveAuthReturnPath(location.search));
   }, [location.search, navigate]);
 
-  const storeAuthEmail = useCallback((value: string) => {
-    if (value) localStorage.setItem("auth.email", value);
-  }, []);
-
   const applyServerFieldErrors = useCallback(
     (error: unknown) => {
       const fieldErrors = identityFieldErrors(error);
@@ -206,10 +202,6 @@ export default function AuthRoute() {
           token: credential,
         });
 
-        const resolvedName =
-          payload?.display_name || payload?.full_name || payload?.name;
-        if (resolvedName) localStorage.setItem("auth.name", resolvedName);
-        if (payload?.email) storeAuthEmail(payload.email);
         if (payload?.needs_password_setup || payload?.is_new_user) {
           localStorage.setItem(PASSWORD_PROMPT_FLAG, "1");
         }
@@ -221,7 +213,7 @@ export default function AuthRoute() {
         setActionSubmitting(false);
       }
     },
-    [navigateToDashboard, setRequestFailure, storeAuthEmail],
+    [navigateToDashboard, setRequestFailure],
   );
 
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
@@ -276,10 +268,7 @@ export default function AuthRoute() {
           password: values.password,
         });
 
-        storeAuthEmail(values.email.trim());
-        const resolvedName =
-          payload?.display_name || getValues("fullName").trim();
-        if (resolvedName) localStorage.setItem("auth.name", resolvedName);
+        void payload;
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
@@ -303,11 +292,9 @@ export default function AuthRoute() {
     [
       applyServerFieldErrors,
       clearErrors,
-      getValues,
       navigateToDashboard,
       setValue,
       startOtpExpiry,
-      storeAuthEmail,
     ],
   );
 
@@ -351,9 +338,6 @@ export default function AuthRoute() {
           display_name: trimmedName,
         });
 
-        if (trimmedName) localStorage.setItem("auth.name", trimmedName);
-        storeAuthEmail(values.email.trim());
-
         if (responsePayload?.is_active) {
           navigateToDashboard();
           return;
@@ -395,7 +379,6 @@ export default function AuthRoute() {
       setValue,
       startOtpExpiry,
       startResendCooldown,
-      storeAuthEmail,
     ],
   );
 
@@ -407,7 +390,6 @@ export default function AuthRoute() {
           code: values.verificationCode,
         });
 
-        storeAuthEmail(values.email.trim());
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
@@ -432,7 +414,6 @@ export default function AuthRoute() {
       applyServerFieldErrors,
       expireOtp,
       navigateToDashboard,
-      storeAuthEmail,
     ],
   );
 
