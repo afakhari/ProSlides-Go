@@ -72,7 +72,8 @@ export function ManagerJoinPage({
   const handleStart = async () => {
     setStartError("");
 
-    if (quiz.slides.length === 0) {
+    const firstSlide = quiz.slides.find((slide) => slide !== null);
+    if (!firstSlide) {
       setStartError("این ارائه اسلایدی برای شروع ندارد.");
       return;
     }
@@ -92,7 +93,7 @@ export function ManagerJoinPage({
     }
 
     const started = await sendNavigation("start", {
-      slide: quiz.slides[0],
+      slide: firstSlide,
     });
     if (!started) {
       setStartError("شروع جلسه تأیید نشد. وضعیت اتصال را بررسی کنید.");
