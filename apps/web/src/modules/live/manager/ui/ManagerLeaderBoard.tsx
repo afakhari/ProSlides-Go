@@ -194,8 +194,9 @@ export function ManagerLeaderBoard({
 
                         <span className="min-w-24 text-end text-sm font-black sm:text-base">
                           {Math.round(score).toLocaleString("fa-IR")} امتیاز
-                          {Number.isFinite(player.new_points) &&
-                          Number(player.new_points) !== 0 ? (
+                          {player.new_points != null &&
+                          Number.isFinite(player.new_points) &&
+                          player.new_points !== 0 ? (
                             <small className="mt-1 block text-xs text-[color:var(--live-muted)]">
                               +{Math.round(Number(player.new_points)).toLocaleString("fa-IR")}
                             </small>
