@@ -51,12 +51,13 @@ Current strengths:
   ownership and preserve local work across edit conflicts.
 - Live snapshot/cursor/reconnect/roster ownership is separated from React
   rendering and ordinary REST caching; typed React providers/hooks expose the
-  runtime through `useSyncExternalStore`, and the live route entry is owned by
-  `modules/live/routes/PresentationEntry.tsx` behind an explicit typed bridge
-  to the still-migrating presentation flow. Player resume/persistence and
-  reconnect/join recovery are isolated in a typed participant controller.
-  Manager question/content/leaderboard reconciliation and presenter navigation
-  are likewise isolated in a typed manager controller. Presentation loading is
+  runtime through `useSyncExternalStore`. The live route entry and role
+  composition are owned by typed `modules/live/routes` boundaries, with
+  manager and player rendering split into dedicated typed views and module-owned
+  runtime audio state. Player resume/persistence and reconnect/join recovery are
+  isolated in a typed participant controller. Manager
+  question/content/leaderboard reconciliation and presenter navigation are
+  likewise isolated in a typed manager controller. Presentation loading is
   cancellable and uses the shared ordinary REST boundary; the dedicated live
   transport remains focused on session commands, snapshots, roster and SSE.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
@@ -65,7 +66,7 @@ Current strengths:
 Remaining work:
 
 - complete TypeScript migration of active JSX/JS boundaries, including the
-  remaining live presentation orchestration and role-specific UI leaves;
+  remaining live role-specific UI leaves and shared legacy presentation shells;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser
