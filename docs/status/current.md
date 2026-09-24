@@ -56,8 +56,9 @@ Current strengths:
   to the still-migrating presentation flow. Player resume/persistence and
   reconnect/join recovery are isolated in a typed participant controller.
   Manager question/content/leaderboard reconciliation and presenter navigation
-  are likewise isolated in a typed manager controller rather than being owned
-  by the route orchestration.
+  are likewise isolated in a typed manager controller. Presentation loading is
+  cancellable and uses the shared ordinary REST boundary; the dedicated live
+  transport remains focused on session commands, snapshots, roster and SSE.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 

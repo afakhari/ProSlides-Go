@@ -171,7 +171,7 @@ test("F4 keeps the app router compositional and mock fixtures out of production"
   assert.match(router, /lazy: lazyPresentationEntry/);
   assert.doesNotMatch(router, /AppPresentation|AccessCodeResolver|LiveMessageAdapter/);
   assert.doesNotMatch(productionSource, /from\s+["'][^"']*data\/mockData["']/);
-  assert.match(source("src/modules/live/routes/PresentationFlow.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
+  assert.match(source("src/modules/live/routes/useLivePresentationModel.ts"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
 });
 
 test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live commands", () => {
@@ -366,6 +366,23 @@ test("live presentation route exposes one explicit typed bridge to the legacy fl
   assert.match(contract, /interface LivePresentationModel/);
   assert.match(contract, /interface AppPresentationProps/);
   assert.doesNotMatch(entry, /\bany\b/);
+});
+
+test("live presentation loading uses the shared REST boundary and a typed route model loader", () => {
+  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const loader = source("src/modules/live/routes/useLivePresentationModel.ts");
+  const presentationApi = source("src/modules/live/api/presentationApi.ts");
+  const liveApi = source("src/modules/live/api/liveApi.ts");
+
+  assert.match(flow, /useLivePresentationModel/);
+  assert.doesNotMatch(flow, /getPresentation|presentationSlideToLegacy|setRemoteQuiz/);
+  assert.match(loader, /new AbortController\(\)/);
+  assert.match(loader, /getPresentationForLive\(roomId, controller\.signal\)/);
+  assert.match(loader, /presentationSlideToLegacy/);
+  assert.match(loader, /return \(\) => controller\.abort\(\)/);
+  assert.match(presentationApi, /requestJson<Presentation>/);
+  assert.match(presentationApi, /\{ signal \}/);
+  assert.doesNotMatch(liveApi, /presentations\//);
 });
 
 test("live manager synchronization is owned by a typed manager controller", () => {

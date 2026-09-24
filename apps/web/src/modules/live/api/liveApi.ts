@@ -1,4 +1,4 @@
-import type { AnswerResult, LiveEvent, LiveSessionLocator, LiveSessionResult, LiveSnapshot, ParticipantResult, Presentation, RosterPage } from "./types";
+import type { AnswerResult, LiveEvent, LiveSessionLocator, LiveSessionResult, LiveSnapshot, ParticipantResult, RosterPage } from "./types";
 import { createSecureUUID } from "./secureUuid.ts";
 
 const normalizeBase = (value: string) => value.trim().replace(/\/+$/, "");
@@ -45,7 +45,6 @@ const requestJSON = async <T>(path: string, init: RequestInit = {}, csrf = false
 
 export const createRequestId = createSecureUUID;
 
-export const getPresentation = (id: string) => requestJSON<Presentation>(`presentations/${encodeURIComponent(id)}`);
 export const createLiveSession = (presentationId: string, requestId: string) => requestJSON<LiveSessionResult>("live/sessions", { method: "POST", body: JSON.stringify({ request_id: requestId, presentation_id: presentationId }) }, true);
 export const resolveLiveSession = (joinCode: string) => requestJSON<LiveSessionLocator>(`live/sessions/resolve?join_code=${encodeURIComponent(joinCode)}`);
 export const getLiveSnapshot = (id: string) => requestJSON<LiveSnapshot>(`live/sessions/${encodeURIComponent(id)}/snapshot`);

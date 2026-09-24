@@ -1,20 +1,16 @@
-import React, { lazy, useEffect, useState } from "react";
+import React, { lazy, useEffect } from "react";
 
 import { useAudio } from "../../../contexts/AudioContext.tsx";
 import Waiting from "../../../pages/loading/LoadingPage";
 import FinalLeaderboard from "../../../pages/presentation/manager/FinalLeaderboard";
-import { getPresentation } from "../api/liveApi.ts";
 import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import { useManagerPresentationController } from "../manager/useManagerPresentationController.ts";
-import {
-  EMPTY_PRESENTATION,
-  matchingQuestionResult,
-} from "../model/presentationFlow.ts";
+import { matchingQuestionResult } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import { usePlayerSessionRecovery } from "../participant/usePlayerSessionRecovery.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 import { useServerData } from "../react/useServerData.ts";
-import { presentationSlideToLegacy } from "../runtime/protocol.js";
+import { useLivePresentationModel } from "./useLivePresentationModel.ts";
 
 const ManagerJoinPage = lazy(() =>
   import("../../../pages/presentation/manager/JoinPage")
@@ -43,74 +39,6 @@ const PlayerContentSlide = lazy(() =>
 
 /* ------------------------ Main Flow ------------------------ */
 export function AppPresentation({ roomId, role, initialQuizData = null }) {
-  // Fetch full quiz once at top-level and transform to internal shape
-  const [remoteQuiz, setRemoteQuiz] = useState(initialQuizData || null);
-
-  // Initialize remoteQuiz with initialQuizData if available (for player)
-  useEffect(() => {
-    if (initialQuizData && role === "player") {
-      // Handle potential flat structure or nested structure for background
-      const rawBg = initialQuizData.background || {};
-      const background = {
-        color: rawBg.color || initialQuizData.background_color || "#1e1e2e",
-        image:
-          rawBg.image ||
-          initialQuizData.background_image ||
-          initialQuizData.background_image_url ||
-          "",
-      };
-
-      setRemoteQuiz((prev) => prev || {
-        quiz_id: initialQuizData.quiz_id,
-        title: initialQuizData.title || "",
-        access_code: initialQuizData.access_code || "",
-        background: background,
-        music_url: initialQuizData.music_url || "",
-        slides: [], // Player doesn't need full slides initially
-      });
-    }
-  }, [initialQuizData, role]);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchQuiz = async () => {
-      try {
-        if (!roomId) return;
-
-        // If we already have initial data for player, we might skip full fetch or do it in background
-        // But if user wants ONLY this API for player, we skip fetch for player
-        if (role === "player") return;
-
-        const data = await getPresentation(roomId);
-        if (!mounted) return;
-        if (data && Array.isArray(data.slides)) {
-          const mappedSlides = data.slides.map(presentationSlideToLegacy);
-          const quizData = {
-            quiz_id: data.id,
-            title: data.title,
-            access_code: data.access_code || "",
-            background: {
-              color: data.settings?.background_color || "#1e1e2e",
-              image: data.settings?.background_image_url || "",
-              text_color: data.settings?.text_color || "#111827",
-            },
-            music_url: data.settings?.music_url || "",
-            slides: mappedSlides,
-            text_color: data.settings?.text_color || "#111827",
-          };
-
-          setRemoteQuiz(quizData);
-        }
-      } catch (err) {
-        console.error("[AppPresentation] could not load remote quiz", err);
-      }
-    };
-    fetchQuiz();
-    return () => {
-      mounted = false;
-    };
-  }, [role, roomId, initialQuizData]);
-
   const {
     isConnected,
     connect,
@@ -122,13 +50,16 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
     if (role !== "manager" || !roomId || liveSessionId) return;
     void connect(roomId);
   }, [role, roomId, liveSessionId, connect]);
-  const quiz = React.useMemo(() => {
-    const baseQuiz = remoteQuiz ?? EMPTY_PRESENTATION;
-    return snapshot?.role === "manager"
-      ? { ...baseQuiz, access_code: snapshot.session.join_code }
-      : baseQuiz;
-  }, [remoteQuiz, snapshot]);
-  const isRemoteReady = role === "player" || !!remoteQuiz;
+  const {
+    remoteQuiz,
+    quiz,
+    isRemoteReady,
+  } = useLivePresentationModel({
+    roomId,
+    role,
+    initialQuizData,
+    snapshot,
+  });
 
   // Set quiz music when loaded
   const { setQuizMusic } = useAudio();
