@@ -53,7 +53,9 @@ Current strengths:
   rendering and ordinary REST caching; typed React providers/hooks expose the
   runtime through `useSyncExternalStore`, and the live route entry is owned by
   `modules/live/routes/PresentationEntry.tsx` behind an explicit typed bridge
-  to the still-migrating presentation flow.
+  to the still-migrating presentation flow. Player resume/persistence and
+  reconnect/join recovery are isolated in a typed participant controller rather
+  than being owned by the route orchestration.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 

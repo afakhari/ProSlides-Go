@@ -368,11 +368,31 @@ test("live presentation route exposes one explicit typed bridge to the legacy fl
   assert.doesNotMatch(entry, /\bany\b/);
 });
 
+test("live player recovery is owned by a typed participant controller", () => {
+  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const recovery = source(
+    "src/modules/live/participant/usePlayerSessionRecovery.ts",
+  );
+  const model = source("src/modules/live/model/presentationFlow.ts");
+
+  assert.match(flow, /usePlayerSessionRecovery/);
+  assert.doesNotMatch(flow, /sessionStorage|localStorage/);
+  assert.doesNotMatch(flow, /readStoredProfile|getPersistedUserIdForRoom/);
+  assert.match(recovery, /readStoredProfile/);
+  assert.match(recovery, /persistPlayerSeenActive/);
+  assert.match(recovery, /persistPlayerLastActive/);
+  assert.match(recovery, /joinParticipant/);
+  assert.match(model, /matchingQuestionResult/);
+  assert.match(model, /isLeaderboardSlide/);
+});
+
 test("live projection is derived directly from authoritative snapshot and roster", () => {
   const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
   const projectionContext = source("src/modules/live/react/ServerDataProvider.tsx");
   const entry = source("src/modules/live/routes/PresentationEntry.tsx");
-  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const recovery = source(
+    "src/modules/live/participant/usePlayerSessionRecovery.ts",
+  );
 
   assert.match(projectionContext, /useLiveSession/);
   assert.match(projectionContext, /projectLiveSnapshot\(snapshot, roster\)/);
@@ -382,7 +402,7 @@ test("live projection is derived directly from authoritative snapshot and roster
   assert.match(entry, /<LiveSessionProvider[^>]*>[\s\S]*<ServerDataProvider>/);
   assert.match(entry, /key=\{`player:\$\{resolvedData\.session_id\}`\}/);
   assert.match(entry, /key=\{`\$\{role\}:\$\{roomId \|\| "unknown"\}`\}/);
-  assert.match(flow, /if \(ok !== true\) playerResumeJoinSentRef\.current = false/);
+  assert.match(recovery, /if \(ok !== true\) joinSentRef\.current = false/);
 });
 
 
