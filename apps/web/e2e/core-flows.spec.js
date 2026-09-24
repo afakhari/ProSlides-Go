@@ -29,6 +29,39 @@ function waitForManagerSession(page) {
   );
 }
 
+async function expectReportRouteReady(page, failures) {
+  const backLink = page.getByLabel("بازگشت به پنل مدیریت");
+
+  try {
+    await expect(backLink).toBeVisible({ timeout: 15_000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      url: window.location.href,
+      readyState: document.readyState,
+      bodyText: document.body.innerText.slice(0, 4_000),
+      rootHtml: document.querySelector("#root")?.innerHTML.slice(0, 4_000) || "",
+      hasManagerShell: Boolean(
+        document.querySelector('[data-manager-shell="protected"]'),
+      ),
+      resources: performance
+        .getEntriesByType("resource")
+        .map((entry) => entry.name)
+        .filter(
+          (name) =>
+            name.includes("ReportRoute") ||
+            name.includes("/src/app/") ||
+            name.includes("/src/modules/reports/"),
+        )
+        .slice(-20),
+    }));
+    console.info(
+      "[report-route-diagnostic]",
+      JSON.stringify({ ...diagnostic, failures }),
+    );
+    throw error;
+  }
+}
+
 function watchRuntime(page) {
   const failures = [];
 
@@ -194,9 +227,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page).toHaveURL(
     new RegExp(`/manager/panel/${presentationId}/report$`),
   );
-  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible({
-    timeout: 15_000,
-  });
+  await expectReportRouteReady(page, failures);
   await expectAccessible(page, "report");
 
   let holdNextPresentationRead = true;
@@ -238,9 +269,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page).toHaveURL(
     new RegExp(`/manager/panel/${presentationId}/report$`),
   );
-  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible({
-    timeout: 15_000,
-  });
+  await expectReportRouteReady(page, failures);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
