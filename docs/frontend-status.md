@@ -47,10 +47,11 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 ## Next migration focus
 
 Both live roles now own typed module-local presentation UI. Participant join,
-waiting, question, leaderboard and content surfaces are module-owned; answer
-selection uses stable option indexes, retries reuse one request ID in memory,
-legacy persistent answer queues are retired, and participant profiles are scoped
-per room. The highest-value remaining boundaries are:
+waiting, question, leaderboard, content and final-result surfaces are
+module-owned; answer selection uses stable option indexes, answer HTTP commands
+remain independent from SSE delivery health, retries reuse one request ID in
+memory, legacy persistent answer queues are retired, and participant profiles
+are scoped per room. The highest-value remaining boundaries are:
 
 1. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
