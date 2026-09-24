@@ -454,7 +454,7 @@ export default function ManagerJoinPage({
             ) : (
               <div className="text-center">
                 <div className="text-3xl opacity-95">
-                  Quiz page (coming soon)
+                  در حال آماده‌سازی سؤال…
                 </div>
               </div>
             )}
