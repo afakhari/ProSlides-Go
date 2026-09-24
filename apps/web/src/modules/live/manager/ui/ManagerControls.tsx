@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { ConfirmDialog } from "../../../shared/ui/primitives/ConfirmDialog.tsx";
+import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 
 type ManagerControlsProps = {
   currentSlide: number;
