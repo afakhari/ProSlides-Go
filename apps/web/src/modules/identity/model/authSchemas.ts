@@ -9,19 +9,28 @@ export const emailSchema = z
   .max(320, "ایمیل بیش از حد طولانی است.")
   .email("لطفاً یک ایمیل معتبر وارد کنید.");
 
+const passwordFitsBcrypt = (value: string) =>
+  new TextEncoder().encode(value).length <= 72;
+
+const isOnlyDecimalDigits = (value: string) => /^\p{Nd}+$/u.test(value);
+
 export const loginSchema = z.object({
   email: emailSchema,
   password: z
     .string()
     .min(1, "رمز عبور را وارد کنید.")
-    .max(128, "رمز عبور نمی‌تواند بیشتر از ۱۲۸ نویسه باشد."),
+    .max(128, "رمز عبور نمی‌تواند بیشتر از ۱۲۸ نویسه باشد.")
+    .refine(passwordFitsBcrypt, "رمز عبور بیش از حد طولانی است."),
 });
 
-export const registerPasswordSchema = z
+export const newPasswordSchema = z
   .string()
   .min(12, "رمز عبور باید حداقل ۱۲ نویسه باشد.")
   .max(128, "رمز عبور نمی‌تواند بیشتر از ۱۲۸ نویسه باشد.")
-  .refine((value) => !/^\d+$/.test(value), "رمز عبور نمی‌تواند فقط شامل اعداد باشد.");
+  .refine(passwordFitsBcrypt, "رمز عبور بیش از حد طولانی است.")
+  .refine((value) => !isOnlyDecimalDigits(value), "رمز عبور نمی‌تواند فقط شامل اعداد باشد.");
+
+export const registerPasswordSchema = newPasswordSchema;
 
 export const registerSchema = z.object({
   email: emailSchema,
