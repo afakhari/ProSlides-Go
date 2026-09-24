@@ -35,150 +35,15 @@ import { getPresentationValidationError } from "../editor/model/validation";
 import { createPresentationOnce } from "../model/createPresentationFlow.ts";
 import Notice from "../../../shared/ui/Notice";
 import { fa } from "../../../shared/i18n/fa";
-import { normalizeDigits } from "../../../shared/forms/numbers.ts";
-
-const safeTimestamp = (value) => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value < 1_000_000_000_000 ? value * 1000 : value;
-  }
-
-  const text = String(value ?? "").trim();
-  if (!text) return 0;
-  if (/^\d+$/.test(text)) {
-    const numeric = Number(text);
-    if (Number.isFinite(numeric)) {
-      return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
-    }
-  }
-
-  const time = Date.parse(text);
-  return Number.isNaN(time) ? 0 : time;
-};
-
-const formatDate = (timestamp) =>
-  timestamp
-    ? new Date(timestamp).toLocaleDateString("fa-IR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
-
-const persianNumberFormatter = new Intl.NumberFormat("fa-IR");
-
-const formatNumber = (value) =>
-  persianNumberFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0);
-
-const normalizePersianText = (value = "") =>
-  normalizeDigits(String(value).normalize("NFKC"))
-    .replace(/ي/g, "ی")
-    .replace(/ك/g, "ک")
-    .replace(/[‌\s]+/g, " ")
-    .trim()
-    .toLocaleLowerCase("fa-IR");
-
-const persianCollator = new Intl.Collator("fa-IR", {
-  numeric: true,
-  sensitivity: "base",
-});
-
-const versionPattern = /\s*-\s*نسخه\s+([0-9۰-۹٠-٩]+)$/u;
-
-const getVersionInfo = (title) => {
-  const value = String(title || "").trim();
-  const match = value.match(versionPattern);
-  if (!match) {
-    return { baseName: value || "ارائه بدون عنوان", version: 1 };
-  }
-
-  const version = Number(normalizeDigits(match[1])) || 1;
-  const baseName = value.slice(0, match.index).trim() || "ارائه بدون عنوان";
-  return { baseName, version };
-};
-
-const formatVersionTitle = (baseName, version) =>
-  `${baseName || "ارائه بدون عنوان"} - نسخه ${formatNumber(version)}`;
-
-const localizeSystemTitle = (title) => {
-  const value = String(title || "").trim();
-  if (!value || value === "Untitled Presentation") return "ارائه بدون عنوان";
-
-  const untitledCopyMatch = value.match(/^Untitled Presentation \(copy (\d+)\)$/i);
-  if (untitledCopyMatch) {
-    return formatVersionTitle(
-      "ارائه بدون عنوان",
-      Number(untitledCopyMatch[1]) + 1
-    );
-  }
-
-  const versionMatch = value.match(versionPattern);
-  if (versionMatch) {
-    const { baseName, version } = getVersionInfo(value);
-    return formatVersionTitle(baseName, version);
-  }
-
-  return value;
-};
-
-const getDuplicateTitle = (quiz, allQuizzes) => {
-  const current = getVersionInfo(quiz.name);
-  const normalizedBaseName = normalizePersianText(current.baseName);
-  let maxVersion = current.version;
-
-  allQuizzes.forEach((item) => {
-    const itemInfo = getVersionInfo(item.name);
-    if (normalizePersianText(itemInfo.baseName) === normalizedBaseName) {
-      maxVersion = Math.max(maxVersion, itemInfo.version);
-    }
-  });
-
-  return formatVersionTitle(current.baseName, maxVersion + 1);
-};
-
-const hasPersianText = (value) => /[\u0600-\u06FF]/u.test(String(value || ""));
-
-const toPersianUiMessage = (value, fallback) => {
-  const text = String(value || "").trim();
-  return text && hasPersianText(text) ? text : fallback;
-};
-
-const readLocalStorage = (key) => {
-  try {
-    return typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
-  } catch {
-    return null;
-  }
-};
-
-const removeLocalStorage = (key) => {
-  try {
-    if (typeof window !== "undefined") window.localStorage.removeItem(key);
-  } catch {
-    // Storage may be unavailable (for example in restricted browser contexts).
-  }
-};
-
-const EMPTY_PRESENTATION_SUMMARIES = [];
-
-const toDashboardQuiz = (quiz, loggedInUser) => {
-  const updatedAt = safeTimestamp(quiz.updated_at);
-  const createdAt = safeTimestamp(quiz.created_at);
-  return {
-    id: quiz.id,
-    revision: Number(quiz.revision || 1),
-    name: localizeSystemTitle(quiz.title),
-    accessCode: quiz.access_code || "",
-    slides: Number(quiz.slide_count) || 0,
-    participants: Number(quiz.participant_count) || 0,
-    createdBy:
-      String(quiz.owner_full_name || quiz.owner_name || loggedInUser).trim() ||
-      loggedInUser,
-    lastUpdated: formatDate(updatedAt),
-    created: formatDate(createdAt),
-    updatedAt,
-    createdAt,
-  };
-};
+import {
+  formatNumber,
+  getDuplicateTitle,
+  getVersionInfo,
+  normalizePersianText,
+  persianCollator,
+  toDashboardQuiz,
+  toPersianUiMessage,
+} from "./model/dashboardPresentation.ts";
 
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
