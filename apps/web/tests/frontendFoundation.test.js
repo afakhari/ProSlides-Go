@@ -95,6 +95,13 @@ test("editor presentation reads recover after interrupted route navigation", () 
   assert.match(route, /useNavigation/);
   assert.match(route, /routeLoadAbortRef/);
   assert.match(route, /interruptedRouteLoadRef/);
+  assert.match(route, /const runQuizLoad = useCallback/);
+  assert.match(route, /const refreshQuiz = useCallback/);
+  assert.match(route, /refreshQuiz=\{refreshQuiz\}/);
+  assert.doesNotMatch(route, /refreshQuiz=\{fetchQuiz\}/);
+  assert.match(route, /addEventListener\("pagehide"/);
+  assert.match(route, /addEventListener\("pageshow"/);
+  assert.match(route, /event\.persisted/);
   assert.match(route, /const startRouteLoad = useCallback/);
   assert.match(route, /navigation\.state !== "idle"/);
   assert.match(route, /interruptedRouteLoadRef\.current = true/);
