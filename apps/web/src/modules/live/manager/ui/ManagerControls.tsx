@@ -85,6 +85,7 @@ export function ManagerControls({
           <button
             type="button"
             onClick={handlePrimary}
+            aria-label={atEnd ? "پایان ارائه" : "اسلاید بعدی"}
             disabled={!atEnd && !onNext}
             className="min-h-11 rounded-xl bg-brand px-5 text-sm font-black text-content-inverse hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
