@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import Seo from "../../../components/Seo";
+import Seo from "../../../shared/ui/Seo.tsx";
 import { createZodResolver } from "../../../shared/forms/zodResolver.ts";
 import { identityApi } from "../api/identityApi.ts";
 import {

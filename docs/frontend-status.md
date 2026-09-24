@@ -1,6 +1,6 @@
 # Frontend status and remaining debt
 
-Last reviewed: 2026-09-24.
+Last reviewed: 2026-09-25.
 
 This file tracks frontend debt and claim boundaries. Project-wide current state
 and priorities live in `status/current.md`.
@@ -27,9 +27,9 @@ history; reviewed work merged after that commit is active mainline work.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, dashboard and compatibility utilities outside the migrated live role surfaces. | Continue migration by feature/domain boundary, never by extension-only renames. |
+| P1 | TypeScript migration is incomplete; active JSX/JS remains in the presentation dashboard and compatibility utilities outside migrated live/marketing routes. | Continue migration by feature/domain boundary, never by extension-only renames. |
 | P1 | Legacy top-level ownership (`pages/components/utils/routes` and compatibility leaves) still coexists with `app/modules/shared`. | Move ownership into the appropriate domain and delete compatibility shims once callers migrate. |
-| P2 | Design-system and logical-direction adoption is incomplete on legacy marketing/live surfaces. | Replace physical direction and direct visual values as those routes migrate. |
+| P2 | Design-system and logical-direction adoption is incomplete on remaining legacy dashboard/compatibility surfaces. | Replace physical direction and direct visual values as those routes migrate. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
 | P2 | Dependency enforcement covers `shared -> modules/app` and `modules -> app`, but cross-module public API rules and dead-code detection are not yet complete. | Strengthen lint/dependency checks and introduce dead-export/dependency analysis after compatibility shims shrink. |
 | P3 | Major framework versions should be kept current, but upgrades can carry runtime compatibility requirements. | Upgrade React/React Router/toolchain in isolated changes with full CI/E2E rather than coupling upgrades to architectural migrations. |
@@ -53,12 +53,13 @@ remain independent from SSE delivery health, retries reuse one request ID in
 memory, legacy persistent answer queues are retired, and participant profiles
 are scoped per room. The highest-value remaining boundaries are:
 
-1. move landing/team ownership into the marketing module while converging RTL
-   and semantic styling;
-2. migrate the dashboard and remaining active JSX utilities by domain boundary;
-3. remove emptied legacy roots and compatibility utilities;
-4. add stronger dependency/dead-code tooling and focused component/API-state
-   coverage around migrated boundaries.
+1. migrate the presentation dashboard and remaining active JSX utilities by
+   domain boundary;
+2. remove emptied legacy roots and compatibility utilities;
+3. add stronger dependency/dead-code tooling and focused component/API-state
+   coverage around migrated boundaries;
+4. keep marketing copy, SEO and historical team information aligned with
+   verified product capabilities and repository history.
 
 ## Claim boundary
 

@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import notFoundIllustration from "../../assets/404.svg";
-import SiteHeader from "../../components/SiteHeader";
+import SiteHeader from "../../shared/ui/SiteHeader.tsx";
 
 export default function NotFoundRoute() {
   const navigate = useNavigate();
