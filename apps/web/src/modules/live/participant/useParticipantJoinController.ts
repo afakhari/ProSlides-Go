@@ -49,12 +49,15 @@ export function useParticipantJoinController(
     connectionError,
   } = useLiveSession();
 
-  useEffect(
-    () => () => {
-      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
-    },
-    [],
-  );
+  const clearRetry = useCallback(() => {
+    if (retryTimerRef.current) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = 0;
+    }
+    retryBlockedRef.current = false;
+  }, []);
+
+  useEffect(() => () => clearRetry(), [clearRetry]);
 
   const scheduleRetry = useCallback(() => {
     if (retryBlockedRef.current) return;
@@ -75,11 +78,9 @@ export function useParticipantJoinController(
     setValidation("");
     setJoinError("");
     setAttempt(0);
-    retryBlockedRef.current = false;
-    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
-    retryTimerRef.current = 0;
+    clearRetry();
     joinSentRef.current = false;
-  }, [roomId]);
+  }, [clearRetry, roomId]);
 
   useEffect(() => {
     if (isEditing || !isJoining || !roomId || isConnected) return;
@@ -122,6 +123,7 @@ export function useParticipantJoinController(
     }).then((outcome) => {
       if (cancelled) return;
       if (outcome === true) {
+        clearRetry();
         setAttempt(0);
         setIsJoining(false);
         setJoinError("");
@@ -129,6 +131,7 @@ export function useParticipantJoinController(
       }
       joinSentRef.current = false;
       if (outcome === "rejected") {
+        clearRetry();
         setJoinError(
           "ورود به این جلسه پذیرفته نشد. نام یا آواتار را بررسی کنید و دوباره تلاش کنید.",
         );
@@ -152,17 +155,18 @@ export function useParticipantJoinController(
     roomId,
     attempt,
     scheduleRetry,
+    clearRetry,
   ]);
 
   useEffect(() => {
     if (!lastJoinResult) return;
     saveStoredProfile({
       room_id: roomId,
-      name: lastJoinResult.displayName || name,
-      avatar: lastJoinResult.avatar || avatar,
+      name: lastJoinResult.displayName,
+      avatar: lastJoinResult.avatar || DEFAULT_AVATAR,
       user_id: lastJoinResult.clientUserId,
     });
-  }, [avatar, lastJoinResult, name, roomId]);
+  }, [lastJoinResult, roomId]);
 
   const setName = (value: string) => {
     setNameState(value);
@@ -198,6 +202,7 @@ export function useParticipantJoinController(
     setValidation("");
     setJoinError("");
     joinSentRef.current = false;
+    clearRetry();
     setAttempt(0);
     setIsEditing(false);
     setIsJoining(true);
@@ -205,6 +210,7 @@ export function useParticipantJoinController(
 
   const editProfile = () => {
     joinSentRef.current = false;
+    clearRetry();
     setJoinError("");
     setIsJoining(false);
     setIsEditing(true);
