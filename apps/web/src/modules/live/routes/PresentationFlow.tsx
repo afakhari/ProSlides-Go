@@ -83,7 +83,6 @@ export function AppPresentation({
           controller={managerController}
           isRemoteReady={isRemoteReady}
           currentContent={currentContent}
-          leaderboardResults={leaderboardResults}
           modalLeaderboardResults={modalLeaderboardResults}
         />
       </PresentationErrorBoundary>
