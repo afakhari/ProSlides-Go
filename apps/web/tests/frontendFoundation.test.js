@@ -472,6 +472,8 @@ test("participant interaction controllers own join retries and answer attempts",
   assert.match(join, /Math\.min\(1000 \* 2 \*\* attempt, 10_000\)/);
   assert.match(answer, /createRequestId/);
   assert.match(answer, /pendingRef/);
+  assert.match(answer, /activeIdentityRef/);
+  assert.match(answer, /inFlightAttemptRef/);
   assert.match(answer, /retryable/);
   assert.doesNotMatch(answer, /localStorage|sessionStorage/);
   assert.doesNotMatch(answer, /if \(!isConnected\)/);
