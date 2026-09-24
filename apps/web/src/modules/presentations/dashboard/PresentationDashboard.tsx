@@ -577,7 +577,9 @@ export default function PresentationDashboardRoute() {
 
   const focusFirstActionMenuItem = useCallback(() => {
     activeMenuButtonRef.current?.parentElement
-      ?.querySelector('[role="menu"] [role="menuitem"]:not(:disabled)')
+      ?.querySelector<HTMLButtonElement>(
+        '[role="menu"] [role="menuitem"]:not(:disabled)',
+      )
       ?.focus();
   }, []);
 
