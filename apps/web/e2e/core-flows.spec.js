@@ -293,6 +293,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await manager.locator('button[type="submit"]').click();
     await expect(manager).toHaveURL(/\/manager\/panel$/);
 
+    console.info("[live-e2e] creating fixture");
     const fixture = await manager.evaluate(async ({ accessCode }) => {
       const cookieValue = (name) => {
         const prefix = `${encodeURIComponent(name)}=`;
@@ -373,10 +374,12 @@ test("manager and participant complete a live question lifecycle with reconnect"
       };
     }, { accessCode });
 
+    console.info("[live-e2e] fixture ready");
     await manager.goto(`/manager/presentation/${fixture.presentationId}`);
     const startButton = manager.getByRole("button", { name: /شروع/ });
     await expect(startButton).toBeEnabled({ timeout: 15000 });
     await expectAccessible(manager, "manager live lobby");
+    console.info("[live-e2e] manager lobby ready");
 
     await participant.goto(`/${fixture.accessCode}`);
     await expect(participant.getByRole("heading", { name: "به کوئیز بپیوندید" })).toBeVisible();
@@ -384,6 +387,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
     await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    console.info("[live-e2e] participant joined");
 
     await startButton.click();
     await expect(
@@ -392,6 +396,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await expect(
       manager.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
     ).toBeVisible({ timeout: 15000 });
+    console.info("[live-e2e] question open");
 
     const answerRequestIds = [];
     let failNextAnswer = true;
@@ -429,6 +434,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
       ),
     ).toBeVisible();
     await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+    console.info("[live-e2e] first answer failure observed");
     await participant
       .getByRole("button", { name: "تلاش دوباره برای ارسال" })
       .click();
@@ -438,6 +444,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     expect([200, 201]).toContain(acceptedAnswerStatus);
     expect(answerRequestIds).toHaveLength(2);
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
+    console.info("[live-e2e] answer retry accepted");
     await participant.unroute("**/api/v1/live/sessions/*/answers");
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
@@ -445,16 +452,19 @@ test("manager and participant complete a live question lifecycle with reconnect"
       timeout: 15000,
     });
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    console.info("[live-e2e] leaderboard visible");
 
     await participant.reload();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
       timeout: 15000,
     });
     await expect(participant.getByText("امتیاز شما")).toBeVisible();
+    console.info("[live-e2e] participant reload recovered");
 
     await manager.getByRole("button", { name: "پایان ارائه", exact: true }).click();
     const endDialog = manager.getByRole("alertdialog");
     await expect(endDialog).toBeVisible();
+    console.info("[live-e2e] end confirmation visible");
     await endDialog.getByRole("button", { name: "پایان ارائه", exact: true }).click();
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
@@ -463,6 +473,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
       participant.getByRole("heading", { name: "نتیجه نهایی شما" }),
     ).toBeVisible({ timeout: 15000 });
     await expect(participant.getByText("جلسه پایان یافت")).toBeVisible();
+    console.info("[live-e2e] final result visible");
 
     expect(managerFailures).toEqual([]);
     expect(participantFailures).toEqual([]);
