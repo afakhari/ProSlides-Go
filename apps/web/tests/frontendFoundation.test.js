@@ -15,7 +15,7 @@ test("Tailwind and semantic theme have one CSS source", () => {
   assert.match(indexCss, /--color-danger:/);
 });
 
-test("active React source has no legacy JSX leaves after dashboard migration", () => {
+test("production frontend source is fully TypeScript after protocol migration", () => {
   const files = readdirSync(new URL("../src", import.meta.url), {
     recursive: true,
     withFileTypes: true,
@@ -24,7 +24,7 @@ test("active React source has no legacy JSX leaves after dashboard migration", (
   assert.deepEqual(
     files
       .map((entry) => `${entry.parentPath}/${entry.name}`)
-      .filter((path) => path.endsWith(".jsx")),
+      .filter((path) => /\.(?:js|jsx)$/.test(path)),
     [],
   );
 });
@@ -398,6 +398,7 @@ test("live runtime ownership is module-scoped and React is only an adapter", () 
   const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
   const serverContext = source("src/modules/live/react/ServerDataProvider.tsx");
   const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
+  const protocol = source("src/modules/live/runtime/protocol.ts");
   const liveApi = source("src/modules/live/api/liveApi.ts");
 
   assert.match(entry, /\.\.\/react\/LiveSessionProvider\.tsx/);
@@ -406,7 +407,12 @@ test("live runtime ownership is module-scoped and React is only an adapter", () 
   assert.match(liveContext, /useSyncExternalStore/);
   assert.doesNotMatch(liveContext, /streamLiveEvents|applyLiveAction|getLiveSnapshot|planLiveNavigation/);
   assert.match(runtime, /\.\.\/api\/liveApi/);
-  assert.match(runtime, /\.\/protocol/);
+  assert.match(runtime, /\.\/protocol\.ts/);
+  assert.match(runtime, /type LiveCursor/);
+  assert.match(protocol, /export interface LiveCursor/);
+  assert.match(protocol, /export type LiveActionName/);
+  assert.match(protocol, /if \(state === "ended"\) return \[\]/);
+  assert.doesNotMatch(protocol, /\bany\b/);
   assert.match(runtime, /class LiveRuntime/);
   assert.match(runtime, /resetInternals/);
   assert.match(serverContext, /\.\.\/runtime\/protocol/);
