@@ -8,6 +8,10 @@ import {
   resolveLiveSession,
 } from "../api/liveApi.ts";
 import type { LiveSessionLocator } from "../api/types.ts";
+import type {
+  AppPresentationComponent,
+  LivePresentationModel,
+} from "../model/presentation.ts";
 import type { LiveClientRole } from "../runtime/LiveRuntime.ts";
 import { LiveSessionProvider } from "../react/LiveSessionProvider.tsx";
 import { ServerDataProvider } from "../react/ServerDataProvider.tsx";
@@ -22,19 +26,8 @@ type PresentationEntryProps = {
 
 type ResolveStatus = "loading" | "error" | "success";
 
-type ResolvedPresentationMeta = {
-  quiz_id: string;
-  title: string;
-  access_code: string;
-  background: {
-    color: string;
-    image: string;
-    text_color: string;
-  };
-  music_url: string;
-  slides: [];
-  text_color: string;
-};
+const TypedAppPresentation =
+  AppPresentation as AppPresentationComponent;
 
 export default function PresentationEntry({
   mode,
@@ -53,7 +46,7 @@ function AccessCodeResolver() {
   const [resolvedData, setResolvedData] =
     useState<LiveSessionLocator | null>(null);
   const [resolvedMeta, setResolvedMeta] =
-    useState<ResolvedPresentationMeta | null>(null);
+    useState<LivePresentationModel | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -121,7 +114,7 @@ function AccessCodeResolver() {
           role="player"
         >
           <ServerDataProvider>
-            <AppPresentation
+            <TypedAppPresentation
               roomId={resolvedData.session_id}
               role="player"
               initialQuizData={resolvedMeta}
@@ -151,7 +144,7 @@ function PresentationRouter({
         role={role}
       >
         <ServerDataProvider>
-          <AppPresentation roomId={roomId} role={role} />
+          <TypedAppPresentation roomId={roomId} role={role} />
         </ServerDataProvider>
       </LiveSessionProvider>
     </AudioProvider>
