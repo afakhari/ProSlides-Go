@@ -112,7 +112,8 @@ export function useParticipantAnswerController({
 
   useEffect(() => {
     clearLegacyParticipantAnswerQueue();
-    pruneQueuedParticipantAnswers(roomId, questionId, runId);
+    const userId = getPersistedUserIdForRoom(roomId);
+    pruneQueuedParticipantAnswers(roomId, questionId, runId, userId);
 
     const currentQuestion = questionRef.current;
     const timer = resolveQuestionTimer({
@@ -143,7 +144,6 @@ export function useParticipantAnswerController({
       return;
     }
 
-    const userId = getPersistedUserIdForRoom(roomId);
     const queued = readQueuedParticipantAnswers(roomId).find(
       (answer) =>
         answer.user_id === userId &&
@@ -192,18 +192,19 @@ export function useParticipantAnswerController({
     if (!isConnected) return;
 
     let cancelled = false;
+    const userId = getPersistedUserIdForRoom(roomId);
+    if (!userId) return;
+
     void flushQueuedParticipantAnswers(
       roomId,
       questionId,
       runId,
+      userId,
       submitAnswer,
     ).then(({ sentKeys, rejectedKeys }) => {
       if (cancelled || (sentKeys.length === 0 && rejectedKeys.length === 0)) {
         return;
       }
-
-      const userId = getPersistedUserIdForRoom(roomId);
-      if (!userId) return;
 
       const receipt = readParticipantAnswerReceipt(
         roomId,
