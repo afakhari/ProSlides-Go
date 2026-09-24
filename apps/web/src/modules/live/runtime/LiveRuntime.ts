@@ -747,6 +747,7 @@ export class LiveRuntime {
       if (id !== this.selectedSessionId) return false;
 
       this.publish({
+        connectionError: null,
         lastJoinResult: {
           clientUserId: requestId,
           participantId: participant.id,
