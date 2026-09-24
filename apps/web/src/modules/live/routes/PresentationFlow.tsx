@@ -111,5 +111,5 @@ export function AppPresentation({
     );
   }
 
-  return <Waiting />;
+  return <Waiting message="" />;
 }
