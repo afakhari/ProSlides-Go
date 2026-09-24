@@ -1,6 +1,7 @@
 import { createSecureUUID } from "../api/secureUuid.ts";
 
-export const PLAYER_PROFILE_KEY = "presentation_player_profile_v1";
+export const LEGACY_PLAYER_PROFILE_KEY = "presentation_player_profile_v1";
+export const PLAYER_PROFILE_KEY_PREFIX = "presentation_player_profile_v2:";
 export const DEFAULT_AVATAR = "🧙";
 
 type RoomId = string | number | null | undefined;
@@ -24,26 +25,47 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 export const createClientUserId = (): string => createSecureUUID();
 
-export const readStoredProfile = (roomId: RoomId): StoredPlayerProfile | null => {
-  try {
-    const raw = localStorage.getItem(PLAYER_PROFILE_KEY);
-    if (!raw) return null;
+export const playerProfileKey = (roomId: RoomId): string =>
+  PLAYER_PROFILE_KEY_PREFIX + String(roomId ?? "");
 
+const parseProfile = (
+  raw: string | null,
+  roomId: RoomId,
+): StoredPlayerProfile | null => {
+  if (!raw) return null;
+
+  try {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed)) return null;
     if (String(parsed.room_id ?? "") !== String(roomId ?? "")) return null;
-    if (typeof parsed.name !== "string" || !parsed.name) return null;
+    if (typeof parsed.name !== "string" || !parsed.name.trim()) return null;
     if (typeof parsed.avatar !== "string" || !parsed.avatar) return null;
 
     return {
       room_id: String(parsed.room_id),
-      name: parsed.name,
+      name: parsed.name.trim(),
       avatar: parsed.avatar,
       user_id:
         parsed.user_id != null && String(parsed.user_id).trim() !== ""
           ? String(parsed.user_id)
           : null,
     };
+  } catch {
+    return null;
+  }
+};
+
+export const readStoredProfile = (roomId: RoomId): StoredPlayerProfile | null => {
+  try {
+    const scoped = parseProfile(
+      localStorage.getItem(playerProfileKey(roomId)),
+      roomId,
+    );
+    if (scoped) return scoped;
+
+    // Read-only compatibility for users who joined this same room before the
+    // room-scoped profile migration. New writes always use the v2 scoped key.
+    return parseProfile(localStorage.getItem(LEGACY_PLAYER_PROFILE_KEY), roomId);
   } catch {
     return null;
   }
@@ -69,17 +91,33 @@ export const saveStoredProfile = ({
     user_id: normalizedUserId,
   };
 
-  localStorage.setItem(PLAYER_PROFILE_KEY, JSON.stringify(profile));
-  localStorage.setItem("player_name", profile.name);
-  localStorage.setItem("character", profile.avatar);
-  if (profile.user_id) localStorage.setItem("user_id", profile.user_id);
+  try {
+    localStorage.setItem(playerProfileKey(roomId), JSON.stringify(profile));
+
+    const legacy = parseProfile(
+      localStorage.getItem(LEGACY_PLAYER_PROFILE_KEY),
+      roomId,
+    );
+    if (legacy) localStorage.removeItem(LEGACY_PLAYER_PROFILE_KEY);
+
+    localStorage.removeItem("player_name");
+    localStorage.removeItem("character");
+    localStorage.removeItem("user_id");
+  } catch {
+    // Participant continuity must not depend on storage availability.
+  }
 };
 
-export const getPersistedUserIdForRoom = (roomId: RoomId): string | null => {
-  const profile = readStoredProfile(roomId);
-  if (!profile) return null;
-  if (profile.user_id) return profile.user_id;
+export const getPersistedUserIdForRoom = (roomId: RoomId): string | null =>
+  readStoredProfile(roomId)?.user_id ?? null;
 
-  const legacyUserId = localStorage.getItem("user_id");
-  return legacyUserId ? String(legacyUserId) : null;
+export const clearLegacyParticipantArtifacts = (roomId: RoomId): void => {
+  try {
+    localStorage.removeItem("presentation_answer_queue_v1");
+    localStorage.removeItem(
+      "presentation_answer_queue_v2:" + String(roomId ?? "unknown"),
+    );
+  } catch {
+    // Legacy cleanup is best-effort.
+  }
 };
