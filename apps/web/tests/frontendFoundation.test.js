@@ -443,3 +443,22 @@ test("design editor shares one typed presentation draft across all preview surfa
   assert.match(draft, /designDraftReducer/);
   assert.match(draft, /designDraftToUpdate/);
 });
+
+test("manager live surfaces keep Persian accessible copy and no mojibake", () => {
+  const leaderboard = source("src/pages/presentation/manager/LeaderBoard.jsx");
+  const question = source("src/pages/presentation/manager/PickAnswerQuestion.jsx");
+  const join = source("src/pages/presentation/manager/JoinPage.jsx");
+
+  assert.match(leaderboard, /جدول امتیازات/);
+  assert.match(leaderboard, /شرکت‌کننده/);
+  assert.match(leaderboard, /aria-label="بستن جدول امتیازات"/);
+  assert.doesNotMatch(leaderboard, />\s*Leaderboard\s*</);
+  assert.doesNotMatch(leaderboard, /ðŸ|Ø|Ù|â€|ï¸/);
+
+  assert.match(question, /alt="تصویر سؤال"/);
+  assert.match(question, /aria-label="بستن جدول امتیازات"/);
+  assert.doesNotMatch(question, /ðŸ|Ø|Ù|â€|ï¸/);
+
+  assert.doesNotMatch(join, /Quiz page \(coming soon\)/);
+  assert.match(join, /در حال آماده‌سازی سؤال/);
+});
