@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAudio } from "../contexts/AudioContext";
+import { useAudio } from "../modules/live/react/AudioProvider";
 
 export default function TopBar({
   accessCode = "",

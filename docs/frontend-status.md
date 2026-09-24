@@ -17,7 +17,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
 | REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; live presentation reads also use this boundary instead of the SSE/session transport, and one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
-| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters and the route entry are typed, player recovery and manager presentation synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
+| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters, route entry and manager/player role composition are typed, player recovery and manager presentation synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
 | Accessibility | Stable routes have axe/interaction checks and the migrated editor slices use accessible feedback/dialog primitives. |
 | Verification | Browser acceptance includes auth/dashboard/report, manager/player live reconnect, and the principal editor draft/conflict flows. |
@@ -27,7 +27,7 @@ history; reviewed work merged after that commit is active mainline work.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, the live presentation orchestration/UI leaves, dashboard and compatibility utilities. | Continue migration by feature/domain boundary, never by extension-only renames. |
+| P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, live role-specific UI leaves, dashboard and compatibility utilities. | Continue migration by feature/domain boundary, never by extension-only renames. |
 | P1 | Legacy top-level ownership (`pages/components/utils/routes/contexts`) still coexists with `app/modules/shared`. | Move ownership into the appropriate domain and delete compatibility shims once callers migrate. |
 | P2 | Design-system and logical-direction adoption is incomplete on legacy marketing/live surfaces. | Replace physical direction and direct visual values as those routes migrate. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
@@ -46,12 +46,12 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 ## Next migration focus
 
-After the HTTP-boundary inversion, the highest-value boundaries are:
+The typed live role-composition boundary is now in place. The highest-value remaining boundaries are:
 
-1. reduce the remaining `PresentationFlow.jsx` shell to typed role
-   composition/error recovery and remove the last JSX orchestration boundary;
-2. migrate manager/player live UI leaves from legacy `pages` ownership as
-   their contracts become typed;
+1. migrate manager/player live UI leaves from legacy `pages` ownership as
+   their contracts become explicit and typed;
+2. move the remaining shared live shell pieces such as `TopBar`, `Footer` and
+   QR presentation UI behind module-owned public boundaries;
 3. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
 4. remove emptied legacy roots and add stronger dependency/dead-code tooling.

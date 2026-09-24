@@ -66,7 +66,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
     void audio.play().catch((error: unknown) => {
       if (import.meta.env.DEV) {
-        console.info("[Audio] Playback awaits a user gesture or a playable source.", error);
+        console.info(
+          "[Audio] Playback awaits a user gesture or a playable source.",
+          error,
+        );
       }
     });
   }, [isMuted]);
@@ -81,7 +84,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         } else {
           void audio.play().catch((error: unknown) => {
             if (import.meta.env.DEV) {
-              console.info("[Audio] Playback awaits a user gesture or a playable source.", error);
+              console.info(
+                "[Audio] Playback awaits a user gesture or a playable source.",
+                error,
+              );
             }
           });
         }
@@ -101,12 +107,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo<AudioContextValue>(() => ({
-    isMuted,
-    musicUrl,
-    toggleMute,
-    setQuizMusic,
-  }), [isMuted, musicUrl, setQuizMusic, toggleMute]);
+  const value = useMemo<AudioContextValue>(
+    () => ({
+      isMuted,
+      musicUrl,
+      toggleMute,
+      setQuizMusic,
+    }),
+    [isMuted, musicUrl, setQuizMusic, toggleMute],
+  );
 
   return (
     <AudioContext.Provider value={value}>

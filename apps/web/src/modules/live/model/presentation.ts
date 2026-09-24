@@ -1,5 +1,3 @@
-import type { ComponentType } from "react";
-
 import type { LiveClientRole } from "../runtime/LiveRuntime.ts";
 import type { LegacyLiveSlide } from "./serverData.ts";
 
@@ -25,4 +23,3 @@ export interface AppPresentationProps {
   initialQuizData?: LivePresentationModel | null;
 }
 
-export type AppPresentationComponent = ComponentType<AppPresentationProps>;
