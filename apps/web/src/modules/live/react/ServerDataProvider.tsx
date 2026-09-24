@@ -10,7 +10,7 @@ import type {
   ServerDataFields,
   ServerDataValue,
 } from "../model/serverData.ts";
-import { projectLiveSnapshot } from "../runtime/protocol.js";
+import { projectLiveSnapshot } from "../runtime/protocol.ts";
 import { ServerDataContext } from "./serverDataContext.ts";
 import { useLiveSession } from "./useLiveSession.ts";
 

@@ -6,7 +6,7 @@ import type {
   LivePresentationModel,
 } from "../model/presentation.ts";
 import type { LiveClientRole } from "../runtime/LiveRuntime.ts";
-import { presentationSlideToLegacy } from "../runtime/protocol.js";
+import { presentationSlideToLegacy } from "../runtime/protocol.ts";
 import { EMPTY_PRESENTATION } from "../model/presentationFlow.ts";
 
 type UseLivePresentationModelOptions = {
