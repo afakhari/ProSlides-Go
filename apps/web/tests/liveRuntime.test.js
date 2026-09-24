@@ -486,3 +486,37 @@ test("disconnect during manager connect cannot resurrect stale session state", a
   runtime.destroy();
 });
 
+
+
+test("successful participant answer retry clears the transient submission error", async () => {
+  let attempts = 0;
+  const requestIds = [];
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000030",
+      submitLiveAnswer: async (_id, input) => {
+        attempts += 1;
+        requestIds.push(input.request_id);
+        if (attempts === 1) throw new Error("temporary answer failure");
+        return { score_delta: 100 };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  const answer = {
+    request_id: "00000000-0000-4000-8000-000000000031",
+    question_id: "11111111-1111-4111-8111-111111111111",
+    options_result: [{ option_index: 0, picked: true }],
+  };
+
+  assert.equal(await runtime.submitAnswer(answer), false);
+  assert.equal(runtime.getState().connectionError, "temporary answer failure");
+
+  assert.equal(await runtime.submitAnswer(answer), true);
+  assert.equal(runtime.getState().connectionError, null);
+  assert.deepEqual(requestIds, [answer.request_id, answer.request_id]);
+
+  runtime.destroy();
+});
