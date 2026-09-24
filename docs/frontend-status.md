@@ -21,7 +21,7 @@ state unless they are reintroduced through a reviewed change.
 | Area | Evidence/implementation |
 |---|---|
 | Product flow | Identity, dashboard, editor, reports and live flows use the Go HTTP/SSE boundary. |
-| Live correctness | Live runtime ownership remains separated from React rendering concerns, with snapshot/cursor/reconnect/roster responsibilities isolated. |
+| Live correctness | Live runtime ownership remains separated from React rendering concerns; snapshot/cursor/reconnect/roster plus timer recovery, leaderboard projection and player profile persistence are owned under `modules/live`. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; revision conflict handling follows explicit recovery flows. |
 | Accessibility | Stable routes have accessibility checks and interaction assertions. |
 | Performance | Build budgets and lazy route loading guard against unnecessary frontend growth. |
