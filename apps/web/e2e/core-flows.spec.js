@@ -172,17 +172,22 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
   await expectAccessible(page, "report");
 
-  let delayEditorRead = true;
+  let holdNextPresentationRead = true;
+  let releaseEditorRead;
+  const editorReadHold = new Promise((resolve) => {
+    releaseEditorRead = resolve;
+  });
+
   await page.route(
     `**/api/v1/presentations/${presentationId}`,
     async (route) => {
-      if (route.request().method() !== "GET" || !delayEditorRead) {
+      if (route.request().method() !== "GET" || !holdNextPresentationRead) {
         await route.continue();
         return;
       }
 
-      delayEditorRead = false;
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      holdNextPresentationRead = false;
+      await editorReadHold;
       await route.continue().catch(() => {});
     },
   );
@@ -193,9 +198,14 @@ test("register, create a presentation, and open its report", async ({ page }) =>
         `/api/v1/presentations/${presentationId}` &&
       request.method() === "GET",
   );
-  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.goto(`/manager/panel/${presentationId}`, {
+    waitUntil: "domcontentloaded",
+  });
   await editorRead;
-  await page.goto(`/manager/panel/${presentationId}/report`);
+  await page.goto(`/manager/panel/${presentationId}/report`, {
+    waitUntil: "domcontentloaded",
+  });
+  releaseEditorRead();
   await page.unroute(`**/api/v1/presentations/${presentationId}`);
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
 
