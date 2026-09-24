@@ -70,16 +70,26 @@ Current strengths:
   styling and explicit RTL/LTR boundaries, preserve the documented historical
   Rust/Django contributions while identifying Go as the current backend, and
   avoid unsupported quantitative product claims.
+- The manager dashboard is now a typed presentation-module route. Search/header
+  composition is isolated from presentation mutations, account/logout/password
+  setup behavior is owned by the Identity public boundary, and dashboard launch
+  errors use accessible notice feedback instead of the legacy hand-built modal.
+- Active React route/UI source has no remaining JSX files. The former top-level
+  `pages`, `components` and `utils` compatibility leaves used by these
+  flows have been removed; `modules/live/runtime/protocol.js` remains the
+  deliberate production JavaScript boundary.
 - Browser acceptance covers core marketing/auth/dashboard/report flows,
   manager/player live lifecycle with reconnect, and the principal editor
   draft/conflict flows.
 
 Remaining work:
 
-- complete TypeScript migration of the remaining active JSX/JS boundaries in
-  the dashboard and compatibility utilities;
-- migrate remaining legacy top-level ownership into `app/modules/shared`;
-- continue design-system/RTL convergence on legacy surfaces;
+- migrate the remaining live protocol JavaScript boundary only with isolated
+  live-ordering/cursor/reconnect verification;
+- enforce cross-module public boundaries and introduce dead-code/dependency
+  analysis now that legacy top-level route/UI roots are gone;
+- continue semantic design-system/RTL convergence on mature surfaces as part of
+  bounded product changes;
 - add focused component/API-state tests between domain unit tests and browser
   end-to-end coverage;
 - upgrade major framework/toolchain versions only in isolated compatibility
