@@ -172,9 +172,32 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
   await expectAccessible(page, "report");
 
+  let delayEditorRead = true;
+  await page.route(
+    `**/api/v1/presentations/${presentationId}`,
+    async (route) => {
+      if (route.request().method() !== "GET" || !delayEditorRead) {
+        await route.continue();
+        return;
+      }
+
+      delayEditorRead = false;
+      await new Promise((resolve) => setTimeout(resolve, 750));
+      await route.continue().catch(() => {});
+    },
+  );
+
+  const editorRead = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname ===
+        `/api/v1/presentations/${presentationId}` &&
+      request.method() === "GET",
+  );
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
+  await editorRead;
   await page.goForward();
+  await page.unroute(`**/api/v1/presentations/${presentationId}`);
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
 
   await page.goto("/manager/panel");
