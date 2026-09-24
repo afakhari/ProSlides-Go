@@ -384,7 +384,17 @@ test("live presentation route owns a typed role composition without a legacy bri
   assert.match(flow, /<ManagerPresentationView/);
   assert.match(flow, /<PlayerPresentationView/);
   assert.match(managerView, /useNavigate/);
-  assert.doesNotMatch(managerView, /window\.location\.href/);
+  assert.match(managerView, /\.\.\/manager\/ui\/ManagerJoinPage\.tsx/);
+  assert.match(managerView, /\.\.\/manager\/ui\/ManagerPickAnswerQuestion\.tsx/);
+  assert.match(managerView, /\.\.\/manager\/ui\/ManagerLeaderBoard\.tsx/);
+  assert.doesNotMatch(managerView, /lazyLegacyManagerPage|pages\/presentation\/manager|window\.location\.href/);
+  const managerUiFiles = readdirSync(
+    new URL("../src/modules/live/manager/ui/", import.meta.url),
+  );
+  assert.equal(
+    managerUiFiles.filter((name) => /\.(?:js|jsx)$/.test(name)).length,
+    0,
+  );
   assert.match(playerView, /matchingQuestionResult/);
   assert.match(contract, /interface LivePresentationModel/);
   assert.match(contract, /interface AppPresentationProps/);
@@ -588,21 +598,33 @@ test("design editor shares one typed presentation draft across all preview surfa
   assert.match(draft, /designDraftToUpdate/);
 });
 
-test("manager live surfaces keep Persian accessible copy and no mojibake", () => {
-  const leaderboard = source("src/pages/presentation/manager/LeaderBoard.jsx");
-  const question = source("src/pages/presentation/manager/PickAnswerQuestion.jsx");
-  const join = source("src/pages/presentation/manager/JoinPage.jsx");
+test("manager live UI is module-owned, typed, Persian and contract-driven", () => {
+  const leaderboard = source("src/modules/live/manager/ui/ManagerLeaderBoard.tsx");
+  const question = source("src/modules/live/manager/ui/ManagerPickAnswerQuestion.tsx");
+  const join = source("src/modules/live/manager/ui/ManagerJoinPage.tsx");
+  const dialog = source("src/modules/live/manager/ui/ManagerLeaderboardDialog.tsx");
+  const qr = source("src/modules/live/manager/ui/ManagerQrPanel.tsx");
+  const controls = source("src/modules/live/manager/ui/ManagerControls.tsx");
+  const combined = [leaderboard, question, join, dialog, qr, controls].join("\n");
 
   assert.match(leaderboard, /جدول امتیازات/);
   assert.match(leaderboard, /شرکت‌کننده/);
-  assert.match(leaderboard, /aria-label="بستن جدول امتیازات"/);
-  assert.doesNotMatch(leaderboard, />\s*Leaderboard\s*</);
-  assert.doesNotMatch(leaderboard, /ðŸ|Ø|Ù|â€|ï¸/);
-
   assert.match(question, /alt="تصویر سؤال"/);
-  assert.match(question, /aria-label="بستن جدول امتیازات"/);
-  assert.doesNotMatch(question, /ðŸ|Ø|Ù|â€|ï¸/);
-
-  assert.doesNotMatch(join, /Quiz page \(coming soon\)/);
-  assert.match(join, /در حال آماده‌سازی سؤال/);
+  assert.match(question, /activeTimerIdentityRef/);
+  assert.match(question, /timerIdentity/);
+  assert.doesNotMatch(
+    question,
+    /\[currentQuestion,\s*liveCurrentQuestion,\s*liveMatchesDefinition\]/,
+  );
+  assert.match(join, /در انتظار ورود شرکت‌کنندگان/);
+  assert.match(dialog, /aria-label="بستن جدول امتیازات"/);
+  assert.match(qr, /QRCode\.toDataURL/);
+  assert.match(qr, /<dialog/);
+  assert.match(qr, /showModal\(\)/);
+  assert.match(qr, /onCancel=/);
+  assert.doesNotMatch(qr, /qrserver\.com/);
+  assert.match(controls, /ConfirmDialog/);
+  assert.doesNotMatch(controls, /FOOTER_CHAT_MESSAGES|FOOTER_MENU_ITEMS|FOOTER_REACTIONS/);
+  assert.doesNotMatch(combined, /ðŸ|Ø|Ù|â€|ï¸/);
+  assert.doesNotMatch(combined, /\.\.\/\.\.\/\.\.\/pages|\.\.\/\.\.\/\.\.\/components/);
 });

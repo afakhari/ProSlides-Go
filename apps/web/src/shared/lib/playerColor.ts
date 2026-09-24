@@ -87,5 +87,3 @@ export function isLightColor(hex: unknown): boolean {
 
   return luminance > 0.6;
 }
-
-export default getColorForUser;

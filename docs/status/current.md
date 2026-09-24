@@ -52,21 +52,23 @@ Current strengths:
 - Live snapshot/cursor/reconnect/roster ownership is separated from React
   rendering and ordinary REST caching; typed React providers/hooks expose the
   runtime through `useSyncExternalStore`. The live route entry and role
-  composition are owned by typed `modules/live/routes` boundaries, with
-  manager and player rendering split into dedicated typed views and module-owned
-  runtime audio state. Player resume/persistence and reconnect/join recovery are
-  isolated in a typed participant controller. Manager
-  question/content/leaderboard reconciliation and presenter navigation are
-  likewise isolated in a typed manager controller. Presentation loading is
-  cancellable and uses the shared ordinary REST boundary; the dedicated live
-  transport remains focused on session commands, snapshots, roster and SSE.
+  composition are owned by typed `modules/live/routes` boundaries. Manager
+  presentation UI, presenter controls, local QR generation, lobby, question,
+  leaderboard, content and final-result surfaces are now owned by typed
+  `modules/live/manager/ui` code rather than legacy top-level pages/components.
+  Player resume/persistence and reconnect/join recovery remain isolated in a
+  typed participant controller, while manager question/content/leaderboard
+  reconciliation and presenter navigation remain isolated in a typed manager
+  controller. Presentation loading is cancellable and uses the shared ordinary
+  REST boundary; the dedicated live transport remains focused on session
+  commands, snapshots, roster and SSE.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 
 Remaining work:
 
-- complete TypeScript migration of active JSX/JS boundaries, including the
-  remaining live role-specific UI leaves and shared legacy presentation shells;
+- complete TypeScript migration of active JSX/JS boundaries, beginning with
+  the remaining participant live UI leaves and player compatibility adapter;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser

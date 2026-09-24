@@ -1,10 +1,14 @@
-import { lazy, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Waiting from "../../../pages/loading/LoadingPage";
 import type { ManagerPresentationController } from "../manager/useManagerPresentationController.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import type { LegacyContentSlide, LegacyLiveUser } from "../model/serverData.ts";
+import { ManagerContentSlide } from "../manager/ui/ManagerContentSlide.tsx";
+import { ManagerFinalLeaderboard } from "../manager/ui/ManagerFinalLeaderboard.tsx";
+import { ManagerJoinPage } from "../manager/ui/ManagerJoinPage.tsx";
+import { ManagerLeaderBoard } from "../manager/ui/ManagerLeaderBoard.tsx";
+import { ManagerPickAnswerQuestion } from "../manager/ui/ManagerPickAnswerQuestion.tsx";
 
 type ManagerViewProps = {
   roomId?: string;
@@ -15,30 +19,6 @@ type ManagerViewProps = {
   leaderboardResults: LegacyLiveUser[] | null;
   modalLeaderboardResults: LegacyLiveUser[] | null;
 };
-
-type LegacyManagerPageProps = Record<string, unknown>;
-type LegacyManagerPageModule = {
-  default: ComponentType<LegacyManagerPageProps>;
-};
-
-const lazyLegacyManagerPage = (loader: () => Promise<unknown>) =>
-  lazy(async () => (await loader()) as LegacyManagerPageModule);
-
-const ManagerJoinPage = lazyLegacyManagerPage(
-  () => import("../../../pages/presentation/manager/JoinPage"),
-);
-const ManagerPickAnswerQuestion = lazyLegacyManagerPage(
-  () => import("../../../pages/presentation/manager/PickAnswerQuestion"),
-);
-const ManagerLeaderBoard = lazyLegacyManagerPage(
-  () => import("../../../pages/presentation/manager/LeaderBoard"),
-);
-const ManagerContentSlide = lazyLegacyManagerPage(
-  () => import("../../../pages/presentation/manager/ContentSlide"),
-);
-const FinalLeaderboard = lazyLegacyManagerPage(
-  () => import("../../../pages/presentation/manager/FinalLeaderboard"),
-);
 
 export function ManagerPresentationView({
   roomId,
@@ -56,7 +36,6 @@ export function ManagerPresentationView({
     totalSlides,
     isSynced,
     handleNext,
-    handlePrevious,
     handleEndGame,
   } = controller;
 
@@ -64,10 +43,9 @@ export function ManagerPresentationView({
     return <Waiting message="در حال همگام‌سازی جلسه…" />;
   }
 
-  const sharedProps = {
+  const stageProps = {
     roomId,
     onNext: handleNext,
-    onPrevious: handlePrevious,
     currentSlide,
     totalSlides,
     quiz,
@@ -76,32 +54,33 @@ export function ManagerPresentationView({
 
   switch (view) {
     case "ManagerJoinPage":
-      return <ManagerJoinPage {...sharedProps} />;
+      return (
+        <ManagerJoinPage
+          roomId={roomId}
+          onNext={handleNext}
+          quiz={quiz}
+        />
+      );
     case "ManagerPickAnswerQuestion":
       return (
         <ManagerPickAnswerQuestion
-          {...sharedProps}
+          {...stageProps}
           isRemoteReady={isRemoteReady}
         />
       );
     case "ManagerLeaderBoard":
-      return (
-        <ManagerLeaderBoard
-          {...sharedProps}
-          isRemoteReady={isRemoteReady}
-        />
-      );
+      return <ManagerLeaderBoard {...stageProps} />;
     case "ManagerContentSlide":
       return (
         <ManagerContentSlide
-          {...sharedProps}
+          {...stageProps}
           content={currentContent}
         />
       );
     case "ManagerFinalLeaderboard":
       return (
-        <FinalLeaderboard
-          leaderboardData={modalLeaderboardResults ?? leaderboardResults}
+        <ManagerFinalLeaderboard
+          leaderboardData={modalLeaderboardResults ?? leaderboardResults ?? []}
           quiz={quiz}
           onExit={() => navigate("/manager/panel")}
         />
