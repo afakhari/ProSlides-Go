@@ -15,6 +15,20 @@ test("Tailwind and semantic theme have one CSS source", () => {
   assert.match(indexCss, /--color-danger:/);
 });
 
+test("active React source has no legacy JSX leaves after dashboard migration", () => {
+  const files = readdirSync(new URL("../src", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  }).filter((entry) => entry.isFile());
+
+  assert.deepEqual(
+    files
+      .map((entry) => `${entry.parentPath}/${entry.name}`)
+      .filter((path) => path.endsWith(".jsx")),
+    [],
+  );
+});
+
 test("ordinary REST transport is owned by shared api without legacy utility shims", () => {
   const http = source("src/shared/api/http.ts");
   const utils = readdirSync(new URL("../src/utils/", import.meta.url));
@@ -360,6 +374,8 @@ test("dashboard route is typed, module-owned and keeps identity behind its publi
   assert.match(account, /currentSessionQuery/);
   assert.match(account, /identityApi\.logout/);
   assert.match(prompt, /identityApi\.requestPasswordReset/);
+  assert.match(source("src/modules/identity/model/authStorage.ts"), /setPasswordSetupPrompt/);
+  assert.doesNotMatch(account, /auth\.name|auth\.email/);
   assert.doesNotMatch(dashboard, /identity\/api|utils\/auth|pages\/quiz\/manager|ErrorModal/);
   assert.doesNotMatch(dashboard, /setQuizzes\(|fetchQuizzes\(|new AbortController\(/);
   assert.doesNotMatch(authRoute, /localStorage\.setItem\("auth\.(?:name|email)"/);
@@ -431,6 +447,8 @@ test("live presentation route owns a typed role composition without a legacy bri
   const contract = source("src/modules/live/model/presentation.ts");
 
   assert.match(entry, /from "\.\/PresentationFlow\.tsx"/);
+  assert.match(entry, /\.\.\/ui\/WaitingScreen\.tsx/);
+  assert.doesNotMatch(entry, /pages\/loading\/LoadingPage/);
   assert.doesNotMatch(entry, /AppPresentation as AppPresentationComponent/);
   assert.match(entry, /useState<LivePresentationModel \| null>/);
   assert.match(flow, /AppPresentationProps/);
