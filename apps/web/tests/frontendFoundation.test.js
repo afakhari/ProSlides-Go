@@ -406,6 +406,7 @@ test("live presentation route owns a typed role composition without a legacy bri
   assert.match(playerView, /\.\.\/participant\/ui\/ParticipantLeaderboard\.tsx/);
   assert.match(playerView, /\.\.\/participant\/ui\/ParticipantContentSlide\.tsx/);
   assert.match(playerView, /\.\.\/participant\/ui\/ParticipantWaiting\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/ParticipantFinalResult\.tsx/);
   assert.doesNotMatch(
     playerView,
     /lazyLegacyPlayerPage|pages\/presentation\/player|pages\/loading/,
@@ -473,7 +474,9 @@ test("participant interaction controllers own join retries and answer attempts",
   assert.match(answer, /pendingRef/);
   assert.match(answer, /retryable/);
   assert.doesNotMatch(answer, /localStorage|sessionStorage/);
-  assert.match(attempt, /option_index/);
+  assert.doesNotMatch(answer, /if \(!isConnected\)/);
+  assert.match(attempt, /selected_option_indexes/);
+  assert.match(attempt, /isMultipleChoiceQuestion/);
   assert.doesNotMatch(attempt, /user_id|submit_time/);
 });
 
