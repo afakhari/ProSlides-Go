@@ -34,6 +34,8 @@ export function ManagerLeaderboardDialog({
     }
   }, [isOpen]);
 
+  if (!isOpen) return null;
+
   return (
     <dialog
       ref={dialogRef}
