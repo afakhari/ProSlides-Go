@@ -95,11 +95,15 @@ export function ManagerPickAnswerQuestion({
     questionResults?.question_id != null &&
     String(currentQuestion.question_id) === String(questionResults.question_id);
 
-  const resultOptions = resultMatches
-    ? questionResults?.optionsResult ?? []
-    : [];
+  const resultOptions = useMemo(
+    () => (resultMatches ? questionResults?.optionsResult ?? [] : []),
+    [questionResults, resultMatches],
+  );
 
-  const options = currentQuestion?.options ?? [];
+  const options = useMemo(
+    () => currentQuestion?.options ?? [],
+    [currentQuestion],
+  );
   const votes = useMemo(
     () =>
       options.map((option) => {
@@ -143,10 +147,14 @@ export function ManagerPickAnswerQuestion({
       return;
     }
 
-    await sendNavigation(
-      "next",
-      currentQuestion.show_leaderboard_after ? {} : { slide: nextSlide },
-    );
+    if (currentQuestion.show_leaderboard_after) {
+      await sendNavigation("next");
+      return;
+    }
+
+    if (nextSlide) {
+      await sendNavigation("next", { slide: nextSlide });
+    }
   };
 
   const handleEnd = async () => {
