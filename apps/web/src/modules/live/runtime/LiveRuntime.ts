@@ -779,7 +779,11 @@ export class LiveRuntime {
     const selected = answer.selected_option_indexes.filter(
       (index) => Number.isInteger(index) && index >= 0,
     );
-    if (selected.length !== answer.selected_option_indexes.length) {
+    if (
+      selected.length === 0 ||
+      selected.length !== answer.selected_option_indexes.length ||
+      new Set(selected).size !== selected.length
+    ) {
       return "rejected" as const;
     }
 
