@@ -1,5 +1,6 @@
 import type { LivePresentationModel } from "../../model/presentation.ts";
 import type { LegacyQuestionSlide } from "../../model/serverData.ts";
+import { isMultipleChoiceQuestion } from "../answerAttempt.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
 import { useParticipantAnswerController } from "../useParticipantAnswerController.ts";
 
@@ -16,7 +17,7 @@ export function ParticipantQuestion({
 }: ParticipantQuestionProps) {
   const controller = useParticipantAnswerController({ roomId, question });
   const options = question.options ?? [];
-  const multiple = question.has_multiple !== false;
+  const multiple = isMultipleChoiceQuestion(question);
   const timedOut = controller.timeLeft <= 0;
 
   return (
@@ -31,7 +32,7 @@ export function ParticipantQuestion({
             role="alert"
             className="mb-3 rounded-xl border border-amber-300/30 bg-amber-950/25 px-4 py-3 text-center text-sm"
           >
-            ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.
+            ارتباط زنده با جلسه ناپایدار است؛ ارسال پاسخ همچنان از مسیر HTTP تلاش می‌شود.
           </p>
         ) : null}
 
@@ -122,8 +123,7 @@ export function ParticipantQuestion({
               <button
                 type="button"
                 onClick={() => void controller.retry()}
-                disabled={!controller.isConnected}
-                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl"
               >
                 تلاش دوباره برای ارسال
               </button>
