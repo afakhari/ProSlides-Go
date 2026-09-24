@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 
 type ManagerQrPanelProps = {
@@ -40,16 +40,19 @@ export function ManagerQrPanel({
     };
   }, [isOpen, joinUrl]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+    } else if (!isOpen && dialog.open) {
+      dialog.close();
+    }
+  }, [isOpen]);
+
 
   const copyJoinUrl = async () => {
     try {
@@ -62,21 +65,24 @@ export function ManagerQrPanel({
   };
 
   return (
-    <>
-      <button
-        type="button"
-        className="fixed inset-0 z-40 bg-black/45 sm:hidden"
-        onClick={onClose}
-        aria-label="بستن پنل کد ورود"
-      />
-      <aside
-        id="manager-live-qr-panel"
-        dir="rtl"
-        aria-label="کد ورود شرکت‌کنندگان"
-        className="fixed inset-y-14 start-0 z-40 flex w-full max-w-sm flex-col items-center justify-center gap-5 border-e border-white/10 bg-slate-950/95 p-6 text-white shadow-2xl backdrop-blur-xl sm:w-80"
-      >
+    <dialog
+      ref={dialogRef}
+      id="manager-live-qr-panel"
+      dir="rtl"
+      aria-labelledby="manager-live-qr-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (isOpen) onClose();
+      }}
+      className="fixed inset-y-0 start-0 m-0 h-dvh w-full max-w-sm border-0 border-e border-white/10 bg-slate-950/95 p-0 text-white shadow-2xl backdrop:bg-black/45 backdrop:backdrop-blur-[2px] sm:inset-y-14 sm:h-[calc(100dvh-3.5rem)] sm:w-80 sm:backdrop:bg-black/25"
+    >
+      <div className="relative flex min-h-full flex-col items-center justify-center gap-5 p-6">
         <button
           type="button"
+          autoFocus
           onClick={onClose}
           className="absolute end-4 top-4 grid min-h-11 min-w-11 place-items-center rounded-full bg-white/10 text-2xl hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="بستن کد QR"
@@ -86,7 +92,9 @@ export function ManagerQrPanel({
 
         <div className="text-center">
           <p className="text-sm text-white/65">ورود شرکت‌کنندگان</p>
-          <h2 className="mt-1 text-2xl font-black">اسکن کنید و وارد شوید</h2>
+          <h2 id="manager-live-qr-title" className="mt-1 text-2xl font-black">
+            اسکن کنید و وارد شوید
+          </h2>
         </div>
 
         <div className="grid min-h-72 min-w-72 place-items-center rounded-3xl bg-white p-4 shadow-xl">
@@ -114,10 +122,14 @@ export function ManagerQrPanel({
             {joinUrl.replace(/^https?:\/\//, "")}
           </span>
         </button>
-        <span className="min-h-5 text-xs text-success-soft" role="status" aria-live="polite">
+        <span
+          className="min-h-5 text-xs text-success-soft"
+          role="status"
+          aria-live="polite"
+        >
           {copied ? "لینک ورود کپی شد." : ""}
         </span>
-      </aside>
-    </>
+      </div>
+    </dialog>
   );
 }
