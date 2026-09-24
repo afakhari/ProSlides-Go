@@ -98,6 +98,9 @@ export function useParticipantAnswerController({
   const timerAnchorRef = useRef(Date.now());
   const timerTotalRef = useRef(0);
   const submitInFlightRef = useRef(false);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const [flushEpoch, setFlushEpoch] = useState(0);
 
   const result = useMemo(
     () =>
@@ -111,6 +114,11 @@ export function useParticipantAnswerController({
   );
 
   useEffect(() => {
+    if (retryTimerRef.current != null) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retryAttemptRef.current = 0;
     clearLegacyParticipantAnswerQueue();
     const userId = getPersistedUserIdForRoom(roomId);
     pruneQueuedParticipantAnswers(roomId, questionId, runId, userId);
@@ -201,19 +209,17 @@ export function useParticipantAnswerController({
       runId,
       userId,
       submitAnswer,
-    ).then(({ sentKeys, rejectedKeys }) => {
-      if (cancelled || (sentKeys.length === 0 && rejectedKeys.length === 0)) {
-        return;
-      }
+    ).then(({ sentKeys, rejectedKeys, remaining }) => {
+      if (cancelled) return;
 
       const receipt = readParticipantAnswerReceipt(
         roomId,
         questionId,
         runId,
       );
-      if (!receipt) return;
 
-      if (sentKeys.length > 0) {
+      if (sentKeys.length > 0 && receipt) {
+        retryAttemptRef.current = 0;
         writeParticipantAnswerReceipt(roomId, {
           ...receipt,
           status: "sent",
@@ -222,7 +228,11 @@ export function useParticipantAnswerController({
         setSubmitted(true);
         setSubmitStatus("sent");
         setSubmitMessage("پاسخ شما ارسال شد.");
-      } else if (rejectedKeys.length > 0) {
+        return;
+      }
+
+      if (rejectedKeys.length > 0 && receipt) {
+        retryAttemptRef.current = 0;
         writeParticipantAnswerReceipt(roomId, {
           ...receipt,
           status: "rejected",
@@ -233,13 +243,30 @@ export function useParticipantAnswerController({
         setSubmitMessage(
           "زمان پاسخ‌گویی پایان یافته یا پاسخ توسط جلسه پذیرفته نشد.",
         );
+        return;
+      }
+
+      if (remaining > 0 && retryTimerRef.current == null) {
+        const delay = Math.min(1000 * 2 ** retryAttemptRef.current, 10_000);
+        retryAttemptRef.current += 1;
+        retryTimerRef.current = window.setTimeout(() => {
+          retryTimerRef.current = null;
+          setFlushEpoch((value) => value + 1);
+        }, delay);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [isConnected, questionId, roomId, runId, submitAnswer]);
+  }, [
+    flushEpoch,
+    isConnected,
+    questionId,
+    roomId,
+    runId,
+    submitAnswer,
+  ]);
 
   const isSelected = useCallback(
     (option: LegacyQuestionOption, fallbackIndex: number) =>
@@ -353,8 +380,16 @@ export function useParticipantAnswerController({
 
     setSubmitStatus("queued");
     setSubmitMessage(
-      "اتصال قطع شد؛ پاسخ ذخیره شده و پس از اتصال ارسال می‌شود.",
+      "ارسال موقتاً ناموفق بود؛ پاسخ ذخیره شده و دوباره ارسال می‌شود.",
     );
+    if (retryTimerRef.current == null) {
+      const delay = Math.min(1000 * 2 ** retryAttemptRef.current, 10_000);
+      retryAttemptRef.current += 1;
+      retryTimerRef.current = window.setTimeout(() => {
+        retryTimerRef.current = null;
+        setFlushEpoch((value) => value + 1);
+      }, delay);
+    }
   }, [
     isConnected,
     questionId,
@@ -364,6 +399,15 @@ export function useParticipantAnswerController({
     submitAnswer,
     submitted,
   ]);
+
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current != null) {
+        window.clearTimeout(retryTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (timeLeft > 0 || submitted) return;
