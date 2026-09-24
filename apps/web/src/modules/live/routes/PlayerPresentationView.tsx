@@ -6,11 +6,11 @@ import type {
   LegacyQuestionSlide,
 } from "../model/serverData.ts";
 import { ParticipantContentSlide } from "../participant/ui/ParticipantContentSlide.tsx";
+import { ParticipantFinalResult } from "../participant/ui/ParticipantFinalResult.tsx";
 import { ParticipantJoinPage } from "../participant/ui/ParticipantJoinPage.tsx";
 import { ParticipantLeaderboard } from "../participant/ui/ParticipantLeaderboard.tsx";
 import { ParticipantQuestion } from "../participant/ui/ParticipantQuestion.tsx";
 import { ParticipantWaiting } from "../participant/ui/ParticipantWaiting.tsx";
-import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
 import type { LiveSnapshot } from "../api/types.ts";
 
 type PlayerViewProps = {
@@ -22,7 +22,6 @@ type PlayerViewProps = {
   hasLeaderboard: boolean;
   hasSeenActiveSlide: boolean;
   lastActive: PlayerLastActive | null;
-  profile: StoredPlayerProfile | null;
 };
 
 export function PlayerPresentationView({
@@ -34,7 +33,6 @@ export function PlayerPresentationView({
   hasLeaderboard,
   hasSeenActiveSlide,
   lastActive,
-  profile,
 }: PlayerViewProps) {
   if (currentContent) {
     return (
@@ -55,10 +53,15 @@ export function PlayerPresentationView({
     );
   }
 
+  if (
+    snapshot?.role === "participant" &&
+    snapshot.session.state === "ended"
+  ) {
+    return <ParticipantFinalResult quiz={quiz} />;
+  }
+
   if (hasLeaderboard) {
-    return (
-      <ParticipantLeaderboard quiz={quiz} />
-    );
+    return <ParticipantLeaderboard quiz={quiz} />;
   }
 
   if (
@@ -94,7 +97,7 @@ export function PlayerPresentationView({
     }
   }
 
-  if (hasSeenActiveSlide && profile) {
+  if (hasSeenActiveSlide) {
     return <ParticipantWaiting quiz={quiz} />;
   }
 
