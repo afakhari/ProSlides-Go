@@ -23,7 +23,11 @@ import {
   planLiveEnd,
   planLiveNavigation,
   shouldApplyLiveEvent,
-} from "./protocol.js";
+  type LiveActionName,
+  type LiveCursor,
+  type LiveNavigationCommand,
+  type LiveNavigationSlide,
+} from "./protocol.ts";
 
 export type LiveClientRole = "manager" | "player";
 export type RosterOrder = "joined" | "score";
@@ -47,15 +51,7 @@ export interface LiveRuntimeState {
   isRosterLoading: boolean;
 }
 
-export interface LiveCommandSlide {
-  slide_id?: string | number | null;
-  question_time?: string | number | null;
-  slide_type?: number | null;
-  kind?: string | null;
-  title?: string | null;
-  content_text?: string | null;
-  content_image_url?: string | null;
-}
+export type LiveCommandSlide = LiveNavigationSlide;
 
 export interface LiveAnswerInput {
   request_id?: string;
@@ -87,9 +83,7 @@ export interface LiveRuntimeDependencies {
 }
 
 type Listener = () => void;
-type Cursor = { eventId: number; stateVersion: number };
-
-const INITIAL_CURSOR: Cursor = { eventId: 0, stateVersion: 0 };
+const INITIAL_CURSOR: LiveCursor = { eventId: 0, stateVersion: 0 };
 
 const initialState = (): LiveRuntimeState => ({
   isConnected: false,
@@ -162,7 +156,7 @@ export class LiveRuntime {
 
   private selectedSessionId: string | null = null;
   private snapshotValue: LiveSnapshot | null = null;
-  private cursor: Cursor = { ...INITIAL_CURSOR };
+  private cursor: LiveCursor = { ...INITIAL_CURSOR };
   private rosterCursor = "";
   private rosterOrderValue: RosterOrder = "joined";
   private rosterValue: RosterEntry[] = [];
@@ -267,7 +261,7 @@ export class LiveRuntime {
   };
 
   private storeSnapshot = (next: LiveSnapshot) => {
-    const incoming = liveCursorFromSnapshot(next) as Cursor;
+    const incoming = liveCursorFromSnapshot(next);
     if (
       incoming.eventId < this.cursor.eventId ||
       incoming.stateVersion < this.cursor.stateVersion
@@ -412,7 +406,7 @@ export class LiveRuntime {
 
   private handleEvent = (event: LiveEvent) => {
     if (!shouldApplyLiveEvent(this.cursor, event)) return;
-    this.cursor = advanceLiveCursor(this.cursor, event) as Cursor;
+    this.cursor = advanceLiveCursor(this.cursor, event);
 
     if (event.name === "presence.updated") {
       const delta = Number(recordPayload(event.payload).participant_delta || 0);
@@ -626,7 +620,10 @@ export class LiveRuntime {
     }
   };
 
-  private runAction = async (action: string, slide?: LiveCommandSlide) => {
+  private runAction = async (
+    action: LiveActionName,
+    slide?: LiveCommandSlide,
+  ) => {
     const id = this.selectedSessionId;
     const current = this.snapshotValue;
     if (!id || current?.role !== "manager") return false;
@@ -661,7 +658,7 @@ export class LiveRuntime {
   };
 
   sendNavigation = async (
-    command: string,
+    command: LiveNavigationCommand,
     options: { slide?: LiveCommandSlide } = {},
   ) => {
     if (this.commandInFlight) return false;
@@ -671,7 +668,7 @@ export class LiveRuntime {
         this.snapshotValue?.session?.state,
         command,
         options.slide,
-      ) as string[];
+      );
       for (const action of actions) {
         const applied = await this.runAction(
           action,
@@ -701,7 +698,7 @@ export class LiveRuntime {
     try {
       const actions = planLiveEnd(
         this.snapshotValue?.session?.state,
-      ) as string[];
+      );
       for (const action of actions) {
         if (!(await this.runAction(action))) {
           throw new Error("Live end action was not authorized");
