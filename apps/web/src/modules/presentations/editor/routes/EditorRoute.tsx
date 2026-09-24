@@ -63,6 +63,7 @@ export default function EditorPage() {
   const fetchSequenceRef = useRef(0);
   const routeLoadAbortRef = useRef<AbortController | null>(null);
   const interruptedRouteLoadRef = useRef(false);
+  const interruptedPageHideLoadRef = useRef(false);
 
   const fetchQuiz = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++fetchSequenceRef.current;
@@ -129,11 +130,22 @@ export default function EditorPage() {
 
   useEffect(() => {
     const handlePageHide = () => {
-      routeLoadAbortRef.current?.abort();
+      const controller = routeLoadAbortRef.current;
+      if (!controller || controller.signal.aborted) {
+        interruptedPageHideLoadRef.current = false;
+        return;
+      }
+
+      interruptedPageHideLoadRef.current = true;
+      controller.abort();
       fetchSequenceRef.current += 1;
     };
+
     const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) startRouteLoad();
+      if (!event.persisted || !interruptedPageHideLoadRef.current) return;
+
+      interruptedPageHideLoadRef.current = false;
+      startRouteLoad();
     };
 
     window.addEventListener("pagehide", handlePageHide);
@@ -141,6 +153,7 @@ export default function EditorPage() {
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("pageshow", handlePageShow);
+      interruptedPageHideLoadRef.current = false;
     };
   }, [startRouteLoad]);
 
