@@ -88,18 +88,32 @@ export default function EditorPage() {
     }
   }, [quizId]);
 
-  const startRouteLoad = useCallback(() => {
-    const controller = new AbortController();
-    routeLoadAbortRef.current?.abort();
-    routeLoadAbortRef.current = controller;
-    setLoading(true);
+  const runQuizLoad = useCallback(
+    async (showLoading: boolean): Promise<void> => {
+      const controller = new AbortController();
+      routeLoadAbortRef.current?.abort();
+      routeLoadAbortRef.current = controller;
+      if (showLoading) setLoading(true);
 
-    void fetchQuiz(controller.signal).finally(() => {
-      if (routeLoadAbortRef.current === controller) {
-        routeLoadAbortRef.current = null;
+      try {
+        await fetchQuiz(controller.signal);
+      } finally {
+        if (routeLoadAbortRef.current === controller) {
+          routeLoadAbortRef.current = null;
+        }
       }
-    });
-  }, [fetchQuiz]);
+    },
+    [fetchQuiz],
+  );
+
+  const startRouteLoad = useCallback(() => {
+    void runQuizLoad(true);
+  }, [runQuizLoad]);
+
+  const refreshQuiz = useCallback(
+    () => runQuizLoad(false),
+    [runQuizLoad],
+  );
 
   useEffect(() => {
     interruptedRouteLoadRef.current = false;
@@ -110,6 +124,23 @@ export default function EditorPage() {
       routeLoadAbortRef.current = null;
       interruptedRouteLoadRef.current = false;
       fetchSequenceRef.current += 1;
+    };
+  }, [startRouteLoad]);
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      routeLoadAbortRef.current?.abort();
+      fetchSequenceRef.current += 1;
+    };
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) startRouteLoad();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, [startRouteLoad]);
 
@@ -163,7 +194,7 @@ export default function EditorPage() {
             اتصال را بررسی کنید و دوباره تلاش کنید. تغییر ذخیره‌نشده‌ای در این صفحه ایجاد نشده است.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button type="button" onClick={() => void fetchQuiz()} className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+            <button type="button" onClick={startRouteLoad} className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               تلاش دوباره
             </button>
             <button type="button" onClick={() => navigate("/manager/panel")} className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50">
@@ -180,7 +211,7 @@ export default function EditorPage() {
     <QuestionEditor
       quiz={quiz}
       updateQuiz={updateQuiz}
-      refreshQuiz={fetchQuiz}
+      refreshQuiz={refreshQuiz}
       createdPresentation={(location.state as EditorRouteLocationState | null)?.createdPresentation === true}
     />
   );
