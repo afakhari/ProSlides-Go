@@ -1,0 +1,101 @@
+name: One-time stale branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/branch-cleanup-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.repository == 'afakhari/ProSlides-Go'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Delete audited stale branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "audit/live-runtime-hardening"
+            "chore/docs-and-frontend-foundation-2026-09-22"
+            "chore/enforce-frontend-boundaries"
+            "ci/browser-e2e-gate"
+            "feat/frontend-form-error-foundation-2026-09-22"
+            "feat/frontend-form-error-foundation-main"
+            "feat/go-platform-foundation"
+            "feature/auth-permissions"
+            "fix/api-docker-copy-go-sum"
+            "fix/dashboard-avatar-contrast"
+            "fix/identity-contract-audit"
+            "fix/identity-contract-audit-main"
+            "fix/live-runtime-audit-hardening"
+            "fix/postgres-16-local-volume-compat"
+            "master"
+            "redesign-landing-page"
+            "refactor/dashboard-model-foundation"
+            "refactor/dashboard-query-state"
+            "refactor/editor-audio-convergence"
+            "refactor/editor-content-draft-preview"
+            "refactor/editor-design-draft-preview"
+            "refactor/editor-live-draft-preview"
+            "refactor/editor-question-foundation"
+            "refactor/editor-route-orchestration"
+            "refactor/editor-route-tsx"
+            "refactor/editor-slide-mutations"
+            "refactor/editor-slide-selection-order"
+            "refactor/frontend-design-system-foundation"
+            "refactor/frontend-design-system-main"
+            "refactor/identity-api-boundary"
+            "refactor/identity-auth-composition"
+            "refactor/identity-rhf-forms"
+            "refactor/identity-rhf-state"
+            "refactor/identity-rhf-state-v2"
+            "refactor/live-manager-persian-consistency"
+            "refactor/live-manager-persian-consistency-main"
+            "refactor/live-module-ownership"
+            "refactor/live-projection-boundary"
+            "refactor/live-projection-boundary-v2"
+            "refactor/live-projection-boundary-v3"
+            "refactor/live-runtime-controller"
+            "refactor/live-support-model-boundaries"
+            "refactor/presentation-dashboard-query"
+            "refactor/reports-and-explicit-routing"
+            "refactor/reports-explicit-routing-main"
+            "test/live-manager-participant-lifecycle"
+            "chore/branch-cleanup-once"
+          )
+
+          for branch in "${branches[@]}"; do
+            if [[ "$branch" == "main" || "$branch" == archive/* ]]; then
+              echo "Refusing unsafe cleanup target: $branch" >&2
+              exit 1
+            fi
+
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+      - name: Remove this one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout --detach origin/main
+          git rm .github/workflows/branch-cleanup-once.yml
+          git commit -m "chore: remove one-time branch cleanup workflow"
+          git push origin HEAD:main
