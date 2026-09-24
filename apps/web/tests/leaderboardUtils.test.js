@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasLeaderboardEntries } from "../src/pages/presentation/utils/leaderboardUtils.js";
+import { hasLeaderboardEntries } from "../src/modules/live/model/leaderboard.ts";
 
 test("hasLeaderboardEntries returns false for empty payloads", () => {
   assert.equal(hasLeaderboardEntries(null), false);
