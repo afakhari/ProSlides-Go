@@ -132,7 +132,7 @@ function AccessCodeResolver() {
     );
   }
 
-  return <Waiting />;
+  return <Waiting message="در حال آماده‌سازی جلسه…" />;
 }
 
 function PresentationRouter({
