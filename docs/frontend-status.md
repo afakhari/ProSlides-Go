@@ -17,7 +17,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
 | REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; live presentation reads also use this boundary instead of the SSE/session transport, and one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
-| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters, route entry and role composition are typed, the complete manager presentation UI is module-owned TypeScript, player recovery and manager presentation synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
+| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters and role composition are typed, manager and participant presentation UI are module-owned TypeScript, participant join/recovery/answer persistence use dedicated typed controllers, manager synchronization has a typed controller, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
 | Accessibility | Stable routes have axe/interaction checks and the migrated editor slices use accessible feedback/dialog primitives. |
 | Verification | Browser acceptance includes auth/dashboard/report, manager/player live reconnect, and the principal editor draft/conflict flows. |
@@ -27,7 +27,7 @@ history; reviewed work merged after that commit is active mainline work.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, participant live UI leaves, dashboard and compatibility utilities. | Continue migration by feature/domain boundary, never by extension-only renames. |
+| P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, dashboard and compatibility utilities. | Continue migration by feature/domain boundary, never by extension-only renames. |
 | P1 | Legacy top-level ownership (`pages/components/utils/routes` and compatibility leaves) still coexists with `app/modules/shared`. | Move ownership into the appropriate domain and delete compatibility shims once callers migrate. |
 | P2 | Design-system and logical-direction adoption is incomplete on legacy marketing/live surfaces. | Replace physical direction and direct visual values as those routes migrate. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
@@ -46,15 +46,17 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 ## Next migration focus
 
-The manager live slice now owns its typed presenter chrome, lobby, question,
-leaderboard, content and final-result UI. The highest-value remaining boundaries are:
+Both live roles now own typed module UI. Participant join, room-scoped identity,
+answer queue/receipt persistence, question timing, reconnect recovery,
+leaderboard/content and final-result states are owned under `modules/live`.
+The highest-value remaining boundaries are:
 
-1. migrate participant live UI leaves from legacy `pages` ownership and remove
-   the remaining player-side compatibility adapter;
-2. move landing/team ownership into the marketing module while converging RTL
+1. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
-3. migrate the dashboard and remaining active JSX utilities by domain boundary;
-4. remove emptied legacy roots and add stronger dependency/dead-code tooling.
+2. migrate the dashboard and remaining active JSX utilities by domain boundary;
+3. remove emptied legacy roots and compatibility utilities;
+4. add stronger cross-module dependency and dead-code tooling plus focused
+   component/API-state coverage.
 
 ## Claim boundary
 
