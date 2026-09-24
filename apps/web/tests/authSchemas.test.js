@@ -47,3 +47,30 @@ test("verification codes accept Persian and Arabic-Indic digits canonically", ()
     true,
   );
 });
+
+test("identity password schemas enforce bcrypt bytes and Unicode decimal digits", () => {
+  assert.equal(
+    registerSchema.safeParse({
+      email: "user@example.com",
+      password: "۱۲۳۴۵۶۷۸۹۰۱۲",
+      fullName: "کاربر آزمایشی",
+    }).success,
+    false,
+  );
+  assert.equal(
+    registerSchema.safeParse({
+      email: "user@example.com",
+      password: "é".repeat(37),
+      fullName: "کاربر آزمایشی",
+    }).success,
+    false,
+  );
+  assert.equal(
+    registerSchema.safeParse({
+      email: "user@example.com",
+      password: "é".repeat(36),
+      fullName: "کاربر آزمایشی",
+    }).success,
+    true,
+  );
+});
