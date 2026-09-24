@@ -1,0 +1,256 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import { createRequestId } from "../api/liveApi.ts";
+import type { LegacyQuestionSlide } from "../model/serverData.ts";
+import { resolveQuestionTimer } from "../model/questionTimer.ts";
+import { useLiveSession } from "../react/useLiveSession.ts";
+import {
+  buildParticipantAnswer,
+  questionRunIdentity,
+  toggleParticipantOption,
+  type ParticipantSubmitState,
+} from "./answerAttempt.ts";
+
+type PendingAttempt = {
+  identity: string;
+  answer: NonNullable<ReturnType<typeof buildParticipantAnswer>>;
+};
+
+type ParticipantAnswerController = {
+  selectedIndexes: number[];
+  timeLeft: number;
+  totalSeconds: number;
+  progressPercent: number;
+  submitState: ParticipantSubmitState;
+  submitMessage: string;
+  connectionError: string | null;
+  isConnected: boolean;
+  canSubmit: boolean;
+  isLocked: boolean;
+  toggleOption: (index: number) => void;
+  submit: () => Promise<void>;
+  retry: () => Promise<void>;
+};
+
+export function useParticipantAnswerController({
+  roomId,
+  question,
+}: {
+  roomId?: string;
+  question: LegacyQuestionSlide;
+}): ParticipantAnswerController {
+  const { submitAnswer, isConnected, connectionError } = useLiveSession();
+  const identity = questionRunIdentity(question);
+  const questionRef = useRef(question);
+  questionRef.current = question;
+
+  const pendingRef = useRef<PendingAttempt | null>(null);
+  const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
+  const remainingRef = useRef(0);
+  const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [totalSeconds, setTotalSeconds] = useState(0);
+  const [submitState, setSubmitState] =
+    useState<ParticipantSubmitState>("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+
+  useEffect(() => {
+    const current = questionRef.current;
+    const resolved = resolveQuestionTimer({
+      question: current,
+      roomId,
+      role: "player",
+    });
+
+    timerRef.current = {
+      anchorStartMs: resolved.anchorStartMs,
+      totalSeconds: resolved.totalSeconds,
+    };
+    remainingRef.current = resolved.remainingSeconds;
+    setTimeLeft(resolved.remainingSeconds);
+    setTotalSeconds(resolved.totalSeconds);
+    setSelectedIndexes([]);
+    setSubmitState("idle");
+    setSubmitMessage("");
+    pendingRef.current = null;
+  }, [identity, roomId]);
+
+  useEffect(() => {
+    if (!identity || totalSeconds <= 0) return;
+
+    let frame = 0;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      const elapsed = (Date.now() - timerRef.current.anchorStartMs) / 1000;
+      const remaining = Math.max(
+        0,
+        timerRef.current.totalSeconds - elapsed,
+      );
+      remainingRef.current = remaining;
+      setTimeLeft(remaining);
+      if (remaining > 0) frame = window.requestAnimationFrame(tick);
+    };
+
+    tick();
+    return () => {
+      stopped = true;
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [identity, totalSeconds]);
+
+  useEffect(() => {
+    if (timeLeft > 0) return;
+    if (
+      submitState === "idle" ||
+      submitState === "retryable"
+    ) {
+      pendingRef.current = null;
+      setSubmitState("expired");
+      setSubmitMessage(
+        selectedIndexes.length > 0
+          ? "زمان پاسخ‌گویی پایان یافت و پاسخ ارسال نشد."
+          : "زمان پاسخ‌گویی پایان یافت.",
+      );
+    }
+  }, [selectedIndexes.length, submitState, timeLeft]);
+
+  const sendAttempt = useCallback(
+    async (attempt: PendingAttempt) => {
+      if (
+        !identity ||
+        attempt.identity !== identity ||
+        remainingRef.current <= 0
+      ) {
+        pendingRef.current = null;
+        setSubmitState("expired");
+        setSubmitMessage("زمان پاسخ‌گویی پایان یافت.");
+        return;
+      }
+
+      if (!isConnected) {
+        pendingRef.current = attempt;
+        setSubmitState("retryable");
+        setSubmitMessage(
+          "اتصال موقتاً قطع است. انتخاب شما حفظ شده و پس از اتصال دوباره قابل ارسال است.",
+        );
+        return;
+      }
+
+      setSubmitState("sending");
+      setSubmitMessage("در حال ارسال پاسخ…");
+      const outcome = await submitAnswer(attempt.answer);
+
+      if (outcome === true) {
+        pendingRef.current = null;
+        setSubmitState("sent");
+        setSubmitMessage("پاسخ شما ثبت شد.");
+        return;
+      }
+
+      if (outcome === "rejected") {
+        pendingRef.current = null;
+        setSubmitState("rejected");
+        setSubmitMessage(
+          "پاسخ پذیرفته نشد؛ احتمالاً زمان سؤال پایان یافته است.",
+        );
+        return;
+      }
+
+      pendingRef.current = attempt;
+      setSubmitState("retryable");
+      setSubmitMessage(
+        "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
+      );
+    },
+    [identity, isConnected, submitAnswer],
+  );
+
+  const submit = useCallback(async () => {
+    if (
+      !identity ||
+      selectedIndexes.length === 0 ||
+      remainingRef.current <= 0 ||
+      ["sending", "sent", "rejected", "expired"].includes(submitState)
+    ) {
+      return;
+    }
+
+    const answer = buildParticipantAnswer({
+      question: questionRef.current,
+      selectedIndexes,
+      requestId: createRequestId(),
+    });
+    if (!answer) return;
+
+    const attempt = { identity, answer };
+    pendingRef.current = attempt;
+    await sendAttempt(attempt);
+  }, [identity, selectedIndexes, sendAttempt, submitState]);
+
+  const retry = useCallback(async () => {
+    const attempt = pendingRef.current;
+    if (!attempt) return;
+    await sendAttempt(attempt);
+  }, [sendAttempt]);
+
+  useEffect(() => {
+    if (!isConnected || submitState !== "retryable") return;
+    const attempt = pendingRef.current;
+    if (!attempt || attempt.identity !== identity) return;
+    void sendAttempt(attempt);
+  }, [identity, isConnected, sendAttempt, submitState]);
+
+  const multiple = question.has_multiple !== false;
+  const isLocked = ["sending", "sent", "rejected", "expired"].includes(
+    submitState,
+  );
+
+  const toggleOption = useCallback(
+    (index: number) => {
+      if (isLocked || remainingRef.current <= 0) return;
+      setSelectedIndexes((current) =>
+        toggleParticipantOption(current, index, multiple),
+      );
+      if (submitState === "retryable") {
+        pendingRef.current = null;
+        setSubmitState("idle");
+        setSubmitMessage("");
+      }
+    },
+    [isLocked, multiple, submitState],
+  );
+
+  const progressPercent = useMemo(
+    () =>
+      totalSeconds > 0
+        ? Math.max(0, Math.min(100, (timeLeft / totalSeconds) * 100))
+        : 0,
+    [timeLeft, totalSeconds],
+  );
+
+  return {
+    selectedIndexes,
+    timeLeft,
+    totalSeconds,
+    progressPercent,
+    submitState,
+    submitMessage,
+    connectionError,
+    isConnected,
+    canSubmit:
+      selectedIndexes.length > 0 &&
+      timeLeft > 0 &&
+      !["sending", "sent", "rejected", "expired"].includes(submitState),
+    isLocked,
+    toggleOption,
+    submit,
+    retry,
+  };
+}
