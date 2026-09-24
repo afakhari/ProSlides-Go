@@ -56,10 +56,11 @@ Current strengths:
   presentation UI, presenter controls, local QR generation, lobby, question,
   leaderboard, content and final-result surfaces are now owned by typed
   `modules/live/manager/ui` code rather than legacy top-level pages/components.
-  Participant join, waiting, question, leaderboard and content surfaces are now
-  module-owned TypeScript. Participant recovery, join retry and answer-attempt
-  ownership are separated into typed controllers; answer selection is index
-  based, retries reuse one request ID without a persistent mutation queue, and
+  Participant join, waiting, question, leaderboard, content and final-result
+  surfaces are now module-owned TypeScript. Participant recovery, join retry and
+  answer-attempt ownership are separated into typed controllers; answer
+  selection is index based, answer POSTs remain independent from SSE delivery
+  health, retries reuse one request ID without a persistent mutation queue, and
   participant profiles are scoped per room. Manager
   question/content/leaderboard reconciliation and presenter navigation remain
   isolated in a typed manager controller. Presentation loading is cancellable
