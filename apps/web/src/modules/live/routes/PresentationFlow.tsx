@@ -100,7 +100,6 @@ export function AppPresentation({
           hasLeaderboard={hasLeaderboard}
           hasSeenActiveSlide={playerRecovery.hasSeenActiveSlide}
           lastActive={playerRecovery.lastActive}
-          profile={playerRecovery.profile}
         />
       </PresentationErrorBoundary>
     );
