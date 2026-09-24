@@ -85,6 +85,7 @@ export function AppPresentation({
           controller={managerController}
           isRemoteReady={isRemoteReady}
           currentContent={currentContent}
+          leaderboardResults={leaderboardResults}
           modalLeaderboardResults={modalLeaderboardResults}
         />
       </PresentationErrorBoundary>
@@ -99,7 +100,6 @@ export function AppPresentation({
           quiz={quiz}
           currentQuestion={currentQuestion}
           currentContent={currentContent}
-          leaderboardResults={leaderboardResults}
           questionResults={questionResults}
           partialQuestionResults={partialQuestionResults}
           snapshot={snapshot}
