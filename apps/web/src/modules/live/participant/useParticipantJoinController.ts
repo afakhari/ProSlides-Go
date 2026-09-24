@@ -43,7 +43,6 @@ export function useParticipantJoinController(
     connect,
     joinParticipant,
     isConnected,
-    lastJoinResult,
     connectionError,
   } = useLiveSession();
 
@@ -133,17 +132,6 @@ export function useParticipantJoinController(
       setStatus("connecting");
     });
   }, [avatar, isConnected, joinParticipant, name, roomId, status]);
-
-  useEffect(() => {
-    if (!lastJoinResult) return;
-
-    saveStoredProfile({
-      room_id: roomId,
-      name: lastJoinResult.displayName,
-      avatar: lastJoinResult.avatar || DEFAULT_AVATAR,
-      user_id: lastJoinResult.clientUserId,
-    });
-  }, [lastJoinResult, roomId]);
 
   useEffect(
     () => () => {
