@@ -82,7 +82,9 @@ export const appRouter = createBrowserRouter([
           {
             path: "manager/panel",
             lazy: lazyComponent(() =>
-              import("../../pages/quiz/manager/HomePage.jsx"),
+              import(
+                "../../modules/presentations/dashboard/PresentationDashboard.tsx"
+              ),
             ),
           },
           {
