@@ -368,6 +368,23 @@ test("live presentation route exposes one explicit typed bridge to the legacy fl
   assert.doesNotMatch(entry, /\bany\b/);
 });
 
+test("live manager synchronization is owned by a typed manager controller", () => {
+  const flow = source("src/modules/live/routes/PresentationFlow.jsx");
+  const controller = source(
+    "src/modules/live/manager/useManagerPresentationController.ts",
+  );
+
+  assert.match(flow, /useManagerPresentationController/);
+  assert.doesNotMatch(flow, /setLastManagerQuestionSlideIndex/);
+  assert.doesNotMatch(flow, /setCurrentSlide/);
+  assert.doesNotMatch(flow, /ManagerFinalLeaderboard" \|\| snapshot/);
+  assert.match(controller, /findQuestionSlideIndex/);
+  assert.match(controller, /findContentSlideIndex/);
+  assert.match(controller, /findLeaderboardSlideIndex/);
+  assert.match(controller, /sessionState === "ended"/);
+  assert.match(controller, /Product requirement: presentation flow is forward-only/);
+});
+
 test("live player recovery is owned by a typed participant controller", () => {
   const flow = source("src/modules/live/routes/PresentationFlow.jsx");
   const recovery = source(

@@ -5,11 +5,9 @@ import Waiting from "../../../pages/loading/LoadingPage";
 import FinalLeaderboard from "../../../pages/presentation/manager/FinalLeaderboard";
 import { getPresentation } from "../api/liveApi.ts";
 import { hasLeaderboardEntries } from "../model/leaderboard.ts";
+import { useManagerPresentationController } from "../manager/useManagerPresentationController.ts";
 import {
   EMPTY_PRESENTATION,
-  isContentSlide,
-  isLeaderboardSlide,
-  isQuestionSlide,
   matchingQuestionResult,
 } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
@@ -45,9 +43,6 @@ const PlayerContentSlide = lazy(() =>
 
 /* ------------------------ Main Flow ------------------------ */
 export function AppPresentation({ roomId, role, initialQuizData = null }) {
-  const [data, setData] = useState({ type: "ManagerJoinPage" });
-  const [currentSlide, setCurrentSlide] = useState(1);
-
   // Fetch full quiz once at top-level and transform to internal shape
   const [remoteQuiz, setRemoteQuiz] = useState(initialQuizData || null);
 
@@ -134,7 +129,6 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
       : baseQuiz;
   }, [remoteQuiz, snapshot]);
   const isRemoteReady = role === "player" || !!remoteQuiz;
-  const totalSlides = quiz.slides.length;
 
   // Set quiz music when loaded
   const { setQuizMusic } = useAudio();
@@ -166,207 +160,26 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
     joinParticipant,
   });
 
-  const [managerHasSyncedState, setManagerHasSyncedState] = useState(
-    role !== "manager"
-  );
-  const [lastManagerQuestionSlideIndex, setLastManagerQuestionSlideIndex] =
-    useState(null);
-  useEffect(() => {
-    if (role !== "manager") return;
-    if (managerHasSyncedState) return;
-
-    const hasLiveSignal =
-      !!currentQuestion ||
-      !!currentContent ||
-      hasLeaderboardEntries(leaderboardResults);
-
-    if (hasLiveSignal) {
-      setManagerHasSyncedState(true);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setManagerHasSyncedState(true);
-    }, isConnected ? 2500 : 3500);
-
-    return () => clearTimeout(timer);
-  }, [
-    role,
-    managerHasSyncedState,
+  const {
+    view: managerView,
+    currentSlide,
+    totalSlides,
+    isSynced: managerHasSyncedState,
+    handleNext,
+    handlePrevious,
+    handleEndGame,
+  } = useManagerPresentationController({
+    enabled: role === "manager",
+    quiz,
     currentQuestion,
     currentContent,
     leaderboardResults,
     isConnected,
-  ]);
-
-  // Sync manager slide index with server question id to avoid UI mismatches
-  useEffect(() => {
-    if (role !== "manager") return;
-    if (!currentQuestion || !quiz?.slides?.length) return;
-
-    const idx = quiz.slides.findIndex(
-      (slide) =>
-        String(slide.question_id ?? slide.question?.question_id ?? "") ===
-        String(currentQuestion.question_id ?? "")
-    );
-
-    if (idx >= 0) {
-      setLastManagerQuestionSlideIndex(idx);
-      if (currentSlide !== idx + 1) {
-        setCurrentSlide(idx + 1);
-      }
-    }
-
-    if (data.type !== "ManagerPickAnswerQuestion") {
-      setData({ type: "ManagerPickAnswerQuestion" });
-    }
-  }, [role, currentQuestion, quiz, currentSlide, data.type]);
-
-  useEffect(() => {
-    if (role !== "manager") return;
-    if (!currentContent) return;
-
-    if (quiz?.slides?.length) {
-      const incomingOrder =
-        currentContent.order ??
-        currentContent.slide_order ??
-        currentContent.slideOrder ??
-        null;
-      const idx = quiz.slides.findIndex(
-        (slide) =>
-          slide.slide_id === currentContent.slide_id ||
-          (incomingOrder != null && slide.order === incomingOrder)
-      );
-
-      if (idx >= 0 && currentSlide !== idx + 1) {
-        setCurrentSlide(idx + 1);
-      }
-    }
-
-    if (data.type !== "ManagerContentSlide") {
-      setData({ type: "ManagerContentSlide" });
-    }
-  }, [role, currentContent, quiz, currentSlide, data.type]);
-
-  // Keep the manager route aligned with the authoritative leaderboard state.
-  useEffect(() => {
-    if (role !== "manager" || !hasLeaderboardEntries(leaderboardResults)) {
-      return;
-    }
-
-    if (quiz?.slides?.length) {
-      let nextLeaderboardIdx = -1;
-
-      if (lastManagerQuestionSlideIndex != null) {
-        const questionOrder =
-          quiz.slides[lastManagerQuestionSlideIndex]?.order ?? null;
-        if (questionOrder != null) {
-          nextLeaderboardIdx = quiz.slides.findIndex(
-            (slide, idx) =>
-              idx !== lastManagerQuestionSlideIndex &&
-              !isQuestionSlide(slide) &&
-              slide.order === questionOrder
-          );
-        }
-
-        if (nextLeaderboardIdx < 0) {
-          const immediateIdx = lastManagerQuestionSlideIndex + 1;
-          if (isLeaderboardSlide(quiz.slides[immediateIdx])) {
-            nextLeaderboardIdx = immediateIdx;
-          } else {
-            nextLeaderboardIdx = quiz.slides.findIndex(
-              (slide, idx) =>
-                idx > lastManagerQuestionSlideIndex && isLeaderboardSlide(slide)
-            );
-          }
-        }
-      }
-
-      if (nextLeaderboardIdx < 0) {
-        const currentIdx = Math.max(0, currentSlide - 1);
-        if (isLeaderboardSlide(quiz.slides[currentIdx])) {
-          nextLeaderboardIdx = currentIdx;
-        } else {
-          nextLeaderboardIdx = quiz.slides.findIndex(
-            (slide) => isLeaderboardSlide(slide)
-          );
-        }
-      }
-
-      if (nextLeaderboardIdx >= 0 && currentSlide !== nextLeaderboardIdx + 1) {
-        setCurrentSlide(nextLeaderboardIdx + 1);
-      }
-    }
-
-    setData({ type: "ManagerLeaderBoard" });
-  }, [
-    leaderboardResults,
-    role,
-    quiz,
-    currentSlide,
-    lastManagerQuestionSlideIndex,
-  ]);
-
-  /* ------------------ EXACT NEXT/PREVIOUS FROM YOUR CODE ------------------ */
-
-  const handleNext = () => {
-    if (data.type === "ManagerJoinPage") {
-      if (hasLeaderboardEntries(leaderboardResults)) {
-        setData({ type: "ManagerLeaderBoard" });
-        return;
-      }
-      if (currentContent) {
-        setData({ type: "ManagerContentSlide" });
-        return;
-      }
-      if (currentQuestion) {
-        setData({ type: "ManagerPickAnswerQuestion" });
-        return;
-      }
-      setData({ type: "ManagerPickAnswerQuestion" });
-    } else {
-      // For question -> leaderboard, update index immediately for better presenter UX.
-      const nextSlide = quiz.slides[currentSlide];
-      if (!nextSlide) return;
-      if (isLeaderboardSlide(nextSlide)) {
-        setData({ type: "ManagerLeaderBoard" });
-        setCurrentSlide((prev) => Math.min(prev + 1, totalSlides));
-      } else if (isContentSlide(nextSlide)) {
-        setData({ type: "ManagerContentSlide" });
-        setCurrentSlide((prev) => Math.min(prev + 1, totalSlides));
-      } else if (isQuestionSlide(nextSlide)) {
-        setData({ type: "ManagerPickAnswerQuestion" });
-        setCurrentSlide((prev) => Math.min(prev + 1, totalSlides));
-      }
-    }
-  };
-
-  // Product requirement: presentation flow is forward-only (no previous step).
-  const handlePrevious = () => {};
-
-  const handleEndGame = () => {
-    setData({ type: "ManagerFinalLeaderboard" });
-  };
-
-  /* ---------------- Manager Rendering (EXACT LIKE ORIGINAL) ---------------- */
-  const getManagerRenderType = () => {
-    if (data.type === "ManagerFinalLeaderboard" || snapshot?.session?.state === "ended") {
-      return "ManagerFinalLeaderboard";
-    }
-    if (hasLeaderboardEntries(leaderboardResults)) {
-      return "ManagerLeaderBoard";
-    }
-    if (currentContent) {
-      return "ManagerContentSlide";
-    }
-    if (currentQuestion) {
-      return "ManagerPickAnswerQuestion";
-    }
-    return data.type;
-  };
+    sessionState: snapshot?.session?.state,
+  });
 
   const renderManager = () => {
-    switch (getManagerRenderType()) {
+    switch (managerView) {
       case "ManagerJoinPage":
         return (
           <ManagerJoinPage

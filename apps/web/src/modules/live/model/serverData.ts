@@ -23,7 +23,11 @@ export interface LegacyQuestionOption {
 export interface LegacyQuestionSlide {
   slide_type: 1;
   slide_id?: string | number | null;
+  order?: string | number | null;
   question_id?: string | number | null;
+  question?: {
+    question_id?: string | number | null;
+  };
   run_id?: string | number | null;
   question_text?: string;
   question_title?: string;
@@ -42,6 +46,8 @@ export interface LegacyContentSlide {
   slide_type: 2;
   slide_id?: string | number | null;
   order?: string | number | null;
+  slide_order?: string | number | null;
+  slideOrder?: string | number | null;
   title?: string;
   content_text?: string;
   content_image_url?: string;

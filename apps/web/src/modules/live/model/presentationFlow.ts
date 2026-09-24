@@ -188,3 +188,84 @@ export const matchingQuestionResult = (
 };
 
 export type PresentationSlide = LegacyLiveSlide | null;
+
+export type ManagerPresentationView =
+  | "ManagerJoinPage"
+  | "ManagerPickAnswerQuestion"
+  | "ManagerLeaderBoard"
+  | "ManagerContentSlide"
+  | "ManagerFinalLeaderboard";
+
+export const findQuestionSlideIndex = (
+  slides: PresentationSlide[],
+  questionId: string | number | null | undefined,
+): number => {
+  if (questionId == null) return -1;
+
+  return slides.findIndex(
+    (slide) =>
+      isQuestionSlide(slide) &&
+      String(slide.question_id ?? slide.question?.question_id ?? "") ===
+        String(questionId),
+  );
+};
+
+export const findContentSlideIndex = (
+  slides: PresentationSlide[],
+  content: LegacyContentSlide,
+): number => {
+  const incomingOrder =
+    content.order ?? content.slide_order ?? content.slideOrder ?? null;
+
+  return slides.findIndex(
+    (slide) =>
+      isContentSlide(slide) &&
+      (
+        slide.slide_id === content.slide_id ||
+        (incomingOrder != null && slide.order === incomingOrder)
+      ),
+  );
+};
+
+export const findLeaderboardSlideIndex = ({
+  slides,
+  currentSlide,
+  lastQuestionSlideIndex,
+}: {
+  slides: PresentationSlide[];
+  currentSlide: number;
+  lastQuestionSlideIndex: number | null;
+}): number => {
+  if (lastQuestionSlideIndex != null) {
+    const questionOrder = slides[lastQuestionSlideIndex]?.order ?? null;
+
+    if (questionOrder != null) {
+      const sameOrderIndex = slides.findIndex(
+        (slide, index) =>
+          index !== lastQuestionSlideIndex &&
+          !isQuestionSlide(slide) &&
+          isRecord(slide) &&
+          slide.order === questionOrder,
+      );
+      if (sameOrderIndex >= 0) return sameOrderIndex;
+    }
+
+    const immediateIndex = lastQuestionSlideIndex + 1;
+    if (isLeaderboardSlide(slides[immediateIndex])) {
+      return immediateIndex;
+    }
+
+    const followingIndex = slides.findIndex(
+      (slide, index) =>
+        index > lastQuestionSlideIndex && isLeaderboardSlide(slide),
+    );
+    if (followingIndex >= 0) return followingIndex;
+  }
+
+  const currentIndex = Math.max(0, currentSlide - 1);
+  if (isLeaderboardSlide(slides[currentIndex])) {
+    return currentIndex;
+  }
+
+  return slides.findIndex((slide) => isLeaderboardSlide(slide));
+};
