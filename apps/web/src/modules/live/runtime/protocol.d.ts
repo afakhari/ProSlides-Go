@@ -5,6 +5,13 @@ import type {
   PresentationSlide,
   RosterEntry,
 } from "../api/types";
+import type {
+  LegacyContentSlide,
+  LegacyLiveSlide,
+  LegacyLiveUser,
+  LegacyQuestionSlide,
+  ProjectedServerData,
+} from "../model/serverData";
 
 export interface LiveCursor {
   eventId: number;
@@ -34,22 +41,22 @@ export function planLiveEnd(state: LiveState | undefined): string[];
 export function normalizeLiveSlide(
   activeSlide: unknown,
   session?: Record<string, unknown>,
-): Record<string, unknown> | null;
+): LegacyLiveSlide | null;
 
 export function rosterEntryToLegacy(
   entry: RosterEntry,
   index?: number,
-): Record<string, unknown>;
+): LegacyLiveUser;
 
 export function participantToLegacy(
   participant: Record<string, unknown>,
-): Record<string, unknown>;
+): LegacyLiveUser;
 
 export function presentationSlideToLegacy(
   slide: PresentationSlide,
-): Record<string, unknown> | null;
+): LegacyQuestionSlide | LegacyContentSlide | null;
 
 export function projectLiveSnapshot(
   snapshot: LiveSnapshot | null | undefined,
   roster?: RosterEntry[],
-): Record<string, unknown> | null;
+): ProjectedServerData | null;
