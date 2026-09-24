@@ -6,31 +6,18 @@ import Notice from "../../../shared/ui/Notice.tsx";
 import { identityApi } from "../api/identityApi.ts";
 import { identityErrorMessage } from "../api/identityErrors.ts";
 import { currentSessionQuery } from "../api/sessionQuery.ts";
-import { PASSWORD_PROMPT_FLAG } from "../model/authFlow.ts";
+import {
+  hasPasswordSetupPrompt,
+  setPasswordSetupPrompt,
+} from "../model/authStorage.ts";
 
 type PromptStatus =
   | { tone: "error" | "success"; message: string }
   | null;
 
-const hasPromptFlag = (): boolean => {
-  try {
-    return localStorage.getItem(PASSWORD_PROMPT_FLAG) === "1";
-  } catch {
-    return false;
-  }
-};
-
-const clearPromptFlag = () => {
-  try {
-    localStorage.removeItem(PASSWORD_PROMPT_FLAG);
-  } catch {
-    // Persistence is best-effort. The current page can still hide the prompt.
-  }
-};
-
 export function PasswordSetupPrompt() {
   const { data: user } = useQuery(currentSessionQuery());
-  const [visible, setVisible] = useState(hasPromptFlag);
+  const [visible, setVisible] = useState(hasPasswordSetupPrompt);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<PromptStatus>(null);
 
@@ -54,7 +41,7 @@ export function PasswordSetupPrompt() {
     setStatus(null);
     try {
       await identityApi.requestPasswordReset({ email });
-      clearPromptFlag();
+      setPasswordSetupPrompt(false);
       setVisible(false);
       setStatus({
         tone: "success",
