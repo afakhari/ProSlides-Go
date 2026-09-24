@@ -43,10 +43,13 @@ export function ManagerLeaderBoard({
   const [showQr, setShowQr] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  const sourcePlayers =
-    leaderboardResults && leaderboardResults.length > 0
-      ? leaderboardResults
-      : managerLastLeaderboard ?? [];
+  const sourcePlayers = useMemo(
+    () =>
+      leaderboardResults && leaderboardResults.length > 0
+        ? leaderboardResults
+        : managerLastLeaderboard ?? [],
+    [leaderboardResults, managerLastLeaderboard],
+  );
 
   const players = useMemo<DisplayPlayer[]>(
     () =>
