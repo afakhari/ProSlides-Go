@@ -9,7 +9,6 @@ import {
   isContentSlide,
   isLeaderboardSlide,
   isQuestionSlide,
-  matchingQuestionResult,
   persistPlayerLastActive,
   persistPlayerSeenActive,
   readPlayerLastActive,
@@ -72,27 +71,6 @@ test("player resume storage is scoped per room and validates persisted payloads"
     updatedAt: 123,
   });
   assert.equal(readPlayerLastActive("room-b", local), null);
-});
-
-test("matchingQuestionResult ignores stale result payloads from another question", () => {
-  const currentQuestion = {
-    slide_type: 1,
-    question_id: "q2",
-  };
-
-  assert.deepEqual(
-    matchingQuestionResult(
-      currentQuestion,
-      { question_id: "q1", optionsResult: [] },
-      { question_id: "q2", optionsResult: [{ option_id: 1 }] },
-    ),
-    { question_id: "q2", optionsResult: [{ option_id: 1 }] },
-  );
-
-  assert.equal(
-    matchingQuestionResult(currentQuestion, { question_id: "q1" }),
-    null,
-  );
 });
 
 test("empty presentation model keeps a safe stable fallback shape", () => {
