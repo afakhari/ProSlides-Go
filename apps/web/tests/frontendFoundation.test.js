@@ -357,6 +357,17 @@ test("main identity fields are owned by React Hook Form with focused auth compos
   assert.doesNotMatch(auth, /setFieldErrors\(/);
 });
 
+test("live presentation route exposes one explicit typed bridge to the legacy flow", () => {
+  const entry = source("src/modules/live/routes/PresentationEntry.tsx");
+  const contract = source("src/modules/live/model/presentation.ts");
+
+  assert.match(entry, /AppPresentation as AppPresentationComponent/);
+  assert.match(entry, /useState<LivePresentationModel \| null>/);
+  assert.match(contract, /interface LivePresentationModel/);
+  assert.match(contract, /interface AppPresentationProps/);
+  assert.doesNotMatch(entry, /\bany\b/);
+});
+
 test("live projection is derived directly from authoritative snapshot and roster", () => {
   const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
   const projectionContext = source("src/modules/live/react/ServerDataProvider.tsx");
