@@ -4,7 +4,7 @@ import QRSidebar from "../../../components/QRSidebar";
 import Footer from "../../../components/Footer";
 import { getColorForUser } from "../../../lib/colorUtils";
 import { participantTheme } from "../../../modules/live/participant/theme";
-import { resolveQuestionTimer } from "../utils/questionTimerSync";
+import { resolveQuestionTimer } from "../../../modules/live/model/questionTimer";
 // LeaderboardModal was removed; modal UI now lives on Manager LeaderBoard page
 import { useLiveSession } from "../../../modules/live/react/useLiveSession";
 import { useServerData } from "../../../modules/live/react/useServerData";
