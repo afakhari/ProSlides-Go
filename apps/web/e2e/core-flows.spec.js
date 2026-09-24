@@ -90,7 +90,7 @@ test("landing, protected navigation, and responsive auth layout", async ({ page 
   ).toBe(0);
 
   await page.goto("/manager/panel");
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth\?from=%2Fmanager%2Fpanel$/);
   await expect(page.locator('input[name="email"]')).toBeVisible();
   await expectAccessible(page, "authentication");
   await page.keyboard.press("Tab");
