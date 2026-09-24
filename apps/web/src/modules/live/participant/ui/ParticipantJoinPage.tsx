@@ -31,7 +31,7 @@ export function ParticipantJoinPage({
       <ParticipantShell
         quiz={quiz}
         connected={controller.isConnected}
-        showConnection
+        showConnection={!controller.isJoining}
       >
         <section className="flex flex-1 flex-col items-center justify-center py-5 text-center">
           <div className="w-full rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
