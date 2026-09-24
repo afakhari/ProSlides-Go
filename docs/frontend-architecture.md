@@ -117,9 +117,9 @@ boundaries are router concerns, not duplicated component-local lifecycle
 machines.
 
 Protected-route identity checks use the shared TanStack Query client and typed
-identity API. Loaders may call `ensureQueryData`/prefetch the same query
-definition used by components; they must not create a second session cache or a
-parallel raw-fetch abstraction. Authentication failures redirect explicitly,
+identity API. Loaders may call `fetchQuery`/prefetch the same query definition
+used by components; they must not create a second session cache or a parallel
+raw-fetch abstraction. Authentication failures redirect explicitly,
 while network/server failures surface through route recovery UI rather than
 being misclassified as logout.
 
@@ -196,9 +196,13 @@ mobile keyboard hints rather than coercing identifiers through
 
 ## API boundary
 
-Create one ordinary REST HTTP boundary responsible for:
+Use `shared/api/http.ts` as the single ordinary REST HTTP boundary. Legacy
+top-level API URL/fetch helpers are not compatibility surfaces and must not be
+reintroduced.
 
-- base URL construction;
+The boundary is responsible for:
+
+- base URL construction and rejection of caller-supplied absolute request URLs;
 - credentials and CSRF;
 - JSON parsing;
 - stable typed API errors;
@@ -207,6 +211,11 @@ Create one ordinary REST HTTP boundary responsible for:
 
 Generated OpenAPI types describe transport only. Convert transport DTOs to
 frontend domain models at module boundaries.
+
+The live module keeps its dedicated HTTP/SSE transport because it has a
+protocol-specific base URL, event-stream lifecycle and request-ID/state-version
+semantics. It must not become a second generic REST client for ordinary product
+queries.
 
 ### Error contract
 

@@ -15,7 +15,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Area | Evidence/implementation |
 |---|---|
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
-| REST state | One TanStack Query client exists; reports, presentation dashboard and protected identity session state use typed query boundaries where migrated. |
+| REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
 | Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live` and remains separate from ordinary REST caching and React rendering concerns. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
@@ -29,7 +29,6 @@ history; reviewed work merged after that commit is active mainline work.
 |---:|---|---|
 | P1 | TypeScript migration is incomplete; active JSX/JS remains in marketing, live UI/adapters, dashboard and compatibility utilities. | Continue migration by feature/domain boundary, never by extension-only renames. |
 | P1 | Legacy top-level ownership (`pages/components/utils/routes/contexts`) still coexists with `app/modules/shared`. | Move ownership into the appropriate domain and delete compatibility shims once callers migrate. |
-| P1 | The shared HTTP boundary still depends on legacy `utils/apiFetch`, and some dashboard identity actions still bypass the typed identity API. | Finish API-boundary inversion so `shared/api` owns transport and modules consume typed APIs rather than legacy utilities. |
 | P2 | Design-system and logical-direction adoption is incomplete on legacy marketing/live surfaces. | Replace physical direction and direct visual values as those routes migrate. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
 | P2 | Dependency enforcement covers `shared -> modules/app` and `modules -> app`, but cross-module public API rules and dead-code detection are not yet complete. | Strengthen lint/dependency checks and introduce dead-export/dependency analysis after compatibility shims shrink. |
@@ -47,14 +46,15 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 ## Next migration focus
 
-After the data-router/session slice, the highest-value boundaries are:
+After the HTTP-boundary inversion, the highest-value boundaries are:
 
-1. finish the ordinary HTTP/identity boundary and remove legacy API utilities;
-2. migrate live React adapters and `PresentationEntry` to TypeScript/module
+1. migrate live React adapters and `PresentationEntry` to TypeScript/module
    ownership without changing live protocol semantics;
-3. move landing/team ownership into the marketing module while converging RTL
+2. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
-4. remove emptied legacy roots and add stronger dependency/dead-code tooling.
+3. remove emptied legacy roots and add stronger dependency/dead-code tooling;
+4. add focused component/API-state verification around the remaining
+   high-interaction module boundaries.
 
 ## Claim boundary
 
