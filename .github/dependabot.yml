@@ -4,50 +4,44 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/web"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
       timezone: "Asia/Baku"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
-      web-minor-patch:
+      web-patches:
         applies-to: "version-updates"
         patterns:
           - "*"
         update-types:
-          - "minor"
           - "patch"
 
   - package-ecosystem: "gomod"
     directory: "/apps/api"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:15"
       timezone: "Asia/Baku"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
-      api-minor-patch:
+      api-patches:
         applies-to: "version-updates"
         patterns:
           - "*"
         update-types:
-          - "minor"
           - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:30"
       timezone: "Asia/Baku"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     groups:
-      actions-minor-patch:
+      actions-patches:
         applies-to: "version-updates"
         patterns:
           - "*"
         update-types:
-          - "minor"
           - "patch"
