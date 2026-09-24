@@ -202,7 +202,7 @@ reintroduced.
 
 The boundary is responsible for:
 
-- base URL construction;
+- base URL construction and rejection of caller-supplied absolute request URLs;
 - credentials and CSRF;
 - JSON parsing;
 - stable typed API errors;
