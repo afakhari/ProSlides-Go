@@ -50,6 +50,13 @@ test("reset password schema mirrors the server password constraints", () => {
     }).success,
     true,
   );
+  assert.equal(
+    resetPasswordSchema.safeParse({
+      password: "é".repeat(37),
+      confirmPassword: "é".repeat(37),
+    }).success,
+    false,
+  );
 });
 
 test("API errors expose stable typed metadata and ignore malformed fields", () => {
