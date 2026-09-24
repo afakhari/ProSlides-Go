@@ -1,4 +1,4 @@
-import React, { lazy, useEffect, useRef, useState } from "react";
+import React, { lazy, useEffect, useState } from "react";
 
 import { useAudio } from "../../../contexts/AudioContext.tsx";
 import Waiting from "../../../pages/loading/LoadingPage";
@@ -6,10 +6,14 @@ import FinalLeaderboard from "../../../pages/presentation/manager/FinalLeaderboa
 import { getPresentation } from "../api/liveApi.ts";
 import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import {
-  getPersistedUserIdForRoom,
-  readStoredProfile,
-} from "../model/playerProfileStorage.ts";
+  EMPTY_PRESENTATION,
+  isContentSlide,
+  isLeaderboardSlide,
+  isQuestionSlide,
+  matchingQuestionResult,
+} from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
+import { usePlayerSessionRecovery } from "../participant/usePlayerSessionRecovery.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 import { useServerData } from "../react/useServerData.ts";
 import { presentationSlideToLegacy } from "../runtime/protocol.js";
@@ -39,81 +43,10 @@ const PlayerContentSlide = lazy(() =>
   import("../../../pages/presentation/player/ContentSlide")
 );
 
-const isQuestionSlide = (slide) =>
-  !!slide &&
-  typeof slide === "object" &&
-  (slide.slide_type === 1 || slide.question_id != null);
-
-const hasContentPayload = (slide) =>
-  !!slide &&
-  typeof slide === "object" &&
-  (String(slide.title || "").trim().length > 0 ||
-    String(slide.content_text || "").trim().length > 0 ||
-    String(slide.content_image_url || "").trim().length > 0);
-
-const isLeaderboardSlide = (slide) => {
-  if (!slide || typeof slide !== "object") return false;
-  if (slide.slide_type === 3) return true;
-  if (isQuestionSlide(slide)) return false;
-  // Some payloads encode leaderboard as slide_type=2 without content fields.
-  return slide.slide_type === 2 && !hasContentPayload(slide);
-};
-
-const isContentSlide = (slide) =>
-  !!slide &&
-  typeof slide === "object" &&
-  !isQuestionSlide(slide) &&
-  hasContentPayload(slide);
-
-const EMPTY_PRESENTATION = {
-  quiz_id: "",
-  title: "",
-  access_code: "",
-  background: { color: "#1e1e2e", image: "", text_color: "#111827" },
-  music_url: "",
-  slides: [],
-  text_color: "#111827",
-};
-
 /* ------------------------ Main Flow ------------------------ */
 export function AppPresentation({ roomId, role, initialQuizData = null }) {
-  const playerActiveSlideSeenKey = `presentation_player_seen_active_v1:${String(
-    roomId || "unknown"
-  )}`;
-  const playerLastActiveKey = `presentation_player_last_active_v1:${String(
-    roomId || "unknown"
-  )}`;
-  const getInitialSeenActive = () => {
-    if (role !== "player") return false;
-    try {
-      return sessionStorage.getItem(playerActiveSlideSeenKey) === "1";
-    } catch {
-      return false;
-    }
-  };
-  const getInitialPlayerLastActive = () => {
-    if (role !== "player") return null;
-    try {
-      const raw = localStorage.getItem(playerLastActiveKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return null;
-      if (!["question", "content"].includes(parsed.kind)) return null;
-      if (!parsed.payload || typeof parsed.payload !== "object") return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  };
   const [data, setData] = useState({ type: "ManagerJoinPage" });
   const [currentSlide, setCurrentSlide] = useState(1);
-  const [playerHasSeenActiveSlide, setPlayerHasSeenActiveSlide] = useState(
-    getInitialSeenActive
-  );
-  const [playerLastActive, setPlayerLastActive] = useState(
-    getInitialPlayerLastActive
-  );
-  const playerResumeJoinSentRef = useRef(false);
 
   // Fetch full quiz once at top-level and transform to internal shape
   const [remoteQuiz, setRemoteQuiz] = useState(initialQuizData || null);
@@ -218,54 +151,21 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
     modalLeaderboardResults,
   } = useServerData();
   const hasLeaderboard = hasLeaderboardEntries(leaderboardResults);
-  const playerResumeProfile =
-    role === "player" ? readStoredProfile(roomId) : null;
-  const shouldAutoResumePlayerSession =
-    role === "player" &&
-    !!playerResumeProfile &&
-    playerHasSeenActiveSlide &&
-    !currentQuestion &&
-    !currentContent &&
-    !hasLeaderboard;
-
-  useEffect(() => {
-    if (!shouldAutoResumePlayerSession || !roomId) return;
-    if (isConnected) return;
-
-    try {
-      connect(roomId);
-    } catch (err) {
-      console.error("[PresentationEntry] player resume connect failed:", err);
-    }
-  }, [shouldAutoResumePlayerSession, roomId, isConnected, connect]);
-
-  useEffect(() => {
-    if (!shouldAutoResumePlayerSession) {
-      playerResumeJoinSentRef.current = false;
-      return;
-    }
-    if (!isConnected) {
-      playerResumeJoinSentRef.current = false;
-      return;
-    }
-    if (playerResumeJoinSentRef.current) return;
-    if (!playerResumeProfile) return;
-
-    playerResumeJoinSentRef.current = true;
-    void joinParticipant({
-        name: playerResumeProfile.name,
-        avatar: playerResumeProfile.avatar,
-        clientUserId: getPersistedUserIdForRoom(roomId),
-    }).then((ok) => {
-      if (ok !== true) playerResumeJoinSentRef.current = false;
-    });
-  }, [
-    shouldAutoResumePlayerSession,
-    isConnected,
-    playerResumeProfile,
+  const {
+    hasSeenActiveSlide: playerHasSeenActiveSlide,
+    lastActive: playerLastActive,
+    profile: playerResumeProfile,
+  } = usePlayerSessionRecovery({
+    enabled: role === "player",
     roomId,
+    currentQuestion,
+    currentContent,
+    hasLeaderboard,
+    isConnected,
+    connect,
     joinParticipant,
-  ]);
+  });
+
   const [managerHasSyncedState, setManagerHasSyncedState] = useState(
     role !== "manager"
   );
@@ -580,16 +480,11 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
       return <PlayerContentSlide roomId={roomId} quiz={quiz} content={currentContent} />;
     }
     if (currentQuestion) {
-      const hasMatchingQuestion = (candidate) =>
-        !!candidate &&
-        candidate.question_id != null &&
-        String(candidate.question_id) === String(currentQuestion.question_id);
-      let result = null;
-      if (hasMatchingQuestion(questionResults)) {
-        result = questionResults;
-      } else if (hasMatchingQuestion(partialQuestionResults)) {
-        result = partialQuestionResults;
-      }
+      const result = matchingQuestionResult(
+        currentQuestion,
+        questionResults,
+        partialQuestionResults,
+      );
       return (
         <PlayerPickAnswerQuestion
           roomId={roomId}
