@@ -50,15 +50,22 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /dir="auto"/);
 });
 
-test("protected manager routes share one persistent shell and recoverable error boundary", () => {
-  const app = source("src/App.jsx");
+test("protected manager routes use the data router and one cached session boundary", () => {
+  const router = source("src/app/router/router.tsx");
+  const loader = source("src/app/router/managerSessionLoader.ts");
   const shell = source("src/app/layouts/ProtectedManagerShell.tsx");
+  const sessionQuery = source("src/modules/identity/api/sessionQuery.ts");
 
-  assert.match(app, /<Route element={<ProtectedManagerShell \/>}>/);
+  assert.match(router, /createBrowserRouter/);
+  assert.match(router, /loader: requireManagerSession/);
+  assert.match(router, /Component: ProtectedManagerShell/);
+  assert.match(router, /ErrorBoundary: ManagerRouteErrorBoundary/);
   assert.match(shell, /<Outlet \/>/);
-  assert.match(shell, /ManagerRouteErrorBoundary/);
-  assert.match(shell, /previousProps\.resetKey !== this\.props\.resetKey/);
-  assert.match(shell, /fa\.managerShell\.routeErrorTitle/);
+  assert.doesNotMatch(shell, /RequireSession|apiFetch|Suspense/);
+  assert.match(loader, /queryClient\.ensureQueryData\(currentSessionQuery\(\)\)/);
+  assert.match(loader, /error\.status === 401 \|\| error\.status === 403/);
+  assert.match(sessionQuery, /queryFn: \(\{ signal \}\)/);
+  assert.match(sessionQuery, /getCurrentUser\(\{ signal \}\)/);
 });
 
 test("typed Persian catalog is consumed by manager dashboard editor and share", () => {
@@ -110,7 +117,7 @@ test("F3 owns presentation UI and keeps slide mutation selection and reorder beh
 });
 
 test("F4 keeps the app router compositional and mock fixtures out of production", () => {
-  const app = source("src/App.jsx");
+  const router = source("src/app/router/router.tsx");
   const productionFiles = readdirSync(new URL("../src", import.meta.url), {
     recursive: true,
     withFileTypes: true,
@@ -121,9 +128,10 @@ test("F4 keeps the app router compositional and mock fixtures out of production"
     .map((entry) => readFileSync(`${entry.parentPath}/${entry.name}`, "utf8"))
     .join("\n");
 
-  assert.ok(app.split("\n").length < 100);
-  assert.equal((app.match(/path="\*"/g) || []).length, 1);
-  assert.doesNotMatch(app, /AppPresentation|AccessCodeResolver|LiveMessageAdapter/);
+  assert.ok(router.split("\n").length < 170);
+  assert.equal((router.match(/path: "\*"/g) || []).length, 1);
+  assert.match(router, /lazy: lazyPresentationEntry/);
+  assert.doesNotMatch(router, /AppPresentation|AccessCodeResolver|LiveMessageAdapter/);
   assert.doesNotMatch(productionSource, /from\s+["'][^"']*data\/mockData["']/);
   assert.match(source("src/routes/PresentationEntry.jsx"), /remoteQuiz \?\? EMPTY_PRESENTATION/);
 });
@@ -182,18 +190,18 @@ test("shared design primitives use the ProSlides token vocabulary and accessible
 
 
 test("manager and player routes are explicit and reports use the typed query boundary", () => {
-  const app = source("src/App.jsx");
+  const router = source("src/app/router/router.tsx");
   const report = source("src/modules/reports/routes/ReportRoute.tsx");
   const reportApi = source("src/modules/reports/api/reportApi.ts");
   const reportQueries = source("src/modules/reports/api/reportQueries.ts");
   const provider = source("src/app/providers/AppQueryProvider.tsx");
   const queryClient = source("src/app/providers/queryClient.ts");
 
-  assert.match(app, /path="\/manager\/panel"/);
-  assert.match(app, /path="\/manager\/panel\/:presentationId\/report"/);
-  assert.match(app, /path="\/manager\/presentation\/:roomId"/);
-  assert.match(app, /path="\/player\/presentation\/:roomId"/);
-  assert.doesNotMatch(app, /:\s*role|\/:role/);
+  assert.match(router, /path: "manager\/panel"/);
+  assert.match(router, /path: "manager\/panel\/:presentationId\/report"/);
+  assert.match(router, /path: "manager\/presentation\/:roomId"/);
+  assert.match(router, /path: "player\/presentation\/:roomId"/);
+  assert.doesNotMatch(router, /:\s*role|\/:role/);
 
   assert.match(report, /useInfiniteQuery/);
   assert.match(report, /useQuery/);
