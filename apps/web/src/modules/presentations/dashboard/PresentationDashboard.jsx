@@ -573,18 +573,7 @@ export default function QuizManager({ onNewPresentation }) {
     setPasswordPromptLoading(true);
     setPasswordPromptStatus(null);
     try {
-      const response = await apiFetch("/auth/password/reset", {
-        method: "POST",
-        auth: false,
-        json: { email },
-      });
-      if (!response.ok) {
-        throw new Error(
-          response.status === 503
-            ? "سامانه ارسال ایمیل در حال حاضر در دسترس نیست."
-            : "ارسال لینک تعیین رمز عبور انجام نشد."
-        );
-      }
+      await identityApi.requestPasswordReset({ email });
       clearPasswordPrompt();
       setStatusMessage({
         type: "success",
