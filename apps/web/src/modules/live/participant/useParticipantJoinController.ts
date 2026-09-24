@@ -38,6 +38,7 @@ export function useParticipantJoinController(
   const retryAttemptRef = useRef(0);
   const retryTimerRef = useRef<number | null>(null);
   const joinInFlightRef = useRef(false);
+  const joinAttemptRef = useRef(0);
 
   const {
     connect,
@@ -53,6 +54,7 @@ export function useParticipantJoinController(
     setStatus(restored ? "connecting" : "editing");
     retryAttemptRef.current = 0;
     joinInFlightRef.current = false;
+    joinAttemptRef.current += 1;
     if (retryTimerRef.current != null) {
       window.clearTimeout(retryTimerRef.current);
       retryTimerRef.current = null;
@@ -106,6 +108,7 @@ export function useParticipantJoinController(
     if (!cleanName) return;
 
     joinInFlightRef.current = true;
+    const attempt = ++joinAttemptRef.current;
     setStatus("joining");
 
     void joinParticipant({
@@ -113,6 +116,7 @@ export function useParticipantJoinController(
       avatar,
       clientUserId: getPersistedUserIdForRoom(roomId) ?? undefined,
     }).then((outcome) => {
+      if (attempt !== joinAttemptRef.current) return;
       joinInFlightRef.current = false;
 
       if (outcome === true) {
@@ -174,6 +178,7 @@ export function useParticipantJoinController(
   };
 
   const editProfile = () => {
+    joinAttemptRef.current += 1;
     joinInFlightRef.current = false;
     setValidation("");
     setStatus("editing");
