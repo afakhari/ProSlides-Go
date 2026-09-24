@@ -22,23 +22,31 @@ export type LivePresentationModelState = {
   isRemoteReady: boolean;
 };
 
-const toLivePresentationModel = (
+const stringValue = (value: unknown, fallback = ""): string =>
+  typeof value === "string" ? value : fallback;
+
+export const toLivePresentationModel = (
   presentation: Awaited<ReturnType<typeof getPresentationForLive>>,
-): LivePresentationModel => ({
-  quiz_id: presentation.id,
-  title: presentation.title,
-  access_code: presentation.access_code || "",
-  background: {
-    color: presentation.settings?.background_color || "#1e1e2e",
-    image: presentation.settings?.background_image_url || "",
-    text_color: presentation.settings?.text_color || "#111827",
-  },
-  music_url: presentation.settings?.music_url || "",
-  slides: Array.isArray(presentation.slides)
-    ? presentation.slides.map(presentationSlideToLegacy)
-    : [],
-  text_color: presentation.settings?.text_color || "#111827",
-});
+): LivePresentationModel => {
+  const settings = presentation.settings ?? {};
+  const textColor = stringValue(settings.text_color, "#111827");
+
+  return {
+    quiz_id: presentation.id,
+    title: presentation.title,
+    access_code: presentation.access_code || "",
+    background: {
+      color: stringValue(settings.background_color, "#1e1e2e"),
+      image: stringValue(settings.background_image_url),
+      text_color: textColor,
+    },
+    music_url: stringValue(settings.music_url),
+    slides: Array.isArray(presentation.slides)
+      ? presentation.slides.map(presentationSlideToLegacy)
+      : [],
+    text_color: textColor,
+  };
+};
 
 export function useLivePresentationModel({
   roomId,
