@@ -51,6 +51,7 @@ export function useParticipantAnswerController({
   questionRef.current = question;
 
   const pendingRef = useRef<PendingAttempt | null>(null);
+  const wasConnectedRef = useRef(isConnected);
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
@@ -201,7 +202,10 @@ export function useParticipantAnswerController({
   }, [sendAttempt]);
 
   useEffect(() => {
-    if (!isConnected || submitState !== "retryable") return;
+    const reconnected = !wasConnectedRef.current && isConnected;
+    wasConnectedRef.current = isConnected;
+    if (!reconnected || submitState !== "retryable") return;
+
     const attempt = pendingRef.current;
     if (!attempt || attempt.identity !== identity) return;
     void sendAttempt(attempt);
