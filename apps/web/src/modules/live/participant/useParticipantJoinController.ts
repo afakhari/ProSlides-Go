@@ -34,6 +34,7 @@ export function useParticipantJoinController(
     restored ? "connecting" : "editing",
   );
   const [validation, setValidation] = useState("");
+  const [retryEpoch, setRetryEpoch] = useState(0);
   const retryAttemptRef = useRef(0);
   const retryTimerRef = useRef<number | null>(null);
   const joinInFlightRef = useRef(false);
@@ -82,14 +83,14 @@ export function useParticipantJoinController(
       retryAttemptRef.current += 1;
       retryTimerRef.current = window.setTimeout(() => {
         retryTimerRef.current = null;
-        setStatus("connecting");
+        setRetryEpoch((value) => value + 1);
       }, delay);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [connect, isConnected, roomId, status]);
+  }, [connect, isConnected, retryEpoch, roomId, status]);
 
   useEffect(() => {
     if (
