@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createClientUserId,
@@ -56,7 +56,7 @@ export function useParticipantJoinController(
     [],
   );
 
-  const scheduleRetry = () => {
+  const scheduleRetry = useCallback(() => {
     if (retryBlockedRef.current) return;
     retryBlockedRef.current = true;
     const delay = Math.min(1000 * 2 ** attempt, 10_000);
@@ -64,7 +64,7 @@ export function useParticipantJoinController(
       retryBlockedRef.current = false;
       setAttempt((value) => value + 1);
     }, delay);
-  };
+  }, [attempt]);
 
   useEffect(() => {
     const next = readStoredProfile(roomId);
@@ -93,7 +93,15 @@ export function useParticipantJoinController(
     return () => {
       cancelled = true;
     };
-  }, [attempt, connect, isConnected, isEditing, isJoining, roomId]);
+  }, [
+    attempt,
+    connect,
+    isConnected,
+    isEditing,
+    isJoining,
+    roomId,
+    scheduleRetry,
+  ]);
 
   useEffect(() => {
     if (
@@ -143,6 +151,7 @@ export function useParticipantJoinController(
     name,
     roomId,
     attempt,
+    scheduleRetry,
   ]);
 
   useEffect(() => {
