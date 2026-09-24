@@ -191,7 +191,10 @@ export const quizService = {
   getLatestSession: (id: string, options?: RequestOptions) => request<Record<string, unknown>>(`/presentations/${id}/latest-session`, options),
 
   getQuiz: async (quizID: string, options?: RequestOptions) => presentationToEditor(await request<PresentationDTO>(`/presentations/${quizID}`, options)),
-  getEditorQuiz: async (quizID: string) => presentationToEditor(await request<PresentationDTO>(`/presentations/${quizID}`)),
+  getEditorQuiz: async (quizID: string, options?: RequestOptions) =>
+    presentationToEditor(
+      await request<PresentationDTO>(`/presentations/${quizID}`, options),
+    ),
   updateQuiz: updatePresentation,
   updateQuizMusic: (quizID: string, musicURL: string, revision?: number) => updatePresentation(quizID, { music_url: musicURL || "", revision }),
   updateQuizBackground: (quizID: string, data: PresentationUpdate, revision?: number) => updatePresentation(quizID, { ...data, revision: revision ?? data.revision }),
