@@ -1,21 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { AudioProvider } from "../../../contexts/AudioContext.tsx";
+import { AudioProvider } from "../react/AudioProvider.tsx";
 import Waiting from "../../../pages/loading/LoadingPage";
 import {
   LiveAPIError,
   resolveLiveSession,
 } from "../api/liveApi.ts";
 import type { LiveSessionLocator } from "../api/types.ts";
-import type {
-  AppPresentationComponent,
-  LivePresentationModel,
-} from "../model/presentation.ts";
+import type { LivePresentationModel } from "../model/presentation.ts";
 import type { LiveClientRole } from "../runtime/LiveRuntime.ts";
 import { LiveSessionProvider } from "../react/LiveSessionProvider.tsx";
 import { ServerDataProvider } from "../react/ServerDataProvider.tsx";
-import { AppPresentation } from "./PresentationFlow.jsx";
+import { AppPresentation } from "./PresentationFlow.tsx";
 
 type PresentationEntryMode = "presentation" | "accessCode";
 
@@ -25,9 +22,6 @@ type PresentationEntryProps = {
 };
 
 type ResolveStatus = "loading" | "error" | "success";
-
-const TypedAppPresentation =
-  AppPresentation as AppPresentationComponent;
 
 export default function PresentationEntry({
   mode,
@@ -114,7 +108,7 @@ function AccessCodeResolver() {
           role="player"
         >
           <ServerDataProvider>
-            <TypedAppPresentation
+            <AppPresentation
               roomId={resolvedData.session_id}
               role="player"
               initialQuizData={resolvedMeta}
@@ -144,7 +138,7 @@ function PresentationRouter({
         role={role}
       >
         <ServerDataProvider>
-          <TypedAppPresentation roomId={roomId} role={role} />
+          <AppPresentation roomId={roomId} role={role} />
         </ServerDataProvider>
       </LiveSessionProvider>
     </AudioProvider>
