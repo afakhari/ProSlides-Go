@@ -69,9 +69,7 @@ export function ManagerPresentationView({
         />
       );
     case "ManagerLeaderBoard":
-      return (
-<ManagerLeaderBoard {...stageProps} />
-      );
+      return <ManagerLeaderBoard {...stageProps} />;
     case "ManagerContentSlide":
       return (
         <ManagerContentSlide
