@@ -63,7 +63,8 @@ export default function EditorPage() {
   const fetchSequenceRef = useRef(0);
   const routeLoadAbortRef = useRef<AbortController | null>(null);
   const interruptedRouteLoadRef = useRef(false);
-  const interruptedPageHideLoadRef = useRef(false);
+  const interruptedPageHideLoadRef = useRef<boolean | null>(null);
+  const activeLoadShowsSkeletonRef = useRef(false);
 
   const fetchQuiz = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++fetchSequenceRef.current;
@@ -94,6 +95,7 @@ export default function EditorPage() {
       const controller = new AbortController();
       routeLoadAbortRef.current?.abort();
       routeLoadAbortRef.current = controller;
+      activeLoadShowsSkeletonRef.current = showLoading;
       if (showLoading) setLoading(true);
 
       try {
@@ -101,6 +103,7 @@ export default function EditorPage() {
       } finally {
         if (routeLoadAbortRef.current === controller) {
           routeLoadAbortRef.current = null;
+          activeLoadShowsSkeletonRef.current = false;
         }
       }
     },
@@ -132,20 +135,21 @@ export default function EditorPage() {
     const handlePageHide = () => {
       const controller = routeLoadAbortRef.current;
       if (!controller || controller.signal.aborted) {
-        interruptedPageHideLoadRef.current = false;
+        interruptedPageHideLoadRef.current = null;
         return;
       }
 
-      interruptedPageHideLoadRef.current = true;
+      interruptedPageHideLoadRef.current = activeLoadShowsSkeletonRef.current;
       controller.abort();
       fetchSequenceRef.current += 1;
     };
 
     const handlePageShow = (event: PageTransitionEvent) => {
-      if (!event.persisted || !interruptedPageHideLoadRef.current) return;
+      const resumeWithLoading = interruptedPageHideLoadRef.current;
+      if (!event.persisted || resumeWithLoading === null) return;
 
-      interruptedPageHideLoadRef.current = false;
-      startRouteLoad();
+      interruptedPageHideLoadRef.current = null;
+      void runQuizLoad(resumeWithLoading);
     };
 
     window.addEventListener("pagehide", handlePageHide);
@@ -153,9 +157,9 @@ export default function EditorPage() {
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("pageshow", handlePageShow);
-      interruptedPageHideLoadRef.current = false;
+      interruptedPageHideLoadRef.current = null;
     };
-  }, [startRouteLoad]);
+  }, [runQuizLoad]);
 
   useEffect(() => {
     const nextPath = navigation.location?.pathname;
