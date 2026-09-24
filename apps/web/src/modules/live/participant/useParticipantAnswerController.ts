@@ -82,6 +82,12 @@ export function useParticipantAnswerController({
   const { questionResults, partialQuestionResults } = useServerData();
   const { submitAnswer, isConnected, snapshot } = useLiveSession();
 
+  const participantId =
+    snapshot?.role === "participant" ? snapshot.participant.id : null;
+  const queueOwnerId = useMemo(
+    () => getPersistedUserIdForRoom(roomId) ?? participantId,
+    [participantId, roomId],
+  );
   const questionId = question.question_id;
   const runId = normalizeRunId(question.run_id);
   const identity = `${String(roomId ?? "unknown")}:${String(
@@ -120,9 +126,6 @@ export function useParticipantAnswerController({
     }
     retryAttemptRef.current = 0;
     clearLegacyParticipantAnswerQueue();
-    const queueOwnerId =
-      getPersistedUserIdForRoom(roomId) ??
-      (snapshot?.role === "participant" ? snapshot.participant.id : null);
     pruneQueuedParticipantAnswers(
       roomId,
       questionId,
@@ -147,7 +150,7 @@ export function useParticipantAnswerController({
     );
     if (receipt) {
       setSelectedIndexes(receipt.selected_option_indexes);
-      setSubmitted(receipt.status !== "rejected");
+      setSubmitted(true);
       setSubmitStatus(receipt.status);
       setSubmitMessage(
         receipt.status === "sent"
@@ -180,7 +183,7 @@ export function useParticipantAnswerController({
     setSubmitted(false);
     setSubmitStatus("idle");
     setSubmitMessage("");
-  }, [identity, questionId, roomId, runId, snapshot]);
+  }, [identity, questionId, queueOwnerId, roomId, runId]);
 
   useEffect(() => {
     let frame = 0;
@@ -207,9 +210,6 @@ export function useParticipantAnswerController({
     if (!isConnected) return;
 
     let cancelled = false;
-    const queueOwnerId =
-      getPersistedUserIdForRoom(roomId) ??
-      (snapshot?.role === "participant" ? snapshot.participant.id : null);
     if (!queueOwnerId) return;
 
     void flushQueuedParticipantAnswers(
@@ -247,7 +247,7 @@ export function useParticipantAnswerController({
           status: "rejected",
           updated_at: Date.now(),
         });
-        setSubmitted(false);
+        setSubmitted(true);
         setSubmitStatus("rejected");
         setSubmitMessage(
           "زمان پاسخ‌گویی پایان یافته یا پاسخ توسط جلسه پذیرفته نشد.",
@@ -274,7 +274,7 @@ export function useParticipantAnswerController({
     questionId,
     roomId,
     runId,
-    snapshot,
+    queueOwnerId,
     submitAnswer,
   ]);
 
@@ -311,9 +311,6 @@ export function useParticipantAnswerController({
       return;
     }
 
-    const queueOwnerId =
-      getPersistedUserIdForRoom(roomId) ??
-      (snapshot?.role === "participant" ? snapshot.participant.id : null);
     if (!queueOwnerId) {
       setSubmitStatus("missing_identity");
       setSubmitMessage(
@@ -408,7 +405,7 @@ export function useParticipantAnswerController({
     roomId,
     runId,
     selectedIndexes,
-    snapshot,
+    queueOwnerId,
     submitAnswer,
     submitted,
   ]);
