@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { formatPersianNumber } from "../../../../shared/forms/numbers.ts";
 import { presentationTheme } from "../../../../shared/styles/presentationTheme.ts";
-import { getColorForUser } from "../../../../lib/colorUtils";
+import { getColorForUser } from "../../../../shared/lib/playerColor.ts";
 import type { EditorSlide } from "../../model/editor.ts";
 import { useOptionalDesignDraft } from "../model/useDesignDraftContext.ts";
 
