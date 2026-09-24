@@ -54,3 +54,10 @@ Use [docs/README.md](docs/README.md) as the documentation authority map.
 Deployment and operations procedures are in
 [deployment-runbook.md](docs/deployment-runbook.md) and
 [operations-runbook.md](docs/operations-runbook.md).
+
+## Security
+
+Report potential vulnerabilities through GitHub's private vulnerability
+reporting flow. Do not disclose vulnerability details in public issues or pull
+requests. See the [security policy](.github/SECURITY.md) for reporting and
+responsible-disclosure guidance.
