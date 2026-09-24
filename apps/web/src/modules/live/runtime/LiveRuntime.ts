@@ -60,11 +60,7 @@ export interface LiveCommandSlide {
 export interface LiveAnswerInput {
   request_id?: string;
   question_id: string | number;
-  options_result?: Array<{
-    picked?: boolean;
-    option_index?: string | number;
-    option_id?: string | number;
-  }>;
+  selected_option_indexes: number[];
 }
 
 interface RuntimeStorage {
@@ -780,12 +776,12 @@ export class LiveRuntime {
     const id = this.selectedSessionId;
     if (!id || !answer) return false;
 
-    const selected = (answer.options_result || [])
-      .map((option, index) => ({ option, index }))
-      .filter(({ option }) => option.picked)
-      .map(({ option, index }) =>
-        Number(option.option_index ?? option.option_id ?? index),
-      );
+    const selected = answer.selected_option_indexes.filter(
+      (index) => Number.isInteger(index) && index >= 0,
+    );
+    if (selected.length !== answer.selected_option_indexes.length) {
+      return "rejected" as const;
+    }
 
     try {
       await this.transport.submitLiveAnswer(id, {
