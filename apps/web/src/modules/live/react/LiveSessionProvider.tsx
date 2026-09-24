@@ -1,16 +1,25 @@
-/* eslint-disable react-refresh/only-export-components */
 import {
-  createContext,
   useEffect,
   useMemo,
   useSyncExternalStore,
+  type ReactNode,
 } from "react";
 
-import { createLiveRuntime } from "../runtime/LiveRuntime";
+import {
+  createLiveRuntime,
+  type LiveClientRole,
+} from "../runtime/LiveRuntime.ts";
+import { LiveSessionContext } from "./liveSessionContext.ts";
 
-export const LiveSessionContext = createContext(null);
+type LiveSessionProviderProps = {
+  children: ReactNode;
+  role?: LiveClientRole;
+};
 
-export const LiveSessionProvider = ({ children, role = "manager" }) => {
+export function LiveSessionProvider({
+  children,
+  role = "manager",
+}: LiveSessionProviderProps) {
   const runtime = useMemo(() => createLiveRuntime(role), [role]);
   const state = useSyncExternalStore(
     runtime.subscribe,
@@ -23,7 +32,7 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
   const value = useMemo(
     () => ({
       ...state,
-      participantCount: state.snapshot?.participant_count || 0,
+      participantCount: state.snapshot?.participant_count ?? 0,
       connect: runtime.connect,
       disconnect: runtime.disconnect,
       joinParticipant: runtime.joinParticipant,
@@ -40,4 +49,4 @@ export const LiveSessionProvider = ({ children, role = "manager" }) => {
       {children}
     </LiveSessionContext.Provider>
   );
-};
+}

@@ -17,7 +17,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
 | REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
-| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live` and remains separate from ordinary REST caching and React rendering concerns. |
+| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; the React provider/hooks adapter is typed and uses `useSyncExternalStore` over the runtime rather than duplicating live lifecycle state. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
 | Accessibility | Stable routes have axe/interaction checks and the migrated editor slices use accessible feedback/dialog primitives. |
 | Verification | Browser acceptance includes auth/dashboard/report, manager/player live reconnect, and the principal editor draft/conflict flows. |
@@ -48,13 +48,13 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 After the HTTP-boundary inversion, the highest-value boundaries are:
 
-1. migrate live React adapters and `PresentationEntry` to TypeScript/module
-   ownership without changing live protocol semantics;
-2. move landing/team ownership into the marketing module while converging RTL
+1. migrate `PresentationEntry` into typed `modules/live` route ownership
+   without changing live protocol semantics;
+2. migrate manager/player live UI leaves from legacy `pages` ownership as
+   their contracts become typed;
+3. move landing/team ownership into the marketing module while converging RTL
    and semantic styling;
-3. remove emptied legacy roots and add stronger dependency/dead-code tooling;
-4. add focused component/API-state verification around the remaining
-   high-interaction module boundaries.
+4. remove emptied legacy roots and add stronger dependency/dead-code tooling.
 
 ## Claim boundary
 

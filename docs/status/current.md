@@ -50,7 +50,8 @@ Current strengths:
 - Question, content, design and audio editor slices use explicit typed draft
   ownership and preserve local work across edit conflicts.
 - Live snapshot/cursor/reconnect/roster ownership is separated from React
-  rendering and ordinary REST caching.
+  rendering and ordinary REST caching; typed React providers/hooks expose the
+  runtime through `useSyncExternalStore`.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 
