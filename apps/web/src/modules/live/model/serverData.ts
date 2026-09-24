@@ -23,6 +23,7 @@ export interface LegacyQuestionOption {
 export interface LegacyQuestionSlide {
   slide_type: 1;
   slide_id?: string | number | null;
+  order?: string | number | null;
   question_id?: string | number | null;
   question?: {
     question_id?: string | number | null;
