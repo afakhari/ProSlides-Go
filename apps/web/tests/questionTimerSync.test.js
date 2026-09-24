@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveQuestionTimer } from "../src/pages/presentation/utils/questionTimerSync.js";
+import { resolveQuestionTimer } from "../src/modules/live/model/questionTimer.ts";
 
 const createStorage = () => {
   const store = new Map();
