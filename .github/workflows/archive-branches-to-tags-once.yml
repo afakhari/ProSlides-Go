@@ -80,11 +80,11 @@ jobs:
             fi
 
             echo "Deleting archive branch $branch"
-            git push origin --delete "$branch"
+            git push origin ":refs/heads/$branch"
           done
 
           if git ls-remote --exit-code --heads origin "chore/archive-branches-to-tags" >/dev/null 2>&1; then
-            git push origin --delete "chore/archive-branches-to-tags"
+            git push origin ":refs/heads/chore/archive-branches-to-tags"
           fi
 
       - name: Remove this one-time workflow
