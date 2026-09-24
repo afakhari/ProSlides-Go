@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/mail"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +23,7 @@ type Account struct {
 func PrepareRegistration(input Registration) (Account, error) {
 	email := strings.ToLower(strings.TrimSpace(input.Email))
 	name := strings.TrimSpace(input.DisplayName)
-	if len(email) > 320 || len(name) == 0 || len(name) > 100 || len(input.Password) < 12 || len(input.Password) > 128 {
+	if len(email) > 320 || utf8.RuneCountInString(name) == 0 || utf8.RuneCountInString(name) > 100 || !validPassword(input.Password) {
 		return Account{}, ErrInvalidRegistration
 	}
 	parsed, err := mail.ParseAddress(email)
@@ -43,9 +45,24 @@ func VerifyPassword(password, hash string) bool {
 }
 
 func HashPassword(password string) (string, error) {
-	if len(password) < 12 || len(password) > 128 {
+	if !validPassword(password) {
 		return "", ErrInvalidRegistration
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(hash), err
+}
+
+func validPassword(password string) bool {
+	runeCount := utf8.RuneCountInString(password)
+	if runeCount < 12 || runeCount > 128 || len([]byte(password)) > 72 {
+		return false
+	}
+	onlyDigits := true
+	for _, r := range password {
+		if !unicode.IsDigit(r) {
+			onlyDigits = false
+			break
+		}
+	}
+	return !onlyDigits
 }
