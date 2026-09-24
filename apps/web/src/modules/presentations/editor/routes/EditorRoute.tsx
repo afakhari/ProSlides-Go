@@ -61,7 +61,7 @@ export default function EditorPage() {
   const [error, setError] = useState<string | null>(null);
   const fetchSequenceRef = useRef(0);
 
-  const fetchQuiz = useCallback(async () => {
+  const fetchQuiz = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++fetchSequenceRef.current;
     if (!quizId) {
       setError("ارائه‌ای وجود ندارد.");
@@ -70,12 +70,12 @@ export default function EditorPage() {
     }
 
     try {
-      const quizData = await quizService.getEditorQuiz(quizId);
-      if (sequence !== fetchSequenceRef.current) return;
+      const quizData = await quizService.getEditorQuiz(quizId, { signal });
+      if (signal?.aborted || sequence !== fetchSequenceRef.current) return;
       setQuiz(quizData);
       setError(null);
     } catch (err) {
-      if (sequence !== fetchSequenceRef.current) return;
+      if (signal?.aborted || sequence !== fetchSequenceRef.current) return;
       setError("بارگذاری ارائه انجام نشد");
       console.error(err);
     } finally {
@@ -84,8 +84,11 @@ export default function EditorPage() {
   }, [quizId]);
 
   useEffect(() => {
-    fetchQuiz();
+    const controller = new AbortController();
+    void fetchQuiz(controller.signal);
+
     return () => {
+      controller.abort();
       fetchSequenceRef.current += 1;
     };
   }, [fetchQuiz]);
@@ -110,7 +113,7 @@ export default function EditorPage() {
             اتصال را بررسی کنید و دوباره تلاش کنید. تغییر ذخیره‌نشده‌ای در این صفحه ایجاد نشده است.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button type="button" onClick={fetchQuiz} className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+            <button type="button" onClick={() => void fetchQuiz()} className="rounded-control bg-brand px-5 py-3 font-bold text-content-inverse hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               تلاش دوباره
             </button>
             <button type="button" onClick={() => navigate("/manager/panel")} className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50">
