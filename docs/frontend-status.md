@@ -17,7 +17,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
 | REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; live presentation reads also use this boundary instead of the SSE/session transport, and one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
-| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters and role composition are typed, manager and participant presentation UIs are module-owned TypeScript, participant join/recovery/answer state and manager synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
+| Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; the protocol planner/projection/cursor boundary is typed, React adapters and role composition are typed, manager and participant presentation UIs are module-owned TypeScript, participant join/recovery/answer state and manager synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
 | Accessibility | Stable routes have axe/interaction checks and the migrated editor slices use accessible feedback/dialog primitives. |
 | Verification | Browser acceptance includes auth/dashboard/report, manager/player live reconnect, and the principal editor draft/conflict flows. |
@@ -27,8 +27,7 @@ history; reviewed work merged after that commit is active mainline work.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | React route/UI source no longer has active JSX leaves; the remaining production JavaScript boundary is the live runtime protocol compatibility module. | Migrate the live protocol only as an isolated correctness change with cursor/order/reconnect tests; do not combine it with UI work. |
-| P1 | The former top-level `pages/components/utils` compatibility leaves have been removed, but dependency enforcement and dead-export analysis are still incomplete. | Enforce public module boundaries and add dead-code/dependency tooling before declaring modularization complete. |
+| P1 | Production frontend source is now TypeScript/TSX and the former top-level `pages/components/utils` compatibility leaves are gone, but dependency enforcement and dead-export analysis are still incomplete. | Enforce public module boundaries and add dead-code/dependency tooling before declaring modularization complete. |
 | P2 | Dashboard ownership is typed and semantic-token adoption is improved, but some mature product surfaces still contain older utility-color styling that should converge opportunistically. | Continue semantic styling and logical-direction cleanup only with bounded feature work; avoid a broad cosmetic rewrite. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
 | P2 | Dependency enforcement covers `shared -> modules/app` and `modules -> app`, but cross-module public API rules and dead-code detection are not yet complete. | Strengthen lint/dependency checks and introduce dead-export/dependency analysis after compatibility shims shrink. |
@@ -53,20 +52,20 @@ remain independent from SSE delivery health, retries reuse one request ID in
 memory, legacy persistent answer queues are retired, and participant profiles
 are scoped per room. The highest-value remaining boundaries are:
 
-1. migrate `modules/live/runtime/protocol.js` to a typed protocol boundary in
-   an isolated live-correctness slice with protocol regression coverage;
-2. add stronger cross-module dependency/dead-code tooling now that top-level
-   compatibility roots are gone;
-3. add focused component/API-state coverage for dashboard and other migrated
+1. add stronger cross-module dependency/dead-code tooling now that production
+   source is TypeScript/TSX and top-level compatibility roots are gone;
+2. add focused component/API-state coverage for dashboard and other migrated
    boundaries;
-4. continue semantic styling/accessibility convergence only where it improves a
-   concrete product flow.
+3. continue semantic styling/accessibility convergence only where it improves a
+   concrete product flow;
+4. keep framework/toolchain upgrades isolated behind full CI/E2E compatibility
+   verification.
 
 ## Claim boundary
 
-The frontend should not be described as fully modular, fully TypeScript, or
-complete until the remaining active legacy ownership and verification gaps are
-closed.
+The production frontend source can now be described as TypeScript/TSX. The
+frontend should not yet be described as fully modular or complete until
+cross-module enforcement, dead-code analysis and verification gaps are closed.
 
 Historical measurements remain tied to the commit and environment where they
 were recorded and are not current production evidence.
