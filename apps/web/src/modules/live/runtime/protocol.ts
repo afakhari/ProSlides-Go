@@ -177,7 +177,7 @@ export const normalizeLiveSlide = (
 
   const content = recordValue(activeSlide.content);
   const id = String(
-    activeSlide.id ?? session.active_slide_id ?? "",
+    activeSlide.id || session.active_slide_id || "",
   );
 
   if (activeSlide.kind === "question") {
@@ -245,13 +245,14 @@ export const normalizeLiveSlide = (
     slide_type: 2,
     slide_id: id,
     order:
-      typeof activeSlide.position === "number"
+      typeof activeSlide.position === "number" ||
+      typeof activeSlide.position === "string"
         ? activeSlide.position
         : null,
     title: stringValue(content.title),
-    content_text: stringValue(
-      content.text ?? content.content_text,
-    ),
+    content_text:
+      stringValue(content.text) ||
+      stringValue(content.content_text),
     content_image_url: stringValue(content.image_url),
   };
 
