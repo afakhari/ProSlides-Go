@@ -92,6 +92,10 @@ test("editor presentation reads are cancelled when the route unmounts", () => {
 
   assert.match(route, /new AbortController\(\)/);
   assert.match(route, /getEditorQuiz\(quizId, \{ signal \}\)/);
+  assert.match(route, /useNavigation/);
+  assert.match(route, /routeLoadAbortRef/);
+  assert.match(route, /navigation\.state !== "idle"/);
+  assert.match(route, /routeLoadAbortRef\.current\?\.abort\(\)/);
   assert.match(route, /controller\.abort\(\)/);
   assert.match(route, /signal\?\.aborted/);
   assert.match(repository, /getEditorQuiz: async \(quizID: string, options\?: RequestOptions\)/);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useNavigation } from "react-router-dom";
 import QuestionCanvas from "../canvas/QuestionCanvas";
 import ContentCanvas from "../canvas/ContentCanvas";
 import LeaderboardPreview from "../canvas/LeaderboardCanvas";
@@ -53,6 +53,7 @@ const SLIDE_TYPE_CHOICES = [
 export default function EditorPage() {
   const { roomId } = useParams();
   const location = useLocation();
+  const navigation = useNavigation();
   const navigate = useNavigate();
   const quizId = roomId?.trim() || "";
 
@@ -60,6 +61,7 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchSequenceRef = useRef(0);
+  const routeLoadAbortRef = useRef<AbortController | null>(null);
 
   const fetchQuiz = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++fetchSequenceRef.current;
@@ -79,19 +81,36 @@ export default function EditorPage() {
       setError("بارگذاری ارائه انجام نشد");
       console.error(err);
     } finally {
-      if (sequence === fetchSequenceRef.current) setLoading(false);
+      if (!signal?.aborted && sequence === fetchSequenceRef.current) {
+        setLoading(false);
+      }
     }
   }, [quizId]);
 
   useEffect(() => {
     const controller = new AbortController();
+    routeLoadAbortRef.current = controller;
     void fetchQuiz(controller.signal);
 
     return () => {
       controller.abort();
+      if (routeLoadAbortRef.current === controller) {
+        routeLoadAbortRef.current = null;
+      }
       fetchSequenceRef.current += 1;
     };
   }, [fetchQuiz]);
+
+  useEffect(() => {
+    const nextPath = navigation.location?.pathname;
+    if (
+      navigation.state !== "idle" &&
+      nextPath &&
+      nextPath !== location.pathname
+    ) {
+      routeLoadAbortRef.current?.abort();
+    }
+  }, [location.pathname, navigation.location?.pathname, navigation.state]);
 
   const updateQuiz = (updatedQuiz: EditorPresentation) => {
     setQuiz(updatedQuiz);
