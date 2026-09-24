@@ -54,8 +54,10 @@ Current strengths:
   runtime through `useSyncExternalStore`, and the live route entry is owned by
   `modules/live/routes/PresentationEntry.tsx` behind an explicit typed bridge
   to the still-migrating presentation flow. Player resume/persistence and
-  reconnect/join recovery are isolated in a typed participant controller rather
-  than being owned by the route orchestration.
+  reconnect/join recovery are isolated in a typed participant controller.
+  Manager question/content/leaderboard reconciliation and presenter navigation
+  are likewise isolated in a typed manager controller rather than being owned
+  by the route orchestration.
 - Browser acceptance covers core auth/dashboard/report flows, manager/player
   live lifecycle with reconnect, and the principal editor draft/conflict flows.
 
