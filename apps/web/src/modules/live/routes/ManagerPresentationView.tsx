@@ -17,36 +17,27 @@ type ManagerViewProps = {
 };
 
 type LegacyManagerPageProps = Record<string, unknown>;
+type LegacyManagerPageModule = {
+  default: ComponentType<LegacyManagerPageProps>;
+};
 
-const ManagerJoinPage = lazy(
-  () =>
-    import("../../../pages/presentation/manager/JoinPage") as Promise<{
-      default: ComponentType<LegacyManagerPageProps>;
-    }>,
+const lazyLegacyManagerPage = (loader: () => Promise<unknown>) =>
+  lazy(async () => (await loader()) as LegacyManagerPageModule);
+
+const ManagerJoinPage = lazyLegacyManagerPage(
+  () => import("../../../pages/presentation/manager/JoinPage"),
 );
-const ManagerPickAnswerQuestion = lazy(
-  () =>
-    import("../../../pages/presentation/manager/PickAnswerQuestion") as Promise<{
-      default: ComponentType<LegacyManagerPageProps>;
-    }>,
+const ManagerPickAnswerQuestion = lazyLegacyManagerPage(
+  () => import("../../../pages/presentation/manager/PickAnswerQuestion"),
 );
-const ManagerLeaderBoard = lazy(
-  () =>
-    import("../../../pages/presentation/manager/LeaderBoard") as Promise<{
-      default: ComponentType<LegacyManagerPageProps>;
-    }>,
+const ManagerLeaderBoard = lazyLegacyManagerPage(
+  () => import("../../../pages/presentation/manager/LeaderBoard"),
 );
-const ManagerContentSlide = lazy(
-  () =>
-    import("../../../pages/presentation/manager/ContentSlide") as Promise<{
-      default: ComponentType<LegacyManagerPageProps>;
-    }>,
+const ManagerContentSlide = lazyLegacyManagerPage(
+  () => import("../../../pages/presentation/manager/ContentSlide"),
 );
-const FinalLeaderboard = lazy(
-  () =>
-    import("../../../pages/presentation/manager/FinalLeaderboard") as Promise<{
-      default: ComponentType<LegacyManagerPageProps>;
-    }>,
+const FinalLeaderboard = lazyLegacyManagerPage(
+  () => import("../../../pages/presentation/manager/FinalLeaderboard"),
 );
 
 export function ManagerPresentationView({
@@ -116,6 +107,6 @@ export function ManagerPresentationView({
         />
       );
     default:
-      return <Waiting />;
+      return <Waiting message="" />;
   }
 }
