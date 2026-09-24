@@ -202,13 +202,18 @@ test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live comma
   assert.doesNotMatch(projectionContext, /processMessage|lastMessageType/);
 });
 
-test("participant live UI is Persian, theme-driven, and disclosure-safe", () => {
+test("participant live UI is module-owned, typed, Persian, and disclosure-safe", () => {
   const entry = source("src/modules/live/routes/PresentationEntry.tsx");
   const shell = source("src/modules/live/participant/ParticipantShell.tsx");
   const theme = source("src/modules/live/participant/theme.ts");
   const sharedTheme = source("src/shared/styles/presentationTheme.ts");
-  const question = source("src/pages/presentation/player/PickAnswerQuestion.jsx");
-  const leaderboard = source("src/pages/presentation/player/LeaderBoard.jsx");
+  const question = source("src/modules/live/participant/ui/PlayerPickAnswerQuestion.tsx");
+  const leaderboard = source("src/modules/live/participant/ui/PlayerLeaderBoard.tsx");
+  const finalResult = source("src/modules/live/participant/ui/PlayerFinalResult.tsx");
+  const answerController = source(
+    "src/modules/live/participant/useParticipantAnswerController.ts",
+  );
+  const queue = source("src/modules/live/participant/answerQueue.ts");
 
   assert.match(entry, /data\.presentation\.background_color/);
   assert.match(entry, /data\.presentation\.text_color/);
@@ -216,8 +221,15 @@ test("participant live UI is Persian, theme-driven, and disclosure-safe", () => 
   assert.match(theme, /presentationTheme as participantTheme/);
   assert.match(sharedTheme, /--live-bg/);
   assert.match(question, /ثبت پاسخ/);
+  assert.doesNotMatch(question, /is_correct|correct_answer|correct_option_indexes/);
   assert.doesNotMatch(question, />\s*(?:Submitted|Submit|Loading quiz|You voted)\s*</);
   assert.doesNotMatch(leaderboard, /players\.map|roster/);
+  assert.match(finalResult, /جلسه پایان یافت/);
+  assert.match(answerController, /selectedIndexes/);
+  assert.match(answerController, /writeParticipantAnswerReceipt/);
+  assert.match(answerController, /getPersistedUserIdForRoom/);
+  assert.match(queue, /LEGACY_ROOM_QUEUE_PREFIX/);
+  assert.match(queue, /request_id/);
 });
 
 
@@ -396,6 +408,17 @@ test("live presentation route owns a typed role composition without a legacy bri
     0,
   );
   assert.match(playerView, /matchingQuestionResult/);
+  assert.match(playerView, /\.\.\/participant\/ui\/PlayerJoinPage\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/PlayerPickAnswerQuestion\.tsx/);
+  assert.match(playerView, /\.\.\/participant\/ui\/PlayerFinalResult\.tsx/);
+  assert.doesNotMatch(playerView, /lazyLegacyPlayerPage|pages\/presentation\/player/);
+  const participantUiFiles = readdirSync(
+    new URL("../src/modules/live/participant/ui/", import.meta.url),
+  );
+  assert.equal(
+    participantUiFiles.filter((name) => /\.(?:js|jsx)$/.test(name)).length,
+    0,
+  );
   assert.match(contract, /interface LivePresentationModel/);
   assert.match(contract, /interface AppPresentationProps/);
   assert.doesNotMatch(contract, /AppPresentationComponent/);
@@ -442,6 +465,13 @@ test("live player recovery is owned by a typed participant controller", () => {
     "src/modules/live/participant/usePlayerSessionRecovery.ts",
   );
   const model = source("src/modules/live/model/presentationFlow.ts");
+  const joinController = source(
+    "src/modules/live/participant/useParticipantJoinController.ts",
+  );
+  const answerController = source(
+    "src/modules/live/participant/useParticipantAnswerController.ts",
+  );
+  const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
 
   assert.match(flow, /usePlayerSessionRecovery/);
   assert.doesNotMatch(flow, /sessionStorage|localStorage/);
@@ -450,6 +480,12 @@ test("live player recovery is owned by a typed participant controller", () => {
   assert.match(recovery, /persistPlayerSeenActive/);
   assert.match(recovery, /persistPlayerLastActive/);
   assert.match(recovery, /joinParticipant/);
+  assert.match(joinController, /createClientUserId/);
+  assert.match(joinController, /joinParticipant/);
+  assert.match(answerController, /flushQueuedParticipantAnswers/);
+  assert.match(answerController, /participantOptionIndex/);
+  assert.match(runtime, /selected_option_indexes/);
+  assert.doesNotMatch(runtime, /options_result/);
   assert.match(model, /matchingQuestionResult/);
   assert.match(model, /isLeaderboardSlide/);
 });
