@@ -176,8 +176,8 @@ test("F4 keeps the app router compositional and mock fixtures out of production"
 
 test("F5 enforces typed lint, RTL defaults, bundle budgets, and named live commands", () => {
   const packageJson = source("package.json");
-  const liveContext = source("src/modules/live/react/LiveSessionContext.jsx");
-  const projectionContext = source("src/modules/live/react/ServerDataContext.jsx");
+  const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
+  const projectionContext = source("src/modules/live/react/ServerDataProvider.tsx");
 
   assert.match(source("index.html"), /<html lang="fa-IR" dir="rtl">/);
   assert.match(source("eslint.config.js"), /typescript-eslint/);
@@ -305,12 +305,12 @@ test("dashboard presentation server state is owned by TanStack Query", () => {
 
 test("live runtime ownership is module-scoped and React is only an adapter", () => {
   const entry = source("src/routes/PresentationEntry.jsx");
-  const liveContext = source("src/modules/live/react/LiveSessionContext.jsx");
-  const serverContext = source("src/modules/live/react/ServerDataContext.jsx");
+  const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
+  const serverContext = source("src/modules/live/react/ServerDataProvider.tsx");
   const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
   const liveApi = source("src/modules/live/api/liveApi.ts");
 
-  assert.match(entry, /modules\/live\/react\/LiveSessionContext/);
+  assert.match(entry, /modules\/live\/react\/LiveSessionProvider/);
   assert.match(entry, /modules\/live\/api\/liveApi/);
   assert.match(liveContext, /createLiveRuntime/);
   assert.match(liveContext, /useSyncExternalStore/);
@@ -321,6 +321,15 @@ test("live runtime ownership is module-scoped and React is only an adapter", () 
   assert.match(runtime, /resetInternals/);
   assert.match(serverContext, /\.\.\/runtime\/protocol/);
   assert.match(liveApi, /\.\/types/);
+  const reactAdapterFiles = readdirSync(
+    new URL("../src/modules/live/react/", import.meta.url),
+  );
+  assert.equal(
+    reactAdapterFiles.filter((name) => /\.(?:js|jsx)$/.test(name)).length,
+    0,
+  );
+  assert.match(source("src/modules/live/react/liveSessionContext.ts"), /LiveSessionContextValue/);
+  assert.match(source("src/modules/live/model/serverData.ts"), /ServerDataValue/);
 });
 
 
@@ -349,8 +358,8 @@ test("main identity fields are owned by React Hook Form with focused auth compos
 });
 
 test("live projection is derived directly from authoritative snapshot and roster", () => {
-  const liveContext = source("src/modules/live/react/LiveSessionContext.jsx");
-  const projectionContext = source("src/modules/live/react/ServerDataContext.jsx");
+  const liveContext = source("src/modules/live/react/LiveSessionProvider.tsx");
+  const projectionContext = source("src/modules/live/react/ServerDataProvider.tsx");
   const entry = source("src/routes/PresentationEntry.jsx");
 
   assert.match(projectionContext, /useLiveSession/);
