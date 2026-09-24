@@ -1,6 +1,3 @@
-import { lazy, type ComponentType } from "react";
-
-import Waiting from "../../../pages/loading/LoadingPage";
 import { matchingQuestionResult, type PlayerLastActive } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
@@ -12,6 +9,12 @@ import type {
 } from "../model/serverData.ts";
 import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
 import type { LiveSnapshot } from "../api/types.ts";
+import { PlayerContentSlide } from "../participant/ui/PlayerContentSlide.tsx";
+import { PlayerFinalResult } from "../participant/ui/PlayerFinalResult.tsx";
+import { PlayerJoinPage } from "../participant/ui/PlayerJoinPage.tsx";
+import { PlayerLeaderBoard } from "../participant/ui/PlayerLeaderBoard.tsx";
+import { PlayerPickAnswerQuestion } from "../participant/ui/PlayerPickAnswerQuestion.tsx";
+import { PlayerSyncState } from "../participant/ui/PlayerSyncState.tsx";
 
 type PlayerViewProps = {
   roomId?: string;
@@ -27,27 +30,6 @@ type PlayerViewProps = {
   lastActive: PlayerLastActive | null;
   profile: StoredPlayerProfile | null;
 };
-
-type LegacyPlayerPageProps = Record<string, unknown>;
-type LegacyPlayerPageModule = {
-  default: ComponentType<LegacyPlayerPageProps>;
-};
-
-const lazyLegacyPlayerPage = (loader: () => Promise<unknown>) =>
-  lazy(async () => (await loader()) as LegacyPlayerPageModule);
-
-const PlayerJoinPage = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/JoinPage"),
-);
-const PlayerPickAnswerQuestion = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/PickAnswerQuestion"),
-);
-const PlayerLeaderBoard = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/LeaderBoard"),
-);
-const PlayerContentSlide = lazyLegacyPlayerPage(
-  () => import("../../../pages/presentation/player/ContentSlide"),
-);
 
 export function PlayerPresentationView({
   roomId,
@@ -89,12 +71,20 @@ export function PlayerPresentationView({
     );
   }
 
+  if (snapshot?.session?.state === "ended") {
+    return <PlayerFinalResult quiz={quiz} />;
+  }
+
   if (hasLeaderboard) {
+    return <PlayerLeaderBoard quiz={quiz} />;
+  }
+
+  if (snapshot?.session?.state === "question_closed" && profile) {
     return (
-      <PlayerLeaderBoard
-        roomId={roomId}
-        players={leaderboardResults ?? []}
+      <PlayerSyncState
         quiz={quiz}
+        title="پاسخ‌ها بسته شد"
+        message="نتیجه این مرحله در حال آماده‌سازی است."
       />
     );
   }
@@ -134,7 +124,13 @@ export function PlayerPresentationView({
   }
 
   if (hasSeenActiveSlide && profile) {
-    return <Waiting message="در حال همگام‌سازی جلسه…" />;
+    return (
+      <PlayerSyncState
+        quiz={quiz}
+        title="در حال همگام‌سازی جلسه"
+        message="اتصال و وضعیت آخرین اسلاید در حال بازیابی است."
+      />
+    );
   }
 
   return <PlayerJoinPage roomId={roomId} quiz={quiz} />;
