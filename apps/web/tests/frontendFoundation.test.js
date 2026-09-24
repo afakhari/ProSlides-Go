@@ -31,7 +31,12 @@ test("active React source has no legacy JSX leaves after dashboard migration", (
 
 test("ordinary REST transport is owned by shared api without legacy utility shims", () => {
   const http = source("src/shared/api/http.ts");
-  const utils = readdirSync(new URL("../src/utils/", import.meta.url));
+  const sourceFiles = readdirSync(new URL("../src/", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter((entry) => entry.isFile())
+    .map((entry) => `${entry.parentPath}/${entry.name}`);
 
   assert.match(http, /export const buildApiUrl/);
   assert.match(http, /proslides_csrf/);
@@ -39,7 +44,7 @@ test("ordinary REST transport is owned by shared api without legacy utility shim
   assert.match(http, /export async function requestJson/);
   assert.doesNotMatch(http, /utils\/apiFetch|utils\/api/);
   assert.deepEqual(
-    utils.filter((name) => /^api(?:Fetch)?\.[jt]s$/.test(name)),
+    sourceFiles.filter((name) => /\/utils\/api(?:Fetch)?\.[jt]s$/.test(name)),
     [],
   );
 });
