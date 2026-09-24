@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, lazy } from "react";
 import { useParams } from "react-router-dom";
 
-import { LiveSessionProvider } from "../modules/live/react/LiveSessionContext";
-import { ServerDataProvider } from "../modules/live/react/ServerDataContext";
+import { LiveSessionProvider } from "../modules/live/react/LiveSessionProvider";
+import { ServerDataProvider } from "../modules/live/react/ServerDataProvider";
 import { useServerData } from "../modules/live/react/useServerData";
 import { useLiveSession } from "../modules/live/react/useLiveSession";
 import { AudioProvider, useAudio } from "../contexts/AudioContext.tsx";
