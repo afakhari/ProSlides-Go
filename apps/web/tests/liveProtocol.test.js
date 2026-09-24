@@ -10,7 +10,7 @@ import {
   presentationSlideToLegacy,
   projectLiveSnapshot,
   shouldApplyLiveEvent,
-} from "../src/modules/live/runtime/protocol.js";
+} from "../src/modules/live/runtime/protocol.ts";
 import { resolveLiveSession, streamLiveEvents } from "../src/modules/live/api/liveApi.ts";
 
 test("equal state versions are accepted when event_id advances", () => {
@@ -114,6 +114,14 @@ test("presenter navigation plans every quiz slide sequence without invalid trans
   assert.deepEqual(planLiveNavigation("leaderboard", "next", question), ["open_question"]);
   assert.deepEqual(planLiveNavigation("content", "next", content), ["open_content"]);
   assert.deepEqual(planLiveNavigation("ended", "next"), []);
+  assert.deepEqual(
+    planLiveNavigation("ended", "next", question),
+    [],
+  );
+  assert.deepEqual(
+    planLiveNavigation("ended", "start", content),
+    [],
+  );
   assert.deepEqual(planLiveEnd("question_open"), ["close_question", "end"]);
   assert.deepEqual(planLiveEnd("content"), ["end"]);
   assert.deepEqual(planLiveEnd("ended"), []);
@@ -129,6 +137,40 @@ test("stale event ids and true state regressions are rejected", () => {
     shouldApplyLiveEvent(cursor, { event_id: 11, state_version: 3 }),
     false,
   );
+});
+
+test("protocol rejects non-finite event identifiers without advancing the cursor", () => {
+  const cursor = { eventId: 10, stateVersion: 4 };
+  const malformed = {
+    event_id: Number.NaN,
+    state_version: 5,
+  };
+
+  assert.equal(shouldApplyLiveEvent(cursor, malformed), false);
+  assert.deepEqual(advanceLiveCursor(cursor, malformed), cursor);
+});
+
+test("malformed active slide content is normalized without leaking unknown fields", () => {
+  const content = normalizeLiveSlide(
+    {
+      id: "content-1",
+      kind: "content",
+      position: 3,
+      content: "not-an-object",
+      unexpected: "private",
+    },
+    { state_version: 2 },
+  );
+
+  assert.deepEqual(content, {
+    slide_type: 2,
+    slide_id: "content-1",
+    order: 3,
+    title: "",
+    content_text: "",
+    content_image_url: "",
+  });
+  assert.equal("unexpected" in content, false);
 });
 
 test("participant question projection does not retain correctness flags", () => {
