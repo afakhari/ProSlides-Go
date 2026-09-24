@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import Waiting from "../../../pages/loading/LoadingPage";
+import Waiting from "../ui/WaitingScreen.tsx";
 import { useManagerPresentationController } from "../manager/useManagerPresentationController.ts";
 import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import type { AppPresentationProps } from "../model/presentation.ts";
