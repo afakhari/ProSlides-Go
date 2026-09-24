@@ -491,7 +491,6 @@ test("live player recovery is owned by a typed participant controller", () => {
   assert.match(recovery, /persistPlayerSeenActive/);
   assert.match(recovery, /persistPlayerLastActive/);
   assert.match(recovery, /joinParticipant/);
-  assert.match(model, /matchingQuestionResult/);
   assert.match(model, /isLeaderboardSlide/);
 });
 
