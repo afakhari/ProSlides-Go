@@ -9,7 +9,7 @@ import { AudioProvider, useAudio } from "../contexts/AudioContext.tsx";
 import { getPresentation, resolveLiveSession } from "../modules/live/api/liveApi";
 import { presentationSlideToLegacy } from "../modules/live/runtime/protocol";
 import { hasLeaderboardEntries } from "../modules/live/model/leaderboard";
-import { resolveQuestionTimer } from "../pages/presentation/utils/questionTimerSync";
+import { resolveQuestionTimer } from "../modules/live/model/questionTimer";
 import {
   getPersistedUserIdForRoom,
   readStoredProfile,
