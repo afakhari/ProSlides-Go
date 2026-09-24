@@ -40,11 +40,11 @@ export const appRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        lazy: lazyComponent(() => import("../../pages/landing/LandingPage.jsx")),
+        lazy: lazyComponent(() => import("../../modules/marketing/routes/LandingRoute.tsx")),
       },
       {
         path: "team",
-        lazy: lazyComponent(() => import("../../pages/team/TeamPage.jsx")),
+        lazy: lazyComponent(() => import("../../modules/marketing/routes/TeamRoute.tsx")),
       },
       {
         path: "login",
