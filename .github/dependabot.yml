@@ -7,14 +7,14 @@ updates:
       interval: "monthly"
       time: "09:00"
       timezone: "Asia/Baku"
-    open-pull-requests-limit: 3
+    # During rapid pre-production development, keep security updates automatic
+    # but avoid routine version-update PR/CI churn.
+    open-pull-requests-limit: 0
     groups:
-      web-patches:
-        applies-to: "version-updates"
+      web-security:
+        applies-to: "security-updates"
         patterns:
           - "*"
-        update-types:
-          - "patch"
 
   - package-ecosystem: "gomod"
     directory: "/apps/api"
@@ -22,14 +22,12 @@ updates:
       interval: "monthly"
       time: "09:15"
       timezone: "Asia/Baku"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     groups:
-      api-patches:
-        applies-to: "version-updates"
+      api-security:
+        applies-to: "security-updates"
         patterns:
           - "*"
-        update-types:
-          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -39,9 +37,10 @@ updates:
       timezone: "Asia/Baku"
     open-pull-requests-limit: 2
     groups:
-      actions-patches:
+      actions-minor-patch:
         applies-to: "version-updates"
         patterns:
           - "*"
         update-types:
+          - "minor"
           - "patch"
