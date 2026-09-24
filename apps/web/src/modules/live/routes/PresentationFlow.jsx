@@ -172,49 +172,6 @@ export function AppPresentation({ roomId, role, initialQuizData = null }) {
   const [lastManagerQuestionSlideIndex, setLastManagerQuestionSlideIndex] =
     useState(null);
   useEffect(() => {
-    if (role !== "player") return;
-    if (currentQuestion || currentContent) {
-      setPlayerHasSeenActiveSlide(true);
-      try {
-        sessionStorage.setItem(playerActiveSlideSeenKey, "1");
-      } catch {
-        // ignore storage errors
-      }
-    }
-    if (currentQuestion) {
-      const snapshot = {
-        kind: "question",
-        payload: currentQuestion,
-        updatedAt: Date.now(),
-      };
-      setPlayerLastActive(snapshot);
-      try {
-        localStorage.setItem(playerLastActiveKey, JSON.stringify(snapshot));
-      } catch {
-        // ignore storage errors
-      }
-    } else if (currentContent) {
-      const snapshot = {
-        kind: "content",
-        payload: currentContent,
-        updatedAt: Date.now(),
-      };
-      setPlayerLastActive(snapshot);
-      try {
-        localStorage.setItem(playerLastActiveKey, JSON.stringify(snapshot));
-      } catch {
-        // ignore storage errors
-      }
-    }
-  }, [
-    role,
-    currentQuestion,
-    currentContent,
-    playerActiveSlideSeenKey,
-    playerLastActiveKey,
-  ]);
-
-  useEffect(() => {
     if (role !== "manager") return;
     if (managerHasSyncedState) return;
 
