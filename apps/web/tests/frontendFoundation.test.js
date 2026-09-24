@@ -610,9 +610,18 @@ test("manager live UI is module-owned, typed, Persian and contract-driven", () =
   assert.match(leaderboard, /جدول امتیازات/);
   assert.match(leaderboard, /شرکت‌کننده/);
   assert.match(question, /alt="تصویر سؤال"/);
+  assert.match(question, /activeTimerIdentityRef/);
+  assert.match(question, /timerIdentity/);
+  assert.doesNotMatch(
+    question,
+    /\[currentQuestion,\s*liveCurrentQuestion,\s*liveMatchesDefinition\]/,
+  );
   assert.match(join, /در انتظار ورود شرکت‌کنندگان/);
   assert.match(dialog, /aria-label="بستن جدول امتیازات"/);
   assert.match(qr, /QRCode\.toDataURL/);
+  assert.match(qr, /<dialog/);
+  assert.match(qr, /showModal\(\)/);
+  assert.match(qr, /onCancel=/);
   assert.doesNotMatch(qr, /qrserver\.com/);
   assert.match(controls, /ConfirmDialog/);
   assert.doesNotMatch(controls, /FOOTER_CHAT_MESSAGES|FOOTER_MENU_ITEMS|FOOTER_REACTIONS/);
