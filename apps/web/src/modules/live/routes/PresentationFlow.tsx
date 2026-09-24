@@ -23,6 +23,7 @@ export function AppPresentation({
     connect,
     joinParticipant,
     snapshot,
+    lastJoinResult,
     sessionId: liveSessionId,
   } = useLiveSession();
 
@@ -62,6 +63,7 @@ export function AppPresentation({
     isConnected,
     connect,
     joinParticipant,
+    lastJoinResult,
   });
 
   const managerController = useManagerPresentationController({
