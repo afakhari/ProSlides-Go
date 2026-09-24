@@ -62,6 +62,7 @@ export default function EditorPage() {
   const [error, setError] = useState<string | null>(null);
   const fetchSequenceRef = useRef(0);
   const routeLoadAbortRef = useRef<AbortController | null>(null);
+  const interruptedRouteLoadRef = useRef(false);
 
   const fetchQuiz = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++fetchSequenceRef.current;
@@ -87,30 +88,60 @@ export default function EditorPage() {
     }
   }, [quizId]);
 
-  useEffect(() => {
+  const startRouteLoad = useCallback(() => {
     const controller = new AbortController();
+    routeLoadAbortRef.current?.abort();
     routeLoadAbortRef.current = controller;
-    void fetchQuiz(controller.signal);
+    setLoading(true);
 
-    return () => {
-      controller.abort();
+    void fetchQuiz(controller.signal).finally(() => {
       if (routeLoadAbortRef.current === controller) {
         routeLoadAbortRef.current = null;
       }
-      fetchSequenceRef.current += 1;
-    };
+    });
   }, [fetchQuiz]);
 
   useEffect(() => {
+    interruptedRouteLoadRef.current = false;
+    startRouteLoad();
+
+    return () => {
+      routeLoadAbortRef.current?.abort();
+      routeLoadAbortRef.current = null;
+      interruptedRouteLoadRef.current = false;
+      fetchSequenceRef.current += 1;
+    };
+  }, [startRouteLoad]);
+
+  useEffect(() => {
     const nextPath = navigation.location?.pathname;
+
     if (
       navigation.state !== "idle" &&
       nextPath &&
       nextPath !== location.pathname
     ) {
-      routeLoadAbortRef.current?.abort();
+      const controller = routeLoadAbortRef.current;
+      if (controller && !controller.signal.aborted) {
+        interruptedRouteLoadRef.current = true;
+        controller.abort();
+      }
+      return;
     }
-  }, [location.pathname, navigation.location?.pathname, navigation.state]);
+
+    if (
+      navigation.state === "idle" &&
+      interruptedRouteLoadRef.current
+    ) {
+      interruptedRouteLoadRef.current = false;
+      startRouteLoad();
+    }
+  }, [
+    location.pathname,
+    navigation.location?.pathname,
+    navigation.state,
+    startRouteLoad,
+  ]);
 
   const updateQuiz = (updatedQuiz: EditorPresentation) => {
     setQuiz(updatedQuiz);
