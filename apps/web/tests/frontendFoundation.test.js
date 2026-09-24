@@ -62,7 +62,7 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(router, /ErrorBoundary: ManagerRouteErrorBoundary/);
   assert.match(shell, /<Outlet \/>/);
   assert.doesNotMatch(shell, /RequireSession|apiFetch|Suspense/);
-  assert.match(loader, /queryClient\\.fetchQuery\\(currentSessionQuery\\(\\)\\)/);
+  assert.match(loader, /queryClient\.fetchQuery\(currentSessionQuery\(\)\)/);
   assert.match(loader, /error\.status === 401 \|\| error\.status === 403/);
   assert.match(sessionQuery, /queryFn: \(\{ signal \}\)/);
   assert.match(sessionQuery, /getCurrentUser\(\{ signal \}\)/);
