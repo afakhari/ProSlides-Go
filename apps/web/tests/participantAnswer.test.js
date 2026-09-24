@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildParticipantAnswer,
+  isMultipleChoiceQuestion,
   questionRunIdentity,
   toggleParticipantOption,
 } from "../src/modules/live/participant/answerAttempt.ts";
@@ -45,10 +46,7 @@ test("participant answer payload uses stable option indexes, not option ids", ()
     {
       request_id: "22222222-2222-4222-8222-222222222222",
       question_id: "11111111-1111-4111-8111-111111111111",
-      options_result: [
-        { option_index: 0, picked: false },
-        { option_index: 1, picked: true },
-      ],
+      selected_option_indexes: [1],
     },
   );
 });
@@ -70,4 +68,45 @@ test("participant question run identity changes only when question or run change
     "q1:na",
   );
   assert.equal(questionRunIdentity(null), null);
+});
+
+
+test("participant question multiplicity follows explicit server question type", () => {
+  assert.equal(
+    isMultipleChoiceQuestion({
+      slide_type: 1,
+      question_type: "single",
+    }),
+    false,
+  );
+  assert.equal(
+    isMultipleChoiceQuestion({
+      slide_type: 1,
+      question_type: "multiple",
+    }),
+    true,
+  );
+  assert.equal(
+    isMultipleChoiceQuestion({
+      slide_type: 1,
+      question_type: "single",
+      has_multiple: true,
+    }),
+    true,
+  );
+});
+
+test("participant answer builder rejects indexes outside the projected options", () => {
+  assert.equal(
+    buildParticipantAnswer({
+      question: {
+        slide_type: 1,
+        question_id: "q1",
+        options: [{ option_id: 0, option_index: 0, option_text: "الف" }],
+      },
+      selectedIndexes: [4],
+      requestId: "req",
+    }),
+    null,
+  );
 });
