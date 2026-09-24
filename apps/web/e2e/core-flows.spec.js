@@ -172,6 +172,43 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
   await expectAccessible(page, "report");
 
+  let holdNextPresentationRead = true;
+  let releaseEditorRead;
+  const editorReadHold = new Promise((resolve) => {
+    releaseEditorRead = resolve;
+  });
+
+  await page.route(
+    `**/api/v1/presentations/${presentationId}`,
+    async (route) => {
+      if (route.request().method() !== "GET" || !holdNextPresentationRead) {
+        await route.continue();
+        return;
+      }
+
+      holdNextPresentationRead = false;
+      await editorReadHold;
+      await route.continue().catch(() => {});
+    },
+  );
+
+  const editorRead = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname ===
+        `/api/v1/presentations/${presentationId}` &&
+      request.method() === "GET",
+  );
+  await page.goto(`/manager/panel/${presentationId}`, {
+    waitUntil: "domcontentloaded",
+  });
+  await editorRead;
+  await page.goto(`/manager/panel/${presentationId}/report`, {
+    waitUntil: "domcontentloaded",
+  });
+  releaseEditorRead();
+  await page.unroute(`**/api/v1/presentations/${presentationId}`);
+  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
+
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
   await page.goForward();
