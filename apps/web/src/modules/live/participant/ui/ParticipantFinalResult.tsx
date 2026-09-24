@@ -9,14 +9,14 @@ type ParticipantFinalResultProps = {
 export function ParticipantFinalResult({
   quiz,
 }: ParticipantFinalResultProps) {
-  const { snapshot, participantCount, isConnected } = useLiveSession();
+  const { snapshot, participantCount } = useLiveSession();
   const participant =
     snapshot?.role === "participant" ? snapshot.participant : null;
   const rank = participant?.rank ?? null;
   const score = Number(participant?.score ?? 0);
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz}>
       <section className="flex flex-1 flex-col justify-center py-5 text-center">
         <div className="rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
           <p className="text-sm font-bold text-[color:var(--live-muted)]">
