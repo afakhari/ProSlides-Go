@@ -15,9 +15,28 @@ test("Tailwind and semantic theme have one CSS source", () => {
   assert.match(indexCss, /--color-danger:/);
 });
 
+test("active React source has no legacy JSX leaves after dashboard migration", () => {
+  const files = readdirSync(new URL("../src", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  }).filter((entry) => entry.isFile());
+
+  assert.deepEqual(
+    files
+      .map((entry) => `${entry.parentPath}/${entry.name}`)
+      .filter((path) => path.endsWith(".jsx")),
+    [],
+  );
+});
+
 test("ordinary REST transport is owned by shared api without legacy utility shims", () => {
   const http = source("src/shared/api/http.ts");
-  const utils = readdirSync(new URL("../src/utils/", import.meta.url));
+  const sourceFiles = readdirSync(new URL("../src/", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter((entry) => entry.isFile())
+    .map((entry) => `${entry.parentPath}/${entry.name}`);
 
   assert.match(http, /export const buildApiUrl/);
   assert.match(http, /proslides_csrf/);
@@ -25,7 +44,7 @@ test("ordinary REST transport is owned by shared api without legacy utility shim
   assert.match(http, /export async function requestJson/);
   assert.doesNotMatch(http, /utils\/apiFetch|utils\/api/);
   assert.deepEqual(
-    utils.filter((name) => /^api(?:Fetch)?\.[jt]s$/.test(name)),
+    sourceFiles.filter((name) => /\/utils\/api(?:Fetch)?\.[jt]s$/.test(name)),
     [],
   );
 });
@@ -43,7 +62,7 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
   const paths = [
     "src/modules/presentations/editor/toolbar/EditorHeader.tsx",
     "src/modules/presentations/sharing/ShareDialog.tsx",
-    "src/modules/presentations/dashboard/PresentationDashboard.jsx",
+    "src/modules/presentations/dashboard/PresentationDashboard.tsx",
     "src/modules/presentations/editor/routes/EditorRoute.tsx",
     "src/modules/presentations/editor/inspector/QuestionInspector.tsx",
     "src/modules/presentations/editor/slide-list/SlideList.tsx",
@@ -62,7 +81,7 @@ test("F2 dashboard editor and share slice has no native alerts and owns directio
   assert.match(share, /error instanceof ApiError/);
   assert.match(toolbar, /border-e/);
   assert.doesNotMatch(toolbar, /violet-|border-r/);
-  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /dir="auto"/);
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.tsx"), /dir="auto"/);
 });
 
 test("protected manager routes use the data router and one cached session boundary", () => {
@@ -81,9 +100,12 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(loader, /error\.status === 401 \|\| error\.status === 403/);
   assert.match(sessionQuery, /queryFn: \(\{ signal \}\)/);
   assert.match(sessionQuery, /getCurrentUser\(\{ signal \}\)/);
-  const dashboard = source("src/modules/presentations/dashboard/PresentationDashboard.jsx");
-  assert.match(dashboard, /identityApi\.logout\(\)/);
-  assert.match(dashboard, /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/);
+  const accountMenu = source("src/modules/identity/ui/ManagerAccountMenu.tsx");
+  assert.match(accountMenu, /identityApi\.logout\(\)/);
+  assert.match(
+    accountMenu,
+    /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/,
+  );
 });
 
 test("marketing routes are typed, module-owned, RTL-safe and historically accurate", () => {
@@ -151,7 +173,7 @@ test("typed Persian catalog is consumed by manager dashboard editor and share", 
 
   assert.match(catalog, /export const fa =/);
   assert.match(catalog, /as const/);
-  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /fa\.dashboard\.title/);
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.tsx"), /fa\.dashboard\.title/);
   assert.match(source("src/modules/presentations/editor/routes/EditorRoute.tsx"), /fa\.managerShell\.backToDashboard/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /fa\.share\.title/);
 });
@@ -176,7 +198,7 @@ test("F3 owns presentation UI and keeps slide mutation selection and reorder beh
   const order = source("src/modules/presentations/editor/model/useEditorSlideOrder.ts");
   const slideList = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
 
-  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.jsx"), /\.\.\/api\/presentationRepository/);
+  assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.tsx"), /\.\.\/api\/presentationRepository/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /\.\.\/api\/presentationRepository/);
   assert.match(route, /useEditorStatus/);
   assert.match(route, /useEditorSlideMutations/);
@@ -334,15 +356,37 @@ test("identity route validation is owned by module Zod schemas", () => {
 });
 
 
-test("dashboard presentation server state is owned by TanStack Query", () => {
-  const dashboard = source("src/modules/presentations/dashboard/PresentationDashboard.jsx");
+test("dashboard route is typed, module-owned and keeps identity behind its public boundary", () => {
+  const router = source("src/app/router/router.tsx");
+  const dashboard = source("src/modules/presentations/dashboard/PresentationDashboard.tsx");
+  const header = source("src/modules/presentations/dashboard/ui/DashboardHeader.tsx");
+  const account = source("src/modules/identity/ui/ManagerAccountMenu.tsx");
+  const prompt = source("src/modules/identity/ui/PasswordSetupPrompt.tsx");
+  const identityPublic = source("src/modules/identity/public.ts");
+  const authRoute = source("src/modules/identity/routes/AuthRoute.tsx");
   const queries = source("src/modules/presentations/api/presentationQueries.ts");
 
+  assert.match(router, /presentations\/dashboard\/PresentationDashboard\.tsx/);
+  assert.doesNotMatch(router, /pages\/quiz\/manager\/HomePage/);
   assert.match(dashboard, /useQuery\(presentationListQuery\(\)\)/);
   assert.match(dashboard, /useQueryClient\(\)/);
   assert.match(dashboard, /refreshPresentations/);
   assert.match(dashboard, /invalidateQueries\(\{\s*queryKey:\s*presentationKeys\.list\(\)/);
+  assert.match(dashboard, /ApiError/);
+  assert.match(dashboard, /err instanceof ApiError && err\.isConflict/);
+  assert.match(dashboard, /PasswordSetupPrompt/);
+  assert.match(dashboard, /DashboardHeader/);
+  assert.match(header, /identity\/public\.ts/);
+  assert.match(identityPublic, /ManagerAccountMenu/);
+  assert.match(identityPublic, /PasswordSetupPrompt/);
+  assert.match(account, /currentSessionQuery/);
+  assert.match(account, /identityApi\.logout/);
+  assert.match(prompt, /identityApi\.requestPasswordReset/);
+  assert.match(source("src/modules/identity/model/authStorage.ts"), /setPasswordSetupPrompt/);
+  assert.doesNotMatch(account, /auth\.name|auth\.email/);
+  assert.doesNotMatch(dashboard, /identity\/api|utils\/auth|pages\/quiz\/manager|ErrorModal/);
   assert.doesNotMatch(dashboard, /setQuizzes\(|fetchQuizzes\(|new AbortController\(/);
+  assert.doesNotMatch(authRoute, /localStorage\.setItem\("auth\.(?:name|email)"/);
   assert.match(queries, /queryFn:\s*\(\{ signal \}\)/);
   assert.match(queries, /listPresentations\(\{ signal \}\)/);
   assert.match(queries, /staleTime:\s*30_000/);
@@ -411,6 +455,8 @@ test("live presentation route owns a typed role composition without a legacy bri
   const contract = source("src/modules/live/model/presentation.ts");
 
   assert.match(entry, /from "\.\/PresentationFlow\.tsx"/);
+  assert.match(entry, /\.\.\/ui\/WaitingScreen\.tsx/);
+  assert.doesNotMatch(entry, /pages\/loading\/LoadingPage/);
   assert.doesNotMatch(entry, /AppPresentation as AppPresentationComponent/);
   assert.match(entry, /useState<LivePresentationModel \| null>/);
   assert.match(flow, /AppPresentationProps/);

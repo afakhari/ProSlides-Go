@@ -5,7 +5,7 @@ import {
   getContentValidationError,
   getPresentationValidationError,
   getQuestionValidationError,
-} from "../src/modules/presentations/editor/model/validation.js";
+} from "../src/modules/presentations/model/editor.ts";
 
 const validQuestion = {
   question_text: "Choose",

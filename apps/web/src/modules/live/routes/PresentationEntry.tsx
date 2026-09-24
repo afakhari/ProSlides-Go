@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { AudioProvider } from "../react/AudioProvider.tsx";
-import Waiting from "../../../pages/loading/LoadingPage";
+import Waiting from "../ui/WaitingScreen.tsx";
 import {
   LiveAPIError,
   resolveLiveSession,

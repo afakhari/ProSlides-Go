@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import Waiting from "../../../pages/loading/LoadingPage";
+import Waiting from "../ui/WaitingScreen.tsx";
 import type { ManagerPresentationController } from "../manager/useManagerPresentationController.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import type { LegacyContentSlide, LegacyLiveUser } from "../model/serverData.ts";

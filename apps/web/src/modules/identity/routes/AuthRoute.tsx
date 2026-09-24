@@ -15,7 +15,6 @@ import { useGoogleIdentity } from "../hooks/useGoogleIdentity.ts";
 import { useVerificationTimers } from "../hooks/useVerificationTimers.ts";
 import {
   DEFAULT_OTP_TTL_SECONDS,
-  PASSWORD_PROMPT_FLAG,
   getOtpExpirySeconds,
   getPasswordStrength,
   getResendSeconds,
@@ -25,6 +24,7 @@ import {
   type AuthMode,
   type AuthStatus,
 } from "../model/authFlow.ts";
+import { setPasswordSetupPrompt } from "../model/authStorage.ts";
 import {
   loginFormSchema,
   loginSchema,
@@ -159,10 +159,6 @@ export default function AuthRoute() {
     navigate(resolveAuthReturnPath(location.search));
   }, [location.search, navigate]);
 
-  const storeAuthEmail = useCallback((value: string) => {
-    if (value) localStorage.setItem("auth.email", value);
-  }, []);
-
   const applyServerFieldErrors = useCallback(
     (error: unknown) => {
       const fieldErrors = identityFieldErrors(error);
@@ -206,13 +202,9 @@ export default function AuthRoute() {
           token: credential,
         });
 
-        const resolvedName =
-          payload?.display_name || payload?.full_name || payload?.name;
-        if (resolvedName) localStorage.setItem("auth.name", resolvedName);
-        if (payload?.email) storeAuthEmail(payload.email);
-        if (payload?.needs_password_setup || payload?.is_new_user) {
-          localStorage.setItem(PASSWORD_PROMPT_FLAG, "1");
-        }
+        setPasswordSetupPrompt(
+          Boolean(payload?.needs_password_setup || payload?.is_new_user),
+        );
 
         navigateToDashboard();
       } catch (error) {
@@ -221,7 +213,7 @@ export default function AuthRoute() {
         setActionSubmitting(false);
       }
     },
-    [navigateToDashboard, setRequestFailure, storeAuthEmail],
+    [navigateToDashboard, setRequestFailure],
   );
 
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
@@ -271,15 +263,12 @@ export default function AuthRoute() {
   const handleLogin = useCallback(
     async (values: AuthFormValues) => {
       try {
-        const payload = await identityApi.login({
+        await identityApi.login({
           email: values.email.trim(),
           password: values.password,
         });
 
-        storeAuthEmail(values.email.trim());
-        const resolvedName =
-          payload?.display_name || getValues("fullName").trim();
-        if (resolvedName) localStorage.setItem("auth.name", resolvedName);
+        setPasswordSetupPrompt(false);
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
@@ -303,11 +292,9 @@ export default function AuthRoute() {
     [
       applyServerFieldErrors,
       clearErrors,
-      getValues,
       navigateToDashboard,
       setValue,
       startOtpExpiry,
-      storeAuthEmail,
     ],
   );
 
@@ -351,10 +338,8 @@ export default function AuthRoute() {
           display_name: trimmedName,
         });
 
-        if (trimmedName) localStorage.setItem("auth.name", trimmedName);
-        storeAuthEmail(values.email.trim());
-
         if (responsePayload?.is_active) {
+          setPasswordSetupPrompt(false);
           navigateToDashboard();
           return;
         }
@@ -395,7 +380,6 @@ export default function AuthRoute() {
       setValue,
       startOtpExpiry,
       startResendCooldown,
-      storeAuthEmail,
     ],
   );
 
@@ -407,7 +391,7 @@ export default function AuthRoute() {
           code: values.verificationCode,
         });
 
-        storeAuthEmail(values.email.trim());
+        setPasswordSetupPrompt(false);
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
@@ -432,7 +416,6 @@ export default function AuthRoute() {
       applyServerFieldErrors,
       expireOtp,
       navigateToDashboard,
-      storeAuthEmail,
     ],
   );
 
