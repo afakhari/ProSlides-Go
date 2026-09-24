@@ -281,6 +281,17 @@ test("manager and participant complete a live question lifecycle with reconnect"
   const participant = await participantContext.newPage();
   const managerFailures = watchRuntime(manager);
   const participantFailures = watchRuntime(participant);
+  let participantJoinRequests = 0;
+  participant.on("request", (request) => {
+    if (
+      /\/api\/v1\/live\/sessions\/[^/]+\/join$/.test(
+        new URL(request.url()).pathname,
+      ) &&
+      request.method() === "POST"
+    ) {
+      participantJoinRequests += 1;
+    }
+  });
 
   try {
     const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -385,6 +396,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
     await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    expect(participantJoinRequests).toBe(1);
 
     await startButton.click();
     await expect(
@@ -408,18 +420,21 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await expect(
       participant.getByRole("button", { name: "پاسخ ثبت شد" }),
     ).toBeDisabled();
+    expect(participantJoinRequests).toBe(2);
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
       timeout: 15000,
     });
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    expect(participantJoinRequests).toBe(2);
 
     await participant.reload();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
       timeout: 15000,
     });
     await expect(participant.getByText("امتیاز شما")).toBeVisible();
+    expect(participantJoinRequests).toBe(3);
 
     await manager.getByRole("button", { name: "پایان ارائه", exact: true }).click();
     const endDialog = manager.getByRole("alertdialog");
