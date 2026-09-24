@@ -793,6 +793,7 @@ export class LiveRuntime {
         question_slide_id: String(answer.question_id),
         selected_option_indexes: selected,
       });
+      this.publish({ connectionError: null });
       return true;
     } catch (error) {
       this.publish({ connectionError: errorMessage(error) });
