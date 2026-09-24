@@ -88,7 +88,7 @@ export function ManagerLeaderboardDialog({
                 >
                   {(player.rank ?? index + 1).toLocaleString("fa-IR")}
                 </span>
-                <div className="relative min-h-14 overflow-hidden rounded-xl bg-white/8">
+                <div className="relative min-h-14 overflow-hidden rounded-xl bg-white/10">
                   {width > 0 ? (
                     <div
                       className="absolute inset-y-0 start-0 rounded-xl opacity-80"
