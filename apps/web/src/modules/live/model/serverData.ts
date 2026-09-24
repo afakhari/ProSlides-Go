@@ -67,11 +67,14 @@ export interface ProjectedServerData {
   questionResults: LegacyQuestionResult | null;
 }
 
-export interface ServerDataValue extends ProjectedServerData {
+export interface ServerDataFields extends ProjectedServerData {
   partialQuestionResults: LegacyQuestionResult | null;
   managerLastLeaderboard: LegacyLiveUser[] | null;
   modalLeaderboardResults: LegacyLiveUser[] | null;
-  serverData: Omit<ServerDataValue, "serverData">;
+}
+
+export interface ServerDataValue extends ServerDataFields {
+  serverData: ServerDataFields;
 }
 
 export const isManagerSnapshot = (
