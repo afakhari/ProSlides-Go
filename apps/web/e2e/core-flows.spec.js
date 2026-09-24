@@ -182,7 +182,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
       }
 
       delayEditorRead = false;
-      await new Promise((resolve) => setTimeout(resolve, 750));
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
       await route.continue().catch(() => {});
     },
   );
@@ -193,11 +193,15 @@ test("register, create a presentation, and open its report", async ({ page }) =>
         `/api/v1/presentations/${presentationId}` &&
       request.method() === "GET",
   );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await editorRead;
+  await page.goto(`/manager/panel/${presentationId}/report`);
+  await page.unroute(`**/api/v1/presentations/${presentationId}`);
+  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
+
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
-  await editorRead;
   await page.goForward();
-  await page.unroute(`**/api/v1/presentations/${presentationId}`);
   await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
 
   await page.goto("/manager/panel");
