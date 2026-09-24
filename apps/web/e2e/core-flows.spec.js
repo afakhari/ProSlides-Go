@@ -21,6 +21,47 @@ async function expectNoOverflow(page) {
   ).toBe(true);
 }
 
+function waitForManagerSession(page) {
+  return page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/v1/auth/me" &&
+      response.request().method() === "GET",
+  );
+}
+
+async function expectReportRouteReady(page, failures) {
+  const backLink = page.getByLabel("بازگشت به پنل مدیریت");
+
+  try {
+    await expect(backLink).toBeVisible({ timeout: 15_000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      url: window.location.href,
+      readyState: document.readyState,
+      bodyText: document.body.innerText.slice(0, 4_000),
+      rootHtml: document.querySelector("#root")?.innerHTML.slice(0, 4_000) || "",
+      hasManagerShell: Boolean(
+        document.querySelector('[data-manager-shell="protected"]'),
+      ),
+      resources: performance
+        .getEntriesByType("resource")
+        .map((entry) => entry.name)
+        .filter(
+          (name) =>
+            name.includes("ReportRoute") ||
+            name.includes("/src/app/") ||
+            name.includes("/src/modules/reports/"),
+        )
+        .slice(-20),
+    }));
+    console.info(
+      "[report-route-diagnostic]",
+      JSON.stringify({ ...diagnostic, failures }),
+    );
+    throw error;
+  }
+}
+
 function watchRuntime(page) {
   const failures = [];
 
@@ -178,8 +219,15 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByRole("dialog", { name: "نوع اسلاید را انتخاب کنید" })).toBeHidden();
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
-  await page.goto(`/manager/panel/${presentationId}/report`);
-  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
+  const firstReportSession = waitForManagerSession(page);
+  await page.goto(`/manager/panel/${presentationId}/report`, {
+    waitUntil: "domcontentloaded",
+  });
+  expect((await firstReportSession).status()).toBe(200);
+  await expect(page).toHaveURL(
+    new RegExp(`/manager/panel/${presentationId}/report$`),
+  );
+  await expectReportRouteReady(page, failures);
   await expectAccessible(page, "report");
 
   let holdNextPresentationRead = true;
@@ -211,12 +259,17 @@ test("register, create a presentation, and open its report", async ({ page }) =>
     waitUntil: "domcontentloaded",
   });
   await editorReadHeld;
+  const resumedReportSession = waitForManagerSession(page);
   await page.goto(`/manager/panel/${presentationId}/report`, {
     waitUntil: "domcontentloaded",
   });
   releaseEditorRead();
   await page.unroute(`**/api/v1/presentations/${presentationId}`);
-  await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
+  expect((await resumedReportSession).status()).toBe(200);
+  await expect(page).toHaveURL(
+    new RegExp(`/manager/panel/${presentationId}/report$`),
+  );
+  await expectReportRouteReady(page, failures);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/manager\/panel\/[^/]+$/);
