@@ -31,8 +31,10 @@ app -> modules -> shared
 
 ## Frontend current state
 
-The frontend is functional and increasingly typed/modular, but is not yet a
-fully migrated TypeScript application.
+The production frontend source is now fully TypeScript/TSX. Modularization and
+verification hardening are still in progress, so TypeScript completion should
+not be confused with completion of the broader frontend professionalization
+program.
 
 Current strengths:
 
@@ -74,20 +76,20 @@ Current strengths:
   composition is isolated from presentation mutations, account/logout/password
   setup behavior is owned by the Identity public boundary, and dashboard launch
   errors use accessible notice feedback instead of the legacy hand-built modal.
-- Active React route/UI source has no remaining JSX files. The former top-level
-  `pages`, `components` and `utils` compatibility leaves used by these
-  flows have been removed; `modules/live/runtime/protocol.js` remains the
-  deliberate production JavaScript boundary.
+- Production source under `apps/web/src` has no remaining JavaScript or JSX
+  files. The live protocol planner/cursor/projection boundary is now typed and
+  the former handwritten `protocol.d.ts` compatibility declaration has been
+  removed. The former top-level `pages`, `components` and `utils`
+  compatibility leaves used by these flows are also gone.
 - Browser acceptance covers core marketing/auth/dashboard/report flows,
   manager/player live lifecycle with reconnect, and the principal editor
   draft/conflict flows.
 
 Remaining work:
 
-- migrate the remaining live protocol JavaScript boundary only with isolated
-  live-ordering/cursor/reconnect verification;
 - enforce cross-module public boundaries and introduce dead-code/dependency
-  analysis now that legacy top-level route/UI roots are gone;
+  analysis now that production source is TypeScript/TSX and legacy top-level
+  route/UI roots are gone;
 - continue semantic design-system/RTL convergence on mature surfaces as part of
   bounded product changes;
 - add focused component/API-state tests between domain unit tests and browser
