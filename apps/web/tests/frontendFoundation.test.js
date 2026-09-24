@@ -86,6 +86,33 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(dashboard, /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/);
 });
 
+test("marketing routes are typed, module-owned, RTL-safe and historically accurate", () => {
+  const router = source("src/app/router/router.tsx");
+  const landing = source("src/modules/marketing/routes/LandingRoute.tsx");
+  const team = source("src/modules/marketing/routes/TeamRoute.tsx");
+  const seo = source("src/shared/ui/Seo.tsx");
+  const siteHeader = source("src/shared/ui/SiteHeader.tsx");
+
+  assert.match(router, /modules\/marketing\/routes\/LandingRoute\.tsx/);
+  assert.match(router, /modules\/marketing\/routes\/TeamRoute\.tsx/);
+  assert.doesNotMatch(router, /pages\/(?:landing|team)\//);
+
+  assert.match(landing, /dir="rtl"/);
+  assert.match(landing, /aria-label="کد ورود"/);
+  assert.match(landing, /dir="ltr"/);
+  assert.match(landing, /prefers-reduced-motion: reduce/);
+  assert.doesNotMatch(landing, /94%|۹۴٪/);
+  assert.doesNotMatch(landing, /#[0-9a-fA-F]{3,8}/);
+
+  assert.match(team, /توسعه اولیه Rust/);
+  assert.match(team, /توسعه اولیه Django/);
+  assert.match(team, /backend فعال ProSlides اکنون بر Go استوار است/);
+  assert.doesNotMatch(team, /#[0-9a-fA-F]{3,8}/);
+
+  assert.match(seo, /restoreAttribute/);
+  assert.match(siteHeader, /shared|SiteHeader|صفحه اصلی ProSlides/);
+});
+
 test("editor presentation reads recover after interrupted route navigation", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const repository = source("src/modules/presentations/api/presentationRepository.ts");
