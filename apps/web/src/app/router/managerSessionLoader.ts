@@ -16,7 +16,7 @@ export async function requireManagerSession({
   request,
 }: LoaderFunctionArgs) {
   try {
-    return await queryClient.ensureQueryData(currentSessionQuery());
+    return await queryClient.fetchQuery(currentSessionQuery());
   } catch (error) {
     if (
       error instanceof ApiError &&
