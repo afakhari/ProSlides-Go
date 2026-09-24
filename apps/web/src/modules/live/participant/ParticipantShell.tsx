@@ -30,7 +30,7 @@ export function ParticipantShell({
         </div>
         {showConnection && (
           <div className="flex items-center gap-2 rounded-full border border-[color:var(--live-border)] bg-black/20 px-3 py-1.5 text-xs backdrop-blur-md" role="status" aria-live="polite">
-            <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-300"}`} />
+            <span className={`h-2 w-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`} />
             {connected ? "متصل" : "در حال اتصال"}
           </div>
         )}
