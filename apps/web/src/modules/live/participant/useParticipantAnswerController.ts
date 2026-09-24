@@ -12,6 +12,7 @@ import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 import {
   buildParticipantAnswer,
+  isMultipleChoiceQuestion,
   questionRunIdentity,
   toggleParticipantOption,
   type ParticipantSubmitState,
@@ -135,15 +136,6 @@ export function useParticipantAnswerController({
         return;
       }
 
-      if (!isConnected) {
-        pendingRef.current = attempt;
-        setSubmitState("retryable");
-        setSubmitMessage(
-          "اتصال موقتاً قطع است. انتخاب شما حفظ شده و پس از اتصال دوباره قابل ارسال است.",
-        );
-        return;
-      }
-
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
       const outcome = await submitAnswer(attempt.answer);
@@ -170,7 +162,7 @@ export function useParticipantAnswerController({
         "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
       );
     },
-    [identity, isConnected, submitAnswer],
+    [identity, submitAnswer],
   );
 
   const submit = useCallback(async () => {
@@ -211,7 +203,7 @@ export function useParticipantAnswerController({
     void sendAttempt(attempt);
   }, [identity, isConnected, sendAttempt, submitState]);
 
-  const multiple = question.has_multiple !== false;
+  const multiple = isMultipleChoiceQuestion(question);
   const isLocked = ["sending", "sent", "rejected", "expired"].includes(
     submitState,
   );
