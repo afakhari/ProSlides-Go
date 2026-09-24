@@ -394,9 +394,69 @@ test("manager and participant complete a live question lifecycle with reconnect"
       manager.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
     ).toBeVisible({ timeout: 15000 });
 
-    await participant.getByRole("button", { name: /تهران/ }).click();
+    const answerRequestIds = [];
+    let failNextAnswer = true;
+    await participant.route("**/api/v1/live/sessions/*/answers", async (route) => {
+      const body = route.request().postDataJSON();
+      answerRequestIds.push(body.request_id);
+      if (failNextAnswer) {
+        failNextAnswer = false;
+        await route.fulfill({
+          status: 418,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "temporary_answer_failure",
+            message: "temporary answer failure",
+          }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    const tehranOption = participant.getByRole("button", { name: /تهران/ });
+    await tehranOption.click();
+    await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+
     await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
-    await expect(participant.getByText("پاسخ شما ثبت شد.", { exact: true })).toBeVisible();
+    await expect(
+      participant.getByText(
+        "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      participant.getByText(
+        "ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    const answerAccepted = participant.waitForResponse(
+      (response) =>
+        /\/api\/v1\/live\/sessions\/[^/]+\/answers$/.test(
+          new URL(response.url()).pathname,
+        ) &&
+        response.request().method() === "POST" &&
+        response.status() === 201,
+    );
+    await participant
+      .getByRole("button", { name: "تلاش دوباره برای ارسال" })
+      .click();
+    await answerAccepted;
+    await expect(
+      participant.getByText("پاسخ شما ثبت شد.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      participant.getByText(
+        "ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.",
+        { exact: true },
+      ),
+    ).toBeHidden();
+    expect(answerRequestIds).toHaveLength(2);
+    expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
+    await participant.unroute("**/api/v1/live/sessions/*/answers");
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
