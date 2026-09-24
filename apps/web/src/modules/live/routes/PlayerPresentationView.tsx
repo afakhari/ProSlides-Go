@@ -1,3 +1,5 @@
+import { lazy } from "react";
+
 import { matchingQuestionResult, type PlayerLastActive } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
@@ -8,12 +10,37 @@ import type {
 } from "../model/serverData.ts";
 import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
 import type { LiveSnapshot } from "../api/types.ts";
-import { PlayerContentSlide } from "../participant/ui/PlayerContentSlide.tsx";
-import { PlayerFinalResult } from "../participant/ui/PlayerFinalResult.tsx";
-import { PlayerJoinPage } from "../participant/ui/PlayerJoinPage.tsx";
-import { PlayerLeaderBoard } from "../participant/ui/PlayerLeaderBoard.tsx";
-import { PlayerPickAnswerQuestion } from "../participant/ui/PlayerPickAnswerQuestion.tsx";
-import { PlayerSyncState } from "../participant/ui/PlayerSyncState.tsx";
+
+const PlayerContentSlide = lazy(() =>
+  import("../participant/ui/PlayerContentSlide.tsx").then((module) => ({
+    default: module.PlayerContentSlide,
+  })),
+);
+const PlayerFinalResult = lazy(() =>
+  import("../participant/ui/PlayerFinalResult.tsx").then((module) => ({
+    default: module.PlayerFinalResult,
+  })),
+);
+const PlayerJoinPage = lazy(() =>
+  import("../participant/ui/PlayerJoinPage.tsx").then((module) => ({
+    default: module.PlayerJoinPage,
+  })),
+);
+const PlayerLeaderBoard = lazy(() =>
+  import("../participant/ui/PlayerLeaderBoard.tsx").then((module) => ({
+    default: module.PlayerLeaderBoard,
+  })),
+);
+const PlayerPickAnswerQuestion = lazy(() =>
+  import("../participant/ui/PlayerPickAnswerQuestion.tsx").then((module) => ({
+    default: module.PlayerPickAnswerQuestion,
+  })),
+);
+const PlayerSyncState = lazy(() =>
+  import("../participant/ui/PlayerSyncState.tsx").then((module) => ({
+    default: module.PlayerSyncState,
+  })),
+);
 
 type PlayerViewProps = {
   roomId?: string;
