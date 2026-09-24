@@ -2,7 +2,6 @@ import type { ComponentType } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
 import ProtectedManagerShell from "../layouts/ProtectedManagerShell.tsx";
-import EditorRouteSkeleton from "../../modules/presentations/editor/routes/EditorRouteSkeleton.tsx";
 import AppRoot from "./AppRoot.tsx";
 import {
   AppRouteErrorBoundary,
@@ -32,23 +31,6 @@ const lazyPresentationEntry = (
     Component: () => <PresentationEntry mode={mode} role={role} />,
   };
 };
-
-export function InitialRouterFallback() {
-  const pathname =
-    typeof window === "undefined" ? "/" : window.location.pathname;
-
-  if (/^\/manager\/panel\/[^/]+\/?$/.test(pathname)) {
-    return <EditorRouteSkeleton />;
-  }
-
-  return (
-    <div
-      className="min-h-screen bg-canvas"
-      aria-busy="true"
-      aria-label="در حال بارگذاری صفحه"
-    />
-  );
-}
 
 export const appRouter = createBrowserRouter([
   {
