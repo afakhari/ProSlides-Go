@@ -8,23 +8,11 @@ import {
   currentSessionQuery,
   identityKeys,
 } from "../api/sessionQuery.ts";
-import { PASSWORD_PROMPT_FLAG } from "../model/authFlow.ts";
+import { clearIdentityCompatibilityStorage } from "../model/authStorage.ts";
 
 type ManagerAccountMenuProps = {
   compact?: boolean;
   onBeforeOpen?: () => void;
-};
-
-const clearIdentityCompatibilityStorage = () => {
-  try {
-    localStorage.removeItem(PASSWORD_PROMPT_FLAG);
-    localStorage.removeItem("auth.name");
-    localStorage.removeItem("auth.email");
-    localStorage.removeItem("auth.access");
-    localStorage.removeItem("auth.refresh");
-  } catch {
-    // Compatibility storage is best-effort and must never block logout.
-  }
 };
 
 export function ManagerAccountMenu({
