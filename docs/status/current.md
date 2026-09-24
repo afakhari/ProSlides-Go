@@ -42,6 +42,9 @@ Current strengths:
 - The protected-session query shares the same TanStack Query client and typed
   identity API boundary used by the application instead of maintaining a
   parallel component-local fetch lifecycle.
+- Ordinary REST transport is owned by `shared/api/http.ts`, including API base
+  URL construction, credentials, CSRF, JSON parsing, typed API errors,
+  cancellation propagation and auth-expiry notification.
 - Generated OpenAPI transport types and typed module/domain boundaries are used
   where migrated.
 - Question, content, design and audio editor slices use explicit typed draft
@@ -55,8 +58,6 @@ Remaining work:
 
 - complete TypeScript migration of active JSX/JS boundaries;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
-- finish ordinary REST/API ownership convergence and remove compatibility
-  utilities after their callers migrate;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser
   end-to-end coverage;
