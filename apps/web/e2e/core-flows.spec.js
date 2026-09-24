@@ -278,6 +278,8 @@ test("manager and participant complete a live question lifecycle with reconnect"
   const participantContext = await browser.newContext();
   const manager = await managerContext.newPage();
   const participant = await participantContext.newPage();
+  manager.setDefaultTimeout(15000);
+  participant.setDefaultTimeout(15000);
   const managerFailures = watchRuntime(manager);
   const participantFailures = watchRuntime(participant);
 
@@ -421,18 +423,25 @@ test("manager and participant complete a live question lifecycle with reconnect"
       acceptedAnswerStatus = response.status();
       await route.fulfill({ response });
     });
+    console.info("[live-e2e] answer route installed");
 
     const tehranOption = participant.getByRole("button", { name: /تهران/ });
+    console.info("[live-e2e] clicking answer option");
     await tehranOption.click();
+    console.info("[live-e2e] answer option clicked");
     await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
+    console.info("[live-e2e] answer option selected");
 
+    console.info("[live-e2e] submitting first answer");
     await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
+    console.info("[live-e2e] first submit click completed");
     await expect(
       participant.getByText(
         "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
         { exact: true },
       ),
     ).toBeVisible();
+    console.info("[live-e2e] retryable state visible");
     await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
     console.info("[live-e2e] first answer failure observed");
     await participant
