@@ -50,8 +50,11 @@ export function useParticipantAnswerController({
   const identity = questionRunIdentity(question);
   const questionRef = useRef(question);
   questionRef.current = question;
+  const activeIdentityRef = useRef(identity);
+  activeIdentityRef.current = identity;
 
   const pendingRef = useRef<PendingAttempt | null>(null);
+  const inFlightAttemptRef = useRef<string | null>(null);
   const wasConnectedRef = useRef(isConnected);
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
@@ -81,6 +84,7 @@ export function useParticipantAnswerController({
     setSubmitState("idle");
     setSubmitMessage("");
     pendingRef.current = null;
+    inFlightAttemptRef.current = null;
   }, [identity, roomId]);
 
   useEffect(() => {
@@ -128,6 +132,7 @@ export function useParticipantAnswerController({
       if (
         !identity ||
         attempt.identity !== identity ||
+        activeIdentityRef.current !== attempt.identity ||
         remainingRef.current <= 0
       ) {
         pendingRef.current = null;
@@ -136,31 +141,47 @@ export function useParticipantAnswerController({
         return;
       }
 
+      const attemptKey = attempt.answer.request_id || attempt.identity;
+      if (inFlightAttemptRef.current === attemptKey) return;
+      if (inFlightAttemptRef.current !== null) return;
+
+      inFlightAttemptRef.current = attemptKey;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
-      const outcome = await submitAnswer(attempt.answer);
 
-      if (outcome === true) {
-        pendingRef.current = null;
-        setSubmitState("sent");
-        setSubmitMessage("پاسخ شما ثبت شد.");
-        return;
-      }
+      try {
+        const outcome = await submitAnswer(attempt.answer);
 
-      if (outcome === "rejected") {
-        pendingRef.current = null;
-        setSubmitState("rejected");
+        if (activeIdentityRef.current !== attempt.identity) {
+          return;
+        }
+
+        if (outcome === true) {
+          pendingRef.current = null;
+          setSubmitState("sent");
+          setSubmitMessage("پاسخ شما ثبت شد.");
+          return;
+        }
+
+        if (outcome === "rejected") {
+          pendingRef.current = null;
+          setSubmitState("rejected");
+          setSubmitMessage(
+            "پاسخ پذیرفته نشد؛ احتمالاً زمان سؤال پایان یافته است.",
+          );
+          return;
+        }
+
+        pendingRef.current = attempt;
+        setSubmitState("retryable");
         setSubmitMessage(
-          "پاسخ پذیرفته نشد؛ احتمالاً زمان سؤال پایان یافته است.",
+          "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
         );
-        return;
+      } finally {
+        if (inFlightAttemptRef.current === attemptKey) {
+          inFlightAttemptRef.current = null;
+        }
       }
-
-      pendingRef.current = attempt;
-      setSubmitState("retryable");
-      setSubmitMessage(
-        "ارسال کامل نشد. انتخاب شما حفظ شده است؛ دوباره تلاش کنید.",
-      );
     },
     [identity, submitAnswer],
   );
