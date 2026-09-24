@@ -45,6 +45,24 @@ import {
   toPersianUiMessage,
 } from "./model/dashboardPresentation.ts";
 
+const readLocalStorage = (key) => {
+  try {
+    return typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const removeLocalStorage = (key) => {
+  try {
+    if (typeof window !== "undefined") window.localStorage.removeItem(key);
+  } catch {
+    // Storage may be unavailable (for example in restricted browser contexts).
+  }
+};
+
+const EMPTY_PRESENTATION_SUMMARIES = [];
+
 export default function QuizManager({ onNewPresentation }) {
   const navigate = useNavigate();
   const [loggedInUser] = useState(
