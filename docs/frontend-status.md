@@ -15,7 +15,7 @@ history; reviewed work merged after that commit is active mainline work.
 | Area | Evidence/implementation |
 |---|---|
 | Application routing | A typed React Router data route tree owns nested manager routing, route errors, lazy route modules and protected-session loading. |
-| REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; one TanStack Query client owns ordinary REST cache state where migrated. |
+| REST transport/state | `shared/api/http.ts` exclusively owns ordinary REST base URL, credentials, CSRF, JSON/error handling and cancellation; live presentation reads also use this boundary instead of the SSE/session transport, and one TanStack Query client owns ordinary REST cache state where migrated. |
 | Editor ownership | Question, content, design and audio use typed draft ownership with explicit dirty/save/discard/conflict behavior. |
 | Live correctness | Snapshot/cursor/reconnect/roster ownership lives under `modules/live`; React adapters and the route entry are typed, player recovery and manager presentation synchronization have dedicated typed controllers, and `useSyncExternalStore` exposes runtime state without duplicating lifecycle ownership. |
 | Presentation contract | Generated API types and typed domain boundaries exist where migrated; presentation edits preserve revision conflict semantics. |
@@ -48,9 +48,8 @@ is consistency, cleanup, accessibility and targeted coverage while preserving:
 
 After the HTTP-boundary inversion, the highest-value boundaries are:
 
-1. extract presentation loading/model projection from `PresentationFlow.jsx`
-   so the remaining route flow is role composition rather than transport/state
-   ownership;
+1. reduce the remaining `PresentationFlow.jsx` shell to typed role
+   composition/error recovery and remove the last JSX orchestration boundary;
 2. migrate manager/player live UI leaves from legacy `pages` ownership as
    their contracts become typed;
 3. move landing/team ownership into the marketing module while converging RTL
