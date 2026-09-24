@@ -44,8 +44,11 @@ export const identityApi = {
   confirmPasswordReset: (input: PasswordResetConfirmRequest): Promise<void> =>
     publicJson<void>("/auth/password/reset/confirm", "POST", input),
 
-  getCurrentUser: (): Promise<CurrentUser> =>
-    requestJson<CurrentUser>("/auth/me"),
+  getCurrentUser: (options: { signal?: AbortSignal } = {}): Promise<CurrentUser> =>
+    requestJson<CurrentUser>("/auth/me", {
+      signal: options.signal,
+      announceAuthExpiry: false,
+    }),
 
   logout: (): Promise<void> =>
     requestJson<void>("/auth/logout", { method: "POST" }),
