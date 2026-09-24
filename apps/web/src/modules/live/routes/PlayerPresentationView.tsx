@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 
 import { matchingQuestionResult, type PlayerLastActive } from "../model/presentationFlow.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
@@ -10,6 +10,7 @@ import type {
 } from "../model/serverData.ts";
 import type { StoredPlayerProfile } from "../model/playerProfileStorage.ts";
 import type { LiveSnapshot } from "../api/types.ts";
+import { PlayerSyncState } from "../participant/ui/PlayerSyncState.tsx";
 
 const PlayerContentSlide = lazy(() =>
   import("../participant/ui/PlayerContentSlide.tsx").then((module) => ({
@@ -36,12 +37,6 @@ const PlayerPickAnswerQuestion = lazy(() =>
     default: module.PlayerPickAnswerQuestion,
   })),
 );
-const PlayerSyncState = lazy(() =>
-  import("../participant/ui/PlayerSyncState.tsx").then((module) => ({
-    default: module.PlayerSyncState,
-  })),
-);
-
 type PlayerViewProps = {
   roomId?: string;
   quiz: LivePresentationModel;
@@ -56,7 +51,7 @@ type PlayerViewProps = {
   profile: StoredPlayerProfile | null;
 };
 
-export function PlayerPresentationView({
+function PlayerPresentationContent({
   roomId,
   quiz,
   currentQuestion,
@@ -154,4 +149,21 @@ export function PlayerPresentationView({
   }
 
   return <PlayerJoinPage roomId={roomId} quiz={quiz} />;
+}
+
+
+export function PlayerPresentationView(props: PlayerViewProps) {
+  return (
+    <Suspense
+      fallback={
+        <PlayerSyncState
+          quiz={props.quiz}
+          title="در حال آماده‌سازی نمایش"
+          message="نمای مناسب وضعیت فعلی جلسه در حال بارگذاری است."
+        />
+      }
+    >
+      <PlayerPresentationContent {...props} />
+    </Suspense>
+  );
 }
