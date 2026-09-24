@@ -95,9 +95,12 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(loader, /error\.status === 401 \|\| error\.status === 403/);
   assert.match(sessionQuery, /queryFn: \(\{ signal \}\)/);
   assert.match(sessionQuery, /getCurrentUser\(\{ signal \}\)/);
-  const dashboard = source("src/modules/presentations/dashboard/PresentationDashboard.tsx");
-  assert.match(dashboard, /identityApi\.logout\(\)/);
-  assert.match(dashboard, /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/);
+  const accountMenu = source("src/modules/identity/ui/ManagerAccountMenu.tsx");
+  assert.match(accountMenu, /identityApi\.logout\(\)/);
+  assert.match(
+    accountMenu,
+    /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/,
+  );
 });
 
 test("marketing routes are typed, module-owned, RTL-safe and historically accurate", () => {
