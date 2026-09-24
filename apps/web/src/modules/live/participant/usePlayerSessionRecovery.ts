@@ -57,6 +57,7 @@ export function usePlayerSessionRecovery({
     () => (enabled ? readPlayerLastActive(roomId) : null),
   );
   const joinSentRef = useRef(false);
+  const resumeJoinPendingRef = useRef(false);
   const [profile, setProfile] = useState<StoredPlayerProfile | null>(
     () => (enabled ? readStoredProfile(roomId) : null),
   );
@@ -67,12 +68,15 @@ export function usePlayerSessionRecovery({
       setLastActive(null);
       setProfile(null);
       joinSentRef.current = false;
+      resumeJoinPendingRef.current = false;
       return;
     }
 
     setHasSeenActiveSlide(readPlayerSeenActive(roomId));
     setLastActive(readPlayerLastActive(roomId));
     setProfile(readStoredProfile(roomId));
+    joinSentRef.current = false;
+    resumeJoinPendingRef.current = false;
   }, [enabled, roomId]);
 
   useEffect(() => {
@@ -125,18 +129,33 @@ export function usePlayerSessionRecovery({
     !hasLeaderboard;
 
   useEffect(() => {
-    if (!shouldAutoResume || !roomId || isConnected) return;
-
-    void connect(roomId).catch((error: unknown) => {
-      console.error("[PresentationFlow] player resume connect failed:", error);
-    });
-  }, [shouldAutoResume, roomId, isConnected, connect]);
-
-  useEffect(() => {
-    if (!shouldAutoResume || !isConnected || !profile) {
+    if (!shouldAutoResume) {
+      resumeJoinPendingRef.current = false;
       joinSentRef.current = false;
       return;
     }
+    if (!roomId || isConnected) return;
+
+    resumeJoinPendingRef.current = true;
+    void connect(roomId)
+      .then((ok) => {
+        if (ok !== true) {
+          resumeJoinPendingRef.current = false;
+        }
+      })
+      .catch((error: unknown) => {
+        resumeJoinPendingRef.current = false;
+        console.error("[PresentationFlow] player resume connect failed:", error);
+      });
+  }, [shouldAutoResume, roomId, isConnected, connect]);
+
+  useEffect(() => {
+    if (!shouldAutoResume || !profile) {
+      joinSentRef.current = false;
+      resumeJoinPendingRef.current = false;
+      return;
+    }
+    if (!isConnected || !resumeJoinPendingRef.current) return;
 
     if (joinSentRef.current) return;
     joinSentRef.current = true;
@@ -146,7 +165,15 @@ export function usePlayerSessionRecovery({
       avatar: profile.avatar,
       clientUserId: getPersistedUserIdForRoom(roomId) ?? undefined,
     }).then((ok) => {
-      if (ok !== true) joinSentRef.current = false;
+      if (ok === true) {
+        resumeJoinPendingRef.current = false;
+        return;
+      }
+
+      joinSentRef.current = false;
+      if (ok === "rejected") {
+        resumeJoinPendingRef.current = false;
+      }
     });
   }, [
     shouldAutoResume,
