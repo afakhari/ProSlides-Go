@@ -1,6 +1,6 @@
 # Current project status
 
-Last reviewed: 2026-09-24
+Last reviewed: 2026-09-25
 
 This is the single current-state document for ProSlides. Architecture documents
 define durable rules, ADRs explain decisions, evidence documents record dated
@@ -66,13 +66,18 @@ Current strengths:
   isolated in a typed manager controller. Presentation loading is cancellable
   and uses the shared ordinary REST boundary; the dedicated live transport
   remains focused on session commands, snapshots, roster and SSE.
-- Browser acceptance covers core auth/dashboard/report flows, manager/player
-  live lifecycle with reconnect, and the principal editor draft/conflict flows.
+- Marketing landing/team routes are now module-owned TypeScript, use semantic
+  styling and explicit RTL/LTR boundaries, preserve the documented historical
+  Rust/Django contributions while identifying Go as the current backend, and
+  avoid unsupported quantitative product claims.
+- Browser acceptance covers core marketing/auth/dashboard/report flows,
+  manager/player live lifecycle with reconnect, and the principal editor
+  draft/conflict flows.
 
 Remaining work:
 
 - complete TypeScript migration of the remaining active JSX/JS boundaries in
-  marketing, dashboard and compatibility utilities;
+  the dashboard and compatibility utilities;
 - migrate remaining legacy top-level ownership into `app/modules/shared`;
 - continue design-system/RTL convergence on legacy surfaces;
 - add focused component/API-state tests between domain unit tests and browser
