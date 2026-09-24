@@ -1,4 +1,4 @@
-import { createSecureUUID } from "../api/secureUuid";
+import { createSecureUUID } from "../api/secureUuid.ts";
 
 export const PLAYER_PROFILE_KEY = "presentation_player_profile_v1";
 export const DEFAULT_AVATAR = "🧙";
