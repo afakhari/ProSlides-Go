@@ -139,11 +139,11 @@ export function useParticipantJoinController(
 
     saveStoredProfile({
       room_id: roomId,
-      name: lastJoinResult.displayName || name,
-      avatar: lastJoinResult.avatar || avatar,
+      name: lastJoinResult.displayName,
+      avatar: lastJoinResult.avatar || DEFAULT_AVATAR,
       user_id: lastJoinResult.clientUserId,
     });
-  }, [avatar, lastJoinResult, name, roomId]);
+  }, [lastJoinResult, roomId]);
 
   useEffect(
     () => () => {
