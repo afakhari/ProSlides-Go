@@ -86,7 +86,7 @@ test("protected manager routes use the data router and one cached session bounda
   assert.match(dashboard, /removeQueries\(\{ queryKey: identityKeys\.session\(\) \}\)/);
 });
 
-test("editor presentation reads are cancelled when the route unmounts", () => {
+test("editor presentation reads recover after interrupted route navigation", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const repository = source("src/modules/presentations/api/presentationRepository.ts");
 
@@ -94,7 +94,12 @@ test("editor presentation reads are cancelled when the route unmounts", () => {
   assert.match(route, /getEditorQuiz\(quizId, \{ signal \}\)/);
   assert.match(route, /useNavigation/);
   assert.match(route, /routeLoadAbortRef/);
+  assert.match(route, /interruptedRouteLoadRef/);
+  assert.match(route, /const startRouteLoad = useCallback/);
   assert.match(route, /navigation\.state !== "idle"/);
+  assert.match(route, /interruptedRouteLoadRef\.current = true/);
+  assert.match(route, /navigation\.state === "idle"/);
+  assert.match(route, /startRouteLoad\(\)/);
   assert.match(route, /routeLoadAbortRef\.current\?\.abort\(\)/);
   assert.match(route, /controller\.abort\(\)/);
   assert.match(route, /signal\?\.aborted/);
