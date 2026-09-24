@@ -35,6 +35,15 @@ export const resolveAuthMode = (pathname: string, search: string): AuthMode => {
   return "login";
 };
 
+export const resolveAuthReturnPath = (search: string): string => {
+  const from = new URLSearchParams(search).get("from");
+  if (!from || !from.startsWith("/manager/") || from.startsWith("//")) {
+    return "/manager/panel";
+  }
+
+  return from;
+};
+
 export const getPasswordStrength = (value: string): PasswordStrength => {
   if (!value) return { score: 0, label: "ضعیف" };
 
