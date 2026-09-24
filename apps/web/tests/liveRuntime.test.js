@@ -486,3 +486,54 @@ test("disconnect during manager connect cannot resurrect stale session state", a
   runtime.destroy();
 });
 
+
+
+test("participant answer command validates selected indexes before transport", async () => {
+  const submitted = [];
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      submitLiveAnswer: async (_id, input) => {
+        submitted.push(input);
+        return { answer_id: "answer", score_delta: 0, duplicate: false };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "question",
+      selected_option_indexes: [],
+    }),
+    "rejected",
+  );
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "question",
+      selected_option_indexes: [0, 0],
+    }),
+    "rejected",
+  );
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "question",
+      selected_option_indexes: [0, -1],
+    }),
+    "rejected",
+  );
+  assert.equal(submitted.length, 0);
+
+  assert.equal(
+    await runtime.submitAnswer({
+      request_id: "00000000-0000-4000-8000-000000000099",
+      question_id: "question",
+      selected_option_indexes: [0, 2],
+    }),
+    true,
+  );
+  assert.deepEqual(submitted[0].selected_option_indexes, [0, 2]);
+
+  runtime.destroy();
+});
