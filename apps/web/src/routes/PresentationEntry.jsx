@@ -8,12 +8,12 @@ import { useLiveSession } from "../modules/live/react/useLiveSession";
 import { AudioProvider, useAudio } from "../contexts/AudioContext.tsx";
 import { getPresentation, resolveLiveSession } from "../modules/live/api/liveApi";
 import { presentationSlideToLegacy } from "../modules/live/runtime/protocol";
-import { hasLeaderboardEntries } from "../pages/presentation/utils/leaderboardUtils";
+import { hasLeaderboardEntries } from "../modules/live/model/leaderboard";
 import { resolveQuestionTimer } from "../pages/presentation/utils/questionTimerSync";
 import {
   getPersistedUserIdForRoom,
   readStoredProfile,
-} from "../pages/presentation/player/playerProfileStorage";
+} from "../modules/live/model/playerProfileStorage";
 
 import Waiting from "../pages/loading/LoadingPage";
 import FinalLeaderboard from "../pages/presentation/manager/FinalLeaderboard";
