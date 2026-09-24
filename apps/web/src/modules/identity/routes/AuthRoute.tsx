@@ -15,7 +15,6 @@ import { useGoogleIdentity } from "../hooks/useGoogleIdentity.ts";
 import { useVerificationTimers } from "../hooks/useVerificationTimers.ts";
 import {
   DEFAULT_OTP_TTL_SECONDS,
-  PASSWORD_PROMPT_FLAG,
   getOtpExpirySeconds,
   getPasswordStrength,
   getResendSeconds,
@@ -25,6 +24,7 @@ import {
   type AuthMode,
   type AuthStatus,
 } from "../model/authFlow.ts";
+import { setPasswordSetupPrompt } from "../model/authStorage.ts";
 import {
   loginFormSchema,
   loginSchema,
@@ -202,9 +202,9 @@ export default function AuthRoute() {
           token: credential,
         });
 
-        if (payload?.needs_password_setup || payload?.is_new_user) {
-          localStorage.setItem(PASSWORD_PROMPT_FLAG, "1");
-        }
+        setPasswordSetupPrompt(
+          Boolean(payload?.needs_password_setup || payload?.is_new_user),
+        );
 
         navigateToDashboard();
       } catch (error) {
@@ -268,6 +268,7 @@ export default function AuthRoute() {
           password: values.password,
         });
 
+        setPasswordSetupPrompt(false);
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
@@ -338,6 +339,7 @@ export default function AuthRoute() {
         });
 
         if (responsePayload?.is_active) {
+          setPasswordSetupPrompt(false);
           navigateToDashboard();
           return;
         }
@@ -389,6 +391,7 @@ export default function AuthRoute() {
           code: values.verificationCode,
         });
 
+        setPasswordSetupPrompt(false);
         navigateToDashboard();
       } catch (error) {
         applyServerFieldErrors(error);
