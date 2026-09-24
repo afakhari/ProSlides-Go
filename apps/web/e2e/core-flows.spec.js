@@ -396,7 +396,18 @@ test("manager and participant complete a live question lifecycle with reconnect"
 
     await participant.getByRole("button", { name: /تهران/ }).click();
     await participant.getByRole("button", { name: "ثبت پاسخ" }).click();
-    await expect(participant.getByText("پاسخ شما ثبت شد.", { exact: true })).toBeVisible();
+    await expect(participant.getByText("پاسخ شما ارسال شد.", { exact: true })).toBeVisible();
+
+    await participant.reload();
+    await expect(
+      participant.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByText("پاسخ شما ارسال شده است.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      participant.getByRole("button", { name: "پاسخ ثبت شد" }),
+    ).toBeDisabled();
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
@@ -417,6 +428,10 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
     ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByRole("heading", { name: "نتیجه نهایی شما" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(participant.getByText("جلسه پایان یافت")).toBeVisible();
 
     expect(managerFailures).toEqual([]);
     expect(participantFailures).toEqual([]);
