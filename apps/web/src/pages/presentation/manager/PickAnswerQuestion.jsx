@@ -106,7 +106,6 @@ export default function ManagerPickAnswerQuestion({
   const currentOptionCount = questionOptions.length;
   const options = questionOptions.map((opt) => opt.option_text);
 
-  // Ù¾ÛŒØ¯Ø§ Ú©Ø±Ø¯Ù† Ù‡Ù…Ù‡ Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§ÛŒ ØµØ­ÛŒØ­ (Ù†Ù‡ ÙÙ‚Ø· ÛŒÚ©ÛŒ)
   const correctIndexes =
     questionOptions.reduce((arr, opt, idx) => {
       if (opt.answer === true) arr.push(idx);
@@ -247,7 +246,6 @@ export default function ManagerPickAnswerQuestion({
     });
   }, [showResults, votes, timer]);
 
-  // ØªØ§ÛŒÙ…Ø±
   useEffect(() => {
     if (!isRemoteReady) return; // don't start timer until remote quiz is ready
     if (showResults) {
@@ -325,12 +323,10 @@ export default function ManagerPickAnswerQuestion({
         {/* Live connection status */}
         {isRemoteReady ? (
           <>
-            {/* ØµÙˆØ±Øª Ø³ÙˆØ§Ù„ - Ø¨Ø§Ù„Ø§ Ø¨Ø§ ÙØ§ØµÙ„Ù‡ Ø¨ÛŒØ´ØªØ± */}
             <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-[color:var(--quiz-text)] mb-4 mt-8 text-center px-4 shrink-0">
               {currentQuestion.question_text}
             </h2>
 
-            {/* ØªØ§ÛŒÙ…Ø± */}
             {!showResults && timer > 0 && (
               <div className="absolute inset-0 flex items-center justify-center text-8xl font-bold text-[color:var(--quiz-text)] pointer-events-none z-10">
                 {Math.ceil(timer)}
@@ -342,20 +338,17 @@ export default function ManagerPickAnswerQuestion({
               </div>
             )}
 
-            {/* Ø¨Ø®Ø´ Ø§ØµÙ„ÛŒ - Ø¹Ú©Ø³ Ø³ÙˆØ§Ù„ Ø³Ù…Øª Ú†Ù¾ØŒ Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§ Ø³Ù…Øª Ø±Ø§Ø³Øª */}
             <div className="flex flex-1 w-full min-h-0 px-4 gap-6">
-              {/* Ø¹Ú©Ø³ Ø³ÙˆØ§Ù„ - Ø³Ù…Øª Ú†Ù¾ */}
               {currentQuestion.image_url && (
                 <div className="flex items-center justify-center w-1/4 shrink-0">
                   <img
                     src={currentQuestion.image_url}
-                    alt="Question"
+                    alt="تصویر سؤال"
                     className="max-h-full max-w-full rounded-xl shadow-lg object-contain"
                   />
                 </div>
               )}
 
-              {/* Ù†Ù…ÙˆØ¯Ø§Ø± Ú¯Ø²ÛŒÙ†Ù‡â€ŒÙ‡Ø§ - Ø³Ù…Øª Ø±Ø§Ø³Øª */}
               <div
                 className={`flex justify-around items-end flex-1 min-h-0 ${
                   !currentQuestion.image_url ? "w-full" : ""
@@ -365,7 +358,6 @@ export default function ManagerPickAnswerQuestion({
                   const isCorrect = correctIndexes.includes(index);
                   const isSelected = index === selected;
                   const totalVotes = votes.reduce((sum, v) => sum + v, 0);
-                  // Ø§Ø±ØªÙØ§Ø¹ ÙÙ‚Ø· ÙˆÙ‚ØªÛŒ Ù†ØªØ§ÛŒØ¬ Ø±Ø³ÛŒØ¯Ù‡ Ù†Ù…Ø§ÛŒØ´ Ø¯Ø§Ø¯Ù‡ Ù…ÛŒØ´Ù‡
                   const height =
                     hasReceivedResults && totalVotes > 0
                       ? (votes[index] / totalVotes) * 100
@@ -377,14 +369,12 @@ export default function ManagerPickAnswerQuestion({
                       key={index}
                       className="flex flex-col items-center justify-end w-1/5 h-full"
                     >
-                      {/* ØªØ¹Ø¯Ø§Ø¯ Ø±Ø§ÛŒ - ÙÙ‚Ø· Ø¨Ø¹Ø¯ Ø§Ø² Ø¯Ø±ÛŒØ§ÙØª Ù†ØªØ§ÛŒØ¬ */}
                       {hasReceivedResults && (
                         <div className="mb-1 text-center text-2xl lg:text-4xl text-[color:var(--quiz-text)] font-semibold">
                           {votes[index]}
                         </div>
                       )}
 
-                      {/* ØªØµÙˆÛŒØ± Ú¯Ø²ÛŒÙ†Ù‡ - Ú†Ø³Ø¨ÛŒØ¯Ù‡ Ø¨Ù‡ Ø¨Ø§Ù„Ø§ÛŒ Ù†ÙˆØ§Ø± Ø¨Ø§ Ø¹Ø±Ø¶ ÛŒÚ©Ø³Ø§Ù† */}
                       {hasImage && (
                         <img
                           src={opt.image_url}
@@ -393,7 +383,6 @@ export default function ManagerPickAnswerQuestion({
                         />
                       )}
 
-                      {/* Ù†ÙˆØ§Ø± Ù†Ù…ÙˆØ¯Ø§Ø± - ÙÙ‚Ø· Ø¨Ø¹Ø¯ Ø§Ø² Ø¯Ø±ÛŒØ§ÙØª Ù†ØªØ§ÛŒØ¬ Ù†Ù…Ø§ÛŒØ´ Ø¯Ø§Ø¯Ù‡ Ù…ÛŒØ´Ù‡ */}
                       <div
                         className={`w-3/4 transition-all duration-1000 ${
                           hasImage ? "rounded-b-lg" : "rounded-t-lg"
@@ -416,7 +405,6 @@ export default function ManagerPickAnswerQuestion({
                         }}
                       ></div>
 
-                      {/* Ù…ØªÙ† Ú¯Ø²ÛŒÙ†Ù‡ */}
                       <p className="mt-2 text-[color:var(--quiz-text)] text-xl lg:text-2xl font-semibold text-center">
                         {opt.option_text}
                       </p>
@@ -432,7 +420,6 @@ export default function ManagerPickAnswerQuestion({
           </div>
         )}
 
-        {/* Ø¯Ú©Ù…Ù‡â€ŒÙ‡Ø§ÛŒ Ø±Ø£ÛŒ Ø¯Ø§Ø¯Ù† */}
         {/* {!voted && !showResults && (
           <div className="flex flex-wrap justify-center gap-4">
             {options.map((opt, index) => (
@@ -480,7 +467,7 @@ export default function ManagerPickAnswerQuestion({
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <span className="text-4xl">ðŸ†</span>
+                <span className="text-4xl">🏆</span>
                 <div>
                   <h2 className="text-white text-3xl font-bold">جدول امتیازات</h2>
                   <p className="text-gray-400 text-sm">
@@ -489,8 +476,10 @@ export default function ManagerPickAnswerQuestion({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowLeaderboard(false)}
                 className="text-white hover:text-gray-300 text-3xl border-none bg-transparent cursor-pointer leading-none"
+                aria-label="بستن جدول امتیازات"
               >
                 ×
               </button>
@@ -509,7 +498,6 @@ export default function ManagerPickAnswerQuestion({
                 );
                 debugLog("[PickAnswerQuestion] Max score:", maxScore);
 
-                // Ø¯Ø±ØµØ¯ Ø§Ù…ØªÛŒØ§Ø² Ù†Ø³Ø¨Øª Ø¨Ù‡ Ù†ÙØ± Ø§ÙˆÙ„
                 const calcPercent = (score) => {
                   if (maxScore === 0) return 0;
                   return (score / maxScore) * 100;
