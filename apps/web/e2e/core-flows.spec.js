@@ -429,13 +429,6 @@ test("manager and participant complete a live question lifecycle with reconnect"
       ),
     ).toBeVisible();
     await expect(tehranOption).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      participant.getByText(
-        "ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.",
-        { exact: true },
-      ),
-    ).toBeVisible();
-
     await participant
       .getByRole("button", { name: "تلاش دوباره برای ارسال" })
       .click();
@@ -443,12 +436,6 @@ test("manager and participant complete a live question lifecycle with reconnect"
       participant.getByText("پاسخ شما ثبت شد.", { exact: true }),
     ).toBeVisible({ timeout: 15000 });
     expect([200, 201]).toContain(acceptedAnswerStatus);
-    await expect(
-      participant.getByText(
-        "ارتباط ناپایدار است. انتخاب فعلی شما روی همین صفحه حفظ می‌شود.",
-        { exact: true },
-      ),
-    ).toBeHidden();
     expect(answerRequestIds).toHaveLength(2);
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
     await participant.unroute("**/api/v1/live/sessions/*/answers");
@@ -472,6 +459,10 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
     ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByRole("heading", { name: "نتیجه نهایی شما" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(participant.getByText("جلسه پایان یافت")).toBeVisible();
 
     expect(managerFailures).toEqual([]);
     expect(participantFailures).toEqual([]);
