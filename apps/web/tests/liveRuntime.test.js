@@ -508,15 +508,47 @@ test("successful participant answer retry clears the transient submission error"
   const answer = {
     request_id: "00000000-0000-4000-8000-000000000031",
     question_id: "11111111-1111-4111-8111-111111111111",
-    options_result: [{ option_index: 0, picked: true }],
+    selected_option_indexes: [0],
   };
 
   assert.equal(await runtime.submitAnswer(answer), false);
-  assert.equal(runtime.getState().connectionError, "temporary answer failure");
+  assert.equal(runtime.getState().connectionError, null);
 
   assert.equal(await runtime.submitAnswer(answer), true);
   assert.equal(runtime.getState().connectionError, null);
   assert.deepEqual(requestIds, [answer.request_id, answer.request_id]);
 
+  runtime.destroy();
+});
+
+
+test("participant answer validation rejects malformed option indexes before transport", async () => {
+  let submissions = 0;
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      submitLiveAnswer: async () => {
+        submissions += 1;
+        return { score_delta: 0 };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "q1",
+      selected_option_indexes: [1, 1],
+    }),
+    "rejected",
+  );
+  assert.equal(
+    await runtime.submitAnswer({
+      question_id: "q1",
+      selected_option_indexes: [-1],
+    }),
+    "rejected",
+  );
+  assert.equal(submissions, 0);
   runtime.destroy();
 });
