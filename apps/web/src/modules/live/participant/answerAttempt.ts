@@ -44,10 +44,12 @@ export const buildParticipantAnswer = ({
   return {
     request_id: requestId,
     question_id: question.question_id,
-    options_result: (question.options ?? []).map((option, index) => ({
-      option_index:
-        option.option_index == null ? index : Number(option.option_index),
-      picked: selected.has(index),
-    })),
+    options_result: (question.options ?? []).map((option, index) => {
+      const declaredIndex = Number(option.option_index);
+      return {
+        option_index: Number.isInteger(declaredIndex) ? declaredIndex : index,
+        picked: selected.has(index),
+      };
+    }),
   };
 };
