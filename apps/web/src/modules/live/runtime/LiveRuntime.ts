@@ -133,20 +133,51 @@ const recordPayload = (value: unknown): Record<string, unknown> =>
 const normalizeActivityResult = (payload: unknown): ActivityResult | null => {
   const raw = recordPayload(payload);
   const activityItemId = raw.activity_item_id;
+  if (activityItemId == null) return null;
+
+  const responseCount = Number(raw.response_count ?? 0);
+  const normalizedResponseCount =
+    Number.isFinite(responseCount) && responseCount >= 0 ? responseCount : 0;
+
+  // Temporary V2.6 replay compatibility. Pre-generic Choice events stored
+  // option_counts at the top level and carried no Activity kind/version.
+  // Normalize them immediately so the rest of the runtime has one truth.
+  const legacyCounts = recordPayload(raw.option_counts);
+  if (
+    raw.activity_kind == null &&
+    Object.keys(legacyCounts).length > 0
+  ) {
+    const optionCounts = Object.fromEntries(
+      Object.entries(legacyCounts).map(([key, value]) => [
+        key,
+        Number(value || 0),
+      ]),
+    );
+    return {
+      activity_item_id: String(activityItemId),
+      activity_kind: "choice",
+      schema_version: 1,
+      response_count: normalizedResponseCount,
+      payload: { option_counts: optionCounts },
+      option_counts: optionCounts,
+    };
+  }
+
   const activityKind = raw.activity_kind;
   const schemaVersion = Number(raw.schema_version);
   const resultPayload = recordPayload(raw.payload);
   if (
-    activityItemId == null ||
     (activityKind !== "choice" && activityKind !== "text") ||
-    !Number.isFinite(schemaVersion)
+    !Number.isFinite(schemaVersion) ||
+    schemaVersion < 1
   ) {
     return null;
   }
 
-  const responseCount = Number(raw.response_count ?? 0);
   if (activityKind === "choice") {
-    const rawCounts = recordPayload(resultPayload.option_counts);
+    const rawCounts = recordPayload(
+      resultPayload.option_counts ?? raw.option_counts,
+    );
     const optionCounts = Object.fromEntries(
       Object.entries(rawCounts).map(([key, value]) => [
         key,
@@ -157,8 +188,9 @@ const normalizeActivityResult = (payload: unknown): ActivityResult | null => {
       activity_item_id: String(activityItemId),
       activity_kind: "choice",
       schema_version: schemaVersion,
-      response_count: Number.isFinite(responseCount) ? responseCount : 0,
+      response_count: normalizedResponseCount,
       payload: { option_counts: optionCounts },
+      option_counts: optionCounts,
     };
   }
 
@@ -177,7 +209,7 @@ const normalizeActivityResult = (payload: unknown): ActivityResult | null => {
     activity_item_id: String(activityItemId),
     activity_kind: "text",
     schema_version: schemaVersion,
-    response_count: Number.isFinite(responseCount) ? responseCount : 0,
+    response_count: normalizedResponseCount,
     payload: { terms },
   };
 };
