@@ -56,14 +56,25 @@ private Activity results/top performers, cumulative ranking inspection and
 connection/recovery insight. Stage, Backstage and Participant therefore expose
 intentionally different capabilities over the same Session.
 
-V2.5 / issue #87 is complete via PR #107. Reports are now Session-first:
+V2.5 / issue #87 is complete via PR #107, with post-merge correctness and
+accessibility corrections in PR #108. Reports are now Session-first:
 Presentation history lists distinct live Sessions, each report reads frozen
 Session Activity definitions, Activity result/top-performer views remain
-separate from cumulative Session ranking, and participant response/evaluation
-history is bounded. The legacy latest-session and question-results boundaries
-remain deprecated compatibility paths rather than the report UI source of truth.
+separate from cumulative Session ranking, participant response/evaluation
+history is bounded, and report reads no longer depend on the removed hot
+Session participant counter. The legacy latest-session and question-results
+boundaries remain deprecated compatibility paths rather than the report UI
+source of truth.
 
-**Active implementation slice: V2.6 / issue #88 — Poll and Word Cloud architecture proof Activities.**
+V2.6 / issue #88 remains active. Poll is complete via PR #109 as a product
+preset over the canonical Choice Activity: no new persisted Activity kind,
+Session state or API boundary was introduced. Poll authoring uses
+`evaluation.mode=none` and `scoring.mode=none`; the frozen Choice definition
+drives participant interaction, Stage result distribution and Session-first
+reports without correctness or ranking semantics.
+
+**Active implementation slice: V2.6 / issue #88 — Word Cloud using the Text
+primitive and word-frequency aggregation.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 

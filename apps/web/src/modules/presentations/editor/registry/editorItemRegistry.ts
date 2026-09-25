@@ -27,14 +27,20 @@ export const createEditorSlideForType = (
   choiceId: EditorTypeChoiceId,
   createId: IdFactory,
 ): EditorSlide => {
-  switch (choiceId) {
-    case "content":
-      return createSlideForChoice(order, "Content Slide", createId);
-    case "choice-single":
-      return createSlideForChoice(order, "Single Choice", createId);
-    case "choice-multiple":
-      return createSlideForChoice(order, "Multiple Choice", createId);
+  const choice = getEditorTypeChoice(choiceId);
+  if (choice.registrationKey === "content") {
+    return createSlideForChoice(order, "Content Slide", createId);
   }
+
+  return createSlideForChoice(
+    order,
+    choice.questionType === "multiple" ? "Multiple Choice" : "Single Choice",
+    createId,
+    {
+      evaluationMode: choice.evaluationMode ?? "correctness",
+      scoringMode: choice.scoringMode ?? "points",
+    },
+  );
 };
 
 export const editorSlideMatchesTypeChoice = (
@@ -46,7 +52,20 @@ export const editorSlideMatchesTypeChoice = (
   if (registration?.key !== choice.registrationKey) return false;
 
   if (choice.registrationKey === "choice") {
-    return slide.question?.question_type === choice.questionType;
+    const question = slide.question;
+    if (!question) return false;
+
+    const questionTypeMatches =
+      choiceId === "poll" ||
+      question.question_type === choice.questionType;
+
+    return (
+      questionTypeMatches &&
+      (question.evaluation_mode ?? "correctness") ===
+        (choice.evaluationMode ?? "correctness") &&
+      (question.scoring_mode ?? "points") ===
+        (choice.scoringMode ?? "points")
+    );
   }
   return true;
 };
@@ -62,10 +81,19 @@ export const convertEditorSlideToType = (
     return convertSlideToContent(slide);
   }
 
+  const targetQuestionType =
+    choiceId === "poll"
+      ? slide.question?.question_type ?? choice.questionType ?? "single"
+      : choice.questionType ?? "single";
+
   return convertSlideToQuestion(
     slide,
-    choice.questionType ?? "single",
+    targetQuestionType,
     createId,
+    {
+      evaluationMode: choice.evaluationMode ?? "correctness",
+      scoringMode: choice.scoringMode ?? "points",
+    },
   );
 };
 
@@ -91,12 +119,37 @@ export const getEditorConversionConfirmation = (
 
   if (currentRegistration?.key === "content") {
     return {
-      title: "تبدیل به فعالیت انتخابی؟",
+      title: choiceId === "poll" ? "تبدیل به نظرسنجی؟" : "تبدیل به فعالیت انتخابی؟",
       description:
-        "محتوای فعلی با یک فعالیت انتخابی جدید جایگزین می‌شود. ادامه می‌دهید؟",
+        choiceId === "poll"
+          ? "محتوای فعلی با یک نظرسنجی بدون پاسخ صحیح و امتیاز جایگزین می‌شود. ادامه می‌دهید؟"
+          : "محتوای فعلی با یک فعالیت انتخابی جدید جایگزین می‌شود. ادامه می‌دهید؟",
       confirmText: "تبدیل",
       cancelText: "انصراف",
     };
+  }
+
+  const currentIsPoll =
+    slide.question?.evaluation_mode === "none" &&
+    slide.question?.scoring_mode === "none";
+  const targetIsPoll = choiceId === "poll";
+
+  if (currentRegistration?.key === "choice" && currentIsPoll !== targetIsPoll) {
+    return targetIsPoll
+      ? {
+          title: "تبدیل به نظرسنجی؟",
+          description:
+            "گزینه‌ها حفظ می‌شوند، اما پاسخ صحیح، امتیازدهی و نمایش رتبه‌بندی کلی برای این فعالیت حذف می‌شود.",
+          confirmText: "تبدیل",
+          cancelText: "انصراف",
+        }
+      : {
+          title: "تبدیل به سؤال امتیازی؟",
+          description:
+            "گزینه‌ها حفظ می‌شوند و فعالیت دوباره پاسخ صحیح و امتیاز خواهد داشت. در صورت نبود پاسخ صحیح، گزینه اول به‌عنوان پاسخ صحیح اولیه انتخاب می‌شود.",
+          confirmText: "تبدیل",
+          cancelText: "انصراف",
+        };
   }
 
   if (

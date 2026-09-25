@@ -46,6 +46,21 @@ const choiceItem = ({
   },
 });
 
+const pollItem = () => {
+  const item = choiceItem();
+  item.content.prompt = { title: "Poll", text: "Pick one", image_url: "" };
+  item.content.evaluation = { mode: "none", correct_option_ids: [] };
+  item.content.scoring = {
+    mode: "none",
+    min_points: 0,
+    max_points: 0,
+    speed_bonus: false,
+    partial_credit: false,
+  };
+  item.content.results = { show_overall_leaderboard_after: false };
+  return item;
+};
+
 test("equal state versions are accepted when event_id advances", () => {
   const cursor = { eventId: 10, stateVersion: 4 };
   const event = { event_id: 11, state_version: 4 };
@@ -191,6 +206,53 @@ test("canonical Choice Activities preserve manager correctness in the authored a
   assert.equal(managerSlide.question_time, 45);
   assert.equal(managerSlide.show_leaderboard_after, true);
   assert.deepEqual(managerSlide.options.map((option) => option.answer), [true, false]);
+});
+
+test("Poll projects through the existing Choice live protocol without correctness or scoring", () => {
+  const question = normalizeLiveSlide(pollItem(), {
+    state_version: 4,
+    activity_phase: "revealed",
+    stage_view: "item",
+  });
+
+  assert.equal(question.question_id, "activity-1");
+  assert.equal(question.question_type, "single");
+  assert.equal(question.is_scored, false);
+  assert.equal(question.has_correct_answer, false);
+  assert.equal(question.show_leaderboard_after, false);
+  assert.deepEqual(
+    question.options.map((option) => "answer" in option),
+    [false, false],
+  );
+
+  const projection = projectLiveSnapshot({
+    role: "participant",
+    session: {
+      state: "presenting",
+      state_version: 4,
+      active_item_id: "activity-1",
+      activity_phase: "revealed",
+      stage_view: "item",
+    },
+    active_item: pollItem(),
+    participant: { id: "p1", display_name: "Player", score: 0 },
+    participant_count: 2,
+    activity_result: {
+      activity_item_id: "activity-1",
+      response_count: 2,
+      option_counts: { 0: 1, 1: 1 },
+    },
+    has_scoring: false,
+  });
+
+  assert.equal(projection.currentQuestion.is_scored, false);
+  assert.equal(projection.currentQuestion.has_correct_answer, false);
+  assert.equal(projection.questionResults.response_count, 2);
+  assert.deepEqual(
+    projection.questionResults.optionsResult.map((row) => row.number_of_submits),
+    [1, 1],
+  );
+  assert.equal(projection.leaderboardResults, null);
 });
 
 test("ended snapshots retain a bounded final ranking projection", () => {

@@ -50,6 +50,9 @@ export function ParticipantActivityResult({
     Number(result?.response_count ?? 0),
   );
   const hasCorrectAnswer = question.has_correct_answer !== false;
+  const isPoll =
+    question.has_correct_answer === false &&
+    question.is_scored === false;
   const hasScoring = snapshot?.role === "participant" && snapshot.has_scoring;
   const scoreDelta = Number(personalResult?.score_delta ?? 0);
   const totalScore = Number(participant?.score ?? 0);
@@ -60,7 +63,7 @@ export function ParticipantActivityResult({
         <div className="flex flex-1 flex-col rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-4 shadow-2xl backdrop-blur-xl sm:p-7">
           <div className="text-center">
             <p className="text-sm font-bold text-[color:var(--live-muted)]">
-              نتیجه فعالیت
+              {isPoll ? "نتیجه نظرسنجی" : "نتیجه فعالیت"}
             </p>
             <h1
               className="mt-2 text-2xl font-black leading-10 sm:text-3xl"
@@ -107,7 +110,9 @@ export function ParticipantActivityResult({
               className="mx-auto mt-5 rounded-full border border-[color:var(--live-border)] bg-white/5 px-4 py-2 text-sm text-[color:var(--live-muted)]"
               role="status"
             >
-              برای این فعالیت پاسخی از شما ثبت نشده است.
+              {isPoll
+                ? "برای این نظرسنجی پاسخی از شما ثبت نشده است."
+                : "برای این فعالیت پاسخی از شما ثبت نشده است."}
             </p>
           )}
 

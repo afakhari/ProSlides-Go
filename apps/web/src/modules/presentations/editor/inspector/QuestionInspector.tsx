@@ -240,20 +240,27 @@ function QuestionInspectorInner({
   const pointsError = issueFor(visibleIssues, "points");
   const partialError = issueFor(visibleIssues, "partial_scoring");
   const saveState = isSaving ? "saving" : dirty ? "dirty" : "saved";
+  const isPoll =
+    draft.evaluationMode === "none" &&
+    draft.scoringMode === "none";
 
   return (
     <>
       <aside
         className="flex h-full min-h-0 flex-col bg-surface text-content"
-        aria-label="تنظیمات سؤال"
+        aria-label={isPoll ? "تنظیمات نظرسنجی" : "تنظیمات سؤال"}
       >
         <header className="flex items-start justify-between gap-3 border-b border-border-subtle px-1 pb-4">
           <div>
-            <h2 className="text-base font-bold">تنظیمات سؤال</h2>
+            <h2 className="text-base font-bold">
+              {isPoll ? "تنظیمات نظرسنجی" : "تنظیمات سؤال"}
+            </h2>
             <p className="mt-1 text-xs text-content-muted">
-              {draft.type === "single"
-                ? "سؤال تک‌گزینه‌ای"
-                : "سؤال چندگزینه‌ای"}
+              {isPoll
+                ? "نظرسنجی بدون پاسخ صحیح و امتیاز"
+                : draft.type === "single"
+                  ? "سؤال تک‌گزینه‌ای"
+                  : "سؤال چندگزینه‌ای"}
             </p>
           </div>
           <Button
@@ -295,7 +302,7 @@ function QuestionInspectorInner({
                   htmlFor="question-editor-text"
                   className="text-sm font-semibold"
                 >
-                  متن سؤال
+                  {isPoll ? "متن نظرسنجی" : "متن سؤال"}
                 </label>
                 <span className="text-xs text-content-muted">
                   {formatPersianNumber(Array.from(draft.text).length)}
@@ -319,7 +326,7 @@ function QuestionInspectorInner({
                       questionTextError ? "question-editor-text-error" : undefined
                     }
                     onChange={(event) => setQuestionText(event.target.value)}
-                    placeholder="سؤال خود را بنویسید…"
+                    placeholder={isPoll ? "پرسش نظرسنجی را بنویسید…" : "سؤال خود را بنویسید…"}
                     className="min-h-24 w-full resize-y rounded-control border border-border-subtle bg-surface px-3 py-2.5 text-sm leading-6 text-content outline-none transition placeholder:text-content-muted focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                   {questionTextError && (
@@ -337,7 +344,7 @@ function QuestionInspectorInner({
                   variant="outline"
                   size="icon"
                   disabled={isSaving || conflictPending}
-                  aria-label="افزودن یا تغییر تصویر سؤال"
+                  aria-label={isPoll ? "افزودن یا تغییر تصویر نظرسنجی" : "افزودن یا تغییر تصویر سؤال"}
                   onClick={() => setImageTarget({ kind: "question" })}
                 >
                   <ImageIcon aria-hidden="true" />
@@ -430,178 +437,180 @@ function QuestionInspectorInner({
               )}
             </section>
 
-            <section aria-labelledby="question-scoring-heading">
-              <div>
-                <h3 id="question-scoring-heading" className="text-sm font-semibold">
-                  امتیازدهی
-                </h3>
-                <p className="mt-1 text-xs leading-5 text-content-muted">
-                  حداکثر امتیاز برای پاسخ صحیح است. حداقل امتیاز فقط وقتی سرعت پاسخ
-                  در امتیاز اثر دارد استفاده می‌شود.
-                </p>
-              </div>
-
-              {draft.scoringMode === "none" && (
-                <Notice tone="info" className="mt-3 items-start">
-                  این فعالیت بدون امتیاز تعریف شده است. برای حفظ رفتار فعلی، تنظیمات
-                  امتیازدهی در این حالت غیرفعال‌اند.
-                </Notice>
-              )}
-
-              <div className="mt-3 grid grid-cols-2 gap-3">
+            {!isPoll && (
+              <section aria-labelledby="question-scoring-heading">
                 <div>
-                  <label
-                    htmlFor="question-editor-max-points"
-                    className="mb-1 block text-xs font-medium text-content-muted"
-                  >
-                    حداکثر امتیاز
-                  </label>
+                  <h3 id="question-scoring-heading" className="text-sm font-semibold">
+                    امتیازدهی
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-content-muted">
+                    حداکثر امتیاز برای پاسخ صحیح است. حداقل امتیاز فقط وقتی سرعت پاسخ
+                    در امتیاز اثر دارد استفاده می‌شود.
+                  </p>
+                </div>
+  
+                {draft.scoringMode === "none" && (
+                  <Notice tone="info" className="mt-3 items-start">
+                    {isPoll
+                      ? "نظرسنجی پاسخ صحیح و امتیاز ندارد؛ همه انتخاب‌ها فقط در توزیع نتیجه شمرده می‌شوند."
+                      : "این فعالیت بدون امتیاز تعریف شده است. تنظیمات امتیازدهی در این حالت غیرفعال‌اند."}
+                  </Notice>
+                )}
+  
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <label
+                      htmlFor="question-editor-max-points"
+                      className="mb-1 block text-xs font-medium text-content-muted"
+                    >
+                      حداکثر امتیاز
+                    </label>
+                    <input
+                      id="question-editor-max-points"
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      value={draft.maxPointsInput}
+                      disabled={
+                        isSaving ||
+                        conflictPending ||
+                        draft.scoringMode === "none"
+                      }
+                      aria-invalid={Boolean(pointsError)}
+                      onChange={(event) => setMaxPointsInput(event.target.value)}
+                      className="h-10 w-full rounded-control border border-border-subtle bg-surface px-3 text-center text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="question-editor-min-points"
+                      className="mb-1 block text-xs font-medium text-content-muted"
+                    >
+                      حداقل امتیاز
+                    </label>
+                    <input
+                      id="question-editor-min-points"
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      value={draft.minPointsInput}
+                      disabled={
+                        isSaving ||
+                        conflictPending ||
+                        draft.scoringMode === "none" ||
+                        !draft.fasterAnswersMorePoints
+                      }
+                      aria-invalid={Boolean(pointsError)}
+                      onChange={(event) => setMinPointsInput(event.target.value)}
+                      className="h-10 w-full rounded-control border border-border-subtle bg-surface px-3 text-center text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-content-muted"
+                    />
+                  </div>
+                </div>
+                {pointsError && (
+                  <p role="alert" className="mt-1.5 text-xs text-danger-ink">
+                    {pointsError}
+                  </p>
+                )}
+  
+                <label className={`mt-4 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
+                  draft.scoringMode === "none"
+                    ? "cursor-not-allowed opacity-70"
+                    : "cursor-pointer"
+                }`}>
+                  <span>
+                    <span className="block text-sm font-medium">
+                      پاسخ سریع‌تر، امتیاز بیشتر
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-content-muted">
+                      امتیاز بین حداقل و حداکثر بر اساس زمان باقی‌مانده محاسبه می‌شود.
+                    </span>
+                  </span>
                   <input
-                    id="question-editor-max-points"
-                    type="text"
-                    inputMode="numeric"
-                    dir="ltr"
-                    value={draft.maxPointsInput}
+                    type="checkbox"
+                    checked={draft.fasterAnswersMorePoints}
                     disabled={
                       isSaving ||
                       conflictPending ||
                       draft.scoringMode === "none"
                     }
-                    aria-invalid={Boolean(pointsError)}
-                    onChange={(event) => setMaxPointsInput(event.target.value)}
-                    className="h-10 w-full rounded-control border border-border-subtle bg-surface px-3 text-center text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    onChange={(event) => setFasterPoints(event.target.checked)}
+                    className="mt-1 size-5 shrink-0 accent-brand"
                   />
-                </div>
-                <div>
-                  <label
-                    htmlFor="question-editor-min-points"
-                    className="mb-1 block text-xs font-medium text-content-muted"
-                  >
-                    حداقل امتیاز
-                  </label>
+                </label>
+  
+                <label
+                  className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle p-3 ${
+                    draft.type === "single" || draft.scoringMode === "none"
+                      ? "cursor-not-allowed bg-canvas opacity-70"
+                      : "cursor-pointer bg-canvas"
+                  }`}
+                >
+                  <span>
+                    <span className="block text-sm font-medium">امتیازدهی جزئی</span>
+                    <span className="mt-1 block text-xs leading-5 text-content-muted">
+                      در سؤال چندگزینه‌ای، پاسخ‌های درست امتیاز می‌گیرند و انتخاب‌های
+                      نادرست از امتیاز کم می‌کنند.
+                    </span>
+                  </span>
                   <input
-                    id="question-editor-min-points"
-                    type="text"
-                    inputMode="numeric"
-                    dir="ltr"
-                    value={draft.minPointsInput}
+                    type="checkbox"
+                    checked={draft.partialScoring}
                     disabled={
                       isSaving ||
                       conflictPending ||
-                      draft.scoringMode === "none" ||
-                      !draft.fasterAnswersMorePoints
+                      draft.type === "single" ||
+                      draft.scoringMode === "none"
                     }
-                    aria-invalid={Boolean(pointsError)}
-                    onChange={(event) => setMinPointsInput(event.target.value)}
-                    className="h-10 w-full rounded-control border border-border-subtle bg-surface px-3 text-center text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-content-muted"
+                    onChange={(event) => setPartialScoring(event.target.checked)}
+                    className="mt-1 size-5 shrink-0 accent-brand"
                   />
-                </div>
-              </div>
-              {pointsError && (
-                <p role="alert" className="mt-1.5 text-xs text-danger-ink">
-                  {pointsError}
-                </p>
-              )}
-
-              <label className={`mt-4 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
-                draft.scoringMode === "none"
-                  ? "cursor-not-allowed opacity-70"
-                  : "cursor-pointer"
-              }`}>
-                <span>
-                  <span className="block text-sm font-medium">
-                    پاسخ سریع‌تر، امتیاز بیشتر
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-muted">
-                    امتیاز بین حداقل و حداکثر بر اساس زمان باقی‌مانده محاسبه می‌شود.
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={draft.fasterAnswersMorePoints}
-                  disabled={
-                    isSaving ||
-                    conflictPending ||
-                    draft.scoringMode === "none"
-                  }
-                  onChange={(event) => setFasterPoints(event.target.checked)}
-                  className="mt-1 size-5 shrink-0 accent-brand"
-                />
-              </label>
-
-              <label
-                className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle p-3 ${
-                  draft.type === "single" || draft.scoringMode === "none"
-                    ? "cursor-not-allowed bg-canvas opacity-70"
-                    : "cursor-pointer bg-canvas"
-                }`}
-              >
-                <span>
-                  <span className="block text-sm font-medium">امتیازدهی جزئی</span>
-                  <span className="mt-1 block text-xs leading-5 text-content-muted">
-                    در سؤال چندگزینه‌ای، پاسخ‌های درست امتیاز می‌گیرند و انتخاب‌های
-                    نادرست از امتیاز کم می‌کنند.
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={draft.partialScoring}
-                  disabled={
-                    isSaving ||
-                    conflictPending ||
-                    draft.type === "single" ||
-                    draft.scoringMode === "none"
-                  }
-                  onChange={(event) => setPartialScoring(event.target.checked)}
-                  className="mt-1 size-5 shrink-0 accent-brand"
-                />
-              </label>
-              {partialError && (
-                <p role="alert" className="mt-1.5 text-xs text-danger-ink">
-                  {partialError}
-                </p>
-              )}
-            </section>
+                </label>
+                {partialError && (
+                  <p role="alert" className="mt-1.5 text-xs text-danger-ink">
+                    {partialError}
+                  </p>
+                )}
+              </section>
+            )}
 
             <section aria-labelledby="question-flow-heading">
               <h3 id="question-flow-heading" className="text-sm font-semibold">
                 پس از فعالیت
               </h3>
               <Notice tone="info" className="mt-2 items-start">
-                نتیجه همین فعالیت، شامل توزیع پاسخ‌ها
-                {draft.evaluationMode === "correctness"
-                  ? " و پاسخ صحیح"
-                  : ""}
-                ، پس از بسته‌شدن فعالیت نمایش داده می‌شود. این مرحله از
-                رتبه‌بندی کلی جلسه جداست.
+                {isPoll
+                  ? "نتیجه نظرسنجی، شامل توزیع انتخاب‌ها، پس از بسته‌شدن نمایش داده می‌شود و رتبه‌بندی ایجاد نمی‌کند."
+                  : "نتیجه همین فعالیت، شامل توزیع پاسخ‌ها و پاسخ صحیح، پس از بسته‌شدن نمایش داده می‌شود. این مرحله از رتبه‌بندی کلی جلسه جداست."}
               </Notice>
-              <label className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
-                draft.scoringMode === "none"
-                  ? "cursor-not-allowed opacity-70"
-                  : "cursor-pointer"
-              }`}>
-                <span>
-                  <span className="block text-sm font-medium">
-                    نمایش رتبه‌بندی کلی بعد از نتیجه
+              {!isPoll && (
+                <label className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
+                  draft.scoringMode === "none"
+                    ? "cursor-not-allowed opacity-70"
+                    : "cursor-pointer"
+                }`}>
+                  <span>
+                    <span className="block text-sm font-medium">
+                      نمایش رتبه‌بندی کلی بعد از نتیجه
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-content-muted">
+                      {draft.scoringMode === "none"
+                        ? "رتبه‌بندی کلی فقط برای فعالیت امتیازی قابل نمایش است."
+                        : "پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز روی Stage نمایش داده می‌شود."}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-muted">
-                    {draft.scoringMode === "none"
-                      ? "رتبه‌بندی کلی فقط برای فعالیت امتیازی قابل نمایش است."
-                      : "پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز روی Stage نمایش داده می‌شود."}
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={draft.showLeaderboardAfter}
-                  disabled={
-                    isSaving ||
-                    conflictPending ||
-                    draft.scoringMode === "none"
-                  }
-                  onChange={(event) => setLeaderboard(event.target.checked)}
-                  className="mt-1 size-5 shrink-0 accent-brand"
-                />
-              </label>
+                  <input
+                    type="checkbox"
+                    checked={draft.showLeaderboardAfter}
+                    disabled={
+                      isSaving ||
+                      conflictPending ||
+                      draft.scoringMode === "none"
+                    }
+                    onChange={(event) => setLeaderboard(event.target.checked)}
+                    className="mt-1 size-5 shrink-0 accent-brand"
+                  />
+                </label>
+              )}
             </section>
           </div>
         </div>
@@ -661,7 +670,9 @@ function QuestionInspectorInner({
         initialUrl={currentImageUrl}
         title={
           imageTarget?.kind === "question"
-            ? "تصویر سؤال"
+            ? isPoll
+              ? "تصویر نظرسنجی"
+              : "تصویر سؤال"
             : "تصویر گزینه"
         }
         onClose={() => setImageTarget(null)}
