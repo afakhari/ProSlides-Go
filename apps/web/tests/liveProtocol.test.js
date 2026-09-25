@@ -93,6 +93,36 @@ test("manager presentation mapping retains correctness while participant active 
   assert.deepEqual(managerSlide.options.map((option) => option.answer), [true, false]);
 });
 
+test("manager presentation mapping projects canonical Choice Activities as questions", () => {
+  const managerSlide = presentationSlideToLegacy({
+    id: "slide-activity",
+    position: 0,
+    kind: "activity",
+    content: {
+      schema_version: 1,
+      activity_kind: "choice",
+      prompt: { title: "Quiz", text: "Choose", image_url: "" },
+      response: {
+        selection: "single",
+        options: [
+          { id: "a", text: "A", image_url: "", order: 1 },
+          { id: "b", text: "B", image_url: "", order: 2 },
+        ],
+      },
+      evaluation: { mode: "correctness", correct_option_ids: ["a"] },
+      scoring: { mode: "points", min_points: 0, max_points: 100 },
+      timing: { duration_seconds: 45 },
+      results: { show_overall_leaderboard_after: true },
+    },
+  });
+
+  assert.equal(managerSlide.slide_type, 1);
+  assert.equal(managerSlide.question_text, "Choose");
+  assert.equal(managerSlide.question_time, 45);
+  assert.equal(managerSlide.show_leaderboard_after, true);
+  assert.deepEqual(managerSlide.options.map((option) => option.answer), [true, false]);
+});
+
 test("ended snapshots retain a bounded final leaderboard projection", () => {
   const participant = projectLiveSnapshot({
     role: "participant",

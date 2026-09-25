@@ -291,10 +291,17 @@ type slideInput struct {
 func decodeSlideInput(w http.ResponseWriter, r *http.Request) (slideInput, bool) {
 	var body slideInput
 	r.Body = http.MaxBytesReader(w, r.Body, maxContentBytes)
-	if json.NewDecoder(r.Body).Decode(&body) != nil || body.Position < 0 || validateSlideContent(body.Kind, body.Content) != nil {
+	if json.NewDecoder(r.Body).Decode(&body) != nil || body.Position < 0 {
 		errJSON(w, 400, "invalid_request")
 		return body, false
 	}
+	kind, content, err := normalizeSlideDefinition(body.Kind, body.Content)
+	if err != nil {
+		errJSON(w, 400, "invalid_request")
+		return body, false
+	}
+	body.Kind = kind
+	body.Content = content
 	return body, true
 }
 
@@ -406,32 +413,78 @@ func (h *HTTP) createQuestion(w http.ResponseWriter, r *http.Request) {
 	if body.MaxPoint == 0 {
 		body.MaxPoint = 100
 	}
-	correct := 0
-	for _, option := range body.Options {
+	if body.Position < 0 || strings.TrimSpace(body.Text) == "" || len(body.Options) < 2 || len(body.Options) > 100 ||
+		(body.QuestionType != ChoiceSelectionSingle && body.QuestionType != ChoiceSelectionMultiple) ||
+		body.QuestionTime < 1 || body.QuestionTime > 86400 || body.MinPoint < 0 || body.MaxPoint < body.MinPoint {
+		errJSON(w, 400, "invalid_request")
+		return
+	}
+
+	options := make([]ChoiceOptionDefinition, 0, len(body.Options))
+	correctOptionIDs := make([]string, 0, len(body.Options))
+	for index, option := range body.Options {
 		if strings.TrimSpace(option.Text) == "" {
 			errJSON(w, 400, "invalid_request")
 			return
 		}
+		id := "option-" + strconv.Itoa(index+1)
+		options = append(options, ChoiceOptionDefinition{
+			ID:    id,
+			Text:  strings.TrimSpace(option.Text),
+			Order: index + 1,
+		})
 		if option.IsCorrect {
-			correct++
+			correctOptionIDs = append(correctOptionIDs, id)
 		}
 	}
-	if body.Position < 0 || strings.TrimSpace(body.Text) == "" || len(body.Options) < 2 || len(body.Options) > 100 || (body.QuestionType != "single" && body.QuestionType != "multiple") || body.QuestionTime < 1 || body.QuestionTime > 86400 || body.MinPoint < 0 || body.MaxPoint < body.MinPoint || correct == 0 || (body.QuestionType == "single" && (correct != 1 || body.Partial)) {
+	if len(correctOptionIDs) == 0 ||
+		(body.QuestionType == ChoiceSelectionSingle && (len(correctOptionIDs) != 1 || body.Partial)) {
 		errJSON(w, 400, "invalid_request")
 		return
 	}
-	content, _ := json.Marshal(map[string]any{"text": strings.TrimSpace(body.Text), "question_type": body.QuestionType, "question_time": body.QuestionTime, "max_point": body.MaxPoint, "min_point": body.MinPoint, "faster_answers_more_points": body.Faster, "partial_scoring": body.Partial, "options": body.Options})
-	slide, err := h.store.CreateSlide(r.Context(), r.PathValue("presentationId"), user.ID, body.Position, "question", content, nil)
+
+	activity := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindChoice,
+		Prompt: ActivityPrompt{
+			Text: strings.TrimSpace(body.Text),
+		},
+		Response: ChoiceResponsePolicy{
+			Selection: body.QuestionType,
+			Options:   options,
+		},
+		Evaluation: ChoiceEvaluationPolicy{
+			Mode:             EvaluationModeCorrectness,
+			CorrectOptionIDs: correctOptionIDs,
+		},
+		Scoring: ChoiceScoringPolicy{
+			Mode:          ScoringModePoints,
+			MinPoints:     body.MinPoint,
+			MaxPoints:     body.MaxPoint,
+			SpeedBonus:    body.Faster,
+			PartialCredit: body.Partial,
+		},
+		Timing: ActivityTimingPolicy{DurationSeconds: body.QuestionTime},
+		Results: ActivityResultPolicy{
+			ShowOverallLeaderboardAfter: false,
+		},
+	}
+	if err := validateActivityDefinition(activity); err != nil {
+		errJSON(w, 400, "invalid_request")
+		return
+	}
+	content, err := json.Marshal(activity)
+	if err != nil {
+		errJSON(w, 500, "internal_error")
+		return
+	}
+	slide, err := h.store.CreateSlide(r.Context(), r.PathValue("presentationId"), user.ID, body.Position, ItemKindActivity, content, nil)
 	if handleStoreError(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, slide)
 }
 
-func validJSONObject(raw json.RawMessage) bool {
-	var value map[string]any
-	return len(raw) > 0 && json.Unmarshal(raw, &value) == nil && value != nil
-}
 func decodeExpectedRevision(w http.ResponseWriter, r *http.Request) (*int64, bool) {
 	raw := strings.TrimSpace(r.Header.Get("If-Match"))
 	if raw == "" {

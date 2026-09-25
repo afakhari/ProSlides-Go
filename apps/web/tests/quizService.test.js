@@ -19,20 +19,28 @@ const presentationDTO = {
     id: "slide-1",
     revision: 3,
     position: 0,
-    kind: "question",
+    kind: "activity",
     content: {
-      text: "Choose",
-      question_type: "single",
-      question_time: 30,
-      min_point: 0,
-      max_point: 100,
-      faster_answers_more_points: false,
-      partial_scoring: false,
-      show_leaderboard_after: true,
-      options: [
-        { id: "a", text: "A", is_correct: true, image_url: "", order: 1 },
-        { id: "b", text: "B", is_correct: false, image_url: "", order: 2 },
-      ],
+      schema_version: 1,
+      activity_kind: "choice",
+      prompt: { title: "", text: "Choose", image_url: "" },
+      response: {
+        selection: "single",
+        options: [
+          { id: "a", text: "A", image_url: "", order: 1 },
+          { id: "b", text: "B", image_url: "", order: 2 },
+        ],
+      },
+      evaluation: { mode: "correctness", correct_option_ids: ["a"] },
+      scoring: {
+        mode: "points",
+        min_points: 0,
+        max_points: 100,
+        speed_bonus: false,
+        partial_credit: false,
+      },
+      timing: { duration_seconds: 30 },
+      results: { show_overall_leaderboard_after: true },
     },
   }],
 };
@@ -45,9 +53,16 @@ test("presentation adapter keeps revisions and stable option identities", () => 
   assert.deepEqual(editor.slides[0].question.options.map((option) => option.option_id), ["a", "b"]);
 
   const definition = editorSlideToDefinition(editor.slides[0]);
-  assert.equal(definition.kind, "question");
-  assert.deepEqual(definition.content.options.map((option) => option.id), ["a", "b"]);
-  assert.equal(definition.content.show_leaderboard_after, true);
+  assert.equal(definition.kind, "activity");
+  assert.deepEqual(
+    definition.content.response.options.map((option) => option.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(definition.content.evaluation.correct_option_ids, ["a"]);
+  assert.equal(
+    definition.content.results.show_overall_leaderboard_after,
+    true,
+  );
 });
 
 test("access code update uses its dedicated CSRF-protected endpoint", async (t) => {
@@ -106,5 +121,8 @@ test("slide update is one conditional PUT with the canonical definition", async 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].init.method, "PUT");
   assert.equal(new Headers(calls[0].init.headers).get("If-Match"), "3");
-  assert.equal(JSON.parse(calls[0].init.body).content.options[0].id, "a");
+  assert.equal(
+    JSON.parse(calls[0].init.body).content.response.options[0].id,
+    "a",
+  );
 });

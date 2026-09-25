@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/proslides/proslides/internal/presentations"
 )
 
 type PostgresStore struct{ pool *pgxpool.Pool }
@@ -44,9 +45,53 @@ func (s *PostgresStore) CreateSession(c context.Context, host, presentation, req
 	if e != nil {
 		return out, false, mapPG(e)
 	}
-	if _, e = tx.Exec(c, `INSERT INTO live_session_slides(session_id,slide_id,revision,position,kind,content)
-		SELECT $1,id,revision,position,kind,content FROM slides WHERE presentation_id=$2`, out.ID, out.PresentationID); e != nil {
-		return out, false, e
+	type authoredSlide struct {
+		id       string
+		revision int64
+		position int
+		kind     string
+		content  json.RawMessage
+	}
+	rows, queryErr := tx.Query(c, `SELECT id::text,revision,position,kind,content
+		FROM slides WHERE presentation_id=$1 ORDER BY position`, out.PresentationID)
+	if queryErr != nil {
+		return out, false, queryErr
+	}
+	authored := make([]authoredSlide, 0)
+	for rows.Next() {
+		var slide authoredSlide
+		if scanErr := rows.Scan(&slide.id, &slide.revision, &slide.position, &slide.kind, &slide.content); scanErr != nil {
+			rows.Close()
+			return out, false, scanErr
+		}
+		authored = append(authored, slide)
+	}
+	if rowsErr := rows.Err(); rowsErr != nil {
+		rows.Close()
+		return out, false, rowsErr
+	}
+	rows.Close()
+
+	if len(authored) > 0 {
+		batch := &pgx.Batch{}
+		for _, slide := range authored {
+			snapshotKind, snapshotContent, projectionErr := presentations.LegacyLiveSlideDefinition(slide.kind, slide.content)
+			if projectionErr != nil {
+				return out, false, ErrInvalid
+			}
+			batch.Queue(`INSERT INTO live_session_slides(session_id,slide_id,revision,position,kind,content)
+				VALUES($1,$2,$3,$4,$5,$6)`, out.ID, slide.id, slide.revision, slide.position, snapshotKind, snapshotContent)
+		}
+		results := tx.SendBatch(c, batch)
+		for range authored {
+			if _, e = results.Exec(); e != nil {
+				_ = results.Close()
+				return out, false, e
+			}
+		}
+		if e = results.Close(); e != nil {
+			return out, false, e
+		}
 	}
 	if e = insertEvent(c, tx, out.ID, out.StateVersion, "session.created", map[string]any{"state": out.State}); e != nil {
 		return out, false, e

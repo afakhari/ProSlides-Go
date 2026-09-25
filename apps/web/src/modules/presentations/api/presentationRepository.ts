@@ -6,6 +6,7 @@ type SlideDTO = components["schemas"]["Slide"];
 type PresentationDTO = components["schemas"]["Presentation"];
 type PresentationSummaryDTO = components["schemas"]["PresentationSummary"];
 type AccessCodeResultDTO = components["schemas"]["AccessCodeResult"];
+type CreateSlideRequestDTO = components["schemas"]["CreateSlideRequest"];
 
 export type QuestionLeaderboardEntry = {
   rust_session_id: string;
@@ -29,6 +30,12 @@ const numberValue = (value: unknown, fallback: number): number => {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 };
+const recordValue = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+const stringArrayValue = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
 const normalizeOption = (option: Record<string, unknown>, index: number, slideID: string): EditorOption => ({
   option_id: String(option.id ?? option.option_id ?? `legacy-${slideID}-${index}`),
@@ -39,15 +46,66 @@ const normalizeOption = (option: Record<string, unknown>, index: number, slideID
 });
 
 export const slideToEditor = (slide: SlideDTO): EditorSlide => {
-  const content = slide.content || {};
+  const content = recordValue(slide.content);
+  const kind = String(slide.kind);
   const common = {
     slide_id: slide.id,
     revision: numberValue(slide.revision, 1),
     order: slide.position,
     show_leaderboard_after: content.show_leaderboard_after === true,
   };
-  if (slide.kind === "question") {
-    const rawOptions = Array.isArray(content.options) ? content.options as Record<string, unknown>[] : [];
+
+  if (kind === "activity" && content.activity_kind === "choice") {
+    const prompt = recordValue(content.prompt);
+    const response = recordValue(content.response);
+    const evaluation = recordValue(content.evaluation);
+    const scoring = recordValue(content.scoring);
+    const timing = recordValue(content.timing);
+    const results = recordValue(content.results);
+    const correctOptionIDs = new Set(stringArrayValue(evaluation.correct_option_ids));
+    const rawOptions = Array.isArray(response.options)
+      ? response.options as Record<string, unknown>[]
+      : [];
+    const selection: QuestionType =
+      response.selection === "multiple" ? "multiple" : "single";
+    const question: EditorQuestion = {
+      question_id: slide.id,
+      title: stringValue(prompt.title),
+      text: stringValue(prompt.text),
+      question_text: stringValue(prompt.text),
+      question_type: selection,
+      time_limit: numberValue(timing.duration_seconds, 10),
+      question_time: numberValue(timing.duration_seconds, 10),
+      min_point: numberValue(scoring.min_points, 0),
+      max_point: numberValue(scoring.max_points, 100),
+      image_url: stringValue(prompt.image_url),
+      question_image: stringValue(prompt.image_url),
+      faster_answers_more_points: scoring.speed_bonus === true,
+      partial_scoring:
+        selection === "multiple" && scoring.partial_credit === true,
+      options: rawOptions.map((option, index) => {
+        const normalized = normalizeOption(option, index, slide.id);
+        return {
+          ...normalized,
+          is_correct: correctOptionIDs.has(normalized.option_id),
+        };
+      }),
+    };
+    return {
+      ...common,
+      slide_type: 1,
+      show_leaderboard_after:
+        results.show_overall_leaderboard_after === true,
+      question,
+    };
+  }
+
+  // Temporary read compatibility for a pre-migration payload. The API no
+  // longer persists new authored questions in this shape.
+  if (kind === "question") {
+    const rawOptions = Array.isArray(content.options)
+      ? content.options as Record<string, unknown>[]
+      : [];
     const question: EditorQuestion = {
       question_id: slide.id,
       title: stringValue(content.title),
@@ -61,14 +119,26 @@ export const slideToEditor = (slide: SlideDTO): EditorSlide => {
       image_url: stringValue(content.image_url),
       question_image: stringValue(content.image_url),
       faster_answers_more_points: content.faster_answers_more_points === true,
-      partial_scoring: content.question_type === "multiple" && content.partial_scoring === true,
-      options: rawOptions.map((option, index) => normalizeOption(option, index, slide.id)),
+      partial_scoring:
+        content.question_type === "multiple" &&
+        content.partial_scoring === true,
+      options: rawOptions.map((option, index) =>
+        normalizeOption(option, index, slide.id),
+      ),
     };
     return { ...common, slide_type: 1, question };
   }
-  if (slide.kind === "question_draft") return { ...common, slide_type: 1, question: null };
-  if (slide.kind === "leaderboard") {
-    return { ...common, slide_type: 3, question: null, title: stringValue(content.title, "Leaderboard") };
+
+  if (kind === "question_draft") {
+    return { ...common, slide_type: 1, question: null };
+  }
+  if (kind === "leaderboard") {
+    return {
+      ...common,
+      slide_type: 3,
+      question: null,
+      title: stringValue(content.title, "Leaderboard"),
+    };
   }
   return {
     ...common,
@@ -102,44 +172,88 @@ export const presentationToEditor = (presentation: PresentationDTO): EditorPrese
   };
 };
 
-export const editorSlideToDefinition = (slide: EditorSlide, fallbackPosition = 0) => {
+export const editorSlideToDefinition = (
+  slide: EditorSlide,
+  fallbackPosition = 0,
+): CreateSlideRequestDTO => {
   const position = numberValue(slide.order, fallbackPosition);
   if (slide.slide_type === 1 && !slide.question) {
-    return { position, kind: "question_draft", content: { show_leaderboard_after: slide.show_leaderboard_after === true } };
+    return {
+      position,
+      kind: "question_draft",
+      content: {
+        show_leaderboard_after: slide.show_leaderboard_after === true,
+      },
+    };
   }
+
   if (slide.slide_type === 1 && slide.question) {
     const question = slide.question;
     return {
       position,
-      kind: "question",
+      kind: "activity",
       content: {
-        title: question.title || "",
-        text: question.question_text ?? question.text ?? "",
-        question_type: question.question_type,
-        question_time: numberValue(question.question_time ?? question.time_limit, 10),
-        min_point: numberValue(question.min_point, 0),
-        max_point: numberValue(question.max_point, 100),
-        image_url: question.question_image || question.image_url || "",
-        faster_answers_more_points: question.faster_answers_more_points === true,
-        partial_scoring: question.question_type === "multiple" && question.partial_scoring === true,
-        show_leaderboard_after: slide.show_leaderboard_after === true,
-        options: question.options.map((option, index) => ({
-          id: option.option_id,
-          text: option.text,
-          is_correct: option.is_correct === true,
-          image_url: option.image_url || "",
-          order: index + 1,
-        })),
+        schema_version: 1,
+        activity_kind: "choice",
+        prompt: {
+          title: question.title || "",
+          text: question.question_text ?? question.text ?? "",
+          image_url: question.question_image || question.image_url || "",
+        },
+        response: {
+          selection: question.question_type,
+          options: question.options.map((option, index) => ({
+            id: option.option_id,
+            text: option.text,
+            image_url: option.image_url || "",
+            order: index + 1,
+          })),
+        },
+        evaluation: {
+          mode: "correctness",
+          correct_option_ids: question.options
+            .filter((option) => option.is_correct === true)
+            .map((option) => option.option_id),
+        },
+        scoring: {
+          mode: "points",
+          min_points: numberValue(question.min_point, 0),
+          max_points: numberValue(question.max_point, 100),
+          speed_bonus: question.faster_answers_more_points === true,
+          partial_credit:
+            question.question_type === "multiple" &&
+            question.partial_scoring === true,
+        },
+        timing: {
+          duration_seconds: numberValue(
+            question.question_time ?? question.time_limit,
+            10,
+          ),
+        },
+        results: {
+          show_overall_leaderboard_after:
+            slide.show_leaderboard_after === true,
+        },
       },
     };
   }
+
   if (slide.slide_type === 3) {
-    return { position, kind: "leaderboard", content: { title: slide.title || "Leaderboard" } };
+    return {
+      position,
+      kind: "leaderboard",
+      content: { title: slide.title || "Leaderboard" },
+    };
   }
+
   return {
     position,
     kind: "content",
-    content: { title: slide.title || "", text: slide.content_text || "", image_url: slide.content_image_url || "" },
+    content: {
+      title: slide.title || "",
+      text: slide.content_text || "",
+      image_url: slide.content_image_url || "",
+    },
   };
 };
 

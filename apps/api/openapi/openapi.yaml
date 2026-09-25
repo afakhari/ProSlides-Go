@@ -413,6 +413,8 @@ paths:
     post:
       operationId: createQuestionSlide
       summary: Add a single- or multiple-choice question slide.
+      deprecated: true
+      description: Legacy compatibility endpoint. New authoring clients use the generic slide endpoint with an Activity definition; the server persists this request as a v2 Choice Activity.
       parameters:
         - $ref: '#/components/parameters/PresentationId'
         - $ref: '#/components/parameters/CSRFToken'
@@ -786,9 +788,10 @@ components:
     CreateSlideRequest:
       type: object
       required: [position, kind, content]
+      additionalProperties: false
       properties:
         position: { type: integer, minimum: 0 }
-        kind: { type: string, enum: [question_draft, question, content, leaderboard] }
+        kind: { type: string, enum: [question_draft, activity, content, leaderboard] }
         content: { $ref: '#/components/schemas/EditableSlideContent' }
     ReorderSlidesRequest:
       type: object
@@ -824,47 +827,96 @@ components:
               text: { type: string, minLength: 1 }
               is_correct: { type: boolean }
     EditableSlideContent:
-      description: Content is validated against the accompanying slide kind. Unknown fields are rejected by the API.
+      description: Content is validated against the accompanying authoring item kind. Unknown fields are rejected by the API.
       anyOf:
         - $ref: '#/components/schemas/QuestionDraftContent'
-        - $ref: '#/components/schemas/QuestionContent'
+        - $ref: '#/components/schemas/ActivityItemDefinition'
         - $ref: '#/components/schemas/ContentSlideContent'
         - $ref: '#/components/schemas/LeaderboardContent'
     QuestionDraftContent:
       type: object
       additionalProperties: false
+      description: Temporary pre-V2.3 editor compatibility shape for an untyped question placeholder.
       properties:
         show_leaderboard_after: { type: boolean, default: false }
-    QuestionContent:
+    ActivityItemDefinition:
+      description: Versioned audience Activity definition. V2.1 supports the Choice primitive; future Activity kinds add new versioned definitions rather than extending this object with unrelated fields.
+      oneOf:
+        - $ref: '#/components/schemas/ChoiceActivityDefinition'
+    ChoiceActivityDefinition:
       type: object
       additionalProperties: false
-      required: [text, question_type, question_time, min_point, max_point, faster_answers_more_points, partial_scoring, show_leaderboard_after, options]
+      required: [schema_version, activity_kind, prompt, response, evaluation, scoring, timing, results]
+      properties:
+        schema_version: { type: integer, enum: [1] }
+        activity_kind: { type: string, enum: [choice] }
+        prompt: { $ref: '#/components/schemas/ActivityPrompt' }
+        response: { $ref: '#/components/schemas/ChoiceResponsePolicy' }
+        evaluation: { $ref: '#/components/schemas/ChoiceEvaluationPolicy' }
+        scoring: { $ref: '#/components/schemas/ChoiceScoringPolicy' }
+        timing: { $ref: '#/components/schemas/ActivityTimingPolicy' }
+        results: { $ref: '#/components/schemas/ActivityResultPolicy' }
+    ActivityPrompt:
+      type: object
+      additionalProperties: false
+      required: [title, text, image_url]
       properties:
         title: { type: string, maxLength: 500 }
         text: { type: string, minLength: 1, maxLength: 10000 }
-        question_type: { type: string, enum: [single, multiple] }
-        question_time: { type: integer, minimum: 1, maximum: 86400 }
-        min_point: { type: integer, minimum: 0 }
-        max_point: { type: integer, minimum: 1 }
         image_url: { type: string, maxLength: 4096 }
-        faster_answers_more_points: { type: boolean }
-        partial_scoring: { type: boolean }
-        show_leaderboard_after: { type: boolean }
+    ChoiceResponsePolicy:
+      type: object
+      additionalProperties: false
+      required: [selection, options]
+      properties:
+        selection: { type: string, enum: [single, multiple] }
         options:
           type: array
           minItems: 2
           maxItems: 100
-          items: { $ref: '#/components/schemas/QuestionOptionDefinition' }
-    QuestionOptionDefinition:
+          items: { $ref: '#/components/schemas/ChoiceOptionDefinition' }
+    ChoiceOptionDefinition:
       type: object
       additionalProperties: false
-      required: [id, text, is_correct, image_url, order]
+      required: [id, text, image_url, order]
       properties:
         id: { type: string, minLength: 1, maxLength: 128 }
         text: { type: string, minLength: 1, maxLength: 2000 }
-        is_correct: { type: boolean }
         image_url: { type: string, maxLength: 4096 }
         order: { type: integer, minimum: 1 }
+    ChoiceEvaluationPolicy:
+      type: object
+      additionalProperties: false
+      required: [mode, correct_option_ids]
+      properties:
+        mode: { type: string, enum: [none, correctness] }
+        correct_option_ids:
+          type: array
+          uniqueItems: true
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 128 }
+    ChoiceScoringPolicy:
+      type: object
+      additionalProperties: false
+      required: [mode, min_points, max_points, speed_bonus, partial_credit]
+      properties:
+        mode: { type: string, enum: [none, points] }
+        min_points: { type: integer, minimum: 0 }
+        max_points: { type: integer, minimum: 0 }
+        speed_bonus: { type: boolean }
+        partial_credit: { type: boolean }
+    ActivityTimingPolicy:
+      type: object
+      additionalProperties: false
+      required: [duration_seconds]
+      properties:
+        duration_seconds: { type: integer, minimum: 1, maximum: 86400 }
+    ActivityResultPolicy:
+      type: object
+      additionalProperties: false
+      required: [show_overall_leaderboard_after]
+      properties:
+        show_overall_leaderboard_after: { type: boolean }
     ContentSlideContent:
       type: object
       additionalProperties: false
@@ -1128,14 +1180,13 @@ components:
     Slide:
       type: object
       required: [id, revision, position, kind, content]
+      additionalProperties: false
       properties:
         id: { type: string, format: uuid }
         revision: { type: integer, format: int64, minimum: 1 }
         position: { type: integer, minimum: 0 }
-        kind: { type: string, minLength: 1, maxLength: 100 }
-        content:
-          type: object
-          additionalProperties: true
+        kind: { type: string, enum: [question_draft, activity, content, leaderboard] }
+        content: { $ref: '#/components/schemas/EditableSlideContent' }
     Error:
       type: object
       required: [error]

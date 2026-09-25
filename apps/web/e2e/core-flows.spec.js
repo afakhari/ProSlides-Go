@@ -29,6 +29,51 @@ function waitForManagerSession(page) {
   );
 }
 
+function choiceActivityContent({
+  title = "",
+  text,
+  selection = "single",
+  durationSeconds = 30,
+  minPoints = 0,
+  maxPoints = 100,
+  speedBonus = false,
+  partialCredit = false,
+  showOverallLeaderboardAfter = false,
+  options,
+}) {
+  return {
+    schema_version: 1,
+    activity_kind: "choice",
+    prompt: { title, text, image_url: "" },
+    response: {
+      selection,
+      options: options.map((option, index) => ({
+        id: option.id,
+        text: option.text,
+        image_url: "",
+        order: index + 1,
+      })),
+    },
+    evaluation: {
+      mode: "correctness",
+      correct_option_ids: options
+        .filter((option) => option.isCorrect)
+        .map((option) => option.id),
+    },
+    scoring: {
+      mode: "points",
+      min_points: minPoints,
+      max_points: maxPoints,
+      speed_bonus: speedBonus,
+      partial_credit: partialCredit,
+    },
+    timing: { duration_seconds: durationSeconds },
+    results: {
+      show_overall_leaderboard_after: showOverallLeaderboardAfter,
+    },
+  };
+}
+
 async function expectReportRouteReady(page, failures) {
   const backLink = page.getByLabel("بازگشت به پنل مدیریت");
 
@@ -367,7 +412,18 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await manager.locator('button[type="submit"]').click();
     await expect(manager).toHaveURL(/\/manager\/panel$/);
 
-    const fixture = await manager.evaluate(async ({ accessCode }) => {
+    const activityContent = choiceActivityContent({
+      title: "پرسش تست",
+      text: "پایتخت ایران کدام شهر است؟",
+      durationSeconds: 60,
+      showOverallLeaderboardAfter: true,
+      options: [
+        { id: `option-a-${unique}`, text: "تهران", isCorrect: true },
+        { id: `option-b-${unique}`, text: "شیراز", isCorrect: false },
+      ],
+    });
+
+    const fixture = await manager.evaluate(async ({ accessCode, activityContent }) => {
       const cookieValue = (name) => {
         const prefix = `${encodeURIComponent(name)}=`;
         const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
@@ -396,42 +452,13 @@ test("manager and participant complete a live question lifecycle with reconnect"
         body: { title: "چرخه کامل تست زنده", settings: {} },
       });
 
-      const optionOneId = crypto.randomUUID();
-      const optionTwoId = crypto.randomUUID();
       const slide = await api(`/presentations/${presentation.id}/slides`, {
         method: "POST",
         headers: { "If-Match": String(presentation.revision) },
         body: {
           position: 0,
-          kind: "question",
-          content: {
-            title: "پرسش تست",
-            text: "پایتخت ایران کدام شهر است؟",
-            question_type: "single",
-            question_time: 60,
-            min_point: 0,
-            max_point: 100,
-            image_url: "",
-            faster_answers_more_points: false,
-            partial_scoring: false,
-            show_leaderboard_after: true,
-            options: [
-              {
-                id: optionOneId,
-                text: "تهران",
-                is_correct: true,
-                image_url: "",
-                order: 1,
-              },
-              {
-                id: optionTwoId,
-                text: "شیراز",
-                is_correct: false,
-                image_url: "",
-                order: 2,
-              },
-            ],
-          },
+          kind: "activity",
+          content: activityContent,
         },
       });
 
@@ -445,7 +472,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
         slideId: slide.id,
         accessCode,
       };
-    }, { accessCode });
+    }, { accessCode, activityContent });
 
     await manager.goto(`/manager/presentation/${fixture.presentationId}`);
     const startButton = manager.getByRole("button", { name: /شروع/ });
@@ -560,7 +587,16 @@ test("question editor preserves typed draft semantics across save and edit confl
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/manager\/panel$/);
 
-  const fixture = await page.evaluate(async () => {
+  const activityContent = choiceActivityContent({
+    text: "پایتخت ایران کدام است؟",
+    showOverallLeaderboardAfter: true,
+    options: [
+      { id: `option-a-${unique}`, text: "تهران", isCorrect: true },
+      { id: `option-b-${unique}`, text: "شیراز", isCorrect: false },
+    ],
+  });
+
+  const fixture = await page.evaluate(async ({ activityContent }) => {
     const cookieValue = (name) => {
       const prefix = `${encodeURIComponent(name)}=`;
       const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
@@ -593,23 +629,8 @@ test("question editor preserves typed draft semantics across save and edit confl
       headers: { "If-Match": String(presentation.revision) },
       body: {
         position: 0,
-        kind: "question",
-        content: {
-          title: "",
-          text: "پایتخت ایران کدام است؟",
-          question_type: "single",
-          question_time: 30,
-          min_point: 0,
-          max_point: 100,
-          image_url: "",
-          faster_answers_more_points: false,
-          partial_scoring: false,
-          show_leaderboard_after: true,
-          options: [
-            { id: crypto.randomUUID(), text: "تهران", is_correct: true, image_url: "", order: 1 },
-            { id: crypto.randomUUID(), text: "شیراز", is_correct: false, image_url: "", order: 2 },
-          ],
-        },
+        kind: "activity",
+        content: activityContent,
       },
     });
 
@@ -617,7 +638,7 @@ test("question editor preserves typed draft semantics across save and edit confl
       presentationId: presentation.id,
       slideId: slide.id,
     };
-  });
+  }, { activityContent });
 
   await page.goto(`/manager/panel/${fixture.presentationId}`);
   await page.getByRole("button", { name: "محتوا", exact: true }).click();
@@ -657,10 +678,11 @@ test("question editor preserves typed draft semantics across save and edit confl
   const saveResponse = await saveResponsePromise;
   expect(saveResponse.status()).toBe(200);
   const savedSlide = await saveResponse.json();
-  expect(savedSlide.content.text).toBe("پایتخت ایران را انتخاب کنید");
-  expect(savedSlide.content.question_time).toBe(45);
-  expect(savedSlide.content.options[0].text).toBe("شیراز");
-  expect(savedSlide.content.options[0].order).toBe(1);
+  expect(savedSlide.kind).toBe("activity");
+  expect(savedSlide.content.prompt.text).toBe("پایتخت ایران را انتخاب کنید");
+  expect(savedSlide.content.timing.duration_seconds).toBe(45);
+  expect(savedSlide.content.response.options[0].text).toBe("شیراز");
+  expect(savedSlide.content.response.options[0].order).toBe(1);
   await expect(page.getByText("همه تغییرات ذخیره شده است.")).toBeVisible();
   await expect(
     preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
@@ -708,10 +730,13 @@ test("question editor preserves typed draft semantics across save and edit confl
           headers,
           body: JSON.stringify({
             position: 0,
-            kind: "question",
+            kind: "activity",
             content: {
               ...content,
-              text: "نسخه جدید سرور",
+              prompt: {
+                ...content.prompt,
+                text: "نسخه جدید سرور",
+              },
             },
           }),
         },
