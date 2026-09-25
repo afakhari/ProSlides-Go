@@ -331,6 +331,24 @@ func TestPresentationAndSlideJSONFieldsRejectNull(t *testing.T) {
 	}
 }
 
+func TestDeprecatedQuestionResultsRouteIsNotRegistered(t *testing.T) {
+	mux := http.NewServeMux()
+	NewHTTP(fakeSessions{}, &fakeStore{}).Register(mux)
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/presentations/p/sessions/s/questions/q/results",
+		nil,
+	)
+	request.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("deprecated question results route status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestUpdatePresentationRejectsInvalidKnownSettings(t *testing.T) {
 	m := http.NewServeMux()
 	store := &fakeStore{}
