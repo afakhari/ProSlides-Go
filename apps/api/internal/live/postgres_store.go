@@ -38,7 +38,7 @@ func (s *PostgresStore) CreateSession(c context.Context, host, presentation, req
 	} else if !errors.Is(e, pgx.ErrNoRows) {
 		return out, false, e
 	}
-	e = scanSession(tx.QueryRow(c, `INSERT INTO live_sessions(presentation_id,host_id,join_code,state,request_id) SELECT id,$1,COALESCE(access_code,$3),'draft',$4 FROM presentations WHERE id=$2 AND owner_id=$1 RETURNING id::text,presentation_id::text,host_id::text,join_code,state,state_version,active_item_id::text,activity_phase,stage_view,ends_at`, host, presentation, code, request), &out)
+	e = scanSession(tx.QueryRow(c, `INSERT INTO live_sessions(presentation_id,host_id,join_code,state,request_id,presentation_title_snapshot) SELECT id,$1,COALESCE(access_code,$3),'draft',$4,title FROM presentations WHERE id=$2 AND owner_id=$1 RETURNING id::text,presentation_id::text,host_id::text,join_code,state,state_version,active_item_id::text,activity_phase,stage_view,ends_at`, host, presentation, code, request), &out)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return out, false, ErrNotFound
 	}
