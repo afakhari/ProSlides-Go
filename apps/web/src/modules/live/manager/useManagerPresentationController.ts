@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import type { LiveState, StageView } from "../api/types.ts";
-import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import {
   findContentSlideIndex,
@@ -27,7 +26,6 @@ type UseManagerPresentationControllerOptions = {
   quiz: LivePresentationModel;
   currentQuestion: LegacyQuestionSlide | null;
   currentContent: LegacyContentSlide | null;
-  leaderboardResults: unknown;
   isConnected: boolean;
   sessionState?: LiveState;
   sessionStageView?: StageView;
@@ -48,7 +46,6 @@ export function useManagerPresentationController({
   quiz,
   currentQuestion,
   currentContent,
-  leaderboardResults,
   isConnected,
   sessionState,
   sessionStageView,
@@ -61,7 +58,6 @@ export function useManagerPresentationController({
     useState<number | null>(null);
 
   const totalSlides = quiz.slides.length;
-  const hasLeaderboard = hasLeaderboardEntries(leaderboardResults);
   const isOverallRanking = sessionStageView === "overall_ranking";
 
   useEffect(() => {
@@ -95,7 +91,6 @@ export function useManagerPresentationController({
     isSynced,
     currentQuestion,
     currentContent,
-    hasLeaderboard,
     isOverallRanking,
     isConnected,
   ]);
