@@ -29,6 +29,16 @@ function waitForManagerSession(page) {
   );
 }
 
+function waitForReportSessions(page, presentationId) {
+  return page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === `/api/v1/presentations/${presentationId}/sessions` &&
+      response.request().method() === "GET"
+    );
+  });
+}
+
 function choiceActivityContent({
   title = "",
   text,
@@ -264,11 +274,11 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page.getByRole("dialog", { name: "نوع آیتم را انتخاب کنید" })).toBeHidden();
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
-  const firstReportSession = waitForManagerSession(page);
+  const firstReportSessions = waitForReportSessions(page, presentationId);
   await page.goto(`/manager/panel/${presentationId}/report`, {
     waitUntil: "domcontentloaded",
   });
-  expect((await firstReportSession).status()).toBe(200);
+  expect((await firstReportSessions).status()).toBe(200);
   await expect(page).toHaveURL(
     new RegExp(`/manager/panel/${presentationId}/report$`),
   );
@@ -305,7 +315,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   });
   await editorReadHeld;
   const reportUrl = new RegExp(`/manager/panel/${presentationId}/report$`);
-  const resumedReportSession = waitForManagerSession(page);
+  const resumedReportSessions = waitForReportSessions(page, presentationId);
   const reportNavigation = page.goto(
     `/manager/panel/${presentationId}/report`,
     { waitUntil: "domcontentloaded" },
@@ -321,7 +331,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   }
   await reportNavigation;
   await page.unroute(`**/api/v1/presentations/${presentationId}`);
-  expect((await resumedReportSession).status()).toBe(200);
+  expect((await resumedReportSessions).status()).toBe(200);
   await expect(page).toHaveURL(reportUrl);
   await expectReportRouteReady(page, failures);
 
