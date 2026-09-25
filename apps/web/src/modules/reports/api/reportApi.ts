@@ -1,39 +1,61 @@
-import { ApiError, requestJson } from "../../../shared/api/http.ts";
+import { requestJson } from "../../../shared/api/http.ts";
 import type { components } from "../../../shared/api/generated/openapi.ts";
 
-export type ReportPresentation = components["schemas"]["Presentation"];
-export type ReportSessionLocator = components["schemas"]["LiveSessionLocator"];
-export type ReportRosterPage = components["schemas"]["RosterPage"];
+export type ReportSessionPage = components["schemas"]["ReportSessionPage"];
+export type ReportSessionSummary = components["schemas"]["ReportSessionSummary"];
+export type ReportSession = components["schemas"]["SessionReport"];
+export type ReportActivityPage = components["schemas"]["ReportActivityPage"];
+export type ReportActivitySummary = components["schemas"]["ReportActivitySummary"];
+export type ReportRankingPage = components["schemas"]["ReportRankingPage"];
+export type ReportActivityResponse = components["schemas"]["ReportActivityResponse"];
+
+const pageQuery = (cursor = "", limit = 50) => {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cursor) query.set("cursor", cursor);
+  return query.toString();
+};
 
 export const reportApi = {
-  getPresentation: (presentationId: string, signal?: AbortSignal) =>
-    requestJson<ReportPresentation>(`/presentations/${encodeURIComponent(presentationId)}`, { signal }),
-
-  getLatestSession: async (
+  getSessionsPage: (
     presentationId: string,
+    cursor = "",
     signal?: AbortSignal,
-  ): Promise<ReportSessionLocator | null> => {
-    try {
-      return await requestJson<ReportSessionLocator>(
-        `/presentations/${encodeURIComponent(presentationId)}/latest-session`,
-        { signal },
-      );
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return null;
-      throw error;
-    }
-  },
+  ) =>
+    requestJson<ReportSessionPage>(
+      `/presentations/${encodeURIComponent(presentationId)}/sessions?${pageQuery(cursor, 20)}`,
+      { signal },
+    ),
 
-  getRosterPage: (
+  getSessionReport: (
+    presentationId: string,
+    sessionId: string,
+    signal?: AbortSignal,
+  ) =>
+    requestJson<ReportSession>(
+      `/presentations/${encodeURIComponent(presentationId)}/sessions/${encodeURIComponent(sessionId)}/report`,
+      { signal },
+    ),
+
+  getActivityPage: (
+    presentationId: string,
+    sessionId: string,
+    activityItemId: string,
+    cursor = "",
+    signal?: AbortSignal,
+  ) =>
+    requestJson<ReportActivityPage>(
+      `/presentations/${encodeURIComponent(presentationId)}/sessions/${encodeURIComponent(sessionId)}/activities/${encodeURIComponent(activityItemId)}/results?${pageQuery(cursor)}`,
+      { signal },
+    ),
+
+  getRankingPage: (
+    presentationId: string,
     sessionId: string,
     cursor = "",
     signal?: AbortSignal,
-  ) => {
-    const query = new URLSearchParams({ order: "score", limit: "100" });
-    if (cursor) query.set("cursor", cursor);
-    return requestJson<ReportRosterPage>(
-      `/live/sessions/${encodeURIComponent(sessionId)}/roster?${query}`,
+  ) =>
+    requestJson<ReportRankingPage>(
+      `/presentations/${encodeURIComponent(presentationId)}/sessions/${encodeURIComponent(sessionId)}/ranking?${pageQuery(cursor)}`,
       { signal },
-    );
-  },
+    ),
 };

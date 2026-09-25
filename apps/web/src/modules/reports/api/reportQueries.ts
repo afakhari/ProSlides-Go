@@ -4,38 +4,83 @@ import { reportApi } from "./reportApi.ts";
 
 export const reportKeys = {
   root: ["reports"] as const,
-  presentation: (presentationId: string) =>
-    [...reportKeys.root, "presentation", presentationId] as const,
-  latestSession: (presentationId: string) =>
-    [...reportKeys.root, "latest-session", presentationId] as const,
-  roster: (presentationId: string, sessionId: string) =>
-    [...reportKeys.root, "roster", presentationId, sessionId] as const,
+  sessions: (presentationId: string) =>
+    [...reportKeys.root, "sessions", presentationId] as const,
+  session: (presentationId: string, sessionId: string) =>
+    [...reportKeys.root, "session", presentationId, sessionId] as const,
+  activity: (
+    presentationId: string,
+    sessionId: string,
+    activityItemId: string,
+  ) =>
+    [
+      ...reportKeys.root,
+      "activity",
+      presentationId,
+      sessionId,
+      activityItemId,
+    ] as const,
+  ranking: (presentationId: string, sessionId: string) =>
+    [...reportKeys.root, "ranking", presentationId, sessionId] as const,
 };
 
-export const reportPresentationQuery = (presentationId: string) =>
-  queryOptions({
-    queryKey: reportKeys.presentation(presentationId),
-    queryFn: ({ signal }) => reportApi.getPresentation(presentationId, signal),
-    staleTime: 60_000,
+export const reportSessionsQuery = (presentationId: string) =>
+  infiniteQueryOptions({
+    queryKey: reportKeys.sessions(presentationId),
+    queryFn: ({ pageParam, signal }) =>
+      reportApi.getSessionsPage(presentationId, pageParam, signal),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.next_cursor || undefined : undefined,
+    staleTime: 30_000,
   });
 
-export const reportLatestSessionQuery = (presentationId: string) =>
+export const reportSessionQuery = (
+  presentationId: string,
+  sessionId: string,
+) =>
   queryOptions({
-    queryKey: reportKeys.latestSession(presentationId),
-    queryFn: ({ signal }) => reportApi.getLatestSession(presentationId, signal),
-    refetchInterval: 15 * 60_000,
+    queryKey: reportKeys.session(presentationId, sessionId),
+    queryFn: ({ signal }) =>
+      reportApi.getSessionReport(presentationId, sessionId, signal),
+    staleTime: 15_000,
   });
 
-export const reportRosterQuery = (
+export const reportActivityQuery = (
+  presentationId: string,
+  sessionId: string,
+  activityItemId: string,
+) =>
+  infiniteQueryOptions({
+    queryKey: reportKeys.activity(
+      presentationId,
+      sessionId,
+      activityItemId,
+    ),
+    queryFn: ({ pageParam, signal }) =>
+      reportApi.getActivityPage(
+        presentationId,
+        sessionId,
+        activityItemId,
+        pageParam,
+        signal,
+      ),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.next_cursor || undefined : undefined,
+    staleTime: 15_000,
+  });
+
+export const reportRankingQuery = (
   presentationId: string,
   sessionId: string,
 ) =>
   infiniteQueryOptions({
-    queryKey: reportKeys.roster(presentationId, sessionId),
+    queryKey: reportKeys.ranking(presentationId, sessionId),
     queryFn: ({ pageParam, signal }) =>
-      reportApi.getRosterPage(sessionId, pageParam, signal),
+      reportApi.getRankingPage(presentationId, sessionId, pageParam, signal),
     initialPageParam: "",
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? lastPage.next_cursor || undefined : undefined,
-    refetchInterval: 15 * 60_000,
+    staleTime: 15_000,
   });

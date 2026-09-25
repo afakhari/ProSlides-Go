@@ -293,16 +293,85 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/presentations/{presentationId}/latest-session:
     get:
+      deprecated: true
       operationId: getLatestPresentationSession
       summary: Resolve the newest live session for an owned presentation.
+      description: Temporary migration convenience. Session-first report clients should list presentation Sessions instead.
       parameters:
         - $ref: '#/components/parameters/PresentationId'
       responses:
         '200': { description: Latest session locator., content: { application/json: { schema: { $ref: '#/components/schemas/LiveSessionLocator' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/presentations/{presentationId}/sessions:
+    get:
+      operationId: listPresentationReportSessions
+      summary: List bounded historical Sessions for an owned Presentation.
+      description: Returns newest-first Session summaries. Report-facing metadata is read from frozen Session data rather than the mutable current Presentation definition.
+      parameters:
+        - $ref: '#/components/parameters/PresentationId'
+        - $ref: '#/components/parameters/RosterLimit'
+        - $ref: '#/components/parameters/RosterCursor'
+      responses:
+        '200':
+          description: Bounded Session history for the Presentation.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReportSessionPage' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/presentations/{presentationId}/sessions/{sessionId}/report:
+    get:
+      operationId: getPresentationSessionReport
+      summary: Return the immutable report overview for one owned Session.
+      description: Activity definitions come from the frozen Session snapshot. Later Presentation edits do not change this report.
+      parameters:
+        - $ref: '#/components/parameters/PresentationId'
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session report overview and its frozen Activities.
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionReport' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/presentations/{presentationId}/sessions/{sessionId}/activities/{activityItemId}/results:
+    get:
+      operationId: getPresentationSessionActivityReport
+      summary: Return one Activity result and bounded participant response history.
+      description: Activity result, per-Activity top performers and participant evaluations are derived from durable answers plus the frozen Session Activity definition. Cumulative Session ranking is a separate resource.
+      parameters:
+        - $ref: '#/components/parameters/PresentationId'
+        - $ref: '#/components/parameters/SessionId'
+        - { name: activityItemId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/RosterLimit'
+        - $ref: '#/components/parameters/RosterCursor'
+      responses:
+        '200':
+          description: Activity-scoped result and bounded response/evaluation history.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReportActivityPage' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/presentations/{presentationId}/sessions/{sessionId}/ranking:
+    get:
+      operationId: getPresentationSessionRanking
+      summary: Return the bounded cumulative ranking for one scored Session.
+      description: Equal cumulative scores use competition ranking semantics. Unscored Sessions return an empty ranking with has_scoring=false.
+      parameters:
+        - $ref: '#/components/parameters/PresentationId'
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/RosterLimit'
+        - $ref: '#/components/parameters/RosterCursor'
+      responses:
+        '200':
+          description: Cumulative Session ranking, final when the Session has ended.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReportRankingPage' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/presentations/{presentationId}/sessions/{sessionId}/questions/{slideId}/results:
     get:
+      deprecated: true
       operationId: getQuestionResults
       summary: Return persisted option counts and a stable bounded per-question leaderboard for an owned session.
       description: This is the Go-native replacement for Django's Rust result-ingestion endpoints. Results are derived from durable answers and never accept a second externally supplied score ledger.
@@ -1062,6 +1131,140 @@ components:
           type: array
           items: { type: integer, minimum: 0 }
         score_delta: { type: integer, minimum: 0 }
+    ReportSessionSummary:
+      type: object
+      required: [session_id, presentation_id, presentation_title, state, created_at, participant_count, activity_count, response_count, has_scoring]
+      additionalProperties: false
+      properties:
+        session_id: { type: string, format: uuid }
+        presentation_id: { type: string, format: uuid }
+        presentation_title:
+          type: string
+          nullable: true
+          description: Title frozen when this Session was created. Null for pre-V2.5 Sessions whose historical title cannot be recovered honestly.
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        created_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time, nullable: true }
+        participant_count: { type: integer, minimum: 0 }
+        activity_count: { type: integer, minimum: 0 }
+        response_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean }
+    ReportSessionPage:
+      type: object
+      required: [items, limit, has_more]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ReportSessionSummary' }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
+    ReportActivitySummary:
+      type: object
+      required: [activity_item_id, position, definition, response_count, scored]
+      additionalProperties: false
+      properties:
+        activity_item_id: { type: string, format: uuid }
+        position: { type: integer, minimum: 0 }
+        definition: { $ref: '#/components/schemas/ActivityItemDefinition' }
+        response_count: { type: integer, minimum: 0 }
+        scored: { type: boolean }
+    SessionReport:
+      type: object
+      required: [session, activities]
+      additionalProperties: false
+      properties:
+        session: { $ref: '#/components/schemas/ReportSessionSummary' }
+        activities:
+          type: array
+          items: { $ref: '#/components/schemas/ReportActivitySummary' }
+    ReportChoiceResultPayload:
+      type: object
+      required: [option_counts]
+      additionalProperties: false
+      properties:
+        option_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+          description: Counts keyed by frozen option ID.
+    ReportActivityResult:
+      type: object
+      required: [activity_item_id, activity_kind, schema_version, response_count, payload]
+      additionalProperties: false
+      properties:
+        activity_item_id: { type: string, format: uuid }
+        activity_kind: { type: string, enum: [choice] }
+        schema_version: { type: integer, minimum: 1 }
+        response_count: { type: integer, minimum: 0 }
+        payload:
+          $ref: '#/components/schemas/ReportChoiceResultPayload'
+    ReportResponseEvaluation:
+      type: object
+      required: [mode, score_delta]
+      additionalProperties: false
+      properties:
+        mode: { type: string, enum: [none, correctness] }
+        correct: { type: boolean, nullable: true }
+        score_delta: { type: integer, minimum: 0 }
+    ReportActivityResponse:
+      type: object
+      required: [answer_id, participant_id, display_name, response, evaluation, submitted_at]
+      additionalProperties: false
+      properties:
+        answer_id: { type: string, format: uuid }
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        response:
+          type: object
+          additionalProperties: true
+          description: Persisted Activity response payload. Choice currently stores selected_option_indexes; future Activity kinds may use a different versioned response shape.
+        evaluation: { $ref: '#/components/schemas/ReportResponseEvaluation' }
+        submitted_at: { type: string, format: date-time }
+    ReportActivityPage:
+      type: object
+      required: [activity, result, top_performers, responses, limit, has_more]
+      additionalProperties: false
+      properties:
+        activity: { $ref: '#/components/schemas/ReportActivitySummary' }
+        result: { $ref: '#/components/schemas/ReportActivityResult' }
+        top_performers:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/ActivityTopPerformer' }
+        responses:
+          type: array
+          items: { $ref: '#/components/schemas/ReportActivityResponse' }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
+    ReportRankingEntry:
+      type: object
+      required: [participant_id, display_name, score, rank, joined_at]
+      additionalProperties: false
+      properties:
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, description: Competition rank in cumulative Session scoring. }
+        joined_at: { type: string, format: date-time }
+    ReportRankingPage:
+      type: object
+      required: [has_scoring, is_final, items, limit, has_more]
+      additionalProperties: false
+      properties:
+        has_scoring: { type: boolean }
+        is_final: { type: boolean, description: True only after the Session has ended. }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ReportRankingEntry' }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
     LiveSessionLocator:
       type: object
       required: [session_id, presentation_id, presentation]

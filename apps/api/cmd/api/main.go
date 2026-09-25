@@ -19,6 +19,7 @@ import (
 	"github.com/proslides/proslides/internal/platform/postgres"
 	"github.com/proslides/proslides/internal/platform/redis"
 	"github.com/proslides/proslides/internal/presentations"
+	"github.com/proslides/proslides/internal/reports"
 )
 
 func main() {
@@ -99,6 +100,7 @@ func main() {
 			liveBroker = live.NewEventBroker(liveStore, 250*time.Millisecond, 256)
 			identity.NewHTTP(identityService, cfg.Environment == "production", redisClient).WithTrustedProxyCIDRs(cfg.TrustedProxyCIDRs).Register(m)
 			presentations.NewHTTP(identityService, presentations.NewPostgresStore(postgresClient.Pool())).Register(m)
+			reports.NewHTTP(identityService, reports.NewPostgresStore(postgresClient.Pool())).Register(m)
 			live.NewHTTP(liveService, liveBroker, identityService, cfg.Environment == "production", redisClient).WithRequestTimeout(cfg.LiveRequestTimeout).Register(m)
 			return []platformhttp.MetricSource{postgresClient, liveBroker, liveService}
 		}),

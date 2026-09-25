@@ -56,7 +56,14 @@ private Activity results/top performers, cumulative ranking inspection and
 connection/recovery insight. Stage, Backstage and Participant therefore expose
 intentionally different capabilities over the same Session.
 
-**Active implementation slice: V2.5 / issue #87 — session-first Reports.**
+V2.5 / issue #87 is complete via PR #107. Reports are now Session-first:
+Presentation history lists distinct live Sessions, each report reads frozen
+Session Activity definitions, Activity result/top-performer views remain
+separate from cumulative Session ranking, and participant response/evaluation
+history is bounded. The legacy latest-session and question-results boundaries
+remain deprecated compatibility paths rather than the report UI source of truth.
+
+**Active implementation slice: V2.6 / issue #88 — Poll and Word Cloud architecture proof Activities.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
