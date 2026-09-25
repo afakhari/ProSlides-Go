@@ -154,10 +154,10 @@ test("runtime accepts monotonic Activity results and ignores stale SSE events", 
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.activity_result.option_counts, {
-    0: 1,
-    1: 2,
-  });
+  assert.deepEqual(
+    runtime.getState().snapshot.activity_result.payload.option_counts,
+    { 0: 1, 1: 2 },
+  );
 
   runtime.destroy();
 });
