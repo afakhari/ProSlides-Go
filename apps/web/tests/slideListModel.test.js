@@ -8,6 +8,9 @@ import {
   presentationAfterReorder,
   reorderEditorSlides,
 } from "../src/modules/presentations/editor/model/slideListModel.ts";
+import {
+  getEditorItemBehaviors,
+} from "../src/modules/presentations/model/itemRegistry.ts";
 
 const question = {
   slide_id: "question-1",
@@ -48,16 +51,21 @@ const content = {
   content_image_url: "",
 };
 
-test("slide list projection keeps synthetic leaderboard tied to its source question", () => {
+test("item rail contains only persisted items and keeps post-Activity flow as metadata", () => {
   const items = buildSlideListItems([question, content]);
 
-  assert.equal(items.length, 3);
-  assert.equal(items[0].isSynthetic, false);
-  assert.equal(items[1].isSynthetic, true);
-  assert.equal(items[1].sourceSlideId, "question-1");
-  assert.equal(items[1].slide_type, 3);
-  assert.equal(getSlideListTitle(items[1]), "جدول امتیازات");
+  assert.equal(items.length, 2);
+  assert.deepEqual(
+    items.map((item) => item.slide_id),
+    ["question-1", "content-1"],
+  );
+  assert.equal(getSlideListTitle(items[0]), "سؤال نمونه");
   assert.equal(getSlideListTypeLabel(items[0]), "تک‌گزینه‌ای");
+  assert.deepEqual(
+    getEditorItemBehaviors(items[0]).map((behavior) => behavior.id),
+    ["activity-result", "overall-ranking"],
+  );
+  assert.deepEqual(getEditorItemBehaviors(items[1]), []);
 });
 
 test("reorder normalizes positions without mutating input", () => {
