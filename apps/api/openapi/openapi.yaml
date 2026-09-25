@@ -1138,7 +1138,10 @@ components:
       properties:
         session_id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
-        presentation_title: { type: string }
+        presentation_title:
+          type: string
+          nullable: true
+          description: Title frozen when this Session was created. Null for pre-V2.5 Sessions whose historical title cannot be recovered honestly.
         state: { type: string, enum: [draft, lobby, presenting, ended] }
         created_at: { type: string, format: date-time }
         ended_at: { type: string, format: date-time, nullable: true }
