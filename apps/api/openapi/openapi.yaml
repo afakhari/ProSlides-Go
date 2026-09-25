@@ -833,7 +833,7 @@ components:
       additionalProperties: false
       properties:
         position: { type: integer, minimum: 0 }
-        kind: { type: string, enum: [activity, content, leaderboard] }
+        kind: { type: string, enum: [activity, content] }
         content: { $ref: '#/components/schemas/EditableSlideContent' }
     ReorderSlidesRequest:
       type: object
@@ -849,7 +849,6 @@ components:
       anyOf:
         - $ref: '#/components/schemas/ActivityItemDefinition'
         - $ref: '#/components/schemas/ContentSlideContent'
-        - $ref: '#/components/schemas/LeaderboardContent'
     ActivityItemDefinition:
       description: Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted.
       oneOf:
@@ -977,11 +976,6 @@ components:
         title: { type: string, maxLength: 500 }
         text: { type: string, maxLength: 20000 }
         image_url: { type: string, maxLength: 4096 }
-    LeaderboardContent:
-      type: object
-      additionalProperties: false
-      properties:
-        title: { type: string, maxLength: 500 }
     AnswerRequest:
       type: object
       additionalProperties: false
@@ -1462,7 +1456,7 @@ components:
         id: { type: string, format: uuid }
         revision: { type: integer, format: int64, minimum: 1 }
         position: { type: integer, minimum: 0 }
-        kind: { type: string, enum: [activity, content, leaderboard] }
+        kind: { type: string, enum: [activity, content] }
         content: { $ref: '#/components/schemas/EditableSlideContent' }
     Error:
       type: object
