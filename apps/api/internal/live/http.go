@@ -414,17 +414,6 @@ func (h *HTTP) manager(r *http.Request, csrf bool) (identity.User, error) {
 	s, e := h.auth.Current(r.Context(), c.Value)
 	return s.User, e
 }
-func (h *HTTP) viewer(r *http.Request) error {
-	manager := ""
-	if u, e := h.manager(r, false); e == nil {
-		manager = u.ID
-	}
-	participant := ""
-	if c, e := r.Cookie("proslides_participant"); e == nil {
-		participant = c.Value
-	}
-	return h.service.AuthorizeViewer(r.Context(), r.PathValue("sessionId"), manager, participant)
-}
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
