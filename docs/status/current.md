@@ -112,10 +112,15 @@ join/answer/SSE success rates were 100%, no HTTP request failed, and the final
 database reconciliation passed. The temporary workflow was removed before
 merge and is not part of the product CI surface.
 
-Other legacy paths, including numeric `slide_type`, Choice response
-compatibility inside production boundaries, deprecated question-result reads
-and persisted leaderboard compatibility, remain until their replacements are
-verified independently.
+PR #117 removes the remaining pre-generic Choice response compatibility from
+production boundaries. Live answer writes now require the canonical `response`
+envelope, personal and aggregate live results no longer duplicate Choice-only
+fields outside `response`/`payload`, and migration 0020 canonicalizes retained
+pre-generic Choice result events before the frontend replay fallback is removed.
+
+Other legacy paths, including numeric `slide_type`, deprecated question-result
+reads and persisted leaderboard compatibility, remain until their replacements
+are verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
