@@ -98,7 +98,6 @@ export const createTextActivitySlide = (
   slide_id: createId(),
   revision: 1,
   order,
-  slide_type: 1,
   item_kind: "activity",
   activity_kind: "text",
   schema_version: 1,
@@ -124,7 +123,6 @@ export const createSlideForChoice = (
     slide_id: slideId,
     revision: 1,
     order,
-    slide_type: mode === "content" ? 2 : 1,
     item_kind: mode === "content" ? "content" : "activity",
     activity_kind: mode === "content" ? undefined : "choice",
     schema_version: mode === "content" ? undefined : 1,
@@ -141,7 +139,6 @@ export const convertSlideToContent = (
   slide: EditorSlide,
 ): EditorSlide => ({
   ...slide,
-  slide_type: 2,
   item_kind: "content",
   activity_kind: undefined,
   schema_version: undefined,
@@ -157,7 +154,6 @@ export const convertSlideToTextActivity = (
   slide: EditorSlide,
 ): EditorSlide => ({
   ...slide,
-  slide_type: 1,
   item_kind: "activity",
   activity_kind: "text",
   schema_version: 1,
@@ -180,7 +176,6 @@ export const convertSlideToQuestion = (
   if (!existing?.question_id) {
     return {
       ...slide,
-      slide_type: 1,
       item_kind: "activity",
       activity_kind: "choice",
       schema_version: 1,
@@ -239,7 +234,6 @@ export const convertSlideToQuestion = (
 
   return {
     ...slide,
-    slide_type: 1,
     item_kind: "activity",
     activity_kind: "choice",
     schema_version: slide.schema_version ?? 1,
