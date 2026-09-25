@@ -97,6 +97,9 @@ test("dirty comparison is structural and save serialization preserves revision",
   assert.equal(questionDraftEquals(draft, changed), false);
   const serialized = questionDraftToEditorSlide(changed);
   assert.equal(serialized.revision, 3);
+  assert.equal(serialized.item_kind, "activity");
+  assert.equal(serialized.activity_kind, "choice");
+  assert.equal(serialized.schema_version, 1);
   assert.equal(serialized.question?.text, "سؤال تازه");
   assert.deepEqual(serialized.question?.options.map((option) => option.order), [1, 2]);
 });
