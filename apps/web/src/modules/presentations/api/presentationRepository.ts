@@ -369,7 +369,6 @@ export const quizService = {
     }));
   },
   getSlidesFromAPI: (quizID: string) => quizService.getQuiz(quizID),
-  deleteLeaderboardSlide: (quizID: string, slide: EditorSlide) => quizService.updateSlide(quizID, slide.slide_id, { ...slide, show_leaderboard_after: false }),
 };
 
 export type { EditorPresentation, EditorQuestion, EditorSlide, QuestionType };
