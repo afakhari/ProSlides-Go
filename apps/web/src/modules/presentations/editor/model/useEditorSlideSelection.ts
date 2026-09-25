@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { EditorSlide, SlideType } from "../../model/editor.ts";
+import type { EditorSlide } from "../../model/editor.ts";
 
 type ConfirmOptions = {
   title?: string;
   description?: string;
   confirmText?: string;
   cancelText?: string;
-};
-
-type SlideSelection = {
-  slideId: string | null;
-  slideType: SlideType | null;
 };
 
 type UseEditorSlideSelectionOptions = {
@@ -25,10 +20,8 @@ type UseEditorSlideSelectionOptions = {
   ) => void;
 };
 
-const initialSelection = (slides: EditorSlide[]): SlideSelection => ({
-  slideId: slides[0]?.slide_id ?? null,
-  slideType: slides[0]?.slide_type ?? null,
-});
+const initialSelection = (slides: EditorSlide[]): string | null =>
+  slides[0]?.slide_id ?? null;
 
 export function useEditorSlideSelection({
   slides,
@@ -37,68 +30,34 @@ export function useEditorSlideSelection({
   closeSlidesPanel,
   requestConfirmation,
 }: UseEditorSlideSelectionOptions) {
-  const [selection, setSelection] = useState<SlideSelection>(
+  const [selectedSlideId, setSelectedSlideId] = useState<string | null>(
     () => initialSelection(slides),
   );
 
   const activeSlide = useMemo(
     () =>
-      slides.find((slide) => slide.slide_id === selection.slideId) ??
+      slides.find((slide) => slide.slide_id === selectedSlideId) ??
       slides[0] ??
       null,
-    [selection.slideId, slides],
+    [selectedSlideId, slides],
   );
 
   useEffect(() => {
-    if (!slides.length) {
-      setSelection((current) =>
-        current.slideId === null && current.slideType === null
-          ? current
-          : { slideId: null, slideType: null },
-      );
-      return;
+    const nextSlideId = activeSlide?.slide_id ?? null;
+    if (selectedSlideId !== nextSlideId) {
+      setSelectedSlideId(nextSlideId);
     }
-
-    const selectedSlide =
-      slides.find((slide) => slide.slide_id === selection.slideId) ??
-      slides[0];
-
-    const syntheticLeaderboardStillExists =
-      selection.slideType === 3 &&
-      selectedSlide.slide_type === 1 &&
-      selectedSlide.show_leaderboard_after;
-
-    const nextType = syntheticLeaderboardStillExists
-      ? 3
-      : selectedSlide.slide_type;
-
-    if (
-      selectedSlide.slide_id !== selection.slideId ||
-      nextType !== selection.slideType
-    ) {
-      setSelection({
-        slideId: selectedSlide.slide_id,
-        slideType: nextType,
-      });
-    }
-  }, [selection.slideId, selection.slideType, slides]);
+  }, [activeSlide?.slide_id, selectedSlideId]);
 
   const selectSlideImmediate = useCallback(
-    (slideId: string | null, slideType?: SlideType | null) => {
+    (slideId: string | null) => {
       if (slideId === null) {
-        setSelection({ slideId: null, slideType: null });
+        setSelectedSlideId(null);
         return;
       }
 
-      const slide = slides.find((item) => item.slide_id === slideId);
-      if (!slide) return;
-
-      setSelection((current) => ({
-        slideId,
-        slideType:
-          slideType ??
-          (current.slideId === slideId ? current.slideType : slide.slide_type),
-      }));
+      if (!slides.some((slide) => slide.slide_id === slideId)) return;
+      setSelectedSlideId(slideId);
     },
     [slides],
   );
@@ -106,15 +65,13 @@ export function useEditorSlideSelection({
   const requestSlideSelection = useCallback(
     (
       slideId: string,
-      slideType: SlideType,
       closePanel = false,
     ) => {
-      const changed =
-        slideId !== selection.slideId || slideType !== selection.slideType;
+      const changed = slideId !== activeSlide?.slide_id;
 
       const apply = () => {
         if (changed) discardContentChanges();
-        selectSlideImmediate(slideId, slideType);
+        selectSlideImmediate(slideId);
         if (closePanel) closeSlidesPanel();
       };
 
@@ -122,7 +79,7 @@ export function useEditorSlideSelection({
         requestConfirmation(apply, {
           title: "تغییرات ذخیره‌نشده",
           description:
-            "تغییرات ذخیره‌نشده این اسلاید از بین می‌رود. ادامه می‌دهید؟",
+            "تغییرات ذخیره‌نشده این آیتم از بین می‌رود. ادامه می‌دهید؟",
           confirmText: "رد تغییرات",
           cancelText: "ادامه ویرایش",
         });
@@ -132,20 +89,19 @@ export function useEditorSlideSelection({
       apply();
     },
     [
+      activeSlide?.slide_id,
       closeSlidesPanel,
       discardContentChanges,
       hasContentChanges,
       requestConfirmation,
       selectSlideImmediate,
-      selection.slideId,
-      selection.slideType,
     ],
   );
 
   return {
     activeSlide,
     activeSlideId: activeSlide?.slide_id ?? null,
-    activeSlideType: selection.slideType,
+    activeSlideType: activeSlide?.slide_type ?? null,
     selectSlideImmediate,
     requestSlideSelection,
   };
