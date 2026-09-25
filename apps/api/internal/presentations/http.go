@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -428,7 +427,7 @@ func (h *HTTP) createQuestion(w http.ResponseWriter, r *http.Request) {
 			errJSON(w, 400, "invalid_request")
 			return
 		}
-		id := fmt.Sprintf("option-%d", index+1)
+		id := "option-" + strconv.Itoa(index+1)
 		options = append(options, ChoiceOptionDefinition{
 			ID:    id,
 			Text:  strings.TrimSpace(option.Text),
