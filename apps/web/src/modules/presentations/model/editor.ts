@@ -1,4 +1,6 @@
 export type QuestionType = "single" | "multiple";
+export type EvaluationMode = "none" | "correctness";
+export type ScoringMode = "none" | "points";
 export type SlideType = 1 | 2 | 3;
 
 export interface EditorOption {
@@ -15,6 +17,8 @@ export interface EditorQuestion {
   text: string;
   question_text: string;
   question_type: QuestionType;
+  evaluation_mode?: EvaluationMode;
+  scoring_mode?: ScoringMode;
   time_limit: number;
   question_time: number;
   min_point: number;
@@ -239,8 +243,31 @@ export const validateEditorQuestion = (
     });
   }
 
-  const correctCount = options.filter((option) => option.is_correct === true).length;
-  if (correctCount === 0) {
+  const evaluationMode =
+    question.evaluation_mode ?? "correctness";
+  const scoringMode = question.scoring_mode ?? "points";
+  const correctCount = options.filter(
+    (option) => option.is_correct === true,
+  ).length;
+
+  if (
+    evaluationMode !== "none" &&
+    evaluationMode !== "correctness"
+  ) {
+    issues.push({
+      code: "evaluation_mode_invalid",
+      field: "options",
+      message: "حالت ارزیابی فعالیت معتبر نیست.",
+    });
+  } else if (evaluationMode === "none") {
+    if (correctCount !== 0) {
+      issues.push({
+        code: "correct_answer_not_allowed",
+        field: "options",
+        message: "فعالیت بدون ارزیابی نباید پاسخ صحیح داشته باشد.",
+      });
+    }
+  } else if (correctCount === 0) {
     issues.push({
       code: "correct_answer_required",
       field: "options",
@@ -254,7 +281,32 @@ export const validateEditorQuestion = (
     });
   }
 
-  if (type === "single" && question.partial_scoring === true) {
+  if (
+    scoringMode !== "none" &&
+    scoringMode !== "points"
+  ) {
+    issues.push({
+      code: "scoring_mode_invalid",
+      field: "points",
+      message: "حالت امتیازدهی فعالیت معتبر نیست.",
+    });
+  }
+
+  if (
+    scoringMode === "points" &&
+    evaluationMode !== "correctness"
+  ) {
+    issues.push({
+      code: "scoring_requires_correctness",
+      field: "points",
+      message: "امتیازدهی نیازمند ارزیابی پاسخ صحیح است.",
+    });
+  }
+
+  if (
+    type === "single" &&
+    question.partial_scoring === true
+  ) {
     issues.push({
       code: "partial_scoring_not_supported",
       field: "partial_scoring",
@@ -277,12 +329,28 @@ export const validateEditorQuestion = (
 
   const minPoints = Number(question.min_point);
   const maxPoints = Number(question.max_point);
-  if (
-    !Number.isSafeInteger(minPoints) ||
-    minPoints < 0 ||
-    !Number.isSafeInteger(maxPoints) ||
-    maxPoints < 1 ||
-    minPoints > maxPoints
+  if (scoringMode === "none") {
+    if (
+      minPoints !== 0 ||
+      maxPoints !== 0 ||
+      question.faster_answers_more_points === true ||
+      question.partial_scoring === true
+    ) {
+      issues.push({
+        code: "unscored_policy_invalid",
+        field: "points",
+        message: "فعالیت بدون امتیاز باید همه تنظیمات امتیازدهی را غیرفعال نگه دارد.",
+      });
+    }
+  } else if (
+    scoringMode === "points" &&
+    (
+      !Number.isSafeInteger(minPoints) ||
+      minPoints < 0 ||
+      !Number.isSafeInteger(maxPoints) ||
+      maxPoints < 1 ||
+      minPoints > maxPoints
+    )
   ) {
     issues.push({
       code: "points_invalid",
