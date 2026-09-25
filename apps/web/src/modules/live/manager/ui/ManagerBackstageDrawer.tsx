@@ -103,6 +103,12 @@ export function ManagerBackstageDrawer({
     questionResults?.question_id != null &&
     String(currentQuestion.question_id) === String(questionResults.question_id);
   const resultRows = resultMatches ? questionResults?.optionsResult ?? [] : [];
+  const wordTerms = resultMatches ? questionResults?.wordTerms ?? [] : [];
+  const maxWordCount = Math.max(
+    1,
+    ...wordTerms.map((term) => Math.max(0, Number(term.count))),
+  );
+  const isWordCloud = currentQuestion?.activity_kind === "text";
   const responseCount = Number(
     resultMatches
       ? questionResults?.response_count ?? managerSnapshot?.activity_result?.response_count ?? 0
@@ -351,38 +357,82 @@ export function ManagerBackstageDrawer({
                     {responseCount.toLocaleString("fa-IR")} پاسخ
                   </span>
                 </div>
-                <div className="mt-3 space-y-2">
-                  {(currentQuestion.options ?? []).map((option, index) => {
-                    const count = Number(
-                      resultRows.find(
-                        (row) => Number(row.option_id) === index,
-                      )?.number_of_submits ?? 0,
-                    );
-                    const correct =
-                      currentQuestion.has_correct_answer !== false &&
-                      option.answer === true;
-                    return (
-                      <div
-                        key={String(option.option_id ?? index)}
-                        className="flex min-h-11 items-center gap-3 rounded-xl bg-black/20 px-3 py-2"
-                      >
-                        <span
-                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${correct ? "bg-success" : "bg-white/30"}`}
-                          aria-hidden="true"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-sm font-bold" dir="auto">
-                          {option.option_text}
-                        </span>
-                        {correct ? (
-                          <span className="text-xs font-bold text-success">صحیح</span>
-                        ) : null}
-                        <strong className="text-sm">
-                          {count.toLocaleString("fa-IR")}
-                        </strong>
-                      </div>
-                    );
-                  })}
-                </div>
+                {isWordCloud ? (
+                  <div
+                    className="mt-3 flex min-h-32 flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-2xl bg-black/20 p-4"
+                    aria-label="پیش‌نمایش خصوصی ابر واژه"
+                  >
+                    {wordTerms.length === 0 ? (
+                      <p className="text-xs text-white/50">
+                        هنوز واژه‌ای برای نمایش وجود ندارد.
+                      </p>
+                    ) : (
+                      wordTerms.map((term) => {
+                        const ratio = Math.max(
+                          0.35,
+                          Number(term.count) / maxWordCount,
+                        );
+                        return (
+                          <span
+                            key={term.text}
+                            dir="auto"
+                            className="font-black leading-none"
+                            style={{ fontSize: 13 + Math.round(ratio * 18) }}
+                            aria-label={
+                              term.text +
+                              "، " +
+                              Number(term.count).toLocaleString("fa-IR") +
+                              " بار"
+                            }
+                          >
+                            {term.text}
+                          </span>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {(currentQuestion.options ?? []).map((option, index) => {
+                      const count = Number(
+                        resultRows.find(
+                          (row) => Number(row.option_id) === index,
+                        )?.number_of_submits ?? 0,
+                      );
+                      const correct =
+                        currentQuestion.has_correct_answer !== false &&
+                        option.answer === true;
+                      return (
+                        <div
+                          key={String(option.option_id ?? index)}
+                          className="flex min-h-11 items-center gap-3 rounded-xl bg-black/20 px-3 py-2"
+                        >
+                          <span
+                            className={
+                              "h-2.5 w-2.5 shrink-0 rounded-full " +
+                              (correct ? "bg-success" : "bg-white/30")
+                            }
+                            aria-hidden="true"
+                          />
+                          <span
+                            className="min-w-0 flex-1 truncate text-sm font-bold"
+                            dir="auto"
+                          >
+                            {option.option_text}
+                          </span>
+                          {correct ? (
+                            <span className="text-xs font-bold text-success">
+                              صحیح
+                            </span>
+                          ) : null}
+                          <strong className="text-sm">
+                            {count.toLocaleString("fa-IR")}
+                          </strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             ) : null}
 
