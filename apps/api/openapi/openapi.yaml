@@ -1198,7 +1198,6 @@ components:
         response_count: { type: integer, minimum: 0 }
         payload:
           $ref: '#/components/schemas/ReportChoiceResultPayload'
-          description: Kind-specific, versioned result projection. V2.5 defines Choice; later Activity kinds extend the result union rather than creating parallel report endpoints.
     ReportResponseEvaluation:
       type: object
       required: [mode, score_delta]
