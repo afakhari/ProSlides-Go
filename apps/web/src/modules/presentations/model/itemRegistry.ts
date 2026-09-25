@@ -88,16 +88,24 @@ const choiceRegistration: EditorItemRegistration = {
     (slide.question?.question_type === "single" ||
       slide.question?.question_type === "multiple"),
   getTitle: (slide) =>
-    slide.question?.text?.trim() ||
-    slide.question?.question_text?.trim() ||
-    "فعالیت انتخابی",
+    slide.item_kind === "question-draft"
+      ? "آیتم جدید"
+      : slide.question?.text?.trim() ||
+        slide.question?.question_text?.trim() ||
+        "فعالیت انتخابی",
   getTypeLabel: (slide) =>
-    slide.question?.question_type === "multiple"
-      ? "چندگزینه‌ای"
-      : slide.question?.question_type === "single"
-        ? "تک‌گزینه‌ای"
-        : "انتخاب نوع فعالیت",
+    slide.item_kind === "question-draft"
+      ? "انتخاب نوع آیتم"
+      : slide.question?.question_type === "multiple"
+        ? "چندگزینه‌ای"
+        : slide.question?.question_type === "single"
+          ? "تک‌گزینه‌ای"
+          : "انتخاب نوع فعالیت",
   validate: (slide) => {
+    if (slide.item_kind === "question-draft" && !slide.question) {
+      return "پیش از اجرا نوع آیتم را انتخاب کنید.";
+    }
+
     const questionError = getQuestionValidationError(slide.question);
     if (questionError) return questionError;
 
