@@ -330,6 +330,24 @@ test("manager and player routes are explicit and reports use the typed query bou
 });
 
 
+test("Backstage owns explicit presenter controls and keeps Activity performance separate from overall ranking", () => {
+  const backstage = source("src/modules/live/manager/ui/ManagerBackstageDrawer.tsx");
+  const runtime = source("src/modules/live/runtime/LiveRuntime.ts");
+  const context = source("src/modules/live/react/liveSessionContext.ts");
+
+  assert.match(backstage, /sendManagerAction/);
+  assert.match(backstage, /close_activity/);
+  assert.match(backstage, /reveal_activity/);
+  assert.match(backstage, /show_overall_ranking/);
+  assert.match(backstage, /نتیجه خصوصی فعالیت/);
+  assert.match(backstage, /برترین‌های این فعالیت/);
+  assert.match(backstage, /مشاهده خصوصی رتبه‌بندی کلی/);
+  assert.match(runtime, /LiveManagerControlAction/);
+  assert.match(runtime, /sendManagerAction/);
+  assert.match(context, /sendManagerAction/);
+  assert.doesNotMatch(backstage, /QuestionResultsPage|presentations\/.*\/results/);
+});
+
 test("audience Stage owns a read-only projection boundary", () => {
   const route = source("src/modules/live/routes/StageRoute.tsx");
   const hook = source("src/modules/live/stage/useStageProjection.ts");

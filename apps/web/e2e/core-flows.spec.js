@@ -586,7 +586,23 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
     await participant.unroute("**/api/v1/live/sessions/*/answers");
 
-    await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
+    await manager.getByRole("button", { name: "پشت‌صحنه" }).click();
+    const backstage = manager.locator('[data-backstage-surface="presenter"]');
+    await expect(backstage).toBeVisible();
+    await backstage.getByRole("button", { name: "بستن پاسخ‌گویی" }).click();
+    await expect(
+      backstage.getByRole("heading", { name: "نتیجه خصوصی فعالیت" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      backstage.getByRole("heading", { name: "برترین‌های این فعالیت" }),
+    ).toBeVisible();
+    await expect(backstage.getByText("شرکت‌کننده تست")).toBeVisible();
+    await expect(backstage.getByText("+۱۰۰", { exact: true })).toBeVisible();
+    await expect(
+      stage.getByRole("main").getByText("پاسخ صحیح", { exact: true }),
+    ).toBeHidden();
+
+    await backstage.getByRole("button", { name: "نمایش نتیجه روی Stage" }).click();
     await expect(
       participant.getByText("نتیجه فعالیت", { exact: true }),
     ).toBeVisible({ timeout: 15000 });
@@ -632,7 +648,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
       participant.getByText("انتخاب شما", { exact: true }),
     ).toBeVisible();
 
-    await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
+    await backstage
+      .getByRole("button", { name: "نمایش رتبه‌بندی کلی روی Stage" })
+      .click();
     await expect(
       participant.getByRole("heading", { name: "جایگاه فعلی شما" }),
     ).toBeVisible({
@@ -652,10 +670,10 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     });
     await expect(participant.getByText("امتیاز شما")).toBeVisible();
 
-    await manager.getByRole("button", { name: "پایان ارائه", exact: true }).click();
+    await backstage.getByRole("button", { name: "پایان جلسه", exact: true }).click();
     const endDialog = manager.getByRole("alertdialog");
     await expect(endDialog).toBeVisible();
-    await endDialog.getByRole("button", { name: "پایان ارائه", exact: true }).click();
+    await endDialog.getByRole("button", { name: "پایان جلسه", exact: true }).click();
     await expect(
       manager.getByRole("button", { name: "بازگشت به پنل مدیریت" }),
     ).toBeVisible({ timeout: 15000 });
