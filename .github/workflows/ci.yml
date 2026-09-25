@@ -230,6 +230,7 @@ jobs:
 
   web:
     name: web
+    if: always()
     needs:
       - web-fast
       - browser-e2e
@@ -237,4 +238,14 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Confirm web quality gates
-        run: echo "Static web checks and browser E2E passed"
+        env:
+          WEB_FAST_RESULT: ${{ needs.web-fast.result }}
+          BROWSER_E2E_RESULT: ${{ needs.browser-e2e.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$WEB_FAST_RESULT" != "success" || "$BROWSER_E2E_RESULT" != "success" ]]; then
+            echo "::error::web-fast=$WEB_FAST_RESULT browser-e2e=$BROWSER_E2E_RESULT"
+            exit 1
+          fi
+          echo "Static web checks and browser E2E passed"
