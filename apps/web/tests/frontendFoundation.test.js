@@ -191,12 +191,14 @@ test("presentation transport types come from the checked-in OpenAPI output", () 
   assert.doesNotMatch(service, /interface SlideDTO/);
 });
 
-test("F3 owns presentation UI and keeps slide mutation selection and reorder behind typed editor boundaries", () => {
+test("F3 owns presentation UI and keeps item mutation selection and reorder behind typed editor boundaries", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
   const mutations = source("src/modules/presentations/editor/model/useEditorSlideMutations.ts");
   const selection = source("src/modules/presentations/editor/model/useEditorSlideSelection.ts");
   const order = source("src/modules/presentations/editor/model/useEditorSlideOrder.ts");
   const slideList = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
+  const itemRegistry = source("src/modules/presentations/model/itemRegistry.ts");
+  const editorRegistry = source("src/modules/presentations/editor/registry/editorItemRegistry.ts");
 
   assert.match(source("src/modules/presentations/dashboard/PresentationDashboard.tsx"), /\.\.\/api\/presentationRepository/);
   assert.match(source("src/modules/presentations/sharing/ShareDialog.tsx"), /\.\.\/api\/presentationRepository/);
@@ -204,16 +206,23 @@ test("F3 owns presentation UI and keeps slide mutation selection and reorder beh
   assert.match(route, /useEditorSlideMutations/);
   assert.match(route, /useEditorSlideSelection/);
   assert.match(route, /useEditorSlideOrder/);
+  assert.match(route, /resolveEditorItemRegistration/);
   assert.doesNotMatch(route, /quizService\.(?:createSlide|updateSlide|deleteSlide|reorderSlides)/);
   assert.doesNotMatch(route, /error\.response/);
+  assert.match(mutations, /createEditorSlideForType/);
+  assert.match(mutations, /convertEditorSlideToType/);
   assert.match(mutations, /quizService\.createSlide/);
   assert.match(mutations, /quizService\.updateSlide/);
   assert.match(mutations, /quizService\.deleteSlide/);
   assert.match(mutations, /error instanceof ApiError/);
-  assert.match(selection, /slideId !== selection\.slideId \|\| slideType !== selection\.slideType/);
+  assert.match(selection, /slideId !== activeSlide\?\.slide_id/);
+  assert.doesNotMatch(selection, /selection\.slideType|SyntheticLeaderboard/);
   assert.match(order, /quizService\.reorderSlides/);
   assert.match(order, /disabled: hasUnsavedChanges|disabled = false/);
-  assert.doesNotMatch(slideList, /quizService|ApiError/);
+  assert.doesNotMatch(slideList, /quizService|ApiError|isSynthetic|sourceSlideId/);
+  assert.match(itemRegistry, /export const contentRegistry/);
+  assert.match(itemRegistry, /export const activityRegistry/);
+  assert.match(editorRegistry, /createEditorSlideForType/);
 });
 
 test("F4 keeps the app router compositional and mock fixtures out of production", () => {
@@ -600,8 +609,10 @@ test("live projection is derived directly from authoritative snapshot and roster
 });
 
 
-test("question editor keeps one typed draft across inspector and canvas", () => {
+test("Choice editor keeps one typed draft while route rendering stays registry-driven", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
+  const renderRegistry = source("src/modules/presentations/editor/registry/editorItemRenderRegistry.tsx");
+  const shell = source("src/modules/presentations/editor/shell/EditorShell.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/QuestionInspector.tsx");
   const canvas = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const options = source("src/modules/presentations/editor/inspector/QuestionOptionsEditor.tsx");
@@ -611,8 +622,18 @@ test("question editor keeps one typed draft across inspector and canvas", () => 
   const hook = source("src/modules/presentations/editor/model/useQuestionDraft.ts");
   const editorModel = source("src/modules/presentations/model/editor.ts");
 
-  assert.match(route, /<QuestionDraftProvider/);
-  assert.match(route, /showSidebar && activeSlideType === 1/);
+  assert.match(route, /<EditorItemDraftBoundary/);
+  assert.match(route, /<EditorItemCanvas/);
+  assert.match(route, /<EditorItemInspector/);
+  assert.match(route, /<EditorShell/);
+  assert.doesNotMatch(route, /QuestionCanvas|QuestionInspector|QuestionDraftProvider/);
+  assert.match(renderRegistry, /QuestionDraftProvider/);
+  assert.match(renderRegistry, /QuestionCanvas/);
+  assert.match(renderRegistry, /QuestionInspector/);
+  assert.match(shell, /data-editor-region="item-rail"/);
+  assert.match(shell, /data-editor-region="canvas"/);
+  assert.match(shell, /data-editor-region="inspector"/);
+  assert.match(shell, /data-editor-region="top-actions"/);
   assert.match(inspector, /useRequiredQuestionDraft/);
   assert.doesNotMatch(inspector, /useQuestionDraft\(/);
   assert.match(canvas, /useOptionalQuestionDraft/);
@@ -624,6 +645,8 @@ test("question editor keeps one typed draft across inspector and canvas", () => 
   assert.match(inspector, /slide_has_results/);
   assert.match(inspector, /conflictPending/);
   assert.match(inspector, /تغییرات محلی شما/);
+  assert.match(inspector, /نتیجه همین فعالیت/);
+  assert.match(inspector, /رتبه‌بندی کلی/);
   assert.doesNotMatch(inspector, /error\.response\?\./);
   assert.doesNotMatch(inspector, /useState\([^\n]*localSlide/);
   assert.match(options, /انتقال گزینه/);
@@ -638,17 +661,19 @@ test("question editor keeps one typed draft across inspector and canvas", () => 
 });
 
 
-test("content editor shares one typed draft across inspector and canvas", () => {
+test("content editor shares one typed draft through the bounded render registry", () => {
   const route = source("src/modules/presentations/editor/routes/EditorRoute.tsx");
+  const renderRegistry = source("src/modules/presentations/editor/registry/editorItemRenderRegistry.tsx");
   const inspector = source("src/modules/presentations/editor/inspector/ContentInspector.tsx");
   const canvas = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
   const provider = source("src/modules/presentations/editor/model/ContentDraftProvider.tsx");
   const draft = source("src/modules/presentations/editor/model/contentDraft.ts");
   const editorModel = source("src/modules/presentations/model/editor.ts");
 
-  assert.match(route, /<ContentDraftProvider/);
-  assert.match(route, /showSidebar && activeSlideType === 2/);
-  assert.match(route, /<ContentCanvas/);
+  assert.doesNotMatch(route, /ContentDraftProvider|ContentCanvas|ContentInspector/);
+  assert.match(renderRegistry, /ContentDraftProvider/);
+  assert.match(renderRegistry, /ContentCanvas/);
+  assert.match(renderRegistry, /ContentInspector/);
   assert.match(inspector, /useRequiredContentDraft/);
   assert.match(inspector, /error instanceof ApiError/);
   assert.match(inspector, /conflictPending/);
