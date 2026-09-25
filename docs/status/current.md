@@ -134,9 +134,13 @@ navigation model. Live Activities and Content now use explicit `item_kind`;
 the remaining persisted leaderboard compatibility is isolated as
 `legacy-leaderboard` for a separate migration-backed deletion.
 
-Other legacy paths, including `latest-session`, persisted/synthetic leaderboard
-compatibility and remaining live frontend model translations, remain until
-their replacements are verified independently.
+PR #121 removes the deprecated `latest-session` report convenience boundary.
+Report clients now use only the Session-first history/report resources; the
+separate live join-code resolver remains canonical and unchanged.
+
+Other legacy paths, including persisted/synthetic leaderboard compatibility
+and remaining live frontend model translations, remain until their replacements
+are verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
