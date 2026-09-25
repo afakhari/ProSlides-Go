@@ -442,7 +442,7 @@ function QuestionEditor({
           }
         />
       </div>
-    ) : (
+    ) : activeRegistration ? (
       <div className="max-w-md text-center text-slate-500">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-muted text-brand">
           <Sparkles className="h-7 w-7" aria-hidden="true" />
@@ -461,6 +461,13 @@ function QuestionEditor({
         >
           انتخاب نوع آیتم
         </button>
+      </div>
+    ) : (
+      <div className="max-w-md text-center">
+        <Notice tone="warning" className="items-start text-start">
+          نوع یا نسخه این آیتم در این نسخه از ویرایشگر پشتیبانی نمی‌شود.
+          برای جلوگیری از تغییر ناخواسته داده، ویرایش و تبدیل نوع آن غیرفعال است.
+        </Notice>
       </div>
     )
   ) : (
@@ -589,7 +596,7 @@ function QuestionEditor({
           onConflict={recoverConflict}
           onNotify={showNotice}
         />
-      ) : (
+      ) : activeRegistration ? (
         <div className="flex h-full flex-col items-center justify-center p-4 text-center">
           <div className="rounded-2xl bg-warning-soft p-4 text-warning-ink">
             <Sparkles className="h-8 w-8" aria-hidden="true" />
@@ -605,6 +612,11 @@ function QuestionEditor({
             انتخاب نوع آیتم
           </button>
         </div>
+      ) : (
+        <Notice tone="warning" className="m-1 items-start">
+          نوع یا نسخه این آیتم در این نسخه از ویرایشگر پشتیبانی نمی‌شود و
+          برای جلوگیری از بازنویسی ناخواسته قابل ویرایش نیست.
+        </Notice>
       )
     ) : showDesignPanel ? (
       <DesignPanel
@@ -628,7 +640,9 @@ function QuestionEditor({
 
   const topActions = (
     <>
-      {activeSlide && activeRegistration?.category !== "legacy" ? (
+      {activeSlide &&
+      activeRegistration &&
+      activeRegistration.category !== "legacy" ? (
         <button
           type="button"
           onClick={handleTypeChangeClick}
