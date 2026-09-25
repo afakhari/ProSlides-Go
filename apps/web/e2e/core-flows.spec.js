@@ -259,16 +259,25 @@ test("register, create a presentation, and open its report", async ({ page }) =>
     waitUntil: "domcontentloaded",
   });
   await editorReadHeld;
+  const reportUrl = new RegExp(`/manager/panel/${presentationId}/report$`);
   const resumedReportSession = waitForManagerSession(page);
-  await page.goto(`/manager/panel/${presentationId}/report`, {
-    waitUntil: "domcontentloaded",
-  });
-  releaseEditorRead();
+  const reportNavigation = page.goto(
+    `/manager/panel/${presentationId}/report`,
+    { waitUntil: "domcontentloaded" },
+  );
+  try {
+    // The new document commit happens after the editor's pagehide handler has
+    // aborted the active read. Release the Playwright-held request at that
+    // boundary instead of keeping an old-document interception alive through
+    // the report application's bootstrap.
+    await page.waitForURL(reportUrl, { waitUntil: "commit" });
+  } finally {
+    releaseEditorRead();
+  }
+  await reportNavigation;
   await page.unroute(`**/api/v1/presentations/${presentationId}`);
   expect((await resumedReportSession).status()).toBe(200);
-  await expect(page).toHaveURL(
-    new RegExp(`/manager/panel/${presentationId}/report$`),
-  );
+  await expect(page).toHaveURL(reportUrl);
   await expectReportRouteReady(page, failures);
 
   await page.goBack();

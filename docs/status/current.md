@@ -92,8 +92,9 @@ Remaining work:
   dead-code analysis separately with an explicit false-positive policy;
 - continue semantic design-system/RTL convergence on mature surfaces as part of
   bounded product changes;
-- add focused component/API-state tests between domain unit tests and browser
-  end-to-end coverage;
+- a Vite-native Testing Library/MSW component-test layer now covers dashboard
+  pending, list failure/retry, filtering and create recovery/navigation; extend
+  it to high-risk editor/report/live API-state paths;
 - upgrade major framework/toolchain versions only in isolated compatibility
   changes after their runtime requirements are satisfied.
 
@@ -104,7 +105,7 @@ Remaining work:
    public module boundaries rather than deep cross-module imports.
 3. Remove duplicate ownership and compatibility adapters as soon as the
    migrated boundary has equivalent verification.
-4. Increase component/API-state verification before broad UI restructuring.
+4. Extend component/API-state verification from dashboard into editor, report and live recovery/cancellation paths before broad UI restructuring.
 5. Keep performance, accessibility, Persian/RTL and cancellation behavior as
    completion criteria for each slice.
 
@@ -127,6 +128,8 @@ npm run lint
 npm run typecheck
 npm run architecture:check
 npm run test:unit
+npm run test:component:typecheck
+npm run test:component
 npm run build
 npm run test:e2e
 ```
