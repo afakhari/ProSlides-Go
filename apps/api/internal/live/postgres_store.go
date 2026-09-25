@@ -216,6 +216,14 @@ func (s *PostgresStore) ApplyAction(c context.Context, session, host, request st
 	if out.StateVersion != expected {
 		return out, false, ErrConflict
 	}
+	switch action {
+	case "start", "present_item", "close_activity", "reveal_activity", "show_overall_ranking", "end":
+	default:
+		return out, false, ErrInvalid
+	}
+	if !CanApplyAction(out.State, out.ActivityPhase, action) {
+		return out, false, ErrInvalidTransition
+	}
 
 	to := out.State
 	active := any(out.ActiveItemID)
@@ -225,9 +233,6 @@ func (s *PostgresStore) ApplyAction(c context.Context, session, host, request st
 
 	switch action {
 	case "start":
-		if out.State != Draft || !CanTransition(out.State, Lobby) {
-			return out, false, ErrInvalidTransition
-		}
 		to = Lobby
 		active = nil
 		phase = nil
@@ -235,9 +240,8 @@ func (s *PostgresStore) ApplyAction(c context.Context, session, host, request st
 		ends = nil
 
 	case "present_item":
-		if item == "" || (out.State != Lobby && out.State != Presenting) ||
-			(out.ActivityPhase != nil && *out.ActivityPhase == ActivityAccepting) {
-			return out, false, ErrInvalidTransition
+		if item == "" {
+			return out, false, ErrInvalid
 		}
 		var kind string
 		var content json.RawMessage
@@ -273,46 +277,26 @@ func (s *PostgresStore) ApplyAction(c context.Context, session, host, request st
 		}
 
 	case "close_activity":
-		if out.State != Presenting || out.ActiveItemID == nil || out.ActivityPhase == nil || *out.ActivityPhase != ActivityAccepting {
-			return out, false, ErrInvalidTransition
-		}
 		phase = ActivityClosed
 		stageView = StageItem
 		ends = nil
 
 	case "reveal_activity":
-		if out.State != Presenting || out.ActiveItemID == nil || out.ActivityPhase == nil || *out.ActivityPhase != ActivityClosed {
-			return out, false, ErrInvalidTransition
-		}
 		phase = ActivityRevealed
 		stageView = StageItem
 		ends = nil
 
 	case "show_overall_ranking":
-		if out.State != Presenting || out.ActiveItemID == nil || out.ActivityPhase == nil || *out.ActivityPhase != ActivityRevealed {
-			return out, false, ErrInvalidTransition
-		}
 		stageView = StageOverallRanking
 		ends = nil
 
 	case "end":
-		if (out.State != Lobby && out.State != Presenting) ||
-			(out.ActivityPhase != nil && *out.ActivityPhase == ActivityAccepting) ||
-			!CanTransition(out.State, Ended) {
-			return out, false, ErrInvalidTransition
-		}
 		to = Ended
 		active = nil
 		phase = nil
 		stageView = StageItem
 		ends = nil
 
-	default:
-		return out, false, ErrInvalid
-	}
-
-	if to == Presenting && !CanTransition(out.State, Presenting) && out.State != Presenting {
-		return out, false, ErrInvalidTransition
 	}
 
 	e = scanSession(tx.QueryRow(c, `UPDATE live_sessions
