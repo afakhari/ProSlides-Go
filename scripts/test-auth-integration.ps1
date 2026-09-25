@@ -305,8 +305,12 @@ try {
   & docker @composeArgs exec -T postgres psql -U proslides -d proslides -v ON_ERROR_STOP=1 -c $expireSQL | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Could not expire the live question integration fixture" }
   $expiredSnapshot = (Invoke-API -Method GET -Path "/api/v1/live/sessions/$($liveSession.id)/snapshot" -Client $participantClient -ExpectedStatus 200).Content | ConvertFrom-Json
-  if ($expiredSnapshot.session.state -ne "question_closed" -or $expiredSnapshot.session.ends_at -ne $null -or $expiredSnapshot.question_stats.response_count -ne 1) { throw "Server deadline did not durably close the question with recoverable stats" }
-  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = 4; action = "show_leaderboard" } | ConvertTo-Json -Compress) -ExpectedStatus 201 | Out-Null
+  if ($expiredSnapshot.session.state -ne "presenting" -or $expiredSnapshot.session.activity_phase -ne "closed" -or $expiredSnapshot.session.ends_at -ne $null) { throw "Server deadline did not durably close the Activity" }
+  if ($expiredSnapshot.PSObject.Properties.Name -contains "activity_result" -or $expiredSnapshot.PSObject.Properties.Name -contains "personal_activity_result") { throw "Participant snapshot disclosed Activity result before reveal" }
+  $revealedAfterDeadline = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = $expiredSnapshot.session.state_version; action = "reveal_activity" } | ConvertTo-Json -Compress) -ExpectedStatus 201
+  $revealedAfterDeadlinePayload = $revealedAfterDeadline.Content | ConvertFrom-Json
+  $rankedAfterDeadline = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = $revealedAfterDeadlinePayload.state_version; action = "show_overall_ranking" } | ConvertTo-Json -Compress) -ExpectedStatus 201
+  $rankedAfterDeadlinePayload = $rankedAfterDeadline.Content | ConvertFrom-Json
 
   $eventRequest = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, "$apiBaseUrl/api/v1/live/sessions/$($liveSession.id)/events")
   $eventResponse = $participantClient.SendAsync($eventRequest, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
