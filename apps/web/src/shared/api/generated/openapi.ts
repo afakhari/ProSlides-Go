@@ -461,7 +461,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit one idempotent answer while the question is open. */
+        /** Submit one idempotent response while the active Choice Activity is accepting. */
         post: operations["submitLiveAnswer"];
         delete?: never;
         options?: never;
@@ -549,7 +549,7 @@ export interface paths {
         };
         /**
          * Get an authoritative role-scoped session snapshot and SSE recovery cursor.
-         * @description Clients apply this snapshot first, then connect to events using last_event_id as Last-Event-ID. Participants receive only public session state, their own participant record and score, aggregate participant count, and the active slide. Managers receive session state and aggregate count; roster and leaderboard rows are available only from the paginated manager endpoint.
+         * @description Clients apply this snapshot first, then connect to events using last_event_id as Last-Event-ID. Participants receive only public session state, their own participant record and score, aggregate participant count, and the active Item. Correctness metadata is hidden until the Activity reaches the revealed phase. Managers receive Session state and aggregate count; full ranking rows are available only from the paginated manager endpoint.
          */
         get: operations["getLiveSnapshot"];
         put?: never;
@@ -568,7 +568,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List a live session roster or leaderboard page as the manager.
+         * List a live session roster or cumulative ranking page as the manager.
          * @description Manager-only keyset pagination. joined orders by joined_at ascending then participant id; score orders by score descending, joined_at ascending, then participant id. Cursors are opaque and bound to the selected order.
          */
         get: operations["listLiveRoster"];
@@ -1975,7 +1975,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, answer.stats, and leaderboard.updated. answer.stats is emitted once when a question closes and leaderboard.updated is emitted when the leaderboard is shown; individual answers and complete leaderboard rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
+            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes and ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2018,7 +2018,7 @@ export interface operations {
                     "application/json": components["schemas"]["AnswerResult"];
                 };
             };
-            /** @description Answer accepted and scored. */
+            /** @description Response accepted; score_delta is zero for unscored Activities. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -2029,7 +2029,7 @@ export interface operations {
             };
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
-            /** @description Question is not open */
+            /** @description The Activity is not accepting responses, has expired, the item changed, or the request conflicts with the current Session. */
             409: {
                 headers: {
                     [name: string]: unknown;
