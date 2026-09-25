@@ -90,7 +90,7 @@ export default function QuestionOptionsEditor({
           </h3>
           <p className="mt-1 text-xs leading-5 text-content-muted">
             {evaluationMode === "none"
-              ? "این Activity پاسخ صحیح ندارد و فقط توزیع انتخاب‌ها را ثبت می‌کند."
+              ? "این فعالیت پاسخ صحیح ندارد و فقط توزیع انتخاب‌ها را ثبت می‌کند."
               : questionType === "single"
                 ? "دقیقاً یک پاسخ صحیح انتخاب کنید."
                 : "یک یا چند پاسخ صحیح انتخاب کنید."}
