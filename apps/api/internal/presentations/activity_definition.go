@@ -71,11 +71,6 @@ type ActivityDefinition struct {
 	Results       ActivityResultPolicy   `json:"results"`
 }
 
-// legacyQuestionDefinition is intentionally confined to the migration boundary.
-// Authored Choice Activities are persisted in ActivityDefinition form; this
-// shape remains only for legacy request compatibility and the pre-V2.2 live
-// snapshot projection.
-
 func validateActivityDefinition(value ActivityDefinition) error {
 	if value.SchemaVersion != ActivitySchemaVersion1 || value.ActivityKind != ActivityKindChoice {
 		return errInvalidSlideDefinition
