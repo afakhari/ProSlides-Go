@@ -5,61 +5,10 @@ import (
 	"testing"
 )
 
-func TestNormalizeLegacyQuestionToChoiceActivity(t *testing.T) {
-	legacy := json.RawMessage(`{
-		"title":"Geography",
-		"text":"Capital?",
-		"question_type":"single",
-		"question_time":30,
-		"min_point":0,
-		"max_point":100,
-		"image_url":"",
-		"faster_answers_more_points":true,
-		"partial_scoring":false,
-		"show_leaderboard_after":true,
-		"options":[
-			{"id":"a","text":"Tehran","is_correct":true,"image_url":"","order":1},
-			{"id":"b","text":"Shiraz","is_correct":false,"image_url":"","order":2}
-		]
-	}`)
-
-	kind, normalized, err := normalizeSlideDefinition("question", legacy)
-	if err != nil {
-		t.Fatalf("normalize legacy question: %v", err)
-	}
-	if kind != ItemKindActivity {
-		t.Fatalf("kind = %q, want %q", kind, ItemKindActivity)
-	}
-
-	var activity ActivityDefinition
-	if err := json.Unmarshal(normalized, &activity); err != nil {
-		t.Fatalf("decode activity: %v", err)
-	}
-	if activity.SchemaVersion != 1 || activity.ActivityKind != ActivityKindChoice {
-		t.Fatalf("unexpected activity identity: %#v", activity)
-	}
-	if activity.Response.Selection != ChoiceSelectionSingle {
-		t.Fatalf("selection = %q", activity.Response.Selection)
-	}
-	if activity.Evaluation.Mode != EvaluationModeCorrectness ||
-		len(activity.Evaluation.CorrectOptionIDs) != 1 ||
-		activity.Evaluation.CorrectOptionIDs[0] != "a" {
-		t.Fatalf("unexpected evaluation: %#v", activity.Evaluation)
-	}
-	if activity.Scoring.Mode != ScoringModePoints ||
-		!activity.Scoring.SpeedBonus ||
-		activity.Scoring.PartialCredit {
-		t.Fatalf("unexpected scoring: %#v", activity.Scoring)
-	}
-	if !activity.Results.ShowOverallLeaderboardAfter {
-		t.Fatal("legacy show_leaderboard_after was not preserved")
-	}
-}
-
-func TestQuestionDraftDefinitionIsRejected(t *testing.T) {
-	raw := json.RawMessage(`{"show_leaderboard_after":false}`)
-	if _, _, err := normalizeSlideDefinition("question_draft", raw); err == nil {
-		t.Fatal("question_draft compatibility should be rejected")
+func TestLegacyQuestionDefinitionIsRejected(t *testing.T) {
+	raw := json.RawMessage(`{"text":"Choose"}`)
+	if _, _, err := normalizeSlideDefinition("question", raw); err == nil {
+		t.Fatal("legacy question definition should be rejected")
 	}
 }
 
