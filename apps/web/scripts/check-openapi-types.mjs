@@ -9,5 +9,12 @@ const actual = await readFile(generated, "utf8");
 
 if (actual !== expected) {
   console.error("Generated OpenAPI types are stale. Run `npm run api:types` and commit the result.");
+  for (const marker of ["CreateSlideRequest:", "Slide: {"]) {
+    const index = expected.indexOf(marker);
+    if (index >= 0) {
+      console.error(`--- expected excerpt: ${marker} ---`);
+      console.error(expected.slice(index, index + 7000));
+    }
+  }
   process.exitCode = 1;
 }
