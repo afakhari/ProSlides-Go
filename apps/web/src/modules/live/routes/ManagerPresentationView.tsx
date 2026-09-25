@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Waiting from "../ui/WaitingScreen.tsx";
@@ -7,6 +8,7 @@ import type { LegacyContentSlide, LegacyLiveUser } from "../model/serverData.ts"
 import { ManagerContentSlide } from "../manager/ui/ManagerContentSlide.tsx";
 import { ManagerFinalLeaderboard } from "../manager/ui/ManagerFinalLeaderboard.tsx";
 import { ManagerJoinPage } from "../manager/ui/ManagerJoinPage.tsx";
+import { ManagerBackstageDrawer } from "../manager/ui/ManagerBackstageDrawer.tsx";
 import { ManagerLeaderBoard } from "../manager/ui/ManagerLeaderBoard.tsx";
 import { ManagerPickAnswerQuestion } from "../manager/ui/ManagerPickAnswerQuestion.tsx";
 
@@ -52,30 +54,39 @@ export function ManagerPresentationView({
     onEndGame: handleEndGame,
   };
 
+  const withBackstage = (content: ReactNode) => (
+    <>
+      {content}
+      {view !== "ManagerFinalLeaderboard" ? (
+        <ManagerBackstageDrawer quiz={quiz} currentSlide={currentSlide} />
+      ) : null}
+    </>
+  );
+
   switch (view) {
     case "ManagerJoinPage":
-      return (
+      return withBackstage(
         <ManagerJoinPage
           roomId={roomId}
           onNext={handleNext}
           quiz={quiz}
-        />
+        />,
       );
     case "ManagerPickAnswerQuestion":
-      return (
+      return withBackstage(
         <ManagerPickAnswerQuestion
           {...stageProps}
           isRemoteReady={isRemoteReady}
-        />
+        />,
       );
     case "ManagerLeaderBoard":
-      return <ManagerLeaderBoard {...stageProps} />;
+      return withBackstage(<ManagerLeaderBoard {...stageProps} />);
     case "ManagerContentSlide":
-      return (
+      return withBackstage(
         <ManagerContentSlide
           {...stageProps}
           content={currentContent}
-        />
+        />,
       );
     case "ManagerFinalLeaderboard":
       return (

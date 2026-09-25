@@ -38,7 +38,9 @@ export function ManagerFinalLeaderboard({
   quiz,
   onExit,
 }: ManagerFinalLeaderboardProps) {
-  const { isConnected } = useLiveSession();
+  const { isConnected, snapshot } = useLiveSession();
+  const hasScoring =
+    snapshot?.role === "manager" ? snapshot.has_scoring : false;
   const players = useMemo(
     () =>
       [...leaderboardData]
@@ -92,7 +94,14 @@ export function ManagerFinalLeaderboard({
           برترین‌های این رقابت
         </Motion.h1>
 
-        {players.length > 0 ? (
+        {!hasScoring ? (
+          <div className="mt-10 max-w-xl rounded-3xl border border-white/15 bg-black/20 px-8 py-10 text-white/75 backdrop-blur">
+            <h2 className="text-2xl font-black text-white">جلسه پایان یافت</h2>
+            <p className="mt-3 leading-7">
+              این جلسه فعالیت امتیازی نداشت؛ بنابراین رتبه‌بندی نهایی یا سکو نمایش داده نمی‌شود.
+            </p>
+          </div>
+        ) : players.length > 0 ? (
           <div className="mt-10 flex w-full flex-col items-stretch justify-center gap-4 md:flex-row md:items-end">
             {players.map((player, index) => {
               const style = PODIUM[index];
