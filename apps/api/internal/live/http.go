@@ -124,14 +124,13 @@ func (h *HTTP) action(w http.ResponseWriter, r *http.Request) {
 		RequestID            string `json:"request_id"`
 		ExpectedStateVersion int64  `json:"expected_state_version"`
 		Action               string `json:"action"`
-		SlideID              string `json:"slide_id"`
-		DurationSeconds      int    `json:"duration_seconds"`
+		ItemID               string `json:"item_id"`
 	}
 	if decodeJSON(w, r, &b) != nil {
 		returnError(w, ErrInvalid)
 		return
 	}
-	x, dup, e := h.service.Action(r.Context(), r.PathValue("sessionId"), u.ID, b.RequestID, b.ExpectedStateVersion, b.Action, b.SlideID, b.DurationSeconds)
+	x, dup, e := h.service.Action(r.Context(), r.PathValue("sessionId"), u.ID, b.RequestID, b.ExpectedStateVersion, b.Action, b.ItemID)
 	if e != nil {
 		returnError(w, e)
 		return
@@ -150,15 +149,15 @@ func (h *HTTP) answer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		RequestID       string `json:"request_id"`
-		QuestionSlideID string `json:"question_slide_id"`
-		Selected        []int  `json:"selected_option_indexes"`
+		RequestID      string `json:"request_id"`
+		ActivityItemID string `json:"activity_item_id"`
+		Selected       []int  `json:"selected_option_indexes"`
 	}
 	if decodeJSON(w, r, &b) != nil {
 		returnError(w, ErrInvalid)
 		return
 	}
-	x, e := h.service.Submit(r.Context(), r.PathValue("sessionId"), token.Value, b.RequestID, b.QuestionSlideID, b.Selected)
+	x, e := h.service.Submit(r.Context(), r.PathValue("sessionId"), token.Value, b.RequestID, b.ActivityItemID, b.Selected)
 	if e != nil {
 		if !errors.Is(e, ErrInvalid) && !errors.Is(e, ErrUnauthorized) && !errors.Is(e, ErrConflict) && !errors.Is(e, ErrInvalidTransition) {
 			slog.Error("live answer command failed", "session_id", r.PathValue("sessionId"), "request_id", b.RequestID, "error", e)
