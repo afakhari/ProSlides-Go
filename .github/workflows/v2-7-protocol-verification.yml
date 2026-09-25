@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - test/v2.7-canonical-live-verification
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
