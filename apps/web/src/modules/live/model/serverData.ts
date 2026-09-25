@@ -59,6 +59,7 @@ export type LegacyLiveSlide = LegacyQuestionSlide | LegacyContentSlide;
 
 export interface LegacyQuestionResult {
   question_id?: string | number | null;
+  response_count?: number;
   optionsResult?: Array<{
     option_id: string | number;
     number_of_submits?: number;
