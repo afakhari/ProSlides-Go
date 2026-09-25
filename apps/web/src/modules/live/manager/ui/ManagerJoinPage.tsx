@@ -49,12 +49,14 @@ export function ManagerJoinPage({
         const options = Array.isArray(slide.options) ? slide.options : [];
         const correct = options.filter((option) => option.answer === true).length;
         const title = String(slide.question_text ?? "").trim();
+        const requiresCorrectness = slide.has_correct_answer !== false;
 
         return (
           !title ||
           options.length < 2 ||
-          correct < 1 ||
-          (slide.question_type === "single" && correct !== 1)
+          (requiresCorrectness &&
+            (correct < 1 ||
+              (slide.question_type === "single" && correct !== 1)))
         );
       }),
     [quiz.slides],
@@ -79,7 +81,7 @@ export function ManagerJoinPage({
     }
     if (invalidQuestion) {
       setStartError(
-        "پیش از اجرا، هر سؤال باید متن، حداقل دو گزینه و پاسخ صحیح معتبر داشته باشد.",
+        "پیش از اجرا، هر فعالیت انتخابی باید متن و حداقل دو گزینه داشته باشد؛ فعالیت‌های ارزیابی‌شونده نیز به پاسخ صحیح معتبر نیاز دارند.",
       );
       return;
     }
