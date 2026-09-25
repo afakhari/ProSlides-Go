@@ -39,7 +39,7 @@ const playerSeenKey = (roomId: RoomId) =>
   `presentation_player_seen_active_v1:${String(roomId || "unknown")}`;
 
 const playerLastActiveKey = (roomId: RoomId) =>
-  `presentation_player_last_active_v1:${String(roomId || "unknown")}`;
+  `presentation_player_last_active_v2:${String(roomId || "unknown")}`;
 
 const sessionStorageOrNull = (): Storage | null => {
   try {
@@ -62,11 +62,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isQuestionPayload = (value: unknown): value is LegacyQuestionSlide =>
   isRecord(value) &&
-  (value.slide_type === 1 || value.question_id != null);
+  value.item_kind === "activity" &&
+  value.question_id != null;
 
 const isContentPayload = (value: unknown): value is LegacyContentSlide =>
   isRecord(value) &&
-  value.slide_type !== 1 &&
+  value.item_kind === "content" &&
   (
     String(value.title ?? "").trim().length > 0 ||
     String(value.content_text ?? "").trim().length > 0 ||
@@ -146,7 +147,7 @@ export const isQuestionSlide = (
   slide: unknown,
 ): slide is LegacyQuestionSlide =>
   isRecord(slide) &&
-  (slide.slide_type === 1 || slide.question_id != null);
+  slide.item_kind === "activity";
 
 export const hasContentPayload = (slide: unknown): boolean =>
   isRecord(slide) &&
@@ -156,18 +157,14 @@ export const hasContentPayload = (slide: unknown): boolean =>
     String(slide.content_image_url ?? "").trim().length > 0
   );
 
-export const isLeaderboardSlide = (slide: unknown): boolean => {
-  if (!isRecord(slide)) return false;
-  if (slide.slide_type === 3) return true;
-  if (isQuestionSlide(slide)) return false;
-  return slide.slide_type === 2 && !hasContentPayload(slide);
-};
+export const isLeaderboardSlide = (slide: unknown): boolean =>
+  isRecord(slide) && slide.item_kind === "legacy-leaderboard";
 
 export const isContentSlide = (
   slide: unknown,
 ): slide is LegacyContentSlide =>
   isRecord(slide) &&
-  !isQuestionSlide(slide) &&
+  slide.item_kind === "content" &&
   hasContentPayload(slide);
 
 export type PresentationSlide = LegacyLiveSlide | null;
@@ -220,19 +217,6 @@ export const findLeaderboardSlideIndex = ({
   lastQuestionSlideIndex: number | null;
 }): number => {
   if (lastQuestionSlideIndex != null) {
-    const questionOrder = slides[lastQuestionSlideIndex]?.order ?? null;
-
-    if (questionOrder != null) {
-      const sameOrderIndex = slides.findIndex(
-        (slide, index) =>
-          index !== lastQuestionSlideIndex &&
-          !isQuestionSlide(slide) &&
-          isRecord(slide) &&
-          slide.order === questionOrder,
-      );
-      if (sameOrderIndex >= 0) return sameOrderIndex;
-    }
-
     const immediateIndex = lastQuestionSlideIndex + 1;
     if (isLeaderboardSlide(slides[immediateIndex])) {
       return immediateIndex;
