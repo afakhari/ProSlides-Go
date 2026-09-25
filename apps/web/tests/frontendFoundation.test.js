@@ -330,6 +330,24 @@ test("manager and player routes are explicit and reports use the typed query bou
 });
 
 
+test("audience Stage owns a read-only projection boundary", () => {
+  const route = source("src/modules/live/routes/StageRoute.tsx");
+  const hook = source("src/modules/live/stage/useStageProjection.ts");
+  const api = source("src/modules/live/api/liveApi.ts");
+  const router = source("src/app/router/router.tsx");
+
+  assert.match(router, /manager\/stage\/:roomId/);
+  assert.match(route, /useStageProjection/);
+  assert.doesNotMatch(route, /useLiveSession|useServerData|ManagerControls/);
+  assert.match(hook, /getLiveStageSnapshot/);
+  assert.match(hook, /streamLiveEvents/);
+  assert.doesNotMatch(
+    hook,
+    /getRosterPage|applyLiveAction|submitLiveAnswer|sendNavigation|sendEnd/,
+  );
+  assert.match(api, /\/stage/);
+});
+
 test("identity UI uses the typed module API instead of parsing transport responses", () => {
   const auth = source("src/modules/identity/routes/AuthRoute.tsx");
   const google = source("src/modules/identity/hooks/useGoogleIdentity.ts");

@@ -388,17 +388,29 @@ test("mobile participant entry uses the public quiz theme", async ({ page }) => 
 });
 
 
-test("manager and participant complete an Activity result and ranking lifecycle with reconnect", async ({ browser }) => {
-  test.setTimeout(120000);
+test("manager, audience Stage, and participant complete the live lifecycle with reconnect", async ({ browser }) => {
+  test.setTimeout(150000);
 
   const managerContext = await browser.newContext();
   const participantContext = await browser.newContext();
   const manager = await managerContext.newPage();
+  const stage = await managerContext.newPage();
   const participant = await participantContext.newPage();
   manager.setDefaultTimeout(15000);
+  stage.setDefaultTimeout(15000);
   participant.setDefaultTimeout(15000);
   const managerFailures = watchRuntime(manager);
+  const stageFailures = watchRuntime(stage);
   const participantFailures = watchRuntime(participant);
+  const forbiddenStageReads = [];
+  stage.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (
+      /\/api\/v1\/live\/sessions\/[^/]+\/(snapshot|roster)$/.test(path)
+    ) {
+      forbiddenStageReads.push(path);
+    }
+  });
 
   try {
     const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -474,10 +486,34 @@ test("manager and participant complete an Activity result and ranking lifecycle 
       };
     }, { accessCode, activityContent });
 
+    const managerSnapshotPromise = manager.waitForResponse(
+      (response) =>
+        /\/api\/v1\/live\/sessions\/[^/]+\/snapshot$/.test(
+          new URL(response.url()).pathname,
+        ) &&
+        response.request().method() === "GET" &&
+        response.status() === 200,
+    );
     await manager.goto(`/manager/presentation/${fixture.presentationId}`);
+    const managerSnapshot = await (await managerSnapshotPromise).json();
+    const sessionId = managerSnapshot.session.id;
+
     const startButton = manager.getByRole("button", { name: /شروع/ });
     await expect(startButton).toBeEnabled({ timeout: 15000 });
     await expectAccessible(manager, "manager live lobby");
+
+    await manager.getByRole("button", { name: "پشت‌صحنه" }).click();
+    await expect(
+      manager.getByRole("link", { name: "باز کردن Stage در پنجره جدید" }),
+    ).toHaveAttribute("href", `/manager/stage/${sessionId}`);
+    await manager.getByRole("button", { name: "بستن پشت‌صحنه" }).click();
+
+    await stage.goto(`/manager/stage/${sessionId}`);
+    await expect(
+      stage.getByRole("heading", { name: "چرخه کامل تست زنده" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(stage.getByText(fixture.accessCode, { exact: true })).toBeVisible();
+    await expectAccessible(stage, "audience Stage lobby");
 
     await participant.goto(`/${fixture.accessCode}`);
     await expect(participant.getByRole("heading", { name: "به کوئیز بپیوندید" })).toBeVisible();
@@ -485,6 +521,9 @@ test("manager and participant complete an Activity result and ranking lifecycle 
     await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
     await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    await expect(stage.getByText("۱ شرکت‌کننده", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
     await startButton.click();
     await expect(
@@ -493,6 +532,10 @@ test("manager and participant complete an Activity result and ranking lifecycle 
     await expect(
       manager.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
     ).toBeVisible({ timeout: 15000 });
+    await expect(
+      stage.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeHidden();
 
     const answerRequestIds = [];
     let failNextAnswer = true;
@@ -557,6 +600,17 @@ test("manager and participant complete an Activity result and ranking lifecycle 
     await expect(
       participant.getByText("امتیاز این فعالیت", { exact: true }),
     ).toBeVisible();
+    await expect(stage.getByText("نتیجه فعالیت", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(stage.getByText("۱ پاسخ ثبت‌شده", { exact: true })).toBeVisible();
+    await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeVisible();
+
+    await stage.reload();
+    await expect(stage.getByText("نتیجه فعالیت", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeVisible();
 
     await participant.reload();
     await expect(
@@ -576,6 +630,10 @@ test("manager and participant complete an Activity result and ranking lifecycle 
       timeout: 15000,
     });
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    await expect(
+      stage.getByRole("heading", { name: "جدول امتیازات" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(stage.getByText("شرکت‌کننده تست")).toBeVisible();
 
     await participant.reload();
     await expect(
@@ -596,8 +654,14 @@ test("manager and participant complete an Activity result and ranking lifecycle 
       participant.getByRole("heading", { name: "نتیجه نهایی شما" }),
     ).toBeVisible({ timeout: 15000 });
     await expect(participant.getByText("جلسه پایان یافت")).toBeVisible();
+    await expect(
+      stage.getByRole("heading", { name: "برترین‌های این رقابت" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(stage.getByText("شرکت‌کننده تست")).toBeVisible();
 
+    expect(forbiddenStageReads).toEqual([]);
     expect(managerFailures).toEqual([]);
+    expect(stageFailures).toEqual([]);
     expect(participantFailures).toEqual([]);
   } finally {
     await participantContext.close();
