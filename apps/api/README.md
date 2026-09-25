@@ -41,9 +41,9 @@ migration sequence. All identity, SMTP, Google, proxy, and runtime variables are
 [`docs/configuration.md`](../../docs/configuration.md).
 
 API contract changes begin in `openapi/openapi.yaml`. Before v2 work, read the
-repository root `AGENTS.md`, `docs/status/current.md`,
-`docs/v2-product-architecture.md` and the active slice in
-`docs/v2-development-plan.md`.
+repository root `AGENTS.md`, `../../docs/status/current.md`,
+`../../docs/v2-product-architecture.md` and the active slice in
+`../../docs/v2-development-plan.md`.
 
 ## Current implementation baseline
 
