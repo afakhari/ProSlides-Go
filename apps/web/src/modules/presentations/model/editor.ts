@@ -1,10 +1,7 @@
 export type QuestionType = "single" | "multiple";
 export type EvaluationMode = "none" | "correctness";
 export type ScoringMode = "none" | "points";
-export type EditorItemKind =
-  | "content"
-  | "activity"
-  | "legacy-leaderboard";
+export type EditorItemKind = "content" | "activity";
 
 export interface EditorOption {
   option_id: string;
