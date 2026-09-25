@@ -388,7 +388,7 @@ test("mobile participant entry uses the public quiz theme", async ({ page }) => 
 });
 
 
-test("manager and participant complete a live question lifecycle with reconnect", async ({ browser }) => {
+test("manager and participant complete an Activity result and ranking lifecycle with reconnect", async ({ browser }) => {
   test.setTimeout(120000);
 
   const managerContext = await browser.newContext();
@@ -540,6 +540,25 @@ test("manager and participant complete a live question lifecycle with reconnect"
     expect(answerRequestIds).toHaveLength(2);
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
     await participant.unroute("**/api/v1/live/sessions/*/answers");
+
+    await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
+    await expect(
+      participant.getByText("نتیجه فعالیت", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByText("۱ پاسخ ثبت‌شده", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      participant.getByText("پاسخ صحیح", { exact: true }),
+    ).toBeVisible();
+
+    await participant.reload();
+    await expect(
+      participant.getByText("نتیجه فعالیت", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByText("۱ پاسخ ثبت‌شده", { exact: true }),
+    ).toBeVisible();
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
     await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
