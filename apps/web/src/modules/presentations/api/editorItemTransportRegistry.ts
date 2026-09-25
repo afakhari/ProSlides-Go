@@ -195,23 +195,10 @@ const contentTransport: EditorTransportRegistration = {
   }),
 };
 
-const legacyLeaderboardTransport: EditorTransportRegistration = {
-  key: "legacy-leaderboard",
-  matchesTransport: ({ slide }) => slide.kind === "leaderboard",
-  fromTransport: ({ slide, content }) => ({
-    ...commonEditorSlide(slide),
-    item_kind: "legacy-leaderboard",
-    question: null,
-    text_activity: null,
-    title: stringValue(content.title, "Leaderboard"),
-  }),
-};
-
 const transportRegistry: readonly EditorTransportRegistration[] = [
   choiceTransport,
   textTransport,
   contentTransport,
-  legacyLeaderboardTransport,
 ];
 
 export const editorSlideFromTransport = (
@@ -371,14 +358,6 @@ export const editorSlideToTransportDefinition = (
         text: slide.content_text || "",
         image_url: slide.content_image_url || "",
       },
-    };
-  }
-
-  if (registration.key === "legacy-leaderboard") {
-    return {
-      position,
-      kind: "leaderboard",
-      content: { title: slide.title || "Leaderboard" },
     };
   }
 
