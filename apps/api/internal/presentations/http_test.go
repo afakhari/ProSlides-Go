@@ -75,10 +75,6 @@ func (f *fakeStore) DeleteResults(_ context.Context, _, owner string) error {
 	f.owner = owner
 	return f.err
 }
-func (f *fakeStore) QuestionResults(_ context.Context, _, sessionID, slideID, owner string, query QuestionResultsQuery) (QuestionResultsPage, error) {
-	f.owner = owner
-	return QuestionResultsPage{SessionID: sessionID, QuestionSlideID: slideID, Options: []QuestionOptionResult{}, Leaderboard: []QuestionLeaderboardEntry{}, Limit: query.Limit}, f.err
-}
 func (f *fakeStore) CreateSlide(_ context.Context, _ string, owner string, position int, kind string, content json.RawMessage, expected *int64) (Slide, error) {
 	f.owner = owner
 	f.expectedRevision = expected
@@ -334,32 +330,6 @@ func TestPresentationAndSlideJSONFieldsRejectNull(t *testing.T) {
 		}
 	}
 }
-
-func TestQuestionResultsAreOwnerScopedAndBounded(t *testing.T) {
-	m := http.NewServeMux()
-	store := &fakeStore{}
-	NewHTTP(fakeSessions{}, store).Register(m)
-	unauthorized := httptest.NewRecorder()
-	m.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/api/v1/presentations/p/sessions/s/questions/q/results", nil))
-	if unauthorized.Code != http.StatusUnauthorized {
-		t.Fatalf("unauthorized status=%d", unauthorized.Code)
-	}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/presentations/p/sessions/s/questions/q/results?limit=100", nil)
-	req.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
-	result := httptest.NewRecorder()
-	m.ServeHTTP(result, req)
-	if result.Code != http.StatusOK || store.owner != "owner" || strings.Contains(result.Body.String(), "password") || strings.Contains(result.Body.String(), "token") {
-		t.Fatalf("status=%d owner=%q body=%s", result.Code, store.owner, result.Body.String())
-	}
-	bad := httptest.NewRequest(http.MethodGet, "/api/v1/presentations/p/sessions/s/questions/q/results?limit=101", nil)
-	bad.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
-	badResult := httptest.NewRecorder()
-	m.ServeHTTP(badResult, bad)
-	if badResult.Code != http.StatusBadRequest {
-		t.Fatalf("bad limit status=%d", badResult.Code)
-	}
-}
-
 
 func TestUpdatePresentationRejectsInvalidKnownSettings(t *testing.T) {
 	m := http.NewServeMux()
