@@ -594,7 +594,8 @@ export class LiveRuntime {
       this.storeSnapshot(next);
       if (next.role === "manager") {
         await this.loadRoster(
-          ["leaderboard", "ended"].includes(next.session.state)
+          next.session.stage_view === "overall_ranking" ||
+            next.session.state === "ended"
             ? "score"
             : "joined",
           false,
