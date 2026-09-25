@@ -344,7 +344,11 @@ function InviteAudienceUI({
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             maxLength={12}
-            aria-describedby="access-code-help access-code-error"
+            aria-describedby={
+              inputError
+                ? "access-code-help access-code-error"
+                : "access-code-help"
+            }
             aria-invalid={Boolean(inputError)}
             dir="ltr"
           />
