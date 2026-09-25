@@ -331,6 +331,7 @@ paths:
         '200':
           description: Session report overview and its frozen Activities.
           content: { application/json: { schema: { $ref: '#/components/schemas/SessionReport' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/presentations/{presentationId}/sessions/{sessionId}/activities/{activityItemId}/results:
