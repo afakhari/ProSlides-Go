@@ -195,6 +195,82 @@ func TestPollNormalizesAsCanonicalUnscoredChoice(t *testing.T) {
 	}
 }
 
+func TestWordCloudTextActivityNormalizesAsCanonicalText(t *testing.T) {
+	activity := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindText,
+		Prompt: ActivityPrompt{
+			Title: "نظر جمع",
+			Text:  "این جلسه را با چه واژه‌هایی توصیف می‌کنید؟",
+		},
+		Response: ActivityResponsePolicy{
+			MaxLength: 80,
+			MaxWords:  3,
+		},
+		Evaluation: ActivityEvaluationPolicy{Mode: EvaluationModeNone},
+		Scoring:    ActivityScoringPolicy{Mode: ScoringModeNone},
+		Timing:     ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{
+			Aggregation: TextAggregationWordFrequency,
+		},
+	}
+	raw, err := json.Marshal(activity)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kind, normalized, err := normalizeSlideDefinition(ItemKindActivity, raw)
+	if err != nil {
+		t.Fatalf("normalize Word Cloud: %v", err)
+	}
+	if kind != ItemKindActivity {
+		t.Fatalf("kind = %q, want %q", kind, ItemKindActivity)
+	}
+	decoded, err := DecodeActivityDefinition(normalized)
+	if err != nil {
+		t.Fatalf("decode normalized Word Cloud: %v", err)
+	}
+	if decoded.ActivityKind != ActivityKindText ||
+		decoded.Response.MaxLength != 80 ||
+		decoded.Response.MaxWords != 3 ||
+		decoded.Results.Aggregation != TextAggregationWordFrequency ||
+		decoded.Evaluation.Mode != EvaluationModeNone ||
+		decoded.Scoring.Mode != ScoringModeNone ||
+		decoded.Results.ShowOverallLeaderboardAfter {
+		t.Fatalf("Word Cloud policy changed during normalization: %#v", decoded)
+	}
+}
+
+func TestTextActivityRejectsScoringAndLeaderboardPolicy(t *testing.T) {
+	base := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindText,
+		Prompt:        ActivityPrompt{Text: "یک واژه بنویسید"},
+		Response: ActivityResponsePolicy{
+			MaxLength: 80,
+			MaxWords:  3,
+		},
+		Evaluation: ActivityEvaluationPolicy{Mode: EvaluationModeNone},
+		Scoring:    ActivityScoringPolicy{Mode: ScoringModeNone},
+		Timing:     ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{
+			Aggregation: TextAggregationWordFrequency,
+		},
+	}
+
+	scored := base
+	scored.Scoring = ActivityScoringPolicy{Mode: ScoringModePoints, MaxPoints: 100}
+	if err := validateActivityDefinition(scored); err == nil {
+		t.Fatal("Text Activity unexpectedly accepted scoring")
+	}
+
+	ranked := base
+	ranked.Results.ShowOverallLeaderboardAfter = true
+	if err := validateActivityDefinition(ranked); err == nil {
+		t.Fatal("Text Activity unexpectedly accepted overall leaderboard")
+	}
+}
+
 func TestUnscoredChoiceCannotRequestOverallLeaderboard(t *testing.T) {
 	activity := ActivityDefinition{
 		SchemaVersion: 1,
