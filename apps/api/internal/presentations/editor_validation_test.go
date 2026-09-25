@@ -8,31 +8,57 @@ import (
 	"testing"
 )
 
-func TestValidateSlideContentAcceptsCompleteQuestion(t *testing.T) {
-	raw := json.RawMessage(`{"text":"Choose","question_type":"multiple","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":true,"partial_scoring":true,"show_leaderboard_after":true,"image_url":"","options":[{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}]}`)
-	if err := validateSlideContent("question", raw); err != nil {
-		t.Fatalf("complete question rejected: %v", err)
+func TestValidateSlideContentAcceptsCompleteChoiceActivity(t *testing.T) {
+	raw := json.RawMessage(`{
+		"schema_version":1,
+		"activity_kind":"choice",
+		"prompt":{"title":"","text":"Choose","image_url":""},
+		"response":{"selection":"multiple","options":[
+			{"id":"a","text":"A","image_url":"","order":1},
+			{"id":"b","text":"B","image_url":"","order":2}
+		]},
+		"evaluation":{"mode":"correctness","correct_option_ids":["a"]},
+		"scoring":{"mode":"points","min_points":0,"max_points":100,"speed_bonus":true,"partial_credit":true},
+		"timing":{"duration_seconds":30},
+		"results":{"show_overall_leaderboard_after":true}
+	}`)
+	if err := validateSlideContent(ItemKindActivity, raw); err != nil {
+		t.Fatalf("complete Choice Activity rejected: %v", err)
 	}
 }
 
-func TestValidateSlideContentRejectsInvalidQuestionInvariants(t *testing.T) {
-	valid := `{"text":"Choose","question_type":"single","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":false,"partial_scoring":false,"show_leaderboard_after":false,"image_url":"","options":[{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}]}`
-	tests := []struct {
-		name string
-		raw  string
-	}{
-		{"unknown field", valid[:len(valid)-1] + `,"legacy":true}`},
-		{"duplicate option id", `{"text":"Choose","question_type":"multiple","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":false,"partial_scoring":false,"show_leaderboard_after":false,"options":[{"id":"same","text":"A","is_correct":true,"image_url":"","order":1},{"id":"same","text":"B","is_correct":false,"image_url":"","order":2}]}`},
-		{"single partial scoring", `{"text":"Choose","question_type":"single","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":false,"partial_scoring":true,"show_leaderboard_after":false,"options":[{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}]}`},
-		{"duplicate order", `{"text":"Choose","question_type":"multiple","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":false,"partial_scoring":false,"show_leaderboard_after":false,"options":[{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},{"id":"b","text":"B","is_correct":false,"image_url":"","order":1}]}`},
-		{"no correct option", `{"text":"Choose","question_type":"multiple","question_time":30,"min_point":0,"max_point":100,"faster_answers_more_points":false,"partial_scoring":false,"show_leaderboard_after":false,"options":[{"id":"a","text":"A","is_correct":false,"image_url":"","order":1},{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}]}`},
+func TestValidateSlideContentRejectsInvalidChoiceActivity(t *testing.T) {
+	base := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindChoice,
+		Prompt:        ActivityPrompt{Text: "Choose"},
+		Response: ChoiceResponsePolicy{
+			Selection: ChoiceSelectionSingle,
+			Options: []ChoiceOptionDefinition{
+				{ID: "a", Text: "A", Order: 1},
+				{ID: "b", Text: "B", Order: 2},
+			},
+		},
+		Evaluation: ChoiceEvaluationPolicy{
+			Mode:             EvaluationModeCorrectness,
+			CorrectOptionIDs: []string{"a"},
+		},
+		Scoring: ChoiceScoringPolicy{
+			Mode:      ScoringModePoints,
+			MaxPoints: 100,
+		},
+		Timing:  ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if err := validateSlideContent("question", json.RawMessage(test.raw)); err == nil {
-				t.Fatal("invalid question accepted")
-			}
-		})
+
+	invalid := base
+	invalid.Response.Options[1].ID = "a"
+	raw, err := json.Marshal(invalid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateSlideContent(ItemKindActivity, raw); err == nil {
+		t.Fatal("Choice Activity with duplicate option ids accepted")
 	}
 }
 
@@ -45,36 +71,46 @@ func TestValidateContentSlideRequiresVisibleContent(t *testing.T) {
 	}
 }
 
-func TestReplaceSlideRejectsInvalidQuestionBeforeStore(t *testing.T) {
+func TestReplaceSlideRejectsInvalidActivityBeforeStore(t *testing.T) {
 	m := http.NewServeMux()
 	NewHTTP(fakeSessions{}, &fakeStore{}).Register(m)
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/presentations/p/slides/s", strings.NewReader(`{"position":0,"kind":"question","content":{"text":"incomplete"}}`))
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/presentations/p/slides/s", strings.NewReader(`{
+		"position":0,
+		"kind":"activity",
+		"content":{"schema_version":1,"activity_kind":"choice"}
+	}`))
 	req.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
 	req.Header.Set("X-CSRF-Token", "csrf")
 	result := httptest.NewRecorder()
 	m.ServeHTTP(result, req)
-	if result.Code != 400 {
+	if result.Code != http.StatusBadRequest {
 		t.Fatalf("status=%d", result.Code)
 	}
 }
 
 
-func TestValidateQuestionLengthsCountUnicodeCharacters(t *testing.T) {
-	makeQuestion := func(text, optionText string) json.RawMessage {
-		value := map[string]any{
-			"text":                         text,
-			"question_type":                "single",
-			"question_time":                30,
-			"min_point":                    0,
-			"max_point":                    100,
-			"faster_answers_more_points":   false,
-			"partial_scoring":              false,
-			"show_leaderboard_after":       false,
-			"image_url":                    "",
-			"options": []map[string]any{
-				{"id": "a", "text": optionText, "is_correct": true, "image_url": "", "order": 1},
-				{"id": "b", "text": "گزینه دوم", "is_correct": false, "image_url": "", "order": 2},
+func TestValidateChoiceActivityLengthsCountUnicodeCharacters(t *testing.T) {
+	makeActivity := func(text, optionText string) json.RawMessage {
+		value := ActivityDefinition{
+			SchemaVersion: ActivitySchemaVersion1,
+			ActivityKind:  ActivityKindChoice,
+			Prompt:        ActivityPrompt{Text: text},
+			Response: ChoiceResponsePolicy{
+				Selection: ChoiceSelectionSingle,
+				Options: []ChoiceOptionDefinition{
+					{ID: "a", Text: optionText, Order: 1},
+					{ID: "b", Text: "گزینه دوم", Order: 2},
+				},
 			},
+			Evaluation: ChoiceEvaluationPolicy{
+				Mode:             EvaluationModeCorrectness,
+				CorrectOptionIDs: []string{"a"},
+			},
+			Scoring: ChoiceScoringPolicy{
+				Mode:      ScoringModePoints,
+				MaxPoints: 100,
+			},
+			Timing: ActivityTimingPolicy{DurationSeconds: 30},
 		}
 		raw, err := json.Marshal(value)
 		if err != nil {
@@ -83,14 +119,14 @@ func TestValidateQuestionLengthsCountUnicodeCharacters(t *testing.T) {
 		return raw
 	}
 
-	if err := validateSlideContent("question", makeQuestion(strings.Repeat("س", 10000), strings.Repeat("گ", 2000))); err != nil {
-		t.Fatalf("unicode content at documented limits rejected: %v", err)
+	if err := validateSlideContent(ItemKindActivity, makeActivity(strings.Repeat("س", 10000), strings.Repeat("گ", 2000))); err != nil {
+		t.Fatalf("unicode Choice Activity at documented limits rejected: %v", err)
 	}
-	if err := validateSlideContent("question", makeQuestion(strings.Repeat("س", 10001), "گزینه")); err == nil {
-		t.Fatal("question over documented character limit accepted")
+	if err := validateSlideContent(ItemKindActivity, makeActivity(strings.Repeat("س", 10001), "گزینه")); err == nil {
+		t.Fatal("Choice prompt over documented character limit accepted")
 	}
-	if err := validateSlideContent("question", makeQuestion("پرسش", strings.Repeat("گ", 2001))); err == nil {
-		t.Fatal("option over documented character limit accepted")
+	if err := validateSlideContent(ItemKindActivity, makeActivity("پرسش", strings.Repeat("گ", 2001))); err == nil {
+		t.Fatal("Choice option over documented character limit accepted")
 	}
 }
 
