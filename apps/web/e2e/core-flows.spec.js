@@ -280,7 +280,21 @@ test("register, create a presentation, and open its report @critical", async ({ 
     }
   });
   await page.getByRole("button", { name: "ساخت اولین آیتم" }).click();
-  await expect(page.getByRole("dialog", { name: "نوع آیتم را انتخاب کنید" })).toBeVisible();
+  const itemTypeDialog = page.getByRole("dialog", {
+    name: "نوع آیتم را انتخاب کنید",
+  });
+  const singleChoiceType = itemTypeDialog.getByRole("button", {
+    name: /تک‌گزینه‌ای/,
+  });
+  const cancelTypeSelection = itemTypeDialog.getByRole("button", {
+    name: "انصراف",
+  });
+  await expect(itemTypeDialog).toBeVisible();
+  await expect(singleChoiceType).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cancelTypeSelection).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(singleChoiceType).toBeFocused();
   expect(createSlideRequestCount).toBe(0);
 
   const createSlideRequest = page.waitForResponse(
@@ -288,10 +302,30 @@ test("register, create a presentation, and open its report @critical", async ({ 
       /\/api\/v1\/presentations\/[^/]+\/slides$/.test(new URL(response.url()).pathname) &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: /تک‌گزینه‌ای/ }).click();
+  await singleChoiceType.click();
   expect((await createSlideRequest).status()).toBe(201);
   expect(createSlideRequestCount).toBe(1);
-  await expect(page.getByRole("dialog", { name: "نوع آیتم را انتخاب کنید" })).toBeHidden();
+  await expect(itemTypeDialog).toBeHidden();
+
+  const changeTypeButton = page.getByRole("button", { name: "تغییر نوع آیتم" });
+  await changeTypeButton.click();
+  await expect(itemTypeDialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(itemTypeDialog).toBeHidden();
+  await expect(changeTypeButton).toBeFocused();
+
+  const shareTrigger = page.getByRole("button", { name: "اشتراک‌گذاری" });
+  await shareTrigger.click();
+  const shareDialog = page.getByRole("dialog", { name: "اشتراک‌گذاری ارائه" });
+  const accessCodeInput = shareDialog.getByRole("textbox", {
+    name: "کد ورود ارائه",
+  });
+  await expect(shareDialog).toBeVisible();
+  await expect(accessCodeInput).toBeFocused();
+  await expectAccessible(page, "share dialog");
+  await page.keyboard.press("Escape");
+  await expect(shareDialog).toBeHidden();
+  await expect(shareTrigger).toBeFocused();
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
   const firstReportSessions = waitForReportSessions(page, presentationId);
@@ -542,11 +576,20 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await expectAccessible(manager, "manager live lobby");
     await expectNoOverflow(manager);
 
-    await manager.getByRole("button", { name: "پشت‌صحنه" }).click();
+    const backstageTrigger = manager.getByRole("button", { name: "پشت‌صحنه" });
+    await backstageTrigger.click();
+    const backstageDialog = manager.getByRole("dialog", { name: "پشت‌صحنه" });
+    const closeBackstage = backstageDialog.getByRole("button", {
+      name: "بستن پشت‌صحنه",
+    });
+    await expect(backstageDialog).toBeVisible();
+    await expect(closeBackstage).toBeFocused();
     await expect(
-      manager.getByRole("link", { name: "باز کردن Stage در پنجره جدید" }),
+      backstageDialog.getByRole("link", { name: "باز کردن Stage در پنجره جدید" }),
     ).toHaveAttribute("href", `/manager/stage/${sessionId}`);
-    await manager.getByRole("button", { name: "بستن پشت‌صحنه" }).click();
+    await manager.keyboard.press("Escape");
+    await expect(backstageDialog).toBeHidden();
+    await expect(backstageTrigger).toBeFocused();
 
     await stage.goto(`/manager/stage/${sessionId}`);
     await expect(
@@ -632,7 +675,7 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
     await participant.unroute("**/api/v1/live/sessions/*/answers");
 
-    await manager.getByRole("button", { name: "پشت‌صحنه" }).click();
+    await backstageTrigger.click();
     const backstage = manager.locator('[data-backstage-surface="presenter"]');
     await expect(backstage).toBeVisible();
     await backstage.getByRole("button", { name: "بستن پاسخ‌گویی" }).click();
