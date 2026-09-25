@@ -39,3 +39,29 @@ func CanTransition(from, to State) bool {
 	}
 	return false
 }
+
+func CanApplyAction(state State, phase *ActivityPhase, action string) bool {
+	switch action {
+	case "start":
+		return state == Draft
+	case "present_item":
+		if state == Lobby {
+			return true
+		}
+		if state != Presenting {
+			return false
+		}
+		return phase == nil || *phase == ActivityRevealed
+	case "close_activity":
+		return state == Presenting && phase != nil && *phase == ActivityAccepting
+	case "reveal_activity":
+		return state == Presenting && phase != nil && *phase == ActivityClosed
+	case "show_overall_ranking":
+		return state == Presenting && phase != nil && *phase == ActivityRevealed
+	case "end":
+		return state == Lobby ||
+			(state == Presenting && (phase == nil || *phase != ActivityAccepting))
+	default:
+		return false
+	}
+}
