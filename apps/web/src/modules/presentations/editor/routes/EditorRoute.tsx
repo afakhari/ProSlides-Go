@@ -240,6 +240,7 @@ function QuestionEditor({
 }: QuestionEditorProps) {
   const navigate = useNavigate();
   const typePickerContentRef = useRef<HTMLDivElement | null>(null);
+  const typePickerReturnFocusRef = useRef<HTMLElement | null>(null);
   const editorStatus = useEditorStatus();
   const hasSidebarChanges = editorStatus.dirty.content;
   const hasAudioChanges = editorStatus.dirty.audio;
@@ -530,10 +531,22 @@ function QuestionEditor({
         className="absolute inset-x-3 z-40 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl outline-none sm:inset-x-auto sm:w-[440px]"
         aria-labelledby="item-type-title"
         onOpenAutoFocus={(event) => {
+          typePickerReturnFocusRef.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
           event.preventDefault();
           typePickerContentRef.current
             ?.querySelector<HTMLButtonElement>('[data-item-type-choice="first"]')
             ?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const returnTarget = typePickerReturnFocusRef.current;
+          typePickerReturnFocusRef.current = null;
+          if (returnTarget?.isConnected) {
+            window.requestAnimationFrame(() => returnTarget.focus());
+          }
         }}
       >
         <DialogPrimitive.Title asChild>
