@@ -18,7 +18,7 @@ type TransportContext = {
 };
 
 type EditorTransportRegistration = {
-  key: EditorItemRegistryKey | "legacy-question";
+  key: EditorItemRegistryKey;
   matchesTransport: (context: TransportContext) => boolean;
   fromTransport: (context: TransportContext) => EditorSlide;
 };
@@ -198,53 +198,6 @@ const contentTransport: EditorTransportRegistration = {
   }),
 };
 
-// Temporary read compatibility for authored pre-v2 data. New writes never use
-// this shape; V2.7 removes the adapter after legacy data is no longer present.
-const legacyQuestionTransport: EditorTransportRegistration = {
-  key: "legacy-question",
-  matchesTransport: ({ slide }) => String(slide.kind) === "question",
-  fromTransport: ({ slide, content }) => {
-    const rawOptions = Array.isArray(content.options)
-      ? content.options as Record<string, unknown>[]
-      : [];
-    const selection: QuestionType =
-      content.question_type === "multiple" ? "multiple" : "single";
-
-    return {
-      ...commonEditorSlide(slide),
-      slide_type: 1,
-      item_kind: "activity",
-      activity_kind: "choice",
-      schema_version: 1,
-      show_leaderboard_after:
-        content.show_leaderboard_after === true,
-      question: {
-        question_id: slide.id,
-        title: stringValue(content.title),
-        text: stringValue(content.text),
-        question_text: stringValue(content.text),
-        question_type: selection,
-        evaluation_mode: "correctness",
-        scoring_mode: "points",
-        time_limit: numberValue(content.question_time, 10),
-        question_time: numberValue(content.question_time, 10),
-        min_point: numberValue(content.min_point, 0),
-        max_point: numberValue(content.max_point, 100),
-        image_url: stringValue(content.image_url),
-        question_image: stringValue(content.image_url),
-        faster_answers_more_points:
-          content.faster_answers_more_points === true,
-        partial_scoring:
-          selection === "multiple" &&
-          content.partial_scoring === true,
-        options: rawOptions.map((option, index) =>
-          normalizeOption(option, index, slide.id),
-        ),
-      },
-    };
-  },
-};
-
 const legacyLeaderboardTransport: EditorTransportRegistration = {
   key: "legacy-leaderboard",
   matchesTransport: ({ slide }) => slide.kind === "leaderboard",
@@ -262,7 +215,6 @@ const transportRegistry: readonly EditorTransportRegistration[] = [
   choiceTransport,
   textTransport,
   contentTransport,
-  legacyQuestionTransport,
   legacyLeaderboardTransport,
 ];
 
