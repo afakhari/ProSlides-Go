@@ -31,7 +31,8 @@ jobs:
       - run: go test ./...
       - run: go test -race ./internal/live
 
-  web:
+  web-fast:
+    name: web-fast
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -108,7 +109,6 @@ jobs:
         run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
 
   browser-e2e:
-    if: github.event_name != 'pull_request'
     needs: containers
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -222,3 +222,14 @@ jobs:
       - name: Stop browser-test stack
         if: always()
         run: docker compose down
+
+  web:
+    name: web
+    needs:
+      - web-fast
+      - browser-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm web quality gates
+        run: echo "Static web checks and browser E2E passed"
