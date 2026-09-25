@@ -8,7 +8,9 @@ import {
 import {
   convertSlideToContent,
   convertSlideToQuestion,
+  convertSlideToTextActivity,
   createSlideForChoice,
+  createTextActivitySlide,
   type IdFactory,
 } from "../model/slideMutations.ts";
 
@@ -31,6 +33,9 @@ export const createEditorSlideForType = (
   if (choice.registrationKey === "content") {
     return createSlideForChoice(order, "Content Slide", createId);
   }
+  if (choice.registrationKey === "text") {
+    return createTextActivitySlide(order, createId);
+  }
 
   return createSlideForChoice(
     order,
@@ -50,6 +55,14 @@ export const editorSlideMatchesTypeChoice = (
   const choice = getEditorTypeChoice(choiceId);
   const registration = resolveEditorItemRegistration(slide);
   if (registration?.key !== choice.registrationKey) return false;
+
+  if (choice.registrationKey === "text") {
+    return (
+      slide.activity_kind === "text" &&
+      slide.schema_version === 1 &&
+      Boolean(slide.text_activity)
+    );
+  }
 
   if (choice.registrationKey === "choice") {
     const question = slide.question;
@@ -80,6 +93,9 @@ export const convertEditorSlideToType = (
   if (choice.registrationKey === "content") {
     return convertSlideToContent(slide);
   }
+  if (choice.registrationKey === "text") {
+    return convertSlideToTextActivity(slide);
+  }
 
   const targetQuestionType =
     choiceId === "poll"
@@ -106,15 +122,25 @@ export const getEditorConversionConfirmation = (
   const currentRegistration = resolveEditorItemRegistration(slide);
 
   if (choiceId === "content") {
-    return slide.question
+    return slide.question || slide.text_activity
       ? {
           title: "تبدیل به اسلاید محتوایی؟",
           description:
-            "فعالیت انتخابی و گزینه‌های آن با محتوای غیرتعاملی جایگزین می‌شوند. ادامه می‌دهید؟",
+            "فعالیت تعاملی فعلی با محتوای غیرتعاملی جایگزین می‌شود. ادامه می‌دهید؟",
           confirmText: "تبدیل",
           cancelText: "انصراف",
         }
       : null;
+  }
+
+  if (choiceId === "word-cloud") {
+    return {
+      title: "تبدیل به ابر واژه؟",
+      description:
+        "تنظیمات نوع قبلی با یک فعالیت متنی بدون پاسخ صحیح و امتیاز جایگزین می‌شود. نتیجه بر اساس فراوانی واژه‌ها خواهد بود.",
+      confirmText: "تبدیل",
+      cancelText: "انصراف",
+    };
   }
 
   if (currentRegistration?.key === "content") {
@@ -124,6 +150,16 @@ export const getEditorConversionConfirmation = (
         choiceId === "poll"
           ? "محتوای فعلی با یک نظرسنجی بدون پاسخ صحیح و امتیاز جایگزین می‌شود. ادامه می‌دهید؟"
           : "محتوای فعلی با یک فعالیت انتخابی جدید جایگزین می‌شود. ادامه می‌دهید؟",
+      confirmText: "تبدیل",
+      cancelText: "انصراف",
+    };
+  }
+
+  if (currentRegistration?.key === "text") {
+    return {
+      title: choiceId === "poll" ? "تبدیل به نظرسنجی؟" : "تبدیل به سؤال انتخابی؟",
+      description:
+        "پرسش و تنظیمات ابر واژه با گزینه‌های انتخابی جدید جایگزین می‌شود. ادامه می‌دهید؟",
       confirmText: "تبدیل",
       cancelText: "انصراف",
     };
