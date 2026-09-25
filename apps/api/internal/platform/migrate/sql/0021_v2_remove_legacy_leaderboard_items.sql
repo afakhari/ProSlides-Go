@@ -209,6 +209,22 @@ FROM v27_frozen_leaderboard_map mapped
 WHERE event.session_id = mapped.session_id
   AND event.payload->>'active_item_id' = mapped.leaderboard_id::text;
 
+-- The historical active_item_id FK still targets authored slides. Surface a
+-- migration-specific invariant failure instead of relying on an opaque FK
+-- violation if any unexpected Session reference survived the repair above.
+DO $
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM live_sessions ls
+        JOIN slides s ON s.id = ls.active_item_id
+        WHERE s.kind = 'leaderboard'
+    ) THEN
+        RAISE EXCEPTION
+            'cannot delete legacy leaderboard Items while a Session still references one';
+    END IF;
+END $;
+
 DELETE FROM live_session_slides
 WHERE kind = 'leaderboard';
 
