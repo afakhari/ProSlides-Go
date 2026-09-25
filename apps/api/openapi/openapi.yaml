@@ -446,10 +446,10 @@ paths:
           description: >-
             Versioned text/event-stream. Each data field is a LiveEventEnvelope.
             Event names are session.created, presence.updated,
-            session.state_changed, answer.stats, and leaderboard.updated.
-            answer.stats is emitted once when a question closes and
-            leaderboard.updated is emitted when the leaderboard is shown;
-            individual answers and complete leaderboard rows are never
+            session.state_changed, activity.result_updated, and ranking.updated.
+            activity.result_updated is emitted when an Activity closes and
+            ranking.updated is emitted when the overall ranking is shown;
+            individual responses and complete ranking rows are never
             broadcast. Managers fetch rows from the paginated roster endpoint.
           content:
             text/event-stream:
@@ -460,7 +460,7 @@ paths:
   /api/v1/live/sessions/{sessionId}/answers:
     post:
       operationId: submitLiveAnswer
-      summary: Submit one idempotent answer while the question is open.
+      summary: Submit one idempotent response while the active Choice Activity is accepting.
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -470,7 +470,7 @@ paths:
             schema: { $ref: '#/components/schemas/AnswerRequest' }
       responses:
         '201':
-          description: Answer accepted and scored.
+          description: Response accepted; score_delta is zero for unscored Activities.
           content: { application/json: { schema: { $ref: '#/components/schemas/AnswerResult' } } }
         '200':
           description: Duplicate request; returns the original result.
