@@ -72,24 +72,26 @@ func (s *PostgresStore) CreateSession(c context.Context, host, presentation, req
 	}
 	rows.Close()
 
-	batch := &pgx.Batch{}
-	for _, slide := range authored {
-		snapshotKind, snapshotContent, projectionErr := presentations.LegacyLiveSlideDefinition(slide.kind, slide.content)
-		if projectionErr != nil {
-			return out, false, ErrInvalid
+	if len(authored) > 0 {
+		batch := &pgx.Batch{}
+		for _, slide := range authored {
+			snapshotKind, snapshotContent, projectionErr := presentations.LegacyLiveSlideDefinition(slide.kind, slide.content)
+			if projectionErr != nil {
+				return out, false, ErrInvalid
+			}
+			batch.Queue(`INSERT INTO live_session_slides(session_id,slide_id,revision,position,kind,content)
+				VALUES($1,$2,$3,$4,$5,$6)`, out.ID, slide.id, slide.revision, slide.position, snapshotKind, snapshotContent)
 		}
-		batch.Queue(`INSERT INTO live_session_slides(session_id,slide_id,revision,position,kind,content)
-			VALUES($1,$2,$3,$4,$5,$6)`, out.ID, slide.id, slide.revision, slide.position, snapshotKind, snapshotContent)
-	}
-	results := tx.SendBatch(c, batch)
-	for range authored {
-		if _, e = results.Exec(); e != nil {
-			_ = results.Close()
+		results := tx.SendBatch(c, batch)
+		for range authored {
+			if _, e = results.Exec(); e != nil {
+				_ = results.Close()
+				return out, false, e
+			}
+		}
+		if e = results.Close(); e != nil {
 			return out, false, e
 		}
-	}
-	if e = results.Close(); e != nil {
-		return out, false, e
 	}
 	if e = insertEvent(c, tx, out.ID, out.StateVersion, "session.created", map[string]any{"state": out.State}); e != nil {
 		return out, false, e
