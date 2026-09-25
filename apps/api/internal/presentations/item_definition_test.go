@@ -186,6 +186,20 @@ func TestPollNormalizesAsCanonicalUnscoredChoice(t *testing.T) {
 		decoded.Results.ShowOverallLeaderboardAfter {
 		t.Fatalf("Poll policy changed during normalization: %#v", decoded)
 	}
+	var pollJSON map[string]any
+	if err := json.Unmarshal(normalized, &pollJSON); err != nil {
+		t.Fatal(err)
+	}
+	evaluationJSON := pollJSON["evaluation"].(map[string]any)
+	scoringJSON := pollJSON["scoring"].(map[string]any)
+	if _, ok := evaluationJSON["correct_option_ids"]; !ok {
+		t.Fatal("normalized Choice must retain required correct_option_ids")
+	}
+	for _, key := range []string{"min_points", "max_points", "speed_bonus", "partial_credit"} {
+		if _, ok := scoringJSON[key]; !ok {
+			t.Fatalf("normalized Choice scoring missing required %s", key)
+		}
+	}
 	for _, option := range decoded.Response.Options {
 		for _, correctID := range decoded.Evaluation.CorrectOptionIDs {
 			if option.ID == correctID {
@@ -238,6 +252,20 @@ func TestWordCloudTextActivityNormalizesAsCanonicalText(t *testing.T) {
 		decoded.Scoring.Mode != ScoringModeNone ||
 		decoded.Results.ShowOverallLeaderboardAfter {
 		t.Fatalf("Word Cloud policy changed during normalization: %#v", decoded)
+	}
+	var textJSON map[string]any
+	if err := json.Unmarshal(normalized, &textJSON); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := textJSON["evaluation"].(map[string]any)["correct_option_ids"]; ok {
+		t.Fatal("normalized Text evaluation leaked Choice-only fields")
+	}
+	if _, ok := textJSON["scoring"].(map[string]any)["max_points"]; ok {
+		t.Fatal("normalized Text scoring leaked Choice-only fields")
+	}
+	responseJSON := textJSON["response"].(map[string]any)
+	if responseJSON["max_length"] != float64(80) || responseJSON["max_words"] != float64(3) {
+		t.Fatalf("normalized Text response = %#v", responseJSON)
 	}
 }
 
