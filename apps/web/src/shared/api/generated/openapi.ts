@@ -420,7 +420,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add a single- or multiple-choice question slide. */
+        /**
+         * Add a single- or multiple-choice question slide.
+         * @deprecated
+         * @description Legacy compatibility endpoint. New authoring clients use the generic slide endpoint with an Activity definition; the server persists this request as a v2 Choice Activity.
+         */
         post: operations["createQuestionSlide"];
         delete?: never;
         options?: never;
