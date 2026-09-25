@@ -1,4 +1,5 @@
 import type {
+  ActivityPhase,
   LiveEvent,
   LiveSnapshot,
   LiveState,
@@ -6,6 +7,7 @@ import type {
   PresentationSlide,
   PublicLiveSession,
   RosterEntry,
+  StageView,
 } from "../api/types.ts";
 import type {
   LegacyContentSlide,
@@ -23,10 +25,10 @@ export interface LiveCursor {
 
 export type LiveActionName =
   | "start"
-  | "open_content"
-  | "open_question"
-  | "close_question"
-  | "show_leaderboard"
+  | "present_item"
+  | "close_activity"
+  | "reveal_activity"
+  | "show_overall_ranking"
   | "end";
 
 export type LiveNavigationCommand = "start" | "next";
@@ -39,12 +41,18 @@ export interface LiveNavigationSlide {
   title?: string | null;
   content_text?: string | null;
   content_image_url?: string | null;
+  show_leaderboard_after?: boolean | null;
 }
 
 type ProtocolSession = Partial<
   Pick<
     PublicLiveSession,
-    "active_slide_id" | "state_version" | "ends_at" | "remaining_seconds"
+    | "active_item_id"
+    | "state_version"
+    | "activity_phase"
+    | "stage_view"
+    | "ends_at"
+    | "remaining_seconds"
   >
 >;
 
@@ -78,9 +86,7 @@ export const shouldApplyLiveEvent = (
   if (eventId === undefined) return false;
   if (eventId <= finiteNumber(cursor.eventId)) return false;
 
-  return (
-    finiteNumber(event.state_version) >= finiteNumber(cursor.stateVersion)
-  );
+  return finiteNumber(event.state_version) >= finiteNumber(cursor.stateVersion);
 };
 
 export const advanceLiveCursor = (
@@ -114,141 +120,169 @@ const isLeaderboardSlide = (
     !slide.content_text &&
     !slide.content_image_url);
 
-const openActionForSlide = (
+const actionForSlide = (
   slide: LiveNavigationSlide | null | undefined,
 ): LiveActionName | null => {
   if (!slide) return null;
-  if (isLeaderboardSlide(slide)) return "show_leaderboard";
-
-  return slide.slide_type === 1 || slide.kind === "question"
-    ? "open_question"
-    : "open_content";
+  return isLeaderboardSlide(slide)
+    ? "show_overall_ranking"
+    : "present_item";
 };
 
 export const planLiveNavigation = (
   state: LiveState | undefined,
   command: LiveNavigationCommand,
   slide: LiveNavigationSlide | null = null,
+  activityPhase: ActivityPhase | null = null,
+  stageView: StageView = "item",
 ): LiveActionName[] => {
   if (state === "ended") return [];
 
   const actions: LiveActionName[] = [];
-  let projectedState = state;
 
   if (command === "start") {
-    if (projectedState === "draft") {
-      actions.push("start");
-      projectedState = "lobby";
-    }
-
-    const open = openActionForSlide(slide);
+    if (state === "draft") actions.push("start");
+    const open = actionForSlide(slide);
     if (open) actions.push(open);
     return actions;
   }
 
-  if (projectedState === "question_open") {
-    actions.push("close_question");
-    projectedState = "question_closed";
+  // A presenter action never skips the result boundary. A manually closed
+  // Activity is revealed on the next step; an accepting Activity is closed and
+  // revealed atomically from the user's perspective, while remaining two
+  // durable versioned commands on the server.
+  if (state === "presenting" && activityPhase === "accepting") {
+    return ["close_activity", "reveal_activity"];
+  }
+  if (state === "presenting" && activityPhase === "closed") {
+    return ["reveal_activity"];
   }
 
-  const open = openActionForSlide(slide);
-  if (!slide && projectedState === "question_closed") {
-    actions.push("show_leaderboard");
-  } else if (open) {
-    actions.push(open);
+  if (
+    state === "presenting" &&
+    activityPhase === "revealed" &&
+    stageView === "item" &&
+    !slide
+  ) {
+    return ["show_overall_ranking"];
   }
 
+  const open = actionForSlide(slide);
+  if (open) actions.push(open);
   return actions;
 };
 
 export const planLiveEnd = (
   state: LiveState | undefined,
+  activityPhase: ActivityPhase | null = null,
 ): LiveActionName[] =>
-  state === "question_open"
-    ? ["close_question", "end"]
+  state === "presenting" && activityPhase === "accepting"
+    ? ["close_activity", "end"]
     : state === "ended"
       ? []
       : ["end"];
 
-export const normalizeLiveSlide = (
-  activeSlide: unknown,
-  session: ProtocolSession = {},
-): LegacyLiveSlide | null => {
-  if (!isRecord(activeSlide)) return null;
+const choiceActivityToLegacy = (
+  id: string,
+  content: UnknownRecord,
+  session: ProtocolSession,
+): LegacyQuestionSlide => {
+  const prompt = recordValue(content.prompt);
+  const response = recordValue(content.response);
+  const evaluation = recordValue(content.evaluation);
+  const scoring = recordValue(content.scoring);
+  const timing = recordValue(content.timing);
+  const results = recordValue(content.results);
+  const rawOptions = Array.isArray(response.options) ? response.options : [];
+  const correctOptionIds = new Set(
+    Array.isArray(evaluation.correct_option_ids)
+      ? evaluation.correct_option_ids.map(String)
+      : [],
+  );
+  const questionTime = finiteNumber(timing.duration_seconds);
+  const endsAt =
+    typeof session.ends_at === "string"
+      ? Date.parse(session.ends_at)
+      : Number.NaN;
+  const serverRemaining = optionalFiniteNumber(session.remaining_seconds);
+  const serverRemainingSeconds =
+    serverRemaining === undefined
+      ? undefined
+      : Math.max(
+          0,
+          Math.min(
+            questionTime > 0 ? questionTime : serverRemaining,
+            serverRemaining,
+          ),
+        );
+  const derivedSeconds = Number.isFinite(endsAt)
+    ? Math.max(0, (endsAt - Date.now()) / 1000)
+    : undefined;
+  const questionType =
+    response.selection === "multiple" ? "multiple" : "single";
 
-  const content = recordValue(activeSlide.content);
-  const id = String(
-    activeSlide.id || session.active_slide_id || "",
+  const options: LegacyQuestionOption[] = rawOptions.map(
+    (rawOption, index) => {
+      const option = recordValue(rawOption);
+      const optionId = String(option.id ?? "");
+      return {
+        option_id: index,
+        option_index: index,
+        option_text: stringValue(option.text),
+        image_url: stringValue(option.image_url),
+        order: index,
+        ...(correctOptionIds.size > 0
+          ? { answer: correctOptionIds.has(optionId) }
+          : {}),
+      };
+    },
   );
 
-  if (activeSlide.kind === "question") {
-    const rawOptions = Array.isArray(content.options) ? content.options : [];
-    const questionTime = finiteNumber(content.question_time);
-    const endsAt =
-      typeof session.ends_at === "string"
-        ? Date.parse(session.ends_at)
-        : Number.NaN;
-    const serverRemaining = optionalFiniteNumber(
-      session.remaining_seconds,
-    );
-    const serverRemainingSeconds =
-      serverRemaining === undefined
-        ? undefined
-        : Math.max(
-            0,
-            Math.min(
-              questionTime > 0 ? questionTime : serverRemaining,
-              serverRemaining,
-            ),
-          );
-    const derivedSeconds = Number.isFinite(endsAt)
-      ? Math.max(0, (endsAt - Date.now()) / 1000)
-      : undefined;
-    const questionType = stringValue(
-      content.question_type,
-      "single",
-    );
+  return {
+    slide_type: 1,
+    slide_id: id,
+    question_id: id,
+    run_id: session.state_version,
+    question_text: stringValue(prompt.text),
+    question_title: stringValue(prompt.title),
+    question_time: questionTime,
+    remaining_seconds: serverRemainingSeconds ?? derivedSeconds,
+    max_point: finiteNumber(scoring.max_points),
+    min_point: finiteNumber(scoring.min_points),
+    question_type: questionType,
+    has_multiple: questionType === "multiple",
+    image_url: stringValue(prompt.image_url),
+    show_leaderboard_after:
+      results.show_overall_leaderboard_after === true,
+    options,
+  };
+};
 
-    const options: LegacyQuestionOption[] = rawOptions.map(
-      (rawOption, index) => {
-        const option = recordValue(rawOption);
-        return {
-          option_id: index,
-          option_index: index,
-          option_text: stringValue(option.text),
-          image_url: stringValue(option.image_url),
-          order: index,
-        };
-      },
-    );
+export const normalizeLiveSlide = (
+  activeItem: unknown,
+  session: ProtocolSession = {},
+): LegacyLiveSlide | null => {
+  if (!isRecord(activeItem)) return null;
 
-    const question: LegacyQuestionSlide = {
-      slide_type: 1,
-      slide_id: id,
-      question_id: id,
-      run_id: session.state_version,
-      question_text: stringValue(content.text),
-      question_title: stringValue(content.title),
-      question_time: questionTime,
-      remaining_seconds: serverRemainingSeconds ?? derivedSeconds,
-      max_point: finiteNumber(content.max_point),
-      min_point: finiteNumber(content.min_point),
-      question_type: questionType,
-      has_multiple: questionType === "multiple",
-      image_url: stringValue(content.image_url),
-      options,
-    };
+  const content = recordValue(activeItem.content);
+  const id = String(activeItem.id || session.active_item_id || "");
 
-    return question;
+  if (
+    activeItem.kind === "activity" &&
+    content.activity_kind === "choice"
+  ) {
+    return choiceActivityToLegacy(id, content, session);
   }
+
+  if (activeItem.kind !== "content") return null;
 
   const contentSlide: LegacyContentSlide = {
     slide_type: 2,
     slide_id: id,
     order:
-      typeof activeSlide.position === "number" ||
-      typeof activeSlide.position === "string"
-        ? activeSlide.position
+      typeof activeItem.position === "number" ||
+      typeof activeItem.position === "string"
+        ? activeItem.position
         : null,
     title: stringValue(content.title),
     content_text:
@@ -267,7 +301,10 @@ export const rosterEntryToLegacy = (
   user_id: entry.participant_id,
   name: entry.display_name,
   character: entry.avatar || "",
-  rank: index + 1,
+  rank:
+    entry.rank != null && Number.isFinite(Number(entry.rank))
+      ? Number(entry.rank)
+      : index + 1,
   total_points: finiteNumber(entry.score),
   new_points: null,
 });
@@ -292,47 +329,13 @@ export const presentationSlideToLegacy = (
   const content = recordValue(slide.content);
 
   if (slide.kind === "activity" && content.activity_kind === "choice") {
-    const prompt = recordValue(content.prompt);
-    const response = recordValue(content.response);
-    const evaluation = recordValue(content.evaluation);
-    const scoring = recordValue(content.scoring);
-    const timing = recordValue(content.timing);
-    const results = recordValue(content.results);
-    const rawOptions = Array.isArray(response.options) ? response.options : [];
-    const correctOptionIds = new Set(
-      Array.isArray(evaluation.correct_option_ids)
-        ? evaluation.correct_option_ids.map(String)
-        : [],
-    );
-    const questionType =
-      response.selection === "multiple" ? "multiple" : "single";
-
-    return {
-      slide_type: 1,
-      slide_id: slide.id,
-      question_id: slide.id,
-      question_text: stringValue(prompt.text),
-      question_title: stringValue(prompt.title),
-      question_time: finiteNumber(timing.duration_seconds, 10),
-      min_point: finiteNumber(scoring.min_points),
-      max_point: finiteNumber(scoring.max_points, 100),
-      question_type: questionType,
-      has_multiple: questionType === "multiple",
-      image_url: stringValue(prompt.image_url),
-      show_leaderboard_after:
-        results.show_overall_leaderboard_after === true,
-      options: rawOptions.map((rawOption, index) => {
-        const option = recordValue(rawOption);
-        return {
-          option_id: index,
-          option_index: index,
-          option_text: stringValue(option.text),
-          image_url: stringValue(option.image_url),
-          order: index,
-          answer: correctOptionIds.has(String(option.id ?? "")),
-        };
-      }),
-    };
+    return choiceActivityToLegacy(slide.id, content, {
+      active_item_id: slide.id,
+      state_version: 0,
+      ends_at: null,
+      activity_phase: null,
+      stage_view: "item",
+    });
   }
 
   if (slide.kind === "question_draft") {
@@ -349,7 +352,7 @@ export const presentationSlideToLegacy = (
     };
   }
 
-  const normalized = normalizeLiveSlide(
+  return normalizeLiveSlide(
     {
       id: slide.id,
       position: slide.position,
@@ -357,28 +360,13 @@ export const presentationSlideToLegacy = (
       content: slide.content,
     },
     {
-      active_slide_id: slide.id,
+      active_item_id: slide.id,
       state_version: 0,
       ends_at: null,
+      activity_phase: null,
+      stage_view: "item",
     },
   );
-
-  if (normalized?.slide_type !== 1) return normalized;
-
-  const sourceOptions = Array.isArray(content.options)
-    ? content.options
-    : [];
-
-  return {
-    ...normalized,
-    show_leaderboard_after:
-      content.show_leaderboard_after === true,
-    options: (normalized.options ?? []).map((option, index) => ({
-      ...option,
-      answer:
-        recordValue(sourceOptions[index]).is_correct === true,
-    })),
-  };
 };
 
 export const projectLiveSnapshot = (
@@ -388,7 +376,7 @@ export const projectLiveSnapshot = (
   if (!snapshot?.session) return null;
 
   const active = normalizeLiveSlide(
-    snapshot.active_slide,
+    snapshot.active_item,
     snapshot.session,
   );
   const managerRows =
@@ -400,20 +388,20 @@ export const projectLiveSnapshot = (
       ? [participantToLegacy(snapshot.participant)]
       : [];
 
-  const leaderboard = ["leaderboard", "ended"].includes(
-    snapshot.session.state,
-  )
-    ? snapshot.role === "manager"
-      ? managerRows
-      : participantRows
-    : null;
+  const leaderboard =
+    snapshot.session.stage_view === "overall_ranking" ||
+    snapshot.session.state === "ended"
+      ? snapshot.role === "manager"
+        ? managerRows
+        : participantRows
+      : null;
 
-  const stats = snapshot.question_stats;
-  const questionResults = stats
+  const result = snapshot.activity_result;
+  const questionResults = result
     ? {
-        question_id: stats.question_slide_id,
+        question_id: result.activity_item_id,
         optionsResult: Object.entries(
-          stats.option_counts ?? {},
+          result.option_counts ?? {},
         ).map(([optionId, count]) => ({
           option_id: Number(optionId),
           number_of_submits: finiteNumber(count),
@@ -421,16 +409,28 @@ export const projectLiveSnapshot = (
       }
     : null;
 
+  const activityVisibleToLegacyQuestion =
+    active?.slide_type === 1 &&
+    snapshot.session.state === "presenting" &&
+    snapshot.session.stage_view === "item" &&
+    (
+      snapshot.session.activity_phase === "accepting" ||
+      (snapshot.role === "manager" &&
+        ["closed", "revealed"].includes(
+          snapshot.session.activity_phase ?? "",
+        ))
+    );
+
   return {
     users: managerRows,
     currentQuestion:
-      active?.slide_type === 1 &&
-      snapshot.session.state === "question_open"
+      activityVisibleToLegacyQuestion && active?.slide_type === 1
         ? active
         : null,
     currentContent:
       active?.slide_type === 2 &&
-      snapshot.session.state === "content"
+      snapshot.session.state === "presenting" &&
+      snapshot.session.stage_view === "item"
         ? active
         : null,
     leaderboardResults: leaderboard,
