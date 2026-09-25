@@ -1037,6 +1037,22 @@ export interface components {
             session: components["schemas"]["ReportSessionSummary"];
             activities: components["schemas"]["ReportActivitySummary"][];
         };
+        ReportChoiceResultPayload: {
+            /** @description Counts keyed by frozen option ID. */
+            option_counts: {
+                [key: string]: number;
+            };
+        };
+        ReportActivityResult: {
+            /** Format: uuid */
+            activity_item_id: string;
+            /** @enum {string} */
+            activity_kind: "choice";
+            schema_version: number;
+            response_count: number;
+            /** @description Kind-specific, versioned result projection. V2.5 defines Choice; later Activity kinds extend the result union rather than creating parallel report endpoints. */
+            payload: components["schemas"]["ReportChoiceResultPayload"];
+        };
         ReportResponseEvaluation: {
             /** @enum {string} */
             mode: "none" | "correctness";
@@ -1060,7 +1076,7 @@ export interface components {
         };
         ReportActivityPage: {
             activity: components["schemas"]["ReportActivitySummary"];
-            result: components["schemas"]["ActivityResultPayload"];
+            result: components["schemas"]["ReportActivityResult"];
             top_performers: components["schemas"]["ActivityTopPerformer"][];
             responses: components["schemas"]["ReportActivityResponse"][];
             limit: number;
