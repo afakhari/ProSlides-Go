@@ -63,7 +63,9 @@ ALTER TABLE slides
         kind <> 'activity'
         OR (
             jsonb_typeof(content) = 'object'
-            AND content ? 'schema_version'
-            AND (content->>'schema_version') ~ '^[1-9][0-9]*$'
+            AND jsonb_typeof(content->'schema_version') = 'number'
+            AND COALESCE((content->>'schema_version') ~ '^[1-9][0-9]*
+    );
+, false)
         )
     );
