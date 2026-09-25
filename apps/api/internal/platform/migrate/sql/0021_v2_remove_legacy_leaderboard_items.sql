@@ -212,7 +212,7 @@ WHERE event.session_id = mapped.session_id
 -- The historical active_item_id FK still targets authored slides. Surface a
 -- migration-specific invariant failure instead of relying on an opaque FK
 -- violation if any unexpected Session reference survived the repair above.
-DO $
+DO $$
 BEGIN
     IF EXISTS (
         SELECT 1
@@ -223,7 +223,7 @@ BEGIN
         RAISE EXCEPTION
             'cannot delete legacy leaderboard Items while a Session still references one';
     END IF;
-END $;
+END $$;
 
 DELETE FROM live_session_slides
 WHERE kind = 'leaderboard';
