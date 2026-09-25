@@ -42,8 +42,6 @@ export interface ActivityResult {
   payload:
     | { option_counts: Record<string, number> }
     | { terms: WordFrequencyTerm[] };
-  /** @deprecated V2.7 removes this derived Choice-only compatibility field. */
-  option_counts?: Record<string, number>;
 }
 
 export type ActivityResponse =
@@ -53,8 +51,6 @@ export type ActivityResponse =
 export interface PersonalActivityResult {
   activity_item_id: string;
   response: ActivityResponse;
-  /** @deprecated V2.7 removes this derived Choice-only compatibility field. */
-  selected_option_indexes?: number[];
   score_delta: number;
 }
 
