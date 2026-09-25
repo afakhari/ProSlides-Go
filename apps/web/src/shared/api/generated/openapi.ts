@@ -840,9 +840,7 @@ export interface components {
             state_version: number;
             /** Format: uuid */
             active_item_id?: string | null;
-            /**
-             * @enum {string|null}
-             */
+            /** @enum {string|null} */
             activity_phase: "accepting" | "closed" | "revealed" | null;
             /** @enum {string} */
             stage_view: "item" | "overall_ranking";
@@ -874,9 +872,7 @@ export interface components {
             state_version: number;
             /** Format: uuid */
             active_item_id?: string | null;
-            /**
-             * @enum {string|null}
-             */
+            /** @enum {string|null} */
             activity_phase: "accepting" | "closed" | "revealed" | null;
             /** @enum {string} */
             stage_view: "item" | "overall_ranking";
@@ -1007,9 +1003,7 @@ export interface components {
             state: "draft" | "lobby" | "presenting" | "ended";
             /** Format: uuid */
             active_item_id?: string | null;
-            /**
-             * @enum {string|null}
-             */
+            /** @enum {string|null} */
             activity_phase: "accepting" | "closed" | "revealed" | null;
             /** @enum {string} */
             stage_view: "item" | "overall_ranking";
