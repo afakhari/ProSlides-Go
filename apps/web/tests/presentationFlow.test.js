@@ -4,10 +4,9 @@ import test from "node:test";
 import {
   EMPTY_PRESENTATION,
   findContentSlideIndex,
-  findLeaderboardSlideIndex,
   findQuestionSlideIndex,
+  findSlideIndexById,
   isContentSlide,
-  isLeaderboardSlide,
   isQuestionSlide,
   persistPlayerLastActive,
   persistPlayerSeenActive,
@@ -27,15 +26,11 @@ const memoryStorage = () => {
   };
 };
 
-test("presentation flow classifies live items by explicit item kind", () => {
+test("presentation flow classifies persisted live Items by explicit item kind", () => {
   assert.equal(isQuestionSlide({ item_kind: "activity", question_id: "q1" }), true);
   assert.equal(isContentSlide({ item_kind: "content", title: "راهنما" }), true);
-  assert.equal(isLeaderboardSlide({ item_kind: "legacy-leaderboard" }), true);
-  assert.equal(isLeaderboardSlide({ item_kind: "content" }), false);
-  assert.equal(
-    isLeaderboardSlide({ item_kind: "content", content_text: "توضیح" }),
-    false,
-  );
+  assert.equal(isQuestionSlide({ item_kind: "content" }), false);
+  assert.equal(isContentSlide({ item_kind: "activity" }), false);
 });
 
 test("player resume storage is scoped per room and validates persisted payloads", () => {
@@ -79,23 +74,18 @@ test("empty presentation model keeps a safe stable fallback shape", () => {
   assert.equal(EMPTY_PRESENTATION.background.color, "#1e1e2e");
 });
 
-test("manager reconciliation helpers locate authoritative question content and leaderboard slides", () => {
+test("manager reconciliation helpers locate authoritative Items by identity", () => {
   const slides = [
     {
       item_kind: "activity",
       slide_id: "q1",
       question_id: "q1",
-      order: 1,
-    },
-    {
-      item_kind: "legacy-leaderboard",
-      slide_id: "lb1",
-      order: 1,
+      order: 0,
     },
     {
       item_kind: "content",
       slide_id: "c1",
-      order: 2,
+      order: 1,
       title: "توضیح",
     },
   ];
@@ -105,42 +95,12 @@ test("manager reconciliation helpers locate authoritative question content and l
     findContentSlideIndex(slides, {
       item_kind: "content",
       slide_id: "c1",
-      order: 2,
+      order: 1,
       title: "توضیح",
     }),
-    2,
-  );
-  assert.equal(
-    findLeaderboardSlideIndex({
-      slides,
-      currentSlide: 1,
-      lastQuestionSlideIndex: 0,
-    }),
     1,
   );
-});
-
-test("manager leaderboard reconciliation falls back to current or next known leaderboard", () => {
-  const slides = [
-    {
-      item_kind: "content",
-      slide_id: "content",
-      order: 1,
-      title: "مطلب",
-    },
-    {
-      item_kind: "legacy-leaderboard",
-      slide_id: "leaderboard",
-      order: 2,
-    },
-  ];
-
-  assert.equal(
-    findLeaderboardSlideIndex({
-      slides,
-      currentSlide: 2,
-      lastQuestionSlideIndex: null,
-    }),
-    1,
-  );
+  assert.equal(findSlideIndexById(slides, "q1"), 0);
+  assert.equal(findSlideIndexById(slides, "c1"), 1);
+  assert.equal(findSlideIndexById(slides, "missing"), -1);
 });

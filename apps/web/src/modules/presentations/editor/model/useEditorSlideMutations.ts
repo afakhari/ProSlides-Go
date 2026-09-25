@@ -356,13 +356,6 @@ export function useEditorSlideMutations({
         );
         return;
       }
-      if (registration.category === "legacy") {
-        setTypeSelectionError(
-          "این آیتم قدیمی از انتخاب‌گر جدید قابل تبدیل نیست.",
-        );
-        return;
-      }
-
       if (editorSlideMatchesTypeChoice(activeSlide, choiceId)) {
         const choice = getEditorTypeChoice(choiceId);
         showTypeNotice(`نوع آیتم هم‌اکنون «${choice.label}» است.`, 2_000);

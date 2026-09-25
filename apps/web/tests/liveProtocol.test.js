@@ -361,7 +361,6 @@ test("ended snapshots retain a bounded final ranking projection", () => {
 test("presenter navigation preserves the result boundary before optional overall ranking", () => {
   const activity = { item_kind: "activity", slide_id: "activity" };
   const content = { item_kind: "content", slide_id: "content", content_text: "Text" };
-  const ranking = { item_kind: "legacy-leaderboard" };
 
   assert.deepEqual(planLiveNavigation("draft", "start", activity), ["start", "present_item"]);
   assert.deepEqual(planLiveNavigation("lobby", "start", content), ["present_item"]);
@@ -384,10 +383,6 @@ test("presenter navigation preserves the result boundary before optional overall
   assert.deepEqual(
     planLiveNavigation("presenting", "next", content, null, "item"),
     ["present_item"],
-  );
-  assert.deepEqual(
-    planLiveNavigation("presenting", "next", ranking, "revealed", "item"),
-    ["show_overall_ranking"],
   );
   assert.deepEqual(planLiveNavigation("ended", "next"), []);
   assert.deepEqual(planLiveEnd("presenting", "accepting"), ["close_activity", "end"]);

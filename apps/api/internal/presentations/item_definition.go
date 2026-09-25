@@ -41,14 +41,6 @@ func normalizeSlideDefinition(kind string, raw json.RawMessage) (string, json.Ra
 			return "", nil, errInvalidSlideDefinition
 		}
 		return kind, raw, nil
-	case "leaderboard":
-		var value struct {
-			Title string `json:"title"`
-		}
-		if err := decodeStrictObject(raw, &value); err != nil || utf8.RuneCountInString(value.Title) > 500 {
-			return "", nil, errInvalidSlideDefinition
-		}
-		return kind, raw, nil
 	default:
 		return "", nil, errInvalidSlideDefinition
 	}

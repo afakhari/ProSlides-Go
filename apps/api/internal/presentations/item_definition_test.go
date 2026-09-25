@@ -12,6 +12,13 @@ func TestLegacyQuestionDefinitionIsRejected(t *testing.T) {
 	}
 }
 
+func TestLegacyLeaderboardDefinitionIsRejected(t *testing.T) {
+	raw := json.RawMessage(`{"title":"Leaderboard"}`)
+	if _, _, err := normalizeSlideDefinition("leaderboard", raw); err == nil {
+		t.Fatal("legacy leaderboard definition should be rejected")
+	}
+}
+
 func TestChoiceActivityRemainsCanonicalForLive(t *testing.T) {
 	activity := ActivityDefinition{
 		SchemaVersion: 1,

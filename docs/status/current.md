@@ -138,9 +138,14 @@ PR #121 removes the deprecated `latest-session` report convenience boundary.
 Report clients now use only the Session-first history/report resources; the
 separate live join-code resolver remains canonical and unchanged.
 
-Other legacy paths, including persisted/synthetic leaderboard compatibility
-and remaining live frontend model translations, remain until their replacements
-are verified independently.
+PR #122 removes persisted legacy leaderboard Items as a complete migration
+boundary. Migration 0021 preserves only provably adjacent scored-Activity
+ranking behavior, removes authored/frozen leaderboard rows, closes new
+leaderboard authoring in the API/OpenAPI/Editor, and reconciles live ranking
+resume from canonical `active_item_id + stage_view`.
+
+Other legacy paths, including remaining live frontend model translations,
+remain until their replacements are verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 

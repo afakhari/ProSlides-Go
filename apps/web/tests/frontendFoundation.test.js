@@ -602,7 +602,9 @@ test("live manager synchronization is owned by a typed manager controller", () =
   assert.doesNotMatch(flow, /ManagerFinalLeaderboard" \|\| snapshot/);
   assert.match(controller, /findQuestionSlideIndex/);
   assert.match(controller, /findContentSlideIndex/);
-  assert.match(controller, /findLeaderboardSlideIndex/);
+  assert.match(controller, /findSlideIndexById/);
+  assert.match(controller, /activeItemId/);
+  assert.doesNotMatch(controller, /findLeaderboardSlideIndex|isLeaderboardSlide/);
   assert.match(controller, /sessionState === "ended"/);
   assert.match(controller, /Product requirement: presentation flow is forward-only/);
 });
@@ -647,7 +649,8 @@ test("live player recovery is owned by a typed participant controller", () => {
   assert.match(recovery, /persistPlayerSeenActive/);
   assert.match(recovery, /persistPlayerLastActive/);
   assert.match(recovery, /joinParticipant/);
-  assert.match(model, /isLeaderboardSlide/);
+  assert.match(model, /findSlideIndexById/);
+  assert.doesNotMatch(model, /legacy-leaderboard|isLeaderboardSlide/);
 });
 
 test("live projection is derived directly from authoritative snapshot and roster", () => {
@@ -785,7 +788,6 @@ test("design editor shares one typed presentation draft across all preview surfa
   const inspector = source("src/modules/presentations/editor/inspector/DesignInspector.tsx");
   const question = source("src/modules/presentations/editor/canvas/QuestionCanvas.tsx");
   const content = source("src/modules/presentations/editor/canvas/ContentCanvas.tsx");
-  const leaderboard = source("src/modules/presentations/editor/canvas/LeaderboardCanvas.tsx");
   const slides = source("src/modules/presentations/editor/slide-list/SlideList.tsx");
   const provider = source("src/modules/presentations/editor/model/DesignDraftProvider.tsx");
   const draft = source("src/modules/presentations/editor/model/designDraft.ts");
@@ -802,8 +804,6 @@ test("design editor shares one typed presentation draft across all preview surfa
   assert.doesNotMatch(inspector, /error\.response\?\./);
   assert.match(question, /useOptionalDesignDraft/);
   assert.match(content, /useOptionalDesignDraft/);
-  assert.match(leaderboard, /useOptionalDesignDraft/);
-  assert.match(leaderboard, /presentationTheme/);
   assert.match(slides, /useOptionalDesignDraft/);
   assert.match(provider, /useDesignDraft\(presentation\)/);
   assert.match(draft, /designDraftReducer/);

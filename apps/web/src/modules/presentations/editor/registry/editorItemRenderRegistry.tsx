@@ -9,7 +9,6 @@ import {
   type EditorItemRegistryKey,
 } from "../../model/itemRegistry.ts";
 import ContentCanvas from "../canvas/ContentCanvas.tsx";
-import LeaderboardCanvas from "../canvas/LeaderboardCanvas.tsx";
 import QuestionCanvas from "../canvas/QuestionCanvas.tsx";
 import WordCloudCanvas from "../canvas/WordCloudCanvas.tsx";
 import ContentInspector from "../inspector/ContentInspector.tsx";
@@ -86,10 +85,6 @@ function WordCloudDraftBoundary({
   );
 }
 
-function PassiveDraftBoundary({ children }: DraftBoundaryProps) {
-  return <>{children}</>;
-}
-
 function ContentCanvasAdapter(props: EditorCanvasProps) {
   return (
     <ContentCanvas
@@ -98,34 +93,6 @@ function ContentCanvasAdapter(props: EditorCanvasProps) {
       quizBackgroundImage={props.quizBackgroundImage}
       textColor={props.textColor}
     />
-  );
-}
-
-function LegacyLeaderboardCanvas(props: EditorCanvasProps) {
-  return <LeaderboardCanvas {...props} customLeaderboard={[]} />;
-}
-
-function LegacyLeaderboardInspector({
-  onClose,
-}: EditorInspectorProps) {
-  return (
-    <aside
-      className="flex h-full min-h-0 flex-col bg-surface p-1 text-content"
-      aria-label="آیتم قدیمی جدول امتیازات"
-    >
-      <Notice tone="warning" className="items-start">
-        این آیتم از مدل قدیمی باقی مانده است. در مدل جدید، رتبه‌بندی کلی رفتار
-        یک Activity است و اسلاید مستقل ساخته نمی‌شود. برای حذف یا بازطراحی این
-        مورد از مسیر مهاجرت داده استفاده کنید.
-      </Notice>
-      <button
-        type="button"
-        onClick={() => onClose(true)}
-        className="mt-4 min-h-11 rounded-control border border-border-subtle px-4 text-sm font-bold hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      >
-        بستن
-      </button>
-    </aside>
   );
 }
 
@@ -150,12 +117,6 @@ const renderRegistry: Record<
     DraftBoundary: ContentDraftBoundary,
     Canvas: ContentCanvasAdapter,
     Inspector: ContentInspector,
-  },
-  "legacy-leaderboard": {
-    key: "legacy-leaderboard",
-    DraftBoundary: PassiveDraftBoundary,
-    Canvas: LegacyLeaderboardCanvas,
-    Inspector: LegacyLeaderboardInspector,
   },
 };
 

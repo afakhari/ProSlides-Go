@@ -58,17 +58,9 @@ export interface LegacyContentSlide {
   content_image_url?: string;
 }
 
-export interface LegacyLeaderboardSlide {
-  item_kind: "legacy-leaderboard";
-  slide_id?: string | number | null;
-  order?: string | number | null;
-  title?: string;
-}
-
 export type LegacyLiveSlide =
   | LegacyQuestionSlide
-  | LegacyContentSlide
-  | LegacyLeaderboardSlide;
+  | LegacyContentSlide;
 
 export interface LegacyQuestionResult {
   question_id?: string | number | null;

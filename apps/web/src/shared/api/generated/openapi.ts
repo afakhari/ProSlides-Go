@@ -744,14 +744,14 @@ export interface components {
         CreateSlideRequest: {
             position: number;
             /** @enum {string} */
-            kind: "activity" | "content" | "leaderboard";
+            kind: "activity" | "content";
             content: components["schemas"]["EditableSlideContent"];
         };
         ReorderSlidesRequest: {
             slide_ids: string[];
         };
         /** @description Content is validated against the accompanying authoring item kind. Unknown fields are rejected by the API. */
-        EditableSlideContent: components["schemas"]["ActivityItemDefinition"] | components["schemas"]["ContentSlideContent"] | components["schemas"]["LeaderboardContent"];
+        EditableSlideContent: components["schemas"]["ActivityItemDefinition"] | components["schemas"]["ContentSlideContent"];
         /** @description Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted. */
         ActivityItemDefinition: components["schemas"]["ChoiceActivityDefinition"] | components["schemas"]["TextActivityDefinition"];
         ChoiceActivityDefinition: {
@@ -836,9 +836,6 @@ export interface components {
             title?: string;
             text?: string;
             image_url?: string;
-        };
-        LeaderboardContent: {
-            title?: string;
         };
         /** @description Submit one canonical versioned Activity response representation. */
         AnswerRequest: {
@@ -1218,7 +1215,7 @@ export interface components {
             revision: number;
             position: number;
             /** @enum {string} */
-            kind: "activity" | "content" | "leaderboard";
+            kind: "activity" | "content";
             content: components["schemas"]["EditableSlideContent"];
         };
         Error: {

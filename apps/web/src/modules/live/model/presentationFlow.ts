@@ -157,9 +157,6 @@ export const hasContentPayload = (slide: unknown): boolean =>
     String(slide.content_image_url ?? "").trim().length > 0
   );
 
-export const isLeaderboardSlide = (slide: unknown): boolean =>
-  isRecord(slide) && slide.item_kind === "legacy-leaderboard";
-
 export const isContentSlide = (
   slide: unknown,
 ): slide is LegacyContentSlide =>
@@ -207,32 +204,15 @@ export const findContentSlideIndex = (
   );
 };
 
-export const findLeaderboardSlideIndex = ({
-  slides,
-  currentSlide,
-  lastQuestionSlideIndex,
-}: {
-  slides: PresentationSlide[];
-  currentSlide: number;
-  lastQuestionSlideIndex: number | null;
-}): number => {
-  if (lastQuestionSlideIndex != null) {
-    const immediateIndex = lastQuestionSlideIndex + 1;
-    if (isLeaderboardSlide(slides[immediateIndex])) {
-      return immediateIndex;
-    }
+export const findSlideIndexById = (
+  slides: PresentationSlide[],
+  slideId: string | number | null | undefined,
+): number => {
+  if (slideId == null) return -1;
 
-    const followingIndex = slides.findIndex(
-      (slide, index) =>
-        index > lastQuestionSlideIndex && isLeaderboardSlide(slide),
-    );
-    if (followingIndex >= 0) return followingIndex;
-  }
-
-  const currentIndex = Math.max(0, currentSlide - 1);
-  if (isLeaderboardSlide(slides[currentIndex])) {
-    return currentIndex;
-  }
-
-  return slides.findIndex((slide) => isLeaderboardSlide(slide));
+  return slides.findIndex(
+    (slide) =>
+      slide != null &&
+      String(slide.slide_id ?? "") === String(slideId),
+  );
 };
