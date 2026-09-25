@@ -2,8 +2,8 @@
 
 ## Purpose
 
-This plan turns “supports 10,000 participants” into a reproducible engineering
-claim. Do not mark a capacity level complete from unit tests, a local demo, or
+This plan defines how a future “supports 10,000 participants” claim must be
+proven. Do not mark a capacity level complete from unit tests, a local demo, or
 an average latency number. Save the test configuration, commit SHA, environment,
 raw results, and bottleneck analysis for every accepted run.
 
@@ -14,10 +14,10 @@ raw results, and bottleneck analysis for every accepted run.
 | connect | target users establish authenticated SSE over 120 seconds |
 | steady | all streams remain open for 10 minutes with 15-second heartbeats |
 | join burst | target users join over 60 seconds; presence is compacted |
-| question open | one manager action; all clients receive state within the event SLO |
-| answer burst | 80% of users answer within 5 seconds; 100% within 15 seconds |
+| activity open | one manager action; all clients receive state within the event SLO |
+| response burst | 80% of users respond within 5 seconds; 100% within 15 seconds |
 | reconnect | 20% of SSE clients disconnect and recover through snapshot/cursor |
-| closure | manager closes question; aggregate stats and leaderboard are published |
+| closure | manager closes the Activity; aggregate results and any requested overall ranking are published |
 | host loss | manager disconnects/reconnects without changing authoritative state |
 
 Test levels are 1,000, then 5,000, then 10,000 concurrent participants. A level
@@ -29,7 +29,7 @@ These are acceptance thresholds to validate or revise with product evidence:
 
 | Signal | Gate |
 |---|---|
-| answer HTTP latency | p95 <= 500 ms, p99 <= 1 s during burst |
+| response HTTP latency | p95 <= 500 ms, p99 <= 1 s during burst |
 | manager command latency | p95 <= 250 ms, p99 <= 750 ms |
 | SSE event propagation | p95 <= 1 s, p99 <= 2 s |
 | reconnect recovery | p95 <= 3 s including snapshot |
@@ -45,7 +45,7 @@ These are acceptance thresholds to validate or revise with product evidence:
   transaction duration, lock waits, deadlocks, and database CPU/IO.
 - Active SSE connections, connection lifetime, reconnect count, bytes/events
   sent, broker sessions/subscribers, buffer drops, and ledger-to-client lag.
-- Accepted/duplicate/rejected answers and score-update duration.
+- Accepted/duplicate/rejected responses and score-update duration.
 - Process CPU, RSS, goroutines, GC pauses, file descriptors, and network throughput.
 
 Metrics must use bounded labels. Never label by participant, request, session,
@@ -59,6 +59,12 @@ TLS/proxy settings, Go version, and dataset size. Local Docker Compose is only a
 functional gate; it is not capacity evidence.
 
 ## Current evidence
+
+The recorded load evidence exercises the **pre-v2 question-specific live
+protocol**. It remains useful engineering evidence for the underlying
+HTTP/SSE/PostgreSQL foundation, but it does not certify the final v2 Activity
+protocol. Production capacity gates must be repeated after the v2 live model
+stabilizes.
 
 Role-scoped snapshots, manager keyset pagination, aggregate-only leaderboard
 events, bounded subscriber buffers, presence compaction, one ledger poller per
@@ -83,9 +89,10 @@ capacity sequence and does not compete with that status document.
 2. **Completed locally:** bounded metrics, the 100-user protocol run, hard SQL
    reconciliation, consecutive local 1k passes through Nginx, and API-address
    recovery evidence. These are local observations only.
-3. **Next capacity gate:** repeat the two-run 1k result on a named
-   production-like single API through TLS ingress, including cold readiness and
-   continuous CPU/heap/pool/query/lock evidence.
+3. **Deferred production gate (V2.8):** after the final v2 live protocol is
+   stable, repeat the two-run 1k result on a named production-like single API
+   through TLS ingress, including cold readiness and continuous
+   CPU/heap/pool/query/lock evidence.
 4. Fix measured bottlenecks and rerun the same gate twice.
 5. Repeat at 5k with multiple API instances and no sticky sessions.
 6. Add Redis outbox wake-up only if event polling/latency measurements require it.
@@ -96,20 +103,22 @@ capacity sequence and does not compete with that status document.
 
 Query PostgreSQL and reconcile:
 
-- accepted HTTP answer IDs equal durable answer rows;
-- each participant/question has at most one answer;
-- participant aggregate score equals the sum of immutable answer deltas;
+- accepted HTTP response IDs equal durable response rows;
+- each participant/Activity respects that Activity's submission cardinality;
+- participant aggregate score equals the sum of immutable scored-response deltas;
 - command request IDs are unique and return stable stored results;
 - state versions are monotonic;
 - every emitted durable event references an existing session and valid state;
-- no answer committed after the authoritative close/deadline boundary.
+- no response committed after the authoritative close/deadline boundary.
 
 Any mismatch fails the run even when latency is excellent.
 
 ## Promotion rule
 
-Functional product/API parity is complete. Production rollout remains
-feature-flagged until the 10k gate, observability, security controls,
-backup/restore, graceful drain, and a tested rollback all pass. Capacity claims
+The completed legacy Go-parity program is historical evidence, not a v2 release
+gate. ProSlides v2 must finish its product hardening and rerun capacity gates
+against the final live protocol before production rollout. Production remains
+blocked until the applicable 10k gate, observability, security controls,
+backup/restore, graceful drain and tested rollback all pass. Capacity claims
 must name the tested infrastructure; never extrapolate linearly beyond measured
 results.

@@ -4,7 +4,7 @@
 
 This document defines the durable frontend architecture. Current implementation
 status belongs in `status/current.md`; remaining debt belongs in
-`frontend-status.md`; completed F0-F5 history is archived in
+`frontend-debt.md`; completed F0-F5 history is archived in
 `archive/frontend-f0-f5-2026-08.md`.
 
 If frontend work changes an external API route, event, error contract or
@@ -13,7 +13,8 @@ persistent value, OpenAPI/backend rules take precedence.
 ## Architectural goals
 
 - Preserve editor revision/conflict correctness and live HTTP/SSE recovery.
-- Converge incrementally on a modular TypeScript SPA without a rewrite.
+- Preserve the modular TypeScript SPA while v2 replaces product/domain surfaces
+  incrementally.
 - Keep product-domain ownership explicit.
 - Use one design-system vocabulary and one REST server-state cache.
 - Keep live event state separate from generic REST caching.
@@ -289,7 +290,7 @@ The Editor converges on one stable shell containing an item rail, canvas,
 inspector and top actions. Type-specific behavior is supplied through two
 bounded registries:
 
-- a content registry for non-responsive authored items;
+- a content registry for non-interactive authored items;
 - an activity registry for audience interactions.
 
 A registry entry may own default definition creation, validation adaptation,
@@ -312,12 +313,13 @@ speculative frontend state for those modes.
 
 ## TypeScript
 
-- New frontend source is TS/TSX.
-- Migrate domain/API/storage/router boundaries before cosmetic leaf files.
-- Do not mechanically rename JSX to TSX while keeping broad `any` and
-  unvalidated object bags.
+- Application source under `apps/web/src` is TypeScript/TSX.
+- New boundaries remain typed; do not reintroduce JavaScript compatibility
+  leaves.
+- Transport DTOs, persisted definitions and live snapshots are converted into
+  explicit module/domain types at their boundaries.
 - Manager/participant snapshots use discriminated types.
-- A green `tsc` is not full frontend coverage while active JSX remains.
+- A green `tsc` is a compile-time guardrail, not behavioral verification.
 
 ## Design system
 

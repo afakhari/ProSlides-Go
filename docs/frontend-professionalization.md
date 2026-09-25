@@ -4,7 +4,7 @@
 
 This document owns durable Persian-first product experience rules. It does not
 track implementation phases or current source counts. Current status is in
-`status/current.md`; frontend debt is in `frontend-status.md`; historical
+`status/current.md`; frontend debt is in `frontend-debt.md`; historical
 F0-F5 delivery is archived in `archive/frontend-f0-f5-2026-08.md`.
 
 ## Product language and direction

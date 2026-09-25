@@ -1,5 +1,12 @@
 # Frontend F5 quality baseline
 
+Status: **historical regression evidence**.
+
+The measurements below were recorded for the F5 frontend baseline. They are not
+current field-performance evidence. Current enforced bundle ceilings live in
+`../../apps/web/bundle-budgets.json`; current release readiness lives in
+`../status/current.md`.
+
 Recorded 2026-08-29 on Windows 11, Node 24.11.1, npm 11.6.2, Vite 7.1.14,
 and system Chrome 151. This is a frontend regression baseline, not backend
 capacity or production Web-Vitals evidence.
@@ -7,7 +14,7 @@ capacity or production Web-Vitals evidence.
 ## Enforced build budgets
 
 `npm run build` emits a Vite manifest and runs
-`scripts/check-bundle-budgets.mjs`. The accepted ceilings are checked in at
+`../../apps/web/scripts/check-bundle-budgets.mjs`. The accepted ceilings are checked in at
 `apps/web/bundle-budgets.json`.
 
 | Metric | Measured | CI ceiling |
@@ -19,7 +26,7 @@ capacity or production Web-Vitals evidence.
 | initial module preloads | 0 | 0 |
 
 The previous substring-based manual chunking preloaded DnD and motion and had
-about 252 KiB initial gzip. Native route splitting now keeps editor DnD,
+about 252 KiB initial gzip. At that baseline, native route splitting kept editor DnD,
 player emoji, and live animation code behind dynamic route boundaries. The
 largest route is the participant join page.
 
@@ -37,7 +44,7 @@ unknown-code states. It also asserts:
 - registration, one-request creation, type-first slide creation, report
   history navigation, logout/login recovery, and invalid-code behavior.
 
-The current suite has four flows. The three existing interaction flows and the
+The suite recorded at that time had four flows. The three existing interaction flows and the
 new 390x844 public themed-participant entry passed in system Chrome; axe found
 zero violations in the themed entry state.
 Earlier baseline failures identified four contrast issues in landing/auth/report

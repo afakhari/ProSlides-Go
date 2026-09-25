@@ -94,14 +94,19 @@ Pop-Location
 Push-Location apps/web
 npm run lint
 npm run typecheck
+npm run architecture:check
 npm run test:unit
-npm run build
+npm run test:component
 Pop-Location
 
 powershell -ExecutionPolicy Bypass -File scripts/test-auth-integration.ps1 -SkipComposeStartup
 ```
 
-The Playwright smoke additionally needs the API stack on port 8080:
+Run `npm run api:types:check` when API/generated types may have changed and
+`npm run build` when dependency, routing, styling or bundle shape changed.
+
+The broader Playwright integration check additionally needs the API stack on
+port 8080:
 
 ```powershell
 $env:PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:\Program Files\Google\Chrome\Application\chrome.exe'

@@ -1,8 +1,12 @@
 # Legacy-to-Go migration parity
 
-This document records product-parity decisions from the Django/Rust migration.
-It is not the current project-status source. See `status/current.md` for current
-priorities and production-readiness state.
+Status: **historical record**.
+
+This document records the completed Django/Rust-to-Go parity program. It is not
+an active roadmap and must not be used to override the current v2 architecture
+or status.
+
+See `../status/current.md` for current priorities and production-readiness state.
 
 ## Parity summary
 
@@ -46,12 +50,12 @@ choices:
 ## Frontend migration relationship
 
 The historical F0-F5 frontend modernization program is archived in
-`archive/frontend-f0-f5-2026-08.md`. Its completion did not make the entire
-client modular or TypeScript. Current frontend debt is tracked in
-`frontend-status.md`.
+`frontend-f0-f5-2026-08.md`. At the time it completed, the client still had
+remaining TypeScript/module migration work; that later work is now complete at
+the application-source level. Current debt is tracked in `../frontend-debt.md`.
 
 ## Production boundary
 
 Functional parity is not production certification. Production readiness still
-depends on the gates in `status/current.md`, `capacity-plan.md`,
-`deployment-runbook.md` and `operations-runbook.md`.
+depends on the gates in `../status/current.md`, `../capacity-plan.md`,
+`../deployment-runbook.md` and `../operations-runbook.md`.
