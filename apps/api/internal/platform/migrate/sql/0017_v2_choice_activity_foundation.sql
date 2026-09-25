@@ -64,8 +64,6 @@ ALTER TABLE slides
         OR (
             jsonb_typeof(content) = 'object'
             AND jsonb_typeof(content->'schema_version') = 'number'
-            AND COALESCE((content->>'schema_version') ~ '^[1-9][0-9]*
-    );
-, false)
+            AND COALESCE((content->>'schema_version') ~ '^[1-9][0-9]*$', false)
         )
     );
