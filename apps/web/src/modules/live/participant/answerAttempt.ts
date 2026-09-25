@@ -61,7 +61,9 @@ export const buildParticipantAnswer = ({
 
   return {
     request_id: requestId,
-    question_id: question.question_id,
-    selected_option_indexes: normalized,
+    activity_item_id: question.question_id,
+    response: {
+      selected_option_indexes: normalized,
+    },
   };
 };
