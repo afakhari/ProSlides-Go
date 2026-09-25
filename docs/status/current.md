@@ -74,20 +74,18 @@ existing generic Activity lifecycle accepts them without a new Session state,
 and Stage, Backstage and Session-first reports render word-frequency
 aggregation without correctness, scoring or ranking semantics.
 
-A pre-V2.7 stabilization gate is active before legacy deletion begins. The
-audit found that `activity.result_updated` was broadcast on the shared SSE
-stream as soon as an Activity closed, which exposed unrevealed aggregate
-results to participant network clients even though participant snapshots
-correctly withheld them. The corrective slice makes Activity-result SSE
-manager-only until reveal, tightens Persian Word Cloud aggregation
-normalization, reconciles the live-contract/version documentation, and refreshes
-the vulnerable transitive web-tooling lock entries identified by `npm audit`.
-The refreshed lock resolves `@redocly/openapi-core`/ `js-yaml` and `qs`
-to patched versions, with a clean zero-vulnerability audit on the same Node/npm
-toolchain used by CI.
+The pre-V2.7 stabilization gate is complete via PR #111. The audit closed
+a participant SSE non-disclosure gap for unrevealed Activity results, tightened
+Persian Word Cloud aggregation normalization, reconciled live-contract/version
+documentation, refreshed vulnerable transitive web-tooling lock entries, and
+removed the remaining Stage hook warning found during the same pass. The
+resulting dependency install reports zero known vulnerabilities on the CI
+Node/npm toolchain.
 
-**Next implementation slice after the stabilization gate is green on
-`main`: V2.7 / issue #89 — remove verified legacy
+PR #111 is merged into `main` and post-merge CI #555 is green, including the
+full browser E2E job. V2.6 / issue #88 is therefore closed.
+
+**Active implementation slice: V2.7 / issue #89 — remove verified legacy
 question/slide/leaderboard compatibility paths.**
 
 v2 is a staged migration of the existing system, not a rewrite.
