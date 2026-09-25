@@ -341,23 +341,26 @@ try {
   }
   $resumedEventNames = @()
   $currentEventName = $null
-  $leaderboardEventValidated = $false
+  $rankingEventValidated = $false
   for ($lineNumber = 0; $lineNumber -lt 100; $lineNumber++) {
     $eventLine = $resumeReader.ReadLineAsync().GetAwaiter().GetResult()
     if ($eventLine -match '^event: (.+)$') {
       $currentEventName = $Matches[1]
       $resumedEventNames += $currentEventName
-    } elseif ($currentEventName -eq 'leaderboard.updated' -and $eventLine -match '^data: (.+)$') {
-      $leaderboardEvent = $Matches[1] | ConvertFrom-Json
-      if ($leaderboardEvent.schema_version -ne 2 -or $leaderboardEvent.payload.participant_count -ne 17 -or $leaderboardEvent.payload -is [System.Array] -or $leaderboardEvent.payload.PSObject.Properties.Name -contains 'participant_id') {
-        throw "leaderboard.updated disclosed roster rows instead of an aggregate notification"
+    } elseif ($currentEventName -eq 'ranking.updated' -and $eventLine -match '^data: (.+)$') {
+      $rankingEvent = $Matches[1] | ConvertFrom-Json
+      if ($rankingEvent.schema_version -ne 2 -or $rankingEvent.payload.participant_count -ne 17 -or $rankingEvent.payload -is [System.Array] -or $rankingEvent.payload.PSObject.Properties.Name -contains 'participant_id') {
+        throw "ranking.updated disclosed roster rows instead of an aggregate notification"
       }
-      $leaderboardEventValidated = $true
+      $rankingEventValidated = $true
       break
     }
   }
-  if ($resumedEventNames -notcontains 'answer.stats' -or $resumedEventNames -notcontains 'leaderboard.updated' -or -not $leaderboardEventValidated) {
-    throw "SSE replay did not contain the aggregated answer.stats and leaderboard.updated events"
+  if ($resumedEventNames -contains 'activity.result_updated') {
+    throw "Participant SSE received the manager-only unrevealed Activity result event"
+  }
+  if ($resumedEventNames -notcontains 'ranking.updated' -or -not $rankingEventValidated) {
+    throw "SSE replay did not contain the aggregate ranking.updated event"
   }
   $resumeReader.Dispose()
   $resumeResponse.Dispose()
