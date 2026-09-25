@@ -486,10 +486,6 @@ func (h *HTTP) createQuestion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, slide)
 }
 
-func validJSONObject(raw json.RawMessage) bool {
-	var value map[string]any
-	return len(raw) > 0 && json.Unmarshal(raw, &value) == nil && value != nil
-}
 func decodeExpectedRevision(w http.ResponseWriter, r *http.Request) (*int64, bool) {
 	raw := strings.TrimSpace(r.Header.Get("If-Match"))
 	if raw == "" {
