@@ -430,7 +430,7 @@ function QuestionEditor({
   );
 
   const editorCanvas = activeSlide ? (
-    activeItemConfigured || activeRegistration?.category === "legacy" ? (
+    activeItemConfigured ? (
       <div className="flex h-full w-full items-center justify-center">
         <EditorItemCanvas
           slide={activeSlide}
@@ -585,8 +585,7 @@ function QuestionEditor({
 
   const itemInspector =
     showSidebar && activeSlide ? (
-      activeItemConfigured ||
-      activeRegistration?.category === "legacy" ? (
+      activeItemConfigured ? (
         <EditorItemInspector
           quizId={quiz.quiz_id}
           slide={activeSlide}
@@ -641,8 +640,7 @@ function QuestionEditor({
   const topActions = (
     <>
       {activeSlide &&
-      activeRegistration &&
-      activeRegistration.category !== "legacy" ? (
+      activeRegistration ? (
         <button
           type="button"
           onClick={handleTypeChangeClick}
