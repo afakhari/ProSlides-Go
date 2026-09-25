@@ -3,8 +3,10 @@ import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import type {
   LegacyContentSlide,
+  LegacyQuestionResult,
   LegacyQuestionSlide,
 } from "../model/serverData.ts";
+import { ParticipantActivityResult } from "../participant/ui/ParticipantActivityResult.tsx";
 import { ParticipantContentSlide } from "../participant/ui/ParticipantContentSlide.tsx";
 import { ParticipantFinalResult } from "../participant/ui/ParticipantFinalResult.tsx";
 import { ParticipantJoinPage } from "../participant/ui/ParticipantJoinPage.tsx";
@@ -18,6 +20,7 @@ type PlayerViewProps = {
   quiz: LivePresentationModel;
   currentQuestion: LegacyQuestionSlide | null;
   currentContent: LegacyContentSlide | null;
+  questionResults: LegacyQuestionResult | null;
   snapshot: LiveSnapshot | null;
   hasLeaderboard: boolean;
   hasSeenActiveSlide: boolean;
@@ -29,6 +32,7 @@ export function PlayerPresentationView({
   quiz,
   currentQuestion,
   currentContent,
+  questionResults,
   snapshot,
   hasLeaderboard,
   hasSeenActiveSlide,
@@ -39,6 +43,20 @@ export function PlayerPresentationView({
       <ParticipantContentSlide
         quiz={quiz}
         content={currentContent}
+      />
+    );
+  }
+
+  if (
+    currentQuestion &&
+    snapshot?.role === "participant" &&
+    snapshot.session.activity_phase === "revealed"
+  ) {
+    return (
+      <ParticipantActivityResult
+        quiz={quiz}
+        question={currentQuestion}
+        result={questionResults}
       />
     );
   }
