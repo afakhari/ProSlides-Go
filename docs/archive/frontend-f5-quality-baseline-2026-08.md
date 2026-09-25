@@ -4,7 +4,7 @@ Status: **historical regression evidence**.
 
 The measurements below were recorded for the F5 frontend baseline. They are not
 current field-performance evidence. Current enforced bundle ceilings live in
-`apps/web/bundle-budgets.json`; current release readiness lives in
+`../../apps/web/bundle-budgets.json`; current release readiness lives in
 `../status/current.md`.
 
 Recorded 2026-08-29 on Windows 11, Node 24.11.1, npm 11.6.2, Vite 7.1.14,
@@ -14,7 +14,7 @@ capacity or production Web-Vitals evidence.
 ## Enforced build budgets
 
 `npm run build` emits a Vite manifest and runs
-`scripts/check-bundle-budgets.mjs`. The accepted ceilings are checked in at
+`../../apps/web/scripts/check-bundle-budgets.mjs`. The accepted ceilings are checked in at
 `apps/web/bundle-budgets.json`.
 
 | Metric | Measured | CI ceiling |
