@@ -1,7 +1,9 @@
 # Live load-test evidence
 
-This file records measured results, including failed experiments. It does not
-turn local Docker Desktop observations into production capacity claims. Raw k6
+This file records measured results, including failed experiments. The existing
+runs exercise the pre-v2 question-specific live protocol. They remain evidence
+for the underlying system but do not certify the final v2 Activity protocol or
+production capacity. Raw k6
 summaries and before/after Prometheus scrapes are kept under ignored
 `.tmp/load-results/` on the machine that ran the test.
 
