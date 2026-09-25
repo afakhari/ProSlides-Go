@@ -53,8 +53,10 @@ export const editorSlideMatchesTypeChoice = (
 
   if (choice.registrationKey === "choice") {
     const question = slide.question;
+    if (!question) return false;
+
     return (
-      question?.question_type === choice.questionType &&
+      question.question_type === choice.questionType &&
       (question.evaluation_mode ?? "correctness") ===
         (choice.evaluationMode ?? "correctness") &&
       (question.scoring_mode ?? "points") ===
