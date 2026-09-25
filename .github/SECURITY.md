@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-ProSlides is currently developed from the `main` branch and does not yet
-maintain multiple supported release lines.
+ProSlides is pre-production and currently developed from the `main` branch. It
+does not yet maintain versioned production release lines.
 
 | Version | Supported |
 | --- | --- |
-| Current `main` / current deployment | Yes |
+| Current `main` / controlled validation deployments | Yes |
 | Historical archive tags and older snapshots | No |
 
 Security fixes are applied to the current codebase. Backports are not guaranteed
