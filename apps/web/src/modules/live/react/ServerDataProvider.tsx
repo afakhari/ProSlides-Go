@@ -56,8 +56,10 @@ export function ServerDataProvider({
       ...EMPTY_PROJECTION,
       ...projection,
       managerLastLeaderboard,
+      modalLeaderboardResults:
+        snapshot?.role === "manager" ? projection.users : null,
     }),
-    [managerLastLeaderboard, projection],
+    [managerLastLeaderboard, projection, snapshot?.role],
   );
 
   const value = useMemo<ServerDataValue>(
