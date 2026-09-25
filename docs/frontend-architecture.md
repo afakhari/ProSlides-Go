@@ -280,6 +280,36 @@ The runtime must preserve:
 
 React context exposes the runtime controller through a thin external-store adapter. Cursor, reconnect, roster and command state belong to `modules/live/runtime`, not to React lifecycle state.
 
+## ProSlides v2 frontend direction
+
+ADR 0004 and `v2-product-architecture.md` define the product model for the
+active redesign.
+
+The Editor converges on one stable shell containing an item rail, canvas,
+inspector and top actions. Type-specific behavior is supplied through two
+bounded registries:
+
+- a content registry for non-responsive authored items;
+- an activity registry for audience interactions.
+
+A registry entry may own default definition creation, validation adaptation,
+Editor canvas/inspector rendering, Stage rendering, participant rendering and
+results rendering for its type. It must not become a generic service locator or
+bypass module ownership.
+
+Live rendering converges on three explicit projections:
+
+- Stage for the audience;
+- Backstage for presenter-only controls and insight;
+- Participant for mobile-first personal interaction.
+
+Activity results and cumulative Session leaderboard are separate UI/domain
+concepts. Synthetic leaderboard entries may remain during migration but are not
+the v2 persisted authoring model.
+
+v2.0 intentionally excludes team mode and self-paced/assignment UI. Do not add
+speculative frontend state for those modes.
+
 ## TypeScript
 
 - New frontend source is TS/TSX.
@@ -401,19 +431,7 @@ identification.
 
 ## Migration sequencing
 
-This list records sequencing constraints, not current completion status. Current completion and remaining debt are tracked in `status/current.md` and `frontend-status.md`.
-
-1. Standardize backend/frontend machine-readable error contracts.
-2. Converge design-system primitives and tokens.
-3. Introduce RHF/Zod form foundation for ordinary forms.
-4. Introduce the single TanStack Query REST cache through identity/reports.
-5. Enforce dependency boundaries and continue TypeScript module migration.
-6. Extract typed live runtime from React context.
-7. Keep a small fast component/API-state safety net during active redesign and
-   defer broad UI coverage to pre-production hardening.
-8. Upgrade major toolchain pieces in isolated, compatibility-tested changes.
-   Framework major upgrades must satisfy their declared React/Node runtime
-   requirements before adoption; do not combine them with unrelated architecture
-   migrations.
-
-Do not combine these migrations into one rewrite.
+The active redesign sequence is owned only by `v2-development-plan.md` to avoid
+stale duplicate roadmaps. Frontend slices must preserve the dependency rules in
+this document, migrate one ownership boundary at a time, and avoid combining
+v2 domain changes with unrelated framework/toolchain upgrades.
