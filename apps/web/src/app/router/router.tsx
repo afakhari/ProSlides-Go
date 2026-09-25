@@ -71,6 +71,14 @@ export const appRouter = createBrowserRouter([
         lazy: lazyPresentationEntry("presentation", "manager"),
       },
       {
+        path: "manager/stage/:roomId",
+        loader: requireManagerSession,
+        ErrorBoundary: ManagerRouteErrorBoundary,
+        lazy: lazyComponent(() =>
+          import("../../modules/live/routes/StageRoute.tsx"),
+        ),
+      },
+      {
         path: "player/presentation/:roomId",
         lazy: lazyPresentationEntry("presentation", "player"),
       },
