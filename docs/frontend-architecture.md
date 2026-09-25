@@ -13,7 +13,8 @@ persistent value, OpenAPI/backend rules take precedence.
 ## Architectural goals
 
 - Preserve editor revision/conflict correctness and live HTTP/SSE recovery.
-- Preserve the modular TypeScript SPA while v2 replaces product/domain surfaces incrementally.
+- Preserve the modular TypeScript SPA while v2 replaces product/domain surfaces
+  incrementally.
 - Keep product-domain ownership explicit.
 - Use one design-system vocabulary and one REST server-state cache.
 - Keep live event state separate from generic REST caching.
@@ -289,7 +290,7 @@ The Editor converges on one stable shell containing an item rail, canvas,
 inspector and top actions. Type-specific behavior is supplied through two
 bounded registries:
 
-- a content registry for non-responsive authored items;
+- a content registry for non-interactive authored items;
 - an activity registry for audience interactions.
 
 A registry entry may own default definition creation, validation adaptation,
