@@ -304,11 +304,13 @@ test("shared design primitives use the ProSlides token vocabulary and accessible
 });
 
 
-test("manager and player routes are explicit and reports use the typed query boundary", () => {
+test("manager and player routes are explicit and reports use the session-first typed boundary", () => {
   const router = source("src/app/router/router.tsx");
   const report = source("src/modules/reports/routes/ReportRoute.tsx");
   const reportApi = source("src/modules/reports/api/reportApi.ts");
   const reportQueries = source("src/modules/reports/api/reportQueries.ts");
+  const activity = source("src/modules/reports/ui/ActivityReportPanel.tsx");
+  const ranking = source("src/modules/reports/ui/RankingPanel.tsx");
   const provider = source("src/app/providers/AppQueryProvider.tsx");
   const queryClient = source("src/app/providers/queryClient.ts");
 
@@ -320,11 +322,26 @@ test("manager and player routes are explicit and reports use the typed query bou
 
   assert.match(report, /useInfiniteQuery/);
   assert.match(report, /useQuery/);
-  assert.match(report, /بازگشت به پنل مدیریت/);
-  assert.doesNotMatch(report, /"(?:Language|Notifications|Help|Logout|Search participants|Participants)"/);
+  assert.match(report, /useSearchParams/);
+  assert.match(report, /گزارش جلسه‌محور/);
+  assert.match(report, /<SessionHistory/);
+  assert.match(report, /<ActivityReportPanel/);
+  assert.match(report, /<RankingPanel/);
+  assert.doesNotMatch(report, /LatestSession|latest-session|getRosterPage/);
   assert.match(reportApi, /requestJson/);
-  assert.doesNotMatch(reportApi, /liveApi|services\/quizService/);
-  assert.match(reportQueries, /refetchInterval:\s*15 \* 60_000/);
+  assert.match(reportApi, /\/sessions\?\$\{pageQuery/);
+  assert.match(reportApi, /\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/report/);
+  assert.match(reportApi, /\/activities\/\$\{encodeURIComponent\(activityItemId\)\}\/results/);
+  assert.match(reportApi, /\/ranking\?/);
+  assert.doesNotMatch(reportApi, /latest-session|liveApi|services\/quizService|\/roster/);
+  assert.match(reportQueries, /reportSessionsQuery/);
+  assert.match(reportQueries, /reportSessionQuery/);
+  assert.match(reportQueries, /reportActivityQuery/);
+  assert.match(reportQueries, /reportRankingQuery/);
+  assert.match(activity, /نتیجه همین فعالیت/);
+  assert.match(activity, /برترین‌های همین فعالیت/);
+  assert.match(activity, /پاسخ‌ها و ارزیابی شرکت‌کنندگان/);
+  assert.match(ranking, /رتبه‌بندی کلی جلسه/);
   assert.match(provider, /QueryClientProvider/);
   assert.match(queryClient, /mutations:\s*\{[\s\S]*retry:\s*false/);
 });
