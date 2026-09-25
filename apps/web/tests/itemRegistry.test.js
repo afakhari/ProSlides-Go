@@ -27,6 +27,9 @@ const choiceSlide = {
   revision: 3,
   order: 0,
   slide_type: 1,
+  item_kind: "activity",
+  activity_kind: "choice",
+  schema_version: 1,
   show_leaderboard_after: true,
   question: {
     question_id: "choice-1",
@@ -54,6 +57,7 @@ const contentSlide = {
   revision: 2,
   order: 1,
   slide_type: 2,
+  item_kind: "content",
   show_leaderboard_after: false,
   question: null,
   title: "مقدمه",
@@ -72,6 +76,15 @@ test("content and Activity registries stay bounded and authoring choices exclude
     editorTypeChoices.some((choice) => /leaderboard|ranking/i.test(choice.id)),
     false,
   );
+});
+
+test("Choice registration does not capture future Activity kinds", () => {
+  const futureActivity = {
+    ...choiceSlide,
+    activity_kind: "text",
+  };
+
+  assert.equal(resolveEditorItemRegistration(futureActivity), null);
 });
 
 test("Choice registration exposes Activity result and optional overall ranking as separate behaviors", () => {
