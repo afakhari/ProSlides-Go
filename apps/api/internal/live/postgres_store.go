@@ -416,7 +416,7 @@ func reconcileDeadlineTx(c context.Context, tx pgx.Tx, session string) (bool, er
 	return true, nil
 }
 
-func (s *PostgresStore) SubmitAnswer(c context.Context, session string, hash []byte, request, item string, selected []int, policy ScoringPolicy) (AnswerResult, error) {
+func (s *PostgresStore) SubmitAnswer(c context.Context, session string, hash []byte, request, item string, response ActivityResponsePayload, policy ScoringPolicy) (AnswerResult, error) {
 	var result AnswerResult
 	tx, e := s.pool.BeginTx(c, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if e != nil {
@@ -458,28 +458,26 @@ func (s *PostgresStore) SubmitAnswer(c context.Context, session string, hash []b
 	if e != nil {
 		return result, e
 	}
-	if state != string(Presenting) || phase != string(ActivityAccepting) || active != item || kind != presentations.ItemKindActivity || remainingSeconds <= 0 {
+	if state != string(Presenting) ||
+		phase != string(ActivityAccepting) ||
+		active != item ||
+		kind != presentations.ItemKindActivity ||
+		remainingSeconds <= 0 {
 		return result, ErrConflict
 	}
 
 	definition, decodeErr := presentations.DecodeActivityDefinition(content)
-	if decodeErr != nil || definition.ActivityKind != presentations.ActivityKindChoice {
+	if decodeErr != nil {
 		return result, ErrInvalid
 	}
-
-	seen := map[int]bool{}
-	for _, index := range selected {
-		if index < 0 || index >= len(definition.Response.Options) || seen[index] {
-			return result, ErrInvalid
-		}
-		seen[index] = true
-	}
-	if definition.Response.Selection == presentations.ChoiceSelectionSingle && len(selected) != 1 {
-		return result, ErrInvalid
+	normalizedResponse, selected, responseErr := normalizeActivityResponse(definition, response)
+	if responseErr != nil {
+		return result, responseErr
 	}
 
 	score := 0
-	if definition.Scoring.Mode == presentations.ScoringModePoints {
+	if definition.ActivityKind == presentations.ActivityKindChoice &&
+		definition.Scoring.Mode == presentations.ScoringModePoints {
 		correctIDs := make(map[string]struct{}, len(definition.Evaluation.CorrectOptionIDs))
 		for _, id := range definition.Evaluation.CorrectOptionIDs {
 			correctIDs[id] = struct{}{}
@@ -491,21 +489,17 @@ func (s *PostgresStore) SubmitAnswer(c context.Context, session string, hash []b
 			}
 		}
 		score = policy.Score(Question{
-			Type: definition.Response.Selection,
-			Correct: correct,
-			MaxPoints: definition.Scoring.MaxPoints,
-			MinPoints: definition.Scoring.MinPoints,
+			Type:           definition.Response.Selection,
+			Correct:        correct,
+			MaxPoints:      definition.Scoring.MaxPoints,
+			MinPoints:      definition.Scoring.MinPoints,
 			PartialScoring: definition.Scoring.PartialCredit,
-			FasterAnswers: definition.Scoring.SpeedBonus,
-			Duration: time.Duration(definition.Timing.DurationSeconds) * time.Second,
-			Remaining: time.Duration(remainingSeconds * float64(time.Second)),
+			FasterAnswers:  definition.Scoring.SpeedBonus,
+			Duration:       time.Duration(definition.Timing.DurationSeconds) * time.Second,
+			Remaining:      time.Duration(remainingSeconds * float64(time.Second)),
 		}, selected)
 	}
 
-	answer, marshalErr := json.Marshal(map[string]any{"selected_option_indexes": selected})
-	if marshalErr != nil {
-		return result, marshalErr
-	}
 	e = tx.QueryRow(c, `WITH inserted AS (
 			INSERT INTO answers(session_id,participant_id,question_slide_id,request_id,answer,score_delta)
 			VALUES($1,$2,$3,$4,$5,$6)
@@ -515,7 +509,7 @@ func (s *PostgresStore) SubmitAnswer(c context.Context, session string, hash []b
 			FROM inserted WHERE p.id=$2 RETURNING p.id
 		)
 		SELECT inserted.id::text,inserted.score_delta FROM inserted JOIN updated ON true`,
-		session, participant, item, request, answer, score).Scan(&result.AnswerID, &result.ScoreDelta)
+		session, participant, item, request, normalizedResponse, score).Scan(&result.AnswerID, &result.ScoreDelta)
 	if e != nil {
 		if isUniqueViolation(e) {
 			_ = tx.Rollback(c)
@@ -563,7 +557,7 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 		 FROM live_session_slides WHERE session_id=l.id AND slide_id=l.active_item_id),
 		(SELECT jsonb_build_object(
 			'activity_item_id',a.question_slide_id::text,
-			'selected_option_indexes',COALESCE(a.answer->'selected_option_indexes','[]'::jsonb),
+			'response',a.answer,
 			'score_delta',a.score_delta)
 		 FROM answers a
 		 WHERE a.session_id=l.id AND a.participant_id=p.id AND a.question_slide_id=l.active_item_id
@@ -963,33 +957,98 @@ func sanitizeReplayedEvent(event *Event) error {
 }
 
 func activityResult(c context.Context, tx pgx.Tx, session, item string) (ActivityResult, error) {
-	counts := map[string]int{}
-	rows, e := tx.Query(c, `SELECT selected.value, count(*)::int
-		FROM answers a
-		CROSS JOIN LATERAL jsonb_array_elements_text(a.answer->'selected_option_indexes') selected(value)
-		WHERE a.session_id=$1 AND a.question_slide_id=$2
-		GROUP BY selected.value`, session, item)
-	if e != nil {
-		return ActivityResult{}, e
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var option string
-		var count int
-		if e = rows.Scan(&option, &count); e != nil {
-			return ActivityResult{}, e
-		}
-		counts[option] = count
-	}
-	if e = rows.Err(); e != nil {
+	var content json.RawMessage
+	var responseCount int
+	if e := tx.QueryRow(c, `SELECT item.content,
+		(SELECT count(*)::int FROM answers a
+		 WHERE a.session_id=item.session_id AND a.question_slide_id=item.slide_id)
+		FROM live_session_slides item
+		WHERE item.session_id=$1 AND item.slide_id=$2 AND item.kind='activity'`,
+		session, item).Scan(&content, &responseCount); e != nil {
 		return ActivityResult{}, e
 	}
 
-	var responseCount int
-	if e = tx.QueryRow(c, `SELECT count(*)::int FROM answers WHERE session_id=$1 AND question_slide_id=$2`, session, item).Scan(&responseCount); e != nil {
-		return ActivityResult{}, e
+	definition, err := presentations.DecodeActivityDefinition(content)
+	if err != nil {
+		return ActivityResult{}, err
 	}
-	return ActivityResult{ActivityItemID: item, ResponseCount: responseCount, OptionCounts: counts}, nil
+
+	var payload json.RawMessage
+	switch definition.ActivityKind {
+	case presentations.ActivityKindChoice:
+		counts := map[string]int{}
+		rows, queryErr := tx.Query(c, `SELECT selected.value, count(*)::int
+			FROM answers a
+			CROSS JOIN LATERAL jsonb_array_elements_text(
+				COALESCE(a.answer->'selected_option_indexes','[]'::jsonb)
+			) selected(value)
+			WHERE a.session_id=$1 AND a.question_slide_id=$2
+			GROUP BY selected.value`, session, item)
+		if queryErr != nil {
+			return ActivityResult{}, queryErr
+		}
+		for rows.Next() {
+			var option string
+			var count int
+			if scanErr := rows.Scan(&option, &count); scanErr != nil {
+				rows.Close()
+				return ActivityResult{}, scanErr
+			}
+			counts[option] = count
+		}
+		if rowsErr := rows.Err(); rowsErr != nil {
+			rows.Close()
+			return ActivityResult{}, rowsErr
+		}
+		rows.Close()
+		payload, err = json.Marshal(map[string]any{"option_counts": counts})
+
+	case presentations.ActivityKindText:
+		type termCount struct {
+			Text  string `json:"text"`
+			Count int    `json:"count"`
+		}
+		terms := make([]termCount, 0, 100)
+		rows, queryErr := tx.Query(c, `SELECT term.value,count(*)::int
+			FROM answers a
+			CROSS JOIN LATERAL jsonb_array_elements_text(
+				COALESCE(a.answer->'terms','[]'::jsonb)
+			) term(value)
+			WHERE a.session_id=$1 AND a.question_slide_id=$2
+			GROUP BY term.value
+			ORDER BY count(*) DESC,term.value
+			LIMIT 100`, session, item)
+		if queryErr != nil {
+			return ActivityResult{}, queryErr
+		}
+		for rows.Next() {
+			var term termCount
+			if scanErr := rows.Scan(&term.Text, &term.Count); scanErr != nil {
+				rows.Close()
+				return ActivityResult{}, scanErr
+			}
+			terms = append(terms, term)
+		}
+		if rowsErr := rows.Err(); rowsErr != nil {
+			rows.Close()
+			return ActivityResult{}, rowsErr
+		}
+		rows.Close()
+		payload, err = json.Marshal(map[string]any{"terms": terms})
+
+	default:
+		return ActivityResult{}, ErrInvalid
+	}
+	if err != nil {
+		return ActivityResult{}, err
+	}
+	return ActivityResult{
+		ActivityItemID: item,
+		ActivityKind:   definition.ActivityKind,
+		SchemaVersion:  definition.SchemaVersion,
+		ResponseCount:  responseCount,
+		Payload:        payload,
+	}, nil
 }
 
 func rankingSummary(c context.Context, tx pgx.Tx, session string) (map[string]any, error) {
