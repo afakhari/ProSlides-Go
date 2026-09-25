@@ -107,6 +107,36 @@ test("closed Activities are not projected as a fresh participant question", () =
   assert.equal(projection.leaderboardResults, null);
 });
 
+test("revealed Activity projects a read-only participant result before overall ranking", () => {
+  const projection = projectLiveSnapshot({
+    role: "participant",
+    session: {
+      state: "presenting",
+      state_version: 9,
+      active_item_id: "activity-1",
+      activity_phase: "revealed",
+      stage_view: "item",
+    },
+    active_item: choiceItem(),
+    participant: { id: "p1", display_name: "Player", score: 100 },
+    participant_count: 3,
+    activity_result: {
+      activity_item_id: "activity-1",
+      response_count: 3,
+      option_counts: { 0: 2, 1: 1 },
+    },
+  });
+
+  assert.equal(projection.currentQuestion.question_id, "activity-1");
+  assert.equal(projection.questionResults.question_id, "activity-1");
+  assert.equal(projection.questionResults.response_count, 3);
+  assert.deepEqual(
+    projection.questionResults.optionsResult.map((row) => row.number_of_submits),
+    [2, 1],
+  );
+  assert.equal(projection.leaderboardResults, null);
+});
+
 test("manager retains the closed Activity so results can render before ranking", () => {
   const projection = projectLiveSnapshot({
     role: "manager",
