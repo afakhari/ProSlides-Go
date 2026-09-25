@@ -31,7 +31,7 @@ export function ManagerPickAnswerQuestion({
   isRemoteReady,
   onEndGame,
 }: ManagerQuestionProps) {
-  const { isConnected, sendNavigation, sendEnd } = useLiveSession();
+  const { isConnected, sendNavigation, sendEnd, snapshot } = useLiveSession();
   const {
     questionResults,
     modalLeaderboardResults,
@@ -158,20 +158,27 @@ export function ManagerPickAnswerQuestion({
 
   const handleNext = async () => {
     if (!currentQuestion) return;
-    const nextSlide = quiz.slides[currentSlide];
 
-    if (!currentQuestion.show_leaderboard_after && !nextSlide) {
-      if (await sendEnd()) onEndGame();
+    const phase = snapshot?.session.activity_phase ?? null;
+    if (phase === "accepting" || phase === "closed") {
+      await sendNavigation("next");
       return;
     }
+
+    const nextSlide = quiz.slides[currentSlide];
 
     if (currentQuestion.show_leaderboard_after) {
       await sendNavigation("next");
       return;
     }
 
-    if (nextSlide) {
-      await sendNavigation("next", { slide: nextSlide });
+    if (!nextSlide) {
+      if (await sendEnd()) onEndGame();
+      return;
+    }
+
+    if (await sendNavigation("next", { slide: nextSlide })) {
+      // The authoritative snapshot will move the controller to the next item.
     }
   };
 
