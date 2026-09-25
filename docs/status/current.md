@@ -47,8 +47,8 @@ Scope locks for v2.0 are intentional: presenter-paced individual participation
 only; no team mode, no self-paced/assignment mode, no parallel /api/v2, and no
 generic flow-builder abstraction.
 
-The architecture-definition slice is in progress on the v2 foundation PR.
-Implementation begins with V2.1 after those documents are merged.
+The v2 architecture/tracking baseline is defined by the v2 documents, ADR 0004
+and GitHub issue #82. The next active implementation slice is V2.1 (issue #83).
 
 ## Frontend current state
 
@@ -125,8 +125,7 @@ Remaining work:
 
 ## Active priorities
 
-1. Complete the v2 architecture/tracking baseline, then start V2.1 from
-   `../v2-development-plan.md`.
+1. Start V2.1 from `../v2-development-plan.md` / GitHub issue #83.
 2. Preserve current live/editor correctness while migrating one vertical
    boundary at a time; do not run a separate long-lived v2 implementation.
 3. Keep OpenAPI, TypeScript, lint, architecture checks and focused domain tests
