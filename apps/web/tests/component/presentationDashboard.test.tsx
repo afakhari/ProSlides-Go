@@ -6,7 +6,7 @@ import {
   createMemoryRouter,
   RouterProvider,
 } from "react-router-dom";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { identityKeys } from "../../src/modules/identity/api/sessionQuery.ts";
 import PresentationDashboardRoute from "../../src/modules/presentations/dashboard/PresentationDashboard.tsx";
@@ -161,6 +161,7 @@ describe("PresentationDashboard API states", () => {
   });
 
   test("preserves a recoverable create error and navigates after retry succeeds", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     let createCount = 0;
 
     server.use(
@@ -201,5 +202,6 @@ describe("PresentationDashboard API states", () => {
 
     expect(await screen.findByTestId("editor-route")).not.toBeNull();
     expect(createCount).toBe(2);
+    expect(consoleError).toHaveBeenCalledTimes(1);
   });
 });
