@@ -122,7 +122,6 @@ export const quizService = {
   deletePresentation: (id: string) => request<void>(`/presentations/${id}`, { method: "DELETE" }),
   duplicatePresentation: (id: string, title: string) => request<PresentationDTO>(`/presentations/${id}/duplicate`, { method: "POST", json: { title } }),
   resetPresentationResults: (id: string) => request<void>(`/presentations/${id}/results`, { method: "DELETE" }),
-  getLatestSession: (id: string, options?: RequestOptions) => request<Record<string, unknown>>(`/presentations/${id}/latest-session`, options),
 
   getQuiz: async (quizID: string, options?: RequestOptions) => presentationToEditor(await request<PresentationDTO>(`/presentations/${quizID}`, options)),
   getEditorQuiz: async (quizID: string, options?: RequestOptions) =>
