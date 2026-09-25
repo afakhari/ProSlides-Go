@@ -291,6 +291,50 @@ export const presentationSlideToLegacy = (
 ): LegacyQuestionSlide | LegacyContentSlide | null => {
   const content = recordValue(slide.content);
 
+  if (slide.kind === "activity" && content.activity_kind === "choice") {
+    const prompt = recordValue(content.prompt);
+    const response = recordValue(content.response);
+    const evaluation = recordValue(content.evaluation);
+    const scoring = recordValue(content.scoring);
+    const timing = recordValue(content.timing);
+    const results = recordValue(content.results);
+    const rawOptions = Array.isArray(response.options) ? response.options : [];
+    const correctOptionIds = new Set(
+      Array.isArray(evaluation.correct_option_ids)
+        ? evaluation.correct_option_ids.map(String)
+        : [],
+    );
+    const questionType =
+      response.selection === "multiple" ? "multiple" : "single";
+
+    return {
+      slide_type: 1,
+      slide_id: slide.id,
+      question_id: slide.id,
+      question_text: stringValue(prompt.text),
+      question_title: stringValue(prompt.title),
+      question_time: finiteNumber(timing.duration_seconds, 10),
+      min_point: finiteNumber(scoring.min_points),
+      max_point: finiteNumber(scoring.max_points, 100),
+      question_type: questionType,
+      has_multiple: questionType === "multiple",
+      image_url: stringValue(prompt.image_url),
+      show_leaderboard_after:
+        results.show_overall_leaderboard_after === true,
+      options: rawOptions.map((rawOption, index) => {
+        const option = recordValue(rawOption);
+        return {
+          option_id: index,
+          option_index: index,
+          option_text: stringValue(option.text),
+          image_url: stringValue(option.image_url),
+          order: index,
+          answer: correctOptionIds.has(String(option.id ?? "")),
+        };
+      }),
+    };
+  }
+
   if (slide.kind === "question_draft") {
     return {
       slide_type: 1,
