@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 
 import {
   getContentValidationError,
-  getPresentationValidationError,
   getQuestionValidationError,
 } from "../src/modules/presentations/model/editor.ts";
+import {
+  getPresentationValidationError,
+} from "../src/modules/presentations/model/itemRegistry.ts";
 
 const validQuestion = {
   question_text: "Choose",
