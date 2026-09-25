@@ -237,7 +237,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expectAccessible(page, "empty editor");
   await expectNoOverflow(page);
   expect(createRequestCount).toBe(1);
-  await expect(page.getByRole("heading", { name: "اولین اسلاید را بسازید" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "اولین آیتم را بسازید" })).toBeVisible();
   await expect(page.getByRole("button", { name: "اجرا", exact: true })).toBeVisible();
 
   let createSlideRequestCount = 0;
@@ -249,8 +249,8 @@ test("register, create a presentation, and open its report", async ({ page }) =>
       createSlideRequestCount += 1;
     }
   });
-  await page.getByRole("button", { name: "ساخت اولین اسلاید" }).click();
-  await expect(page.getByRole("dialog", { name: "نوع اسلاید را انتخاب کنید" })).toBeVisible();
+  await page.getByRole("button", { name: "ساخت اولین آیتم" }).click();
+  await expect(page.getByRole("dialog", { name: "نوع آیتم را انتخاب کنید" })).toBeVisible();
   expect(createSlideRequestCount).toBe(0);
 
   const createSlideRequest = page.waitForResponse(
@@ -261,7 +261,7 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await page.getByRole("button", { name: /تک‌گزینه‌ای/ }).click();
   expect((await createSlideRequest).status()).toBe(201);
   expect(createSlideRequestCount).toBe(1);
-  await expect(page.getByRole("dialog", { name: "نوع اسلاید را انتخاب کنید" })).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "نوع آیتم را انتخاب کنید" })).toBeHidden();
 
   const presentationId = new URL(page.url()).pathname.split("/").at(-1);
   const firstReportSession = waitForManagerSession(page);
