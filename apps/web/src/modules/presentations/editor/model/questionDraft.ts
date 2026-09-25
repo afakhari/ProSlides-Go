@@ -91,7 +91,9 @@ export const createQuestionDraft = (slide: EditorSlide): QuestionDraft | null =>
     slideId: slide.slide_id,
     revision: slide.revision,
     order: slide.order,
-    showLeaderboardAfter: slide.show_leaderboard_after === true,
+    showLeaderboardAfter:
+      (question.scoring_mode ?? "points") === "points" &&
+      slide.show_leaderboard_after === true,
     questionId: question.question_id,
     title: question.title || "",
     text: question.question_text || "",
@@ -110,7 +112,9 @@ export const createQuestionDraft = (slide: EditorSlide): QuestionDraft | null =>
     options: (question.options || []).map((option) => ({
       id: String(option.option_id),
       text: option.text || "",
-      isCorrect: option.is_correct === true,
+      isCorrect:
+        (question.evaluation_mode ?? "correctness") === "correctness" &&
+        option.is_correct === true,
       imageUrl: option.image_url || "",
     })),
   };
@@ -312,16 +316,29 @@ const draftQuestionLike = (draft: QuestionDraft) => ({
   scoring_mode: draft.scoringMode,
   question_time: parseDraftInteger(draft.timeInput),
   time_limit: parseDraftInteger(draft.timeInput),
-  min_point: parseDraftInteger(draft.minPointsInput),
-  max_point: parseDraftInteger(draft.maxPointsInput),
+  min_point:
+    draft.scoringMode === "none"
+      ? 0
+      : parseDraftInteger(draft.minPointsInput),
+  max_point:
+    draft.scoringMode === "none"
+      ? 0
+      : parseDraftInteger(draft.maxPointsInput),
   image_url: draft.imageUrl,
   question_image: draft.imageUrl,
-  faster_answers_more_points: draft.fasterAnswersMorePoints,
-  partial_scoring: draft.partialScoring,
+  faster_answers_more_points:
+    draft.scoringMode === "points" &&
+    draft.fasterAnswersMorePoints,
+  partial_scoring:
+    draft.scoringMode === "points" &&
+    draft.type === "multiple" &&
+    draft.partialScoring,
   options: draft.options.map((option, index) => ({
     option_id: option.id,
     text: option.text,
-    is_correct: option.isCorrect,
+    is_correct:
+      draft.evaluationMode === "correctness" &&
+      option.isCorrect,
     image_url: option.imageUrl,
     order: index + 1,
   })),
@@ -381,7 +398,9 @@ export const questionDraftToEditorSlide = (
     revision: draft.revision,
     order: draft.order,
     slide_type: 1,
-    show_leaderboard_after: draft.showLeaderboardAfter,
+    show_leaderboard_after:
+      draft.scoringMode === "points" &&
+      draft.showLeaderboardAfter,
     question,
   };
 };
