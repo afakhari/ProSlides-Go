@@ -398,6 +398,9 @@ export const questionDraftToEditorSlide = (
     revision: draft.revision,
     order: draft.order,
     slide_type: 1,
+    item_kind: "activity",
+    activity_kind: "choice",
+    schema_version: 1,
     show_leaderboard_after:
       draft.scoringMode === "points" &&
       draft.showLeaderboardAfter,
