@@ -558,7 +558,6 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 		(SELECT jsonb_build_object(
 			'activity_item_id',a.question_slide_id::text,
 			'response',a.answer,
-			'selected_option_indexes',COALESCE(a.answer->'selected_option_indexes','[]'::jsonb),
 			'score_delta',a.score_delta)
 		 FROM answers a
 		 WHERE a.session_id=l.id AND a.participant_id=p.id AND a.question_slide_id=l.active_item_id
@@ -975,7 +974,6 @@ func activityResult(c context.Context, tx pgx.Tx, session, item string) (Activit
 	}
 
 	var payload json.RawMessage
-	var compatOptionCounts map[string]int
 	switch definition.ActivityKind {
 	case presentations.ActivityKindChoice:
 		counts := map[string]int{}
@@ -1004,11 +1002,6 @@ func activityResult(c context.Context, tx pgx.Tx, session, item string) (Activit
 		}
 		rows.Close()
 		payload, err = json.Marshal(map[string]any{"option_counts": counts})
-		if err == nil {
-			// Temporary V2.6 read compatibility. The canonical generic result
-			// payload is authoritative; V2.7 removes this derived field.
-			compatOptionCounts = counts
-		}
 
 	case presentations.ActivityKindText:
 		type termCount struct {
@@ -1055,7 +1048,6 @@ func activityResult(c context.Context, tx pgx.Tx, session, item string) (Activit
 		SchemaVersion:  definition.SchemaVersion,
 		ResponseCount:  responseCount,
 		Payload:        payload,
-		OptionCounts:   compatOptionCounts,
 	}, nil
 }
 
