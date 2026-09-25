@@ -11,10 +11,13 @@ import {
 import ContentCanvas from "../canvas/ContentCanvas.tsx";
 import LeaderboardCanvas from "../canvas/LeaderboardCanvas.tsx";
 import QuestionCanvas from "../canvas/QuestionCanvas.tsx";
+import WordCloudCanvas from "../canvas/WordCloudCanvas.tsx";
 import ContentInspector from "../inspector/ContentInspector.tsx";
 import QuestionInspector from "../inspector/QuestionInspector.tsx";
+import WordCloudInspector from "../inspector/WordCloudInspector.tsx";
 import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
 import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
+import WordCloudDraftProvider from "../model/WordCloudDraftProvider.tsx";
 
 export type EditorCanvasProps = {
   slide: EditorSlide;
@@ -71,6 +74,18 @@ function ContentDraftBoundary({
   );
 }
 
+function WordCloudDraftBoundary({
+  slide,
+  active,
+  children,
+}: DraftBoundaryProps) {
+  return (
+    <WordCloudDraftProvider slide={slide} active={active}>
+      {children}
+    </WordCloudDraftProvider>
+  );
+}
+
 function PassiveDraftBoundary({ children }: DraftBoundaryProps) {
   return <>{children}</>;
 }
@@ -123,6 +138,12 @@ const renderRegistry: Record<
     DraftBoundary: ChoiceDraftBoundary,
     Canvas: QuestionCanvas,
     Inspector: QuestionInspector,
+  },
+  text: {
+    key: "text",
+    DraftBoundary: WordCloudDraftBoundary,
+    Canvas: WordCloudCanvas,
+    Inspector: WordCloudInspector,
   },
   content: {
     key: "content",
