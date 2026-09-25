@@ -63,4 +63,4 @@ F0-F5 established a professional baseline. They did not complete the
 JavaScript-to-TypeScript migration, eliminate all legacy ownership, produce
 field Core Web Vitals, or make the complete manager/participant browser
 lifecycle a per-change CI gate. Current debt is documented in
-`../frontend-status.md`.
+`../frontend-debt.md`.
