@@ -9,6 +9,7 @@
   "include": [
     "vitest.config.ts",
     "tests/component/**/*.ts",
-    "tests/component/**/*.tsx"
+    "tests/component/**/*.tsx",
+    "src/types/**/*.d.ts"
   ]
 }
