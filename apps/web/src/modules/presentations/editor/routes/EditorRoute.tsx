@@ -239,6 +239,7 @@ function QuestionEditor({
   createdPresentation,
 }: QuestionEditorProps) {
   const navigate = useNavigate();
+  const typePickerContentRef = useRef<HTMLDivElement | null>(null);
   const editorStatus = useEditorStatus();
   const hasSidebarChanges = editorStatus.dirty.content;
   const hasAudioChanges = editorStatus.dirty.audio;
@@ -525,8 +526,15 @@ function QuestionEditor({
     >
       <DialogPrimitive.Overlay className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm" />
       <DialogPrimitive.Content
+        ref={typePickerContentRef}
         className="absolute inset-x-3 z-40 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl outline-none sm:inset-x-auto sm:w-[440px]"
         aria-labelledby="item-type-title"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          typePickerContentRef.current
+            ?.querySelector<HTMLButtonElement>('[data-item-type-choice="first"]')
+            ?.focus();
+        }}
       >
         <DialogPrimitive.Title asChild>
           <h2
@@ -552,13 +560,14 @@ function QuestionEditor({
           </Notice>
         )}
 
-        {editorTypeChoices.map((choice) => {
+        {editorTypeChoices.map((choice, index) => {
           const isBusy =
             isSelectingType && typeSelectionMode === choice.id;
           return (
             <button
               key={choice.id}
               type="button"
+              data-item-type-choice={index === 0 ? "first" : undefined}
               onClick={() => void slideMutations.selectType(choice.id)}
               disabled={isSelectingType}
               className="w-full rounded-2xl border border-brand-border bg-brand-soft px-4 py-3 text-brand-ink transition hover:border-brand hover:bg-brand-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
