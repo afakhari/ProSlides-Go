@@ -182,78 +182,24 @@ func TestCreateSlideRequiresCSRFAndCreatesForOwner(t *testing.T) {
 		t.Fatalf("status=%d owner=%s", res.Code, store.owner)
 	}
 }
-func TestCreateMultipleQuestionStoresV2ChoiceActivity(t *testing.T) {
-	m := http.NewServeMux()
-	store := &fakeStore{}
-	NewHTTP(fakeSessions{}, store).Register(m)
-	q := httptest.NewRequest(http.MethodPost, "/api/v1/presentations/p/questions", strings.NewReader(`{"position":1,"text":"Choose","question_type":"multiple","options":[{"text":"A","is_correct":true},{"text":"B","is_correct":true}]}`))
-	q.AddCookie(&http.Cookie{Name: "proslides_session", Value: "t"})
-	q.Header.Set("X-CSRF-Token", "c")
-	r := httptest.NewRecorder()
-	m.ServeHTTP(r, q)
-	if r.Code != http.StatusCreated {
-		t.Fatalf("status=%d body=%s", r.Code, r.Body.String())
-	}
-	if store.slideKind != ItemKindActivity {
-		t.Fatalf("kind=%q, want %q", store.slideKind, ItemKindActivity)
-	}
-	var activity ActivityDefinition
-	if err := json.Unmarshal(store.slideContent, &activity); err != nil {
-		t.Fatalf("decode stored activity: %v", err)
-	}
-	if activity.ActivityKind != ActivityKindChoice ||
-		activity.Response.Selection != ChoiceSelectionMultiple ||
-		activity.Evaluation.Mode != EvaluationModeCorrectness ||
-		activity.Scoring.Mode != ScoringModePoints {
-		t.Fatalf("unexpected stored activity: %#v", activity)
-	}
-	if len(activity.Response.Options) != 2 ||
-		activity.Response.Options[0].ID != "option-1" ||
-		activity.Response.Options[1].ID != "option-2" {
-		t.Fatalf("legacy endpoint did not assign stable option ids: %#v", activity.Response.Options)
-	}
-}
-
-func TestGenericSlideEndpointNormalizesLegacyQuestionToV2Activity(t *testing.T) {
+func TestGenericSlideEndpointRejectsLegacyQuestionKind(t *testing.T) {
 	m := http.NewServeMux()
 	store := &fakeStore{}
 	NewHTTP(fakeSessions{}, store).Register(m)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/presentations/p/slides", strings.NewReader(`{
 		"position":0,
 		"kind":"question",
-		"content":{
-			"title":"",
-			"text":"Choose",
-			"question_type":"single",
-			"question_time":30,
-			"min_point":0,
-			"max_point":100,
-			"image_url":"",
-			"faster_answers_more_points":false,
-			"partial_scoring":false,
-			"show_leaderboard_after":true,
-			"options":[
-				{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},
-				{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}
-			]
-		}
+		"content":{"text":"Choose"}
 	}`))
 	req.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
 	req.Header.Set("X-CSRF-Token", "csrf")
 	result := httptest.NewRecorder()
 	m.ServeHTTP(result, req)
-	if result.Code != http.StatusCreated {
+	if result.Code != http.StatusBadRequest {
 		t.Fatalf("status=%d body=%s", result.Code, result.Body.String())
 	}
-	if store.slideKind != ItemKindActivity {
-		t.Fatalf("legacy question persisted as %q", store.slideKind)
-	}
-	var activity ActivityDefinition
-	if err := json.Unmarshal(store.slideContent, &activity); err != nil {
-		t.Fatal(err)
-	}
-	if !activity.Results.ShowOverallLeaderboardAfter {
-		t.Fatal("leaderboard behavior was not migrated")
+	if store.slideKind != "" {
+		t.Fatalf("legacy question unexpectedly reached persistence as %q", store.slideKind)
 	}
 }
 
