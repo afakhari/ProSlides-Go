@@ -269,7 +269,7 @@ func (s *PostgresStore) QuestionResults(c context.Context, presentationID, sessi
 		RANK() OVER (ORDER BY a.score_delta DESC)::int AS rank,
 		(SELECT GREATEST(0,EXTRACT(EPOCH FROM (a.submitted_at-max(e.occurred_at)))*1000)::bigint
 		 FROM live_events e WHERE e.session_id=a.session_id AND e.name='session.state_changed'
-		 AND e.payload->>'state'='question_open' AND e.payload->>'active_slide_id'=a.question_slide_id::text AND e.occurred_at<=a.submitted_at) AS elapsed_ms
+		 AND e.payload->>'state'='presenting' AND e.payload->>'activity_phase'='accepting' AND e.payload->>'active_item_id'=a.question_slide_id::text AND e.occurred_at<=a.submitted_at) AS elapsed_ms
 		FROM answers a JOIN participants p ON p.id=a.participant_id
 		WHERE a.session_id=$1 AND a.question_slide_id=$2)
 		SELECT id::text,participant_id::text,display_name,avatar,score_delta,rank,elapsed_ms,submitted_at
