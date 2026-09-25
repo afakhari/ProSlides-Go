@@ -74,9 +74,11 @@ type SessionReport struct {
 }
 
 type ActivityResult struct {
-	ActivityItemID string         `json:"activity_item_id"`
-	ResponseCount  int            `json:"response_count"`
-	OptionCounts   map[string]int `json:"option_counts"`
+	ActivityItemID string          `json:"activity_item_id"`
+	ActivityKind   string          `json:"activity_kind"`
+	SchemaVersion  int             `json:"schema_version"`
+	ResponseCount  int             `json:"response_count"`
+	Payload        json.RawMessage `json:"payload"`
 }
 
 type ActivityTopPerformer struct {
@@ -139,7 +141,8 @@ type Store interface {
 }
 
 type choiceDefinition struct {
-	ActivityKind string `json:"activity_kind"`
+	SchemaVersion int    `json:"schema_version"`
+	ActivityKind  string `json:"activity_kind"`
 	Response     struct {
 		Options []struct {
 			ID string `json:"id"`
@@ -208,14 +211,14 @@ func evaluateResponse(definitionRaw, responseRaw json.RawMessage, scoreDelta int
 	return evaluation, nil
 }
 
-func aggregateChoiceCounts(definitionRaw json.RawMessage, indexedCounts map[int]int) (map[string]int, error) {
+func choiceResultPayload(definitionRaw json.RawMessage, indexedCounts map[int]int) (json.RawMessage, error) {
 	definition, err := parseChoiceDefinition(definitionRaw)
 	if err != nil {
 		return nil, err
 	}
 	counts := map[string]int{}
 	if definition.ActivityKind != "choice" {
-		return counts, nil
+		return json.Marshal(map[string]any{})
 	}
 	for _, option := range definition.Response.Options {
 		counts[option.ID] = 0
@@ -226,5 +229,5 @@ func aggregateChoiceCounts(definitionRaw json.RawMessage, indexedCounts map[int]
 		}
 		counts[definition.Response.Options[index].ID] += count
 	}
-	return counts, nil
+	return json.Marshal(map[string]any{"option_counts": counts})
 }
