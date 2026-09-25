@@ -69,6 +69,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 	}, nil
 }
 func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager string) (ManagerSnapshot, error) {
+	accepting := ActivityAccepting
 	if (session != testSessionID && session != testPresentationID) || manager != testManagerID {
 		return ManagerSnapshot{}, ErrNotFound
 	}
