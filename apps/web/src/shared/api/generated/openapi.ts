@@ -1050,7 +1050,6 @@ export interface components {
             activity_kind: "choice";
             schema_version: number;
             response_count: number;
-            /** @description Kind-specific, versioned result projection. V2.5 defines Choice; later Activity kinds extend the result union rather than creating parallel report endpoints. */
             payload: components["schemas"]["ReportChoiceResultPayload"];
         };
         ReportResponseEvaluation: {
