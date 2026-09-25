@@ -15,7 +15,8 @@
     "test:unit": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
     "architecture:check": "node scripts/check-frontend-architecture.mjs",
-    "test:component": "vitest run --config vitest.config.ts"
+    "test:component": "vitest run --config vitest.config.ts",
+    "test:component:typecheck": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
