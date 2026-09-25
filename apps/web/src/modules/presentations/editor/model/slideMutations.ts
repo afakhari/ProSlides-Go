@@ -32,6 +32,8 @@ export const createDefaultQuestion = (
   text: "سؤال جدید",
   question_text: "سؤال جدید",
   question_type: questionType,
+  evaluation_mode: "correctness",
+  scoring_mode: "points",
   min_point: 0,
   max_point: 100,
   time_limit: 10,
@@ -121,16 +123,23 @@ export const convertSlideToQuestion = (
     });
   }
 
-  const firstCorrectIndex = options.findIndex((option) => option.is_correct);
-  const keepCorrectIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+  const evaluationMode =
+    existing.evaluation_mode ?? "correctness";
+  const firstCorrectIndex = options.findIndex(
+    (option) => option.is_correct,
+  );
+  const keepCorrectIndex =
+    firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
   const normalizedOptions = options.map((option, index) => ({
     ...option,
     is_correct:
-      questionType === "single"
-        ? index === keepCorrectIndex
-        : firstCorrectIndex === -1
-          ? index === 0
-          : option.is_correct,
+      evaluationMode === "none"
+        ? false
+        : questionType === "single"
+          ? index === keepCorrectIndex
+          : firstCorrectIndex === -1
+            ? index === 0
+            : option.is_correct,
     order: index + 1,
   }));
 
