@@ -26,7 +26,6 @@ const choiceSlide = {
   slide_id: "choice-1",
   revision: 3,
   order: 0,
-  slide_type: 1,
   item_kind: "activity",
   activity_kind: "choice",
   schema_version: 1,
@@ -56,7 +55,6 @@ const contentSlide = {
   slide_id: "content-1",
   revision: 2,
   order: 1,
-  slide_type: 2,
   item_kind: "content",
   show_leaderboard_after: false,
   question: null,
@@ -114,7 +112,8 @@ test("registry creates and converts editor items without top-level route knowled
     "choice-single",
     createIdSequence("slide-new", "option-a", "option-b"),
   );
-  assert.equal(created.slide_type, 1);
+  assert.equal(created.item_kind, "activity");
+  assert.equal(created.activity_kind, "choice");
   assert.equal(created.question.question_type, "single");
   assert.equal(created.question.options.length, 2);
 
@@ -124,7 +123,8 @@ test("registry creates and converts editor items without top-level route knowled
     createIdSequence("option-a", "option-b"),
   );
   assert.equal(converted.slide_id, contentSlide.slide_id);
-  assert.equal(converted.slide_type, 1);
+  assert.equal(converted.item_kind, "activity");
+  assert.equal(converted.activity_kind, "choice");
   assert.equal(converted.question.question_type, "multiple");
   assert.equal(editorSlideMatchesTypeChoice(converted, "choice-multiple"), true);
   assert.match(
