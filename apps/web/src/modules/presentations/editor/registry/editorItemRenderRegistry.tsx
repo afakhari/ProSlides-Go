@@ -35,7 +35,7 @@ export type EditorInspectorProps = {
 };
 
 type DraftBoundaryProps = {
-  slide: EditorSlide;
+  slide: EditorSlide | null;
   active: boolean;
   children: ReactNode;
 };
@@ -146,6 +146,7 @@ export function EditorItemDraftBoundary({
   active,
   children,
 }: DraftBoundaryProps) {
+  if (!slide) return <>{children}</>;
   const registration = resolveRenderRegistration(slide);
   if (!registration) return <>{children}</>;
 
