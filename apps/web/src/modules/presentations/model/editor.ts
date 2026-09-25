@@ -2,6 +2,11 @@ export type QuestionType = "single" | "multiple";
 export type EvaluationMode = "none" | "correctness";
 export type ScoringMode = "none" | "points";
 export type SlideType = 1 | 2 | 3;
+export type EditorItemKind =
+  | "content"
+  | "activity"
+  | "question-draft"
+  | "legacy-leaderboard";
 
 export interface EditorOption {
   option_id: string;
@@ -35,6 +40,9 @@ export interface EditorSlide {
   revision: number;
   order: number;
   slide_type: SlideType;
+  item_kind?: EditorItemKind;
+  activity_kind?: string;
+  schema_version?: number;
   show_leaderboard_after: boolean;
   question: EditorQuestion | null;
   title?: string;
