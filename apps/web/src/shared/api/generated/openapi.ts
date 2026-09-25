@@ -2404,7 +2404,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes and ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
+            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes but is delivered only to an authorized manager stream; participants learn the result from the authoritative revealed snapshot after session.state_changed. ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
             200: {
                 headers: {
                     [name: string]: unknown;
