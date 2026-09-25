@@ -89,7 +89,7 @@ func (s *PostgresStore) CreateSession(c context.Context, host, presentation, req
 			return out, false, e
 		}
 	}
-	if e = insertEvent(c, tx, out.ID, out.StateVersion, "session.created", map[string]any{"state": out.State}); e != nil {
+	if e = insertEvent(c, tx, out.ID, out.StateVersion, "session.created", sessionEventPayload(out, "")); e != nil {
 		return out, false, e
 	}
 	if e = tx.Commit(c); e != nil {
