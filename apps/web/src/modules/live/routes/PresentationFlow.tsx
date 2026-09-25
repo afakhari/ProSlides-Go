@@ -48,6 +48,7 @@ export function AppPresentation({
     currentContent,
     leaderboardResults,
     modalLeaderboardResults,
+    questionResults,
   } = useServerData();
   const hasLeaderboard = hasLeaderboardEntries(leaderboardResults);
 
@@ -96,6 +97,7 @@ export function AppPresentation({
           quiz={quiz}
           currentQuestion={currentQuestion}
           currentContent={currentContent}
+          questionResults={questionResults}
           snapshot={snapshot}
           hasLeaderboard={hasLeaderboard}
           hasSeenActiveSlide={playerRecovery.hasSeenActiveSlide}
