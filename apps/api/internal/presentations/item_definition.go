@@ -256,6 +256,9 @@ func validateActivityDefinition(value ActivityDefinition) error {
 	if value.Timing.DurationSeconds < 1 || value.Timing.DurationSeconds > 86400 {
 		return errInvalidSlideDefinition
 	}
+	if value.Results.ShowOverallLeaderboardAfter && value.Scoring.Mode != ScoringModePoints {
+		return errInvalidSlideDefinition
+	}
 	return nil
 }
 
