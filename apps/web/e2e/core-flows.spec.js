@@ -412,7 +412,18 @@ test("manager and participant complete a live question lifecycle with reconnect"
     await manager.locator('button[type="submit"]').click();
     await expect(manager).toHaveURL(/\/manager\/panel$/);
 
-    const fixture = await manager.evaluate(async ({ accessCode }) => {
+    const activityContent = choiceActivityContent({
+      title: "پرسش تست",
+      text: "پایتخت ایران کدام شهر است؟",
+      durationSeconds: 60,
+      showOverallLeaderboardAfter: true,
+      options: [
+        { id: `option-a-${unique}`, text: "تهران", isCorrect: true },
+        { id: `option-b-${unique}`, text: "شیراز", isCorrect: false },
+      ],
+    });
+
+    const fixture = await manager.evaluate(async ({ accessCode, activityContent }) => {
       const cookieValue = (name) => {
         const prefix = `${encodeURIComponent(name)}=`;
         const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
@@ -441,24 +452,13 @@ test("manager and participant complete a live question lifecycle with reconnect"
         body: { title: "چرخه کامل تست زنده", settings: {} },
       });
 
-      const optionOneId = crypto.randomUUID();
-      const optionTwoId = crypto.randomUUID();
       const slide = await api(`/presentations/${presentation.id}/slides`, {
         method: "POST",
         headers: { "If-Match": String(presentation.revision) },
         body: {
           position: 0,
           kind: "activity",
-          content: choiceActivityContent({
-            title: "پرسش تست",
-            text: "پایتخت ایران کدام شهر است؟",
-            durationSeconds: 60,
-            showOverallLeaderboardAfter: true,
-            options: [
-              { id: optionOneId, text: "تهران", isCorrect: true },
-              { id: optionTwoId, text: "شیراز", isCorrect: false },
-            ],
-          }),
+          content: activityContent,
         },
       });
 
@@ -472,7 +472,7 @@ test("manager and participant complete a live question lifecycle with reconnect"
         slideId: slide.id,
         accessCode,
       };
-    }, { accessCode });
+    }, { accessCode, activityContent });
 
     await manager.goto(`/manager/presentation/${fixture.presentationId}`);
     const startButton = manager.getByRole("button", { name: /شروع/ });
@@ -587,7 +587,16 @@ test("question editor preserves typed draft semantics across save and edit confl
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/manager\/panel$/);
 
-  const fixture = await page.evaluate(async () => {
+  const activityContent = choiceActivityContent({
+    text: "پایتخت ایران کدام است؟",
+    showOverallLeaderboardAfter: true,
+    options: [
+      { id: `option-a-${unique}`, text: "تهران", isCorrect: true },
+      { id: `option-b-${unique}`, text: "شیراز", isCorrect: false },
+    ],
+  });
+
+  const fixture = await page.evaluate(async ({ activityContent }) => {
     const cookieValue = (name) => {
       const prefix = `${encodeURIComponent(name)}=`;
       const item = document.cookie.split("; ").find((part) => part.startsWith(prefix));
@@ -621,14 +630,7 @@ test("question editor preserves typed draft semantics across save and edit confl
       body: {
         position: 0,
         kind: "activity",
-        content: choiceActivityContent({
-          text: "پایتخت ایران کدام است؟",
-          showOverallLeaderboardAfter: true,
-          options: [
-            { id: crypto.randomUUID(), text: "تهران", isCorrect: true },
-            { id: crypto.randomUUID(), text: "شیراز", isCorrect: false },
-          ],
-        }),
+        content: activityContent,
       },
     });
 
@@ -636,7 +638,7 @@ test("question editor preserves typed draft semantics across save and edit confl
       presentationId: presentation.id,
       slideId: slide.id,
     };
-  });
+  }, { activityContent });
 
   await page.goto(`/manager/panel/${fixture.presentationId}`);
   await page.getByRole("button", { name: "محتوا", exact: true }).click();
