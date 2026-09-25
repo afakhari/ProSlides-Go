@@ -268,14 +268,20 @@ func (s *PostgresStore) ActivityReport(ctx context.Context, presentationID, sess
 	}
 	countRows.Close()
 
-	optionCounts, err := aggregateChoiceCounts(page.Activity.Definition, indexedCounts)
+	definition, err := parseChoiceDefinition(page.Activity.Definition)
+	if err != nil {
+		return page, err
+	}
+	resultPayload, err := choiceResultPayload(page.Activity.Definition, indexedCounts)
 	if err != nil {
 		return page, err
 	}
 	page.Result = ActivityResult{
 		ActivityItemID: activityID,
+		ActivityKind:   definition.ActivityKind,
+		SchemaVersion:  definition.SchemaVersion,
 		ResponseCount:  page.Activity.ResponseCount,
-		OptionCounts:   optionCounts,
+		Payload:        resultPayload,
 	}
 
 	if page.Activity.Scored {
