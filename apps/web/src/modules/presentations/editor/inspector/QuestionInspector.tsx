@@ -711,7 +711,13 @@ function QuestionInspectorInner({
 }
 
 export default function QuestionInspector(props: QuestionInspectorProps) {
-  if (!props.slide || props.slide.slide_type !== 1 || !props.slide.question) {
+  if (
+    !props.slide ||
+    props.slide.item_kind !== "activity" ||
+    props.slide.activity_kind !== "choice" ||
+    props.slide.schema_version !== 1 ||
+    !props.slide.question
+  ) {
     return (
       <Notice tone="warning" className="m-3">
         برای ویرایش، ابتدا یک اسلاید سؤال معتبر انتخاب کنید.
