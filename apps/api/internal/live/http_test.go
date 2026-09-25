@@ -72,7 +72,6 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 			ParticipantCount: 10_000,
 			HasScoring:       true,
 			LastEventID:      42,
-			ActivityTopPerformers: []ActivityTopPerformer{},
 		}, nil
 	}
 	return ParticipantSnapshot{
@@ -97,6 +96,7 @@ func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager stri
 			ParticipantCount: 10_000,
 			HasScoring:       true,
 			LastEventID:      42,
+			ActivityTopPerformers: []ActivityTopPerformer{},
 		}, nil
 	}
 	return ManagerSnapshot{
