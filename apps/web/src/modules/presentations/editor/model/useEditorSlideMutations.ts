@@ -350,9 +350,15 @@ export function useEditorSlideMutations({
       if (!activeSlide || isSelectingType) return;
 
       const registration = resolveEditorItemRegistration(activeSlide);
-      if (!registration || registration.category === "legacy") {
+      if (!registration) {
         setTypeSelectionError(
-          "نوع این آیتم قدیمی است و از انتخاب‌گر جدید قابل تبدیل نیست.",
+          "نوع یا نسخه این آیتم در این نسخه از ویرایشگر پشتیبانی نمی‌شود.",
+        );
+        return;
+      }
+      if (registration.category === "legacy") {
+        setTypeSelectionError(
+          "این آیتم قدیمی از انتخاب‌گر جدید قابل تبدیل نیست.",
         );
         return;
       }
