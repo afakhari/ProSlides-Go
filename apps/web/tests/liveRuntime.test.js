@@ -162,7 +162,7 @@ test("runtime accepts monotonic Activity results and ignores stale SSE events", 
   runtime.destroy();
 });
 
-test("runtime normalizes legacy Choice result events during V2.6 compatibility", async () => {
+test("runtime ignores pre-generic Choice result envelopes after migration", async () => {
   let onEvent = null;
   const runtime = createLiveRuntime("manager", {
     storage: null,
@@ -194,15 +194,7 @@ test("runtime normalizes legacy Choice result events during V2.6 compatibility",
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.activity_result, {
-    activity_item_id: "legacy-choice",
-    activity_kind: "choice",
-    schema_version: 1,
-    response_count: 5,
-    payload: { option_counts: { 0: 2, 1: 3 } },
-    option_counts: { 0: 2, 1: 3 },
-  });
-
+  assert.equal(runtime.getState().snapshot.activity_result, undefined);
   runtime.destroy();
 });
 
