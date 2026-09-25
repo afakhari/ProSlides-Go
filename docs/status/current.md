@@ -66,15 +66,16 @@ Session participant counter. The legacy latest-session and question-results
 boundaries remain deprecated compatibility paths rather than the report UI
 source of truth.
 
-V2.6 / issue #88 remains active. Poll is complete via PR #109 as a product
-preset over the canonical Choice Activity: no new persisted Activity kind,
-Session state or API boundary was introduced. Poll authoring uses
-`evaluation.mode=none` and `scoring.mode=none`; the frozen Choice definition
-drives participant interaction, Stage result distribution and Session-first
-reports without correctness or ranking semantics.
+V2.6 / issue #88 is complete via PRs #109 and #110. Poll remains a
+product preset over canonical Choice with evaluation/scoring disabled. Word
+Cloud proves the canonical Text Activity primitive end to end: bounded text
+responses are normalized and frozen with canonical terms, the existing generic
+Activity lifecycle accepts them without a new Session state, and Stage,
+Backstage and Session-first reports render word-frequency aggregation without
+correctness, scoring or ranking semantics.
 
-**Active implementation slice: V2.6 / issue #88 — Word Cloud using the Text
-primitive and word-frequency aggregation.**
+**Active implementation slice: V2.7 / issue #89 — remove verified legacy
+question/slide/leaderboard compatibility paths.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
