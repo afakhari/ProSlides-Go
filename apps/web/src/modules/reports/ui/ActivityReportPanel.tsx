@@ -39,7 +39,7 @@ export function ActivityReportPanel({
   const options = choiceOptions(activity);
   const maxCount = Math.max(
     1,
-    ...options.map((option) => first?.result.option_counts[option.id] ?? 0),
+    ...options.map((option) => first?.result.payload.option_counts[option.id] ?? 0),
   );
 
   if (isLoading) {
@@ -88,7 +88,7 @@ export function ActivityReportPanel({
           </p>
           <div className="mt-4 space-y-3">
             {options.map((option) => {
-              const count = first.result.option_counts[option.id] ?? 0;
+              const count = first.result.payload.option_counts[option.id] ?? 0;
               const width = Math.round((count / maxCount) * 100);
               return (
                 <div key={option.id}>
