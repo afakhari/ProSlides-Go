@@ -930,9 +930,10 @@ components:
       properties:
         show_leaderboard_after: { type: boolean, default: false }
     ActivityItemDefinition:
-      description: Versioned audience Activity definition. V2.1 supports the Choice primitive; future Activity kinds add new versioned definitions rather than extending this object with unrelated fields.
+      description: Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted.
       oneOf:
         - $ref: '#/components/schemas/ChoiceActivityDefinition'
+        - $ref: '#/components/schemas/TextActivityDefinition'
     ChoiceActivityDefinition:
       type: object
       additionalProperties: false
@@ -946,6 +947,45 @@ components:
         scoring: { $ref: '#/components/schemas/ChoiceScoringPolicy' }
         timing: { $ref: '#/components/schemas/ActivityTimingPolicy' }
         results: { $ref: '#/components/schemas/ActivityResultPolicy' }
+    TextActivityDefinition:
+      type: object
+      additionalProperties: false
+      required: [schema_version, activity_kind, prompt, response, evaluation, scoring, timing, results]
+      properties:
+        schema_version: { type: integer, enum: [1] }
+        activity_kind: { type: string, enum: [text] }
+        prompt: { $ref: '#/components/schemas/ActivityPrompt' }
+        response: { $ref: '#/components/schemas/TextResponsePolicy' }
+        evaluation: { $ref: '#/components/schemas/TextEvaluationPolicy' }
+        scoring: { $ref: '#/components/schemas/TextScoringPolicy' }
+        timing: { $ref: '#/components/schemas/ActivityTimingPolicy' }
+        results: { $ref: '#/components/schemas/TextResultPolicy' }
+    TextResponsePolicy:
+      type: object
+      additionalProperties: false
+      required: [max_length, max_words]
+      properties:
+        max_length: { type: integer, minimum: 1, maximum: 500 }
+        max_words: { type: integer, minimum: 1, maximum: 10 }
+    TextEvaluationPolicy:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [none] }
+    TextScoringPolicy:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [none] }
+    TextResultPolicy:
+      type: object
+      additionalProperties: false
+      required: [aggregation, show_overall_leaderboard_after]
+      properties:
+        aggregation: { type: string, enum: [word_frequency] }
+        show_overall_leaderboard_after: { type: boolean, enum: [false] }
     ActivityPrompt:
       type: object
       additionalProperties: false
@@ -1023,13 +1063,44 @@ components:
         title: { type: string, maxLength: 500 }
     AnswerRequest:
       type: object
-      required: [request_id, activity_item_id, selected_option_indexes]
+      additionalProperties: false
+      required: [request_id, activity_item_id, response]
       properties:
         request_id: { type: string, format: uuid }
         activity_item_id: { type: string, format: uuid }
+        response:
+          oneOf:
+            - $ref: '#/components/schemas/ChoiceActivityResponse'
+            - $ref: '#/components/schemas/TextActivityResponse'
+    ChoiceActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [selected_option_indexes]
+      properties:
         selected_option_indexes:
           type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
           items: { type: integer, minimum: 0 }
+    TextActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 500 }
+    StoredTextActivityResponse:
+      type: object
+      additionalProperties: false
+      required: [text, terms]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 500 }
+        terms:
+          type: array
+          minItems: 1
+          maxItems: 10
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 500 }
     CreateLiveSessionRequest:
       type: object
       required: [request_id, presentation_id]
@@ -1122,14 +1193,15 @@ components:
           description: "Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3)."
     PersonalActivityResult:
       type: object
-      required: [activity_item_id, selected_option_indexes, score_delta]
+      required: [activity_item_id, response, score_delta]
       additionalProperties: false
       description: The current participant's own accepted response outcome. Present only after the Activity is revealed.
       properties:
         activity_item_id: { type: string, format: uuid }
-        selected_option_indexes:
-          type: array
-          items: { type: integer, minimum: 0 }
+        response:
+          oneOf:
+            - $ref: '#/components/schemas/ChoiceActivityResponse'
+            - $ref: '#/components/schemas/StoredTextActivityResponse'
         score_delta: { type: integer, minimum: 0 }
     ReportSessionSummary:
       type: object
@@ -1196,11 +1268,13 @@ components:
       additionalProperties: false
       properties:
         activity_item_id: { type: string, format: uuid }
-        activity_kind: { type: string, enum: [choice] }
+        activity_kind: { type: string, enum: [choice, text] }
         schema_version: { type: integer, minimum: 1 }
         response_count: { type: integer, minimum: 0 }
         payload:
-          $ref: '#/components/schemas/ReportChoiceResultPayload'
+          oneOf:
+            - $ref: '#/components/schemas/ReportChoiceResultPayload'
+            - $ref: '#/components/schemas/WordFrequencyResultPayload'
     ReportResponseEvaluation:
       type: object
       required: [mode, score_delta]
@@ -1462,16 +1536,35 @@ components:
       additionalProperties: false
       properties:
         participant_delta: { type: integer, minimum: 1, description: Number of committed joins compacted into this event. Apply it to the authoritative participant_count from the latest snapshot. }
+    WordFrequencyTerm:
+      type: object
+      additionalProperties: false
+      required: [text, count]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 500 }
+        count: { type: integer, minimum: 1 }
+    WordFrequencyResultPayload:
+      type: object
+      additionalProperties: false
+      required: [terms]
+      properties:
+        terms:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/WordFrequencyTerm' }
     ActivityResultPayload:
       type: object
-      required: [activity_item_id, response_count, option_counts]
+      required: [activity_item_id, activity_kind, schema_version, response_count, payload]
       additionalProperties: false
       properties:
         activity_item_id: { type: string, format: uuid }
+        activity_kind: { type: string, enum: [choice, text] }
+        schema_version: { type: integer, minimum: 1 }
         response_count: { type: integer, minimum: 0 }
-        option_counts:
-          type: object
-          additionalProperties: { type: integer, minimum: 0 }
+        payload:
+          oneOf:
+            - $ref: '#/components/schemas/ReportChoiceResultPayload'
+            - $ref: '#/components/schemas/WordFrequencyResultPayload'
     RankingUpdatedPayload:
       type: object
       required: [participant_count]
