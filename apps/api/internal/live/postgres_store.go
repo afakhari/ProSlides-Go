@@ -643,6 +643,7 @@ func (s *PostgresStore) ManagerSnapshot(c context.Context, session, manager stri
 	}
 
 	x.Role = "manager"
+	x.ActivityTopPerformers = []ActivityTopPerformer{}
 	if x.Session.ActiveItemID != nil && x.Session.ActivityPhase != nil &&
 		(*x.Session.ActivityPhase == ActivityClosed || *x.Session.ActivityPhase == ActivityRevealed) {
 		result, resultErr := activityResult(c, tx, session, *x.Session.ActiveItemID)
@@ -650,6 +651,45 @@ func (s *PostgresStore) ManagerSnapshot(c context.Context, session, manager stri
 			return x, resultErr
 		}
 		x.ActivityResult = &result
+
+		rows, rowsErr := tx.Query(c, `WITH ranked AS (
+			SELECT a.id,p.id AS participant_id,p.display_name,COALESCE(p.avatar,'') AS avatar,
+				a.score_delta,a.submitted_at,
+				RANK() OVER (ORDER BY a.score_delta DESC)::int AS rank
+			FROM answers a
+			JOIN participants p ON p.id=a.participant_id
+			JOIN live_session_slides item
+			  ON item.session_id=a.session_id AND item.slide_id=a.question_slide_id
+			WHERE a.session_id=$1
+			  AND a.question_slide_id=$2
+			  AND item.content->'scoring'->>'mode'='points'
+		)
+		SELECT participant_id::text,display_name,avatar,score_delta,rank
+		FROM ranked
+		ORDER BY score_delta DESC,submitted_at,id
+		LIMIT 5`, session, *x.Session.ActiveItemID)
+		if rowsErr != nil {
+			return x, rowsErr
+		}
+		for rows.Next() {
+			var performer ActivityTopPerformer
+			if scanErr := rows.Scan(
+				&performer.ParticipantID,
+				&performer.DisplayName,
+				&performer.Avatar,
+				&performer.ScoreDelta,
+				&performer.Rank,
+			); scanErr != nil {
+				rows.Close()
+				return x, scanErr
+			}
+			x.ActivityTopPerformers = append(x.ActivityTopPerformers, performer)
+		}
+		if rowsErr = rows.Err(); rowsErr != nil {
+			rows.Close()
+			return x, rowsErr
+		}
+		rows.Close()
 	}
 	if e = tx.Commit(c); e != nil {
 		return x, e

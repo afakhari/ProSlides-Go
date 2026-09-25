@@ -973,6 +973,15 @@ export interface components {
             activity_result?: components["schemas"]["ActivityResultPayload"];
             ranking: components["schemas"]["StageRankingEntry"][];
         };
+        ActivityTopPerformer: {
+            /** Format: uuid */
+            participant_id: string;
+            display_name: string;
+            avatar?: string;
+            score_delta: number;
+            /** @description Competition rank within the current scored Activity only. */
+            rank: number;
+        };
         ManagerLiveSnapshot: {
             /** @enum {string} */
             role: "manager";
@@ -986,6 +995,8 @@ export interface components {
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];
+            /** @description Top performers for the current scored Activity only; separate from cumulative Session ranking. */
+            activity_top_performers: components["schemas"]["ActivityTopPerformer"][];
         };
         RosterEntry: {
             /** Format: uuid */

@@ -1129,9 +1129,19 @@ components:
           type: array
           maxItems: 5
           items: { $ref: '#/components/schemas/StageRankingEntry' }
+    ActivityTopPerformer:
+      type: object
+      required: [participant_id, display_name, score_delta, rank]
+      additionalProperties: false
+      properties:
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        score_delta: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, description: Competition rank within the current scored Activity only. }
     ManagerLiveSnapshot:
       type: object
-      required: [role, session, participant_count, has_scoring, last_event_id]
+      required: [role, session, participant_count, has_scoring, last_event_id, activity_top_performers]
       additionalProperties: false
       properties:
         role: { type: string, enum: [manager] }
@@ -1141,6 +1151,11 @@ components:
         has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
+        activity_top_performers:
+          type: array
+          maxItems: 5
+          description: Top performers for the current scored Activity only; separate from cumulative Session ranking.
+          items: { $ref: '#/components/schemas/ActivityTopPerformer' }
     RosterEntry:
       type: object
       required: [participant_id, display_name, score, joined_at]
