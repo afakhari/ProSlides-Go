@@ -88,6 +88,115 @@ type ActivityDefinition struct {
 	Results       ActivityResultPolicy     `json:"results"`
 }
 
+func (value ActivityDefinition) MarshalJSON() ([]byte, error) {
+	type common struct {
+		SchemaVersion int            `json:"schema_version"`
+		ActivityKind  string         `json:"activity_kind"`
+		Prompt        ActivityPrompt `json:"prompt"`
+		Timing        ActivityTimingPolicy `json:"timing"`
+	}
+
+	switch value.ActivityKind {
+	case ActivityKindChoice:
+		type choiceResponse struct {
+			Selection string                   `json:"selection"`
+			Options   []ChoiceOptionDefinition `json:"options"`
+		}
+		type choiceEvaluation struct {
+			Mode             string   `json:"mode"`
+			CorrectOptionIDs []string `json:"correct_option_ids"`
+		}
+		type choiceScoring struct {
+			Mode          string `json:"mode"`
+			MinPoints     int    `json:"min_points"`
+			MaxPoints     int    `json:"max_points"`
+			SpeedBonus    bool   `json:"speed_bonus"`
+			PartialCredit bool   `json:"partial_credit"`
+		}
+		type choiceResults struct {
+			ShowOverallLeaderboardAfter bool `json:"show_overall_leaderboard_after"`
+		}
+		return json.Marshal(struct {
+			common
+			Response   choiceResponse   `json:"response"`
+			Evaluation choiceEvaluation `json:"evaluation"`
+			Scoring    choiceScoring    `json:"scoring"`
+			Results    choiceResults    `json:"results"`
+		}{
+			common: common{
+				SchemaVersion: value.SchemaVersion,
+				ActivityKind:  value.ActivityKind,
+				Prompt:        value.Prompt,
+				Timing:        value.Timing,
+			},
+			Response: choiceResponse{
+				Selection: value.Response.Selection,
+				Options:   value.Response.Options,
+			},
+			Evaluation: choiceEvaluation{
+				Mode:             value.Evaluation.Mode,
+				CorrectOptionIDs: nonNilStrings(value.Evaluation.CorrectOptionIDs),
+			},
+			Scoring: choiceScoring{
+				Mode:          value.Scoring.Mode,
+				MinPoints:     value.Scoring.MinPoints,
+				MaxPoints:     value.Scoring.MaxPoints,
+				SpeedBonus:    value.Scoring.SpeedBonus,
+				PartialCredit: value.Scoring.PartialCredit,
+			},
+			Results: choiceResults{
+				ShowOverallLeaderboardAfter: value.Results.ShowOverallLeaderboardAfter,
+			},
+		})
+
+	case ActivityKindText:
+		type textResponse struct {
+			MaxLength int `json:"max_length"`
+			MaxWords  int `json:"max_words"`
+		}
+		type modeOnly struct {
+			Mode string `json:"mode"`
+		}
+		type textResults struct {
+			Aggregation                  string `json:"aggregation"`
+			ShowOverallLeaderboardAfter bool   `json:"show_overall_leaderboard_after"`
+		}
+		return json.Marshal(struct {
+			common
+			Response   textResponse `json:"response"`
+			Evaluation modeOnly     `json:"evaluation"`
+			Scoring    modeOnly     `json:"scoring"`
+			Results    textResults  `json:"results"`
+		}{
+			common: common{
+				SchemaVersion: value.SchemaVersion,
+				ActivityKind:  value.ActivityKind,
+				Prompt:        value.Prompt,
+				Timing:        value.Timing,
+			},
+			Response: textResponse{
+				MaxLength: value.Response.MaxLength,
+				MaxWords:  value.Response.MaxWords,
+			},
+			Evaluation: modeOnly{Mode: value.Evaluation.Mode},
+			Scoring:    modeOnly{Mode: value.Scoring.Mode},
+			Results: textResults{
+				Aggregation:                  value.Results.Aggregation,
+				ShowOverallLeaderboardAfter: value.Results.ShowOverallLeaderboardAfter,
+			},
+		})
+	default:
+		return nil, errInvalidSlideDefinition
+	}
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
+}
+
 func DecodeActivityDefinition(raw json.RawMessage) (ActivityDefinition, error) {
 	var value ActivityDefinition
 	if err := decodeStrictObject(raw, &value); err != nil {
