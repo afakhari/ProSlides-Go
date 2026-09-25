@@ -159,22 +159,24 @@ Deferred frontend debt is tracked in `../frontend-debt.md`.
 
 ## Pull-request safety net
 
-Required `web` and `api` CI checks are the normal merge gates.
+The main ruleset still requires the `api` and `web` checks. In V2.8, `web`
+is an aggregate release gate rather than the fast frontend job itself:
+`web-fast` runs dependency review, generated-type checks, lint, typecheck,
+architecture checks, unit/component tests and the production build, while
+`browser-e2e` runs the real Compose/API/Playwright stack on pull requests,
+pushes to `main` and manual workflow runs. The required `web` gate completes
+only after both jobs succeed.
 
-During active v2 redesign, pull requests run only the cheap container
-configuration validation. The full Docker/browser E2E stack is intentionally
-deferred to pushes on `main` and manual workflow runs because registry pulls,
-image builds and Playwright installation dominate iteration cost. CodeQL remains
-a useful non-required security signal.
+This keeps fast frontend feedback visible without allowing a pull request to
+merge before the stable browser flows have passed. The existing `api` required
+check remains unchanged, and `containers` remains the browser stack
+prerequisite. CodeQL is still a useful non-required security signal.
 
-High-risk live/domain slices still verify the invariant they change with focused
-API/domain/protocol tests, including idempotency, stale-version conflict, frozen
-Session definitions, deadline rejection, reconnect recovery and participant
-non-disclosure. Browser E2E failures on `main` must still be investigated
-before continuing into another risky slice.
-
-V2.8 / issue #90 restores the stable critical browser flows to the pull-request
-gate after the final v2 live protocol and UI surfaces stop moving.
+High-risk live/domain changes continue to verify focused API/domain/protocol
+invariants, including idempotency, stale-version conflict, frozen Session
+definitions, deadline rejection, reconnect recovery and participant
+non-disclosure. Browser E2E is now part of the pull-request path again rather
+than a post-merge discovery mechanism.
 
 ## Production-readiness boundary
 
