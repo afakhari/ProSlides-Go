@@ -94,6 +94,10 @@ const choiceTransport: EditorTransportRegistration = {
         text: stringValue(prompt.text),
         question_text: stringValue(prompt.text),
         question_type: selection,
+        evaluation_mode:
+          evaluation.mode === "none" ? "none" : "correctness",
+        scoring_mode:
+          scoring.mode === "none" ? "none" : "points",
         time_limit: numberValue(timing.duration_seconds, 10),
         question_time: numberValue(timing.duration_seconds, 10),
         min_point: numberValue(scoring.min_points, 0),
@@ -166,6 +170,8 @@ const legacyQuestionTransport: EditorTransportRegistration = {
         text: stringValue(content.text),
         question_text: stringValue(content.text),
         question_type: selection,
+        evaluation_mode: "correctness",
+        scoring_mode: "points",
         time_limit: numberValue(content.question_time, 10),
         question_time: numberValue(content.question_time, 10),
         min_point: numberValue(content.min_point, 0),
@@ -278,18 +284,35 @@ export const editorSlideToTransportDefinition = (
           })),
         },
         evaluation: {
-          mode: "correctness",
-          correct_option_ids: question.options
-            .filter((option) => option.is_correct === true)
-            .map((option) => option.option_id),
+          mode:
+            question.evaluation_mode === "none"
+              ? "none"
+              : "correctness",
+          correct_option_ids:
+            question.evaluation_mode === "none"
+              ? []
+              : question.options
+                  .filter((option) => option.is_correct === true)
+                  .map((option) => option.option_id),
         },
         scoring: {
-          mode: "points",
-          min_points: numberValue(question.min_point, 0),
-          max_points: numberValue(question.max_point, 100),
+          mode:
+            question.scoring_mode === "none"
+              ? "none"
+              : "points",
+          min_points:
+            question.scoring_mode === "none"
+              ? 0
+              : numberValue(question.min_point, 0),
+          max_points:
+            question.scoring_mode === "none"
+              ? 0
+              : numberValue(question.max_point, 100),
           speed_bonus:
+            question.scoring_mode === "points" &&
             question.faster_answers_more_points === true,
           partial_credit:
+            question.scoring_mode === "points" &&
             question.question_type === "multiple" &&
             question.partial_scoring === true,
         },
@@ -302,6 +325,7 @@ export const editorSlideToTransportDefinition = (
         },
         results: {
           show_overall_leaderboard_after:
+            question.scoring_mode !== "none" &&
             slide.show_leaderboard_after === true,
         },
       },
