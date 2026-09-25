@@ -12,6 +12,7 @@ import {
   activityTitle,
   choiceOptions,
   formatReportDateTime,
+  isPollActivity,
   responseLabels,
 } from "../model/reportView.ts";
 
@@ -37,6 +38,7 @@ export function ActivityReportPanel({
   const first = pages[0];
   const responses = pages.flatMap((page) => page.responses);
   const options = choiceOptions(activity);
+  const isPoll = isPollActivity(activity);
   const maxCount = Math.max(
     1,
     ...options.map((option) => first?.result.payload.option_counts[option.id] ?? 0),
@@ -63,11 +65,15 @@ export function ActivityReportPanel({
       <div className="border-b border-border-subtle p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-black" dir="auto">{activityTitle(activity)}</h2>
-          {activity.scored && (
+          {isPoll ? (
+            <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink">
+              نظرسنجی
+            </span>
+          ) : activity.scored ? (
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink">
               امتیازی
             </span>
-          )}
+          ) : null}
         </div>
         {activityPrompt(activity) && (
           <p className="mt-2 text-sm text-content-muted" dir="auto">
@@ -81,7 +87,7 @@ export function ActivityReportPanel({
 
       <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
         <div>
-          <h3 className="font-bold">نتیجه همین فعالیت</h3>
+          <h3 className="font-bold">{isPoll ? "نتیجه نظرسنجی" : "نتیجه همین فعالیت"}</h3>
           <p className="mt-1 text-xs text-content-muted">
             توزیع پاسخ‌ها فقط برای این فعالیت است و با رتبه‌بندی کلی جلسه ترکیب
             نمی‌شود.
@@ -152,7 +158,9 @@ export function ActivityReportPanel({
       <div className="border-t border-border-subtle">
         <div className="flex items-center gap-2 px-5 pt-5">
           <UsersRound className="size-5 text-brand" aria-hidden="true" />
-          <h3 className="font-bold">پاسخ‌ها و ارزیابی شرکت‌کنندگان</h3>
+          <h3 className="font-bold">
+            {isPoll ? "پاسخ‌های شرکت‌کنندگان" : "پاسخ‌ها و ارزیابی شرکت‌کنندگان"}
+          </h3>
         </div>
 
         {responses.length === 0 ? (
