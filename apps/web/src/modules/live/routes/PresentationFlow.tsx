@@ -71,6 +71,7 @@ export function AppPresentation({
     isConnected,
     sessionState: snapshot?.session?.state,
     sessionStageView: snapshot?.session?.stage_view,
+    activeItemId: snapshot?.session?.active_item_id ?? null,
   });
 
   if (role === "manager") {
