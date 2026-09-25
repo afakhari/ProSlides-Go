@@ -968,7 +968,21 @@ components:
         id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
         host_id: { type: string, format: uuid }
-        join_code: { type: string, pattern: '^[A-Z0-9]{5,12}
+        join_code: { type: string, pattern: '^[A-Z0-9]{5,12}$' }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        state_version: { type: integer }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
+        ends_at: { type: string, format: date-time, nullable: true }
+        remaining_seconds:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise.
     Participant:
       type: object
       required: [id, display_name]
