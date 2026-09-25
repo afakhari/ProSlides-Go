@@ -53,7 +53,7 @@ func (s *rejoinStore) ResolveSession(context.Context, string) (SessionLocator, e
 func (s *rejoinStore) ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error) {
 	return Session{}, false, errors.New("unexpected ApplyAction")
 }
-func (s *rejoinStore) SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error) {
+func (s *rejoinStore) SubmitAnswer(context.Context, string, []byte, string, string, ActivityResponsePayload, ScoringPolicy) (AnswerResult, error) {
 	return AnswerResult{}, errors.New("unexpected SubmitAnswer")
 }
 func (s *rejoinStore) ParticipantSnapshot(context.Context, string, []byte) (ParticipantSnapshot, error) {
