@@ -122,6 +122,7 @@ export function ManagerPickAnswerQuestion({
     () => currentQuestion?.options ?? [],
     [currentQuestion],
   );
+  const hasCorrectAnswer = currentQuestion?.has_correct_answer !== false;
   const votes = useMemo(
     () =>
       options.map((option) => {
@@ -296,7 +297,7 @@ export function ManagerPickAnswerQuestion({
                       <div className="flex h-full w-full items-end">
                         <div
                           className={`w-full rounded-t-2xl transition-[height] duration-700 ${
-                            showResults
+                            showResults && hasCorrectAnswer
                               ? correct
                                 ? "bg-success"
                                 : "bg-danger/80"
@@ -304,7 +305,10 @@ export function ManagerPickAnswerQuestion({
                           }`}
                           style={{
                             height: showResults ? `${height}%` : "8%",
-                            backgroundColor: showResults ? undefined : color,
+                            backgroundColor:
+                              showResults && hasCorrectAnswer
+                                ? undefined
+                                : color,
                           }}
                           aria-hidden="true"
                         />
