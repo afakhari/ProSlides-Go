@@ -34,8 +34,12 @@ Authoritative sources:
 - durable decision: ADR 0004;
 - GitHub umbrella: issue #82.
 
-**Active implementation slice: V2.1 / issue #83 — Item and Activity domain
-foundation.**
+V2.1 / issue #83 is complete via PR #92. Authored Choice Activities now use
+one canonical versioned Activity definition while the live runtime retains its
+temporary frozen-session compatibility projection until V2.2.
+
+**Active implementation slice: V2.2 / issue #84 — generic live Activity
+lifecycle and ranking semantics.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
