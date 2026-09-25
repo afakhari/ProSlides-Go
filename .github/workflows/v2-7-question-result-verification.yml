@@ -1,0 +1,64 @@
+name: Temporary V2.7 question-result verification
+
+on:
+  push:
+    branches:
+      - refactor/v2.7-drop-question-results-read
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-7-question-result-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-report-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: proslides-v27-report
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select container registry
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          registries=("docker.io/library" "public.ecr.aws/docker/library" "docker.arvancloud.ir")
+          images=("golang:1.26-alpine" "alpine:3.21" "postgres:16.15-alpine" "redis:7.4.3-alpine")
+          for registry in "${registries[@]}"; do
+            healthy=true
+            for image in "${images[@]}"; do
+              if ! docker pull "$registry/$image"; then
+                healthy=false
+                break
+              fi
+            done
+            if [ "$healthy" = true ]; then
+              echo "registry=$registry" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "::error::No container registry is currently available"
+          exit 1
+
+      - name: Start API stack
+        env:
+          BASE_REGISTRY: ${{ steps.registry.outputs.registry }}
+        run: docker compose --env-file apps/api/.env.example up -d --build postgres redis api
+
+      - name: Run canonical Session-first report integration
+        shell: pwsh
+        run: ./scripts/test-auth-integration.ps1 -SkipComposeStartup
+
+      - name: Print stack logs on failure
+        if: failure()
+        run: docker compose --env-file apps/api/.env.example logs --no-color --tail=250 api postgres redis
+
+      - name: Stop verification stack
+        if: always()
+        run: docker compose --env-file apps/api/.env.example down -v
