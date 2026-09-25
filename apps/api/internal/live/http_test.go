@@ -43,7 +43,7 @@ func (s *snapshotStore) Join(context.Context, string, string, string, string, []
 func (s *snapshotStore) ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error) {
 	return Session{}, false, errors.New("unexpected ApplyAction")
 }
-func (s *snapshotStore) SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error) {
+func (s *snapshotStore) SubmitAnswer(context.Context, string, []byte, string, string, ActivityResponsePayload, ScoringPolicy) (AnswerResult, error) {
 	return AnswerResult{}, errors.New("unexpected SubmitAnswer")
 }
 func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, hash []byte) (ParticipantSnapshot, error) {
@@ -58,7 +58,11 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 			Role:             "participant",
 			Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Presenting, StateVersion: 6, ActivityPhase: &revealed, StageView: StageItem},
 			Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 170},
-			PersonalActivityResult: &PersonalActivityResult{ActivityItemID: testPresentationID, SelectedOptionIndexes: []int{1}, ScoreDelta: 100},
+			PersonalActivityResult: &PersonalActivityResult{
+				ActivityItemID: testPresentationID,
+				Response:       json.RawMessage(`{"selected_option_indexes":[1]}`),
+				ScoreDelta:     100,
+			},
 			ParticipantCount: 10_000,
 			HasScoring:       true,
 			LastEventID:      43,
