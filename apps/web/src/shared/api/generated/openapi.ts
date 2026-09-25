@@ -922,6 +922,8 @@ export interface components {
             participant: components["schemas"]["ParticipantWithScore"];
             personal_activity_result?: components["schemas"]["PersonalActivityResult"];
             participant_count: number;
+            /** @description True when the frozen Session contains at least one scored Activity. */
+            has_scoring: boolean;
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];
@@ -934,6 +936,8 @@ export interface components {
                 [key: string]: unknown;
             };
             participant_count: number;
+            /** @description True when the frozen Session contains at least one scored Activity. */
+            has_scoring: boolean;
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];

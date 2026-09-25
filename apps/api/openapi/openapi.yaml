@@ -1065,7 +1065,7 @@ components:
         text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     ParticipantLiveSnapshot:
       type: object
-      required: [role, session, participant, participant_count, last_event_id]
+      required: [role, session, participant, participant_count, has_scoring, last_event_id]
       additionalProperties: false
       properties:
         role: { type: string, enum: [participant] }
@@ -1077,17 +1077,19 @@ components:
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
         personal_activity_result: { $ref: '#/components/schemas/PersonalActivityResult' }
         participant_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     ManagerLiveSnapshot:
       type: object
-      required: [role, session, participant_count, last_event_id]
+      required: [role, session, participant_count, has_scoring, last_event_id]
       additionalProperties: false
       properties:
         role: { type: string, enum: [manager] }
         session: { $ref: '#/components/schemas/LiveSession' }
         active_item: { type: object, additionalProperties: true }
         participant_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     RosterEntry:

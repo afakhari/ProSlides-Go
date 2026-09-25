@@ -60,6 +60,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 			Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 170},
 			PersonalActivityResult: &PersonalActivityResult{ActivityItemID: testPresentationID, SelectedOptionIndexes: []int{1}, ScoreDelta: 100},
 			ParticipantCount: 10_000,
+			HasScoring:       true,
 			LastEventID:      43,
 		}, nil
 	}
@@ -69,6 +70,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 			Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Presenting, StateVersion: 5, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
 			Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 70},
 			ParticipantCount: 10_000,
+			HasScoring:       true,
 			LastEventID:      42,
 		}, nil
 	}
@@ -77,6 +79,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 		Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Lobby, StateVersion: 2, StageView: StageItem},
 		Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 70},
 		ParticipantCount: 10_000,
+		HasScoring:       true,
 		LastEventID:      42,
 	}, nil
 }
@@ -91,6 +94,7 @@ func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager stri
 			Role:             "manager",
 			Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: Presenting, StateVersion: 5, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
 			ParticipantCount: 10_000,
+			HasScoring:       true,
 			LastEventID:      42,
 		}, nil
 	}
@@ -98,6 +102,7 @@ func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager stri
 		Role:             "manager",
 		Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: Lobby, StateVersion: 2, StageView: StageItem},
 		ParticipantCount: 10_000,
+		HasScoring:       true,
 		LastEventID:      42,
 	}, nil
 }
@@ -178,7 +183,7 @@ func TestParticipantSnapshotDoesNotDiscloseRosterScoresOrManagerFields(t *testin
 		}
 	}
 	participant := payload["participant"].(map[string]any)
-	if participant["id"] != "participant-1" || participant["score"] != float64(70) || payload["participant_count"] != float64(10_000) || payload["last_event_id"] != float64(42) {
+	if participant["id"] != "participant-1" || participant["score"] != float64(70) || payload["participant_count"] != float64(10_000) || payload["has_scoring"] != true || payload["last_event_id"] != float64(42) {
 		t.Fatalf("unexpected participant snapshot: %#v", payload)
 	}
 }

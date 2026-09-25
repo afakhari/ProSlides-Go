@@ -552,6 +552,12 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 			THEN 1+(SELECT count(*)::int FROM participants ranked WHERE ranked.session_id=p.session_id AND ranked.score>p.score)
 		END,
 		(SELECT count(*)::int FROM participants counted WHERE counted.session_id=l.id),
+		EXISTS(
+			SELECT 1 FROM live_session_slides scored
+			WHERE scored.session_id=l.id
+			  AND scored.kind='activity'
+			  AND scored.content->'scoring'->>'mode'='points'
+		),
 		COALESCE((SELECT max(event_id) FROM live_events WHERE session_id=l.id),0),
 		(SELECT jsonb_build_object('id',slide_id,'position',position,'kind',kind,'content',content)
 		 FROM live_session_slides WHERE session_id=l.id AND slide_id=l.active_item_id),
@@ -566,7 +572,7 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 		WHERE l.id=$1 AND p.token_hash=$2`, session, hash).Scan(
 		&full.ID, &full.PresentationID, &full.HostID, &full.JoinCode, &full.State, &full.StateVersion, &full.ActiveItemID, &full.ActivityPhase, &full.StageView, &full.EndsAt, &full.RemainingSeconds,
 		&x.Participant.ID, &x.Participant.DisplayName, &x.Participant.Avatar, &x.Participant.Score, &x.Participant.Rank,
-		&x.ParticipantCount, &x.LastEventID, &x.ActiveItem, &personalResultRaw,
+		&x.ParticipantCount, &x.HasScoring, &x.LastEventID, &x.ActiveItem, &personalResultRaw,
 	)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return x, ErrUnauthorized
@@ -616,12 +622,18 @@ func (s *PostgresStore) ManagerSnapshot(c context.Context, session, manager stri
 	e = tx.QueryRow(c, `SELECT id::text,presentation_id::text,host_id::text,join_code,state,state_version,active_item_id::text,activity_phase,stage_view,ends_at,
 		CASE WHEN activity_phase='accepting' AND ends_at IS NOT NULL THEN GREATEST(0,ROUND(EXTRACT(EPOCH FROM ends_at-clock_timestamp())))::int ELSE NULL END,
 		(SELECT count(*)::int FROM participants WHERE session_id=live_sessions.id),
+		EXISTS(
+			SELECT 1 FROM live_session_slides scored
+			WHERE scored.session_id=live_sessions.id
+			  AND scored.kind='activity'
+			  AND scored.content->'scoring'->>'mode'='points'
+		),
 		COALESCE((SELECT max(event_id) FROM live_events WHERE session_id=live_sessions.id),0),
 		(SELECT jsonb_build_object('id',slide_id,'position',position,'kind',kind,'content',content)
 		 FROM live_session_slides WHERE session_id=live_sessions.id AND slide_id=live_sessions.active_item_id)
 		FROM live_sessions WHERE id=$1 AND host_id=$2`, session, manager).Scan(
 		&x.Session.ID, &x.Session.PresentationID, &x.Session.HostID, &x.Session.JoinCode, &x.Session.State, &x.Session.StateVersion, &x.Session.ActiveItemID, &x.Session.ActivityPhase, &x.Session.StageView, &x.Session.EndsAt, &x.Session.RemainingSeconds,
-		&x.ParticipantCount, &x.LastEventID, &x.ActiveItem,
+		&x.ParticipantCount, &x.HasScoring, &x.LastEventID, &x.ActiveItem,
 	)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return x, ErrNotFound

@@ -91,12 +91,13 @@ type Event struct {
 }
 
 type ParticipantSnapshot struct {
-	Role             string               `json:"role"`
-	Session          PublicSession        `json:"session"`
-	ActiveItem       json.RawMessage      `json:"active_item,omitempty"`
-	Participant      ParticipantWithScore `json:"participant"`
-	ParticipantCount int                  `json:"participant_count"`
-	LastEventID      int64                `json:"last_event_id"`
+	Role                   string                  `json:"role"`
+	Session                PublicSession           `json:"session"`
+	ActiveItem             json.RawMessage         `json:"active_item,omitempty"`
+	Participant            ParticipantWithScore    `json:"participant"`
+	ParticipantCount       int                     `json:"participant_count"`
+	HasScoring             bool                    `json:"has_scoring"`
+	LastEventID            int64                   `json:"last_event_id"`
 	ActivityResult         *ActivityResult         `json:"activity_result,omitempty"`
 	PersonalActivityResult *PersonalActivityResult `json:"personal_activity_result,omitempty"`
 }
@@ -106,6 +107,7 @@ type ManagerSnapshot struct {
 	Session          Session         `json:"session"`
 	ActiveItem       json.RawMessage `json:"active_item,omitempty"`
 	ParticipantCount int             `json:"participant_count"`
+	HasScoring       bool            `json:"has_scoring"`
 	LastEventID      int64           `json:"last_event_id"`
 	ActivityResult   *ActivityResult `json:"activity_result,omitempty"`
 }

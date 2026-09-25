@@ -48,6 +48,7 @@ export interface ParticipantSnapshot {
   participant: ParticipantWithScore;
   personal_activity_result?: PersonalActivityResult;
   participant_count: number;
+  has_scoring: boolean;
   last_event_id: number;
   activity_result?: ActivityResult;
 }
@@ -57,6 +58,7 @@ export interface ManagerSnapshot {
   session: ManagerLiveSession;
   active_item?: Record<string, unknown>;
   participant_count: number;
+  has_scoring: boolean;
   last_event_id: number;
   activity_result?: ActivityResult;
 }
