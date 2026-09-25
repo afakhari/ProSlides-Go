@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { quizService } from "../../api/presentationRepository.ts";
 import ShareMenu from "../../sharing/ShareDialog.tsx";
@@ -41,6 +41,7 @@ export default function QuizHeader({
 
   const navigate = useNavigate();
   const [showShareModal, setShowShareModal] = useState(false);
+  const shareButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newQuizTitle, setNewQuizTitle] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -116,6 +117,11 @@ export default function QuizHeader({
     setIsEditing(false);
   };
 
+  const closeShareDialog = () => {
+    setShowShareModal(false);
+    window.requestAnimationFrame(() => shareButtonRef.current?.focus());
+  };
+
 
   // تابع handleInputChange برای اطمینان از مقدار معتبر
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -133,6 +139,7 @@ export default function QuizHeader({
       >
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           <button
+            type="button"
             onClick={() => (onBack ? onBack() : navigate("/manager/panel"))}
             className="rounded-xl p-2 text-content-muted transition hover:bg-brand-soft hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             title="بازگشت به ارائه‌ها"
@@ -161,6 +168,7 @@ export default function QuizHeader({
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {!isEditing ? (
             <button
+              type="button"
               onClick={() => setIsEditing(true)}
               className="max-w-[42vw] truncate rounded-xl px-3 py-2 text-sm font-bold text-content transition hover:bg-brand-soft hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:max-w-sm sm:px-4"
               title="تغییر نام ارائه"
@@ -189,6 +197,7 @@ export default function QuizHeader({
               />
 
               <button
+                type="button"
                 onClick={handleUpdateQuizName}
                 disabled={isUpdating || !newQuizTitle || !newQuizTitle.trim()}
                 className="flex items-center justify-center w-8 h-8
@@ -205,6 +214,7 @@ export default function QuizHeader({
               </button>
 
               <button
+                type="button"
                 onClick={handleCancelEdit}
                 disabled={isUpdating}
                 className="flex items-center justify-center w-8 h-8 
@@ -235,6 +245,8 @@ export default function QuizHeader({
 
           {/* --------------- Share Button --------------- */}
           <button
+            ref={shareButtonRef}
+            type="button"
             onClick={() => setShowShareModal(true)}
             title={fa.editor.openShare}
             className="rounded-xl bg-brand px-3 py-2.5 text-sm font-bold text-content-inverse shadow-lg transition hover:bg-brand-strong active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
@@ -248,7 +260,7 @@ export default function QuizHeader({
       <ShareMenu
         quizId={quizId}
         isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+        onClose={closeShareDialog}
         accessCode={accessCode}
         onAccessCodeSaved={onAccessCodeSaved}
       />
