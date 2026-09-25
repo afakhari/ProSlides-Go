@@ -71,10 +71,10 @@ so the old `/{accessCode}` link stops resolving immediately.
 Manager snapshots are also bounded.
 Managers use `GET /api/v1/live/sessions/{sessionId}/roster` with a maximum
 `limit` of 100, opaque keyset cursors, and stable `joined` or `score` ordering.
-Owned per-question results use
-`GET /api/v1/presentations/{presentationId}/sessions/{sessionId}/questions/{slideId}/results`
-and return bounded keyset-ranked rows plus option counts derived from durable
-answers.
+Owned historical Activity results use the Session-first report boundary
+`GET /api/v1/presentations/{presentationId}/sessions/{sessionId}/activities/{activityItemId}/results`.
+The response keeps Activity result aggregation, bounded response history and
+per-Activity top performers separate from cumulative Session ranking.
 
 Event delivery uses one bounded process-local broker per active session rather
 than polling PostgreSQL from every SSE connection. Slow subscribers are closed
