@@ -159,17 +159,13 @@ func TestUnscoredChoiceCannotRequestOverallLeaderboard(t *testing.T) {
 			Mode:             EvaluationModeNone,
 			CorrectOptionIDs: []string{},
 		},
-		Scoring: ScoringModeNonePolicy(),
+		Scoring: ChoiceScoringPolicy{Mode: ScoringModeNone},
 		Timing:  ActivityTimingPolicy{DurationSeconds: 30},
 		Results: ActivityResultPolicy{ShowOverallLeaderboardAfter: true},
 	}
 	if err := validateActivityDefinition(activity); err == nil {
 		t.Fatal("unscored activity requested an overall leaderboard")
 	}
-}
-
-func ScoringModeNonePolicy() ChoiceScoringPolicy {
-	return ChoiceScoringPolicy{Mode: ScoringModeNone}
 }
 
 func TestChoiceActivityRejectsInvalidCrossPolicyCombinations(t *testing.T) {
