@@ -1012,7 +1012,10 @@ components:
         display_name: { type: string }
         avatar: { type: string }
         score: { type: integer, minimum: 0 }
-        rank: { type: integer, minimum: 1, description: Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). }
+        rank:
+          type: integer
+          minimum: 1
+          description: "Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3)."
     LiveSessionLocator:
       type: object
       required: [session_id, presentation_id, presentation]
