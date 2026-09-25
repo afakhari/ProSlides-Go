@@ -135,7 +135,7 @@ export function ManagerPickAnswerQuestion({
     [options, resultOptions],
   );
 
-  const showResults = resultMatches && resultOptions.length > 0;
+  const showResults = resultMatches && questionResults !== null;
   const totalVotes = votes.reduce((sum, count) => sum + count, 0);
 
   useEffect(() => {
