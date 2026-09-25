@@ -166,6 +166,7 @@ test("editor presentation reads recover after interrupted route navigation", () 
   assert.match(route, /controller\.abort\(\)/);
   assert.match(route, /signal\?\.aborted/);
   assert.match(repository, /getEditorQuiz: async \(quizID: string, options\?: RequestOptions\)/);
+  assert.doesNotMatch(repository, /getLatestSession|latest-session/);
 });
 
 test("typed Persian catalog is consumed by manager dashboard editor and share", () => {
