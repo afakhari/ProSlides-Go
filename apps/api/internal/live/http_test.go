@@ -106,6 +106,25 @@ func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager stri
 		LastEventID:      42,
 	}, nil
 }
+func (s *snapshotStore) StageSnapshot(_ context.Context, session, manager string) (StageSnapshot, error) {
+	if manager != testManagerID || (session != testSessionID && session != testPresentationID) {
+		return StageSnapshot{}, ErrNotFound
+	}
+	accepting := ActivityAccepting
+	remaining := 42
+	itemID := testPresentationID
+	return StageSnapshot{
+		Role:         "stage",
+		Session:      PublicSession{ID: session, PresentationID: testPresentationID, State: Presenting, StateVersion: 5, ActiveItemID: &itemID, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
+		JoinCode:     "JOIN1",
+		Presentation: PublicLivePresentation{Title: "آزمون نمونه", BackgroundColor: "#123456", BackgroundImageURL: "", MusicURL: "https://example.test/theme.mp3", TextColor: "#ffffff"},
+		ActiveItem:   json.RawMessage(`{"id":"item-1","kind":"activity","content":{"evaluation":{"mode":"correctness"},"response":{"options":[{"id":"a","text":"الف"}]}}}`),
+		ParticipantCount: 10_000,
+		HasScoring:       true,
+		LastEventID:      42,
+		Ranking:          []StageRankingEntry{},
+	}, nil
+}
 func (s *snapshotStore) Roster(_ context.Context, session, manager string, query RosterQuery) (RosterPage, error) {
 	if session != testSessionID || manager != testManagerID {
 		return RosterPage{}, ErrNotFound
@@ -289,6 +308,41 @@ func TestSnapshotUsesManagerRoleAndFallsBackToParticipantRole(t *testing.T) {
 	handler.ServeHTTP(participantResponse, participantRequest)
 	if participantResponse.Code != http.StatusOK || !jsonFieldEquals(participantResponse.Body.Bytes(), "role", "participant") {
 		t.Fatalf("participant fallback = %d %s", participantResponse.Code, participantResponse.Body.String())
+	}
+}
+
+func TestStageSnapshotIsManagerOnlyAndProjectionScoped(t *testing.T) {
+	store := &snapshotStore{}
+	handler := snapshotHandler(store)
+
+	participantRequest := httptest.NewRequest(http.MethodGet, "/api/v1/live/sessions/"+testSessionID+"/stage", nil)
+	participantRequest.AddCookie(&http.Cookie{Name: "proslides_participant", Value: testParticipantToken})
+	participantResponse := httptest.NewRecorder()
+	handler.ServeHTTP(participantResponse, participantRequest)
+	if participantResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("participant stage status = %d", participantResponse.Code)
+	}
+
+	managerRequest := httptest.NewRequest(http.MethodGet, "/api/v1/live/sessions/"+testSessionID+"/stage", nil)
+	managerRequest.AddCookie(&http.Cookie{Name: "proslides_session", Value: "manager-token"})
+	managerResponse := httptest.NewRecorder()
+	handler.ServeHTTP(managerResponse, managerRequest)
+	if managerResponse.Code != http.StatusOK {
+		t.Fatalf("manager stage = %d %s", managerResponse.Code, managerResponse.Body.String())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(managerResponse.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["role"] != "stage" || payload["join_code"] != "JOIN1" || payload["participant_count"] != float64(10_000) {
+		t.Fatalf("unexpected stage projection: %#v", payload)
+	}
+	if _, exists := payload["participant"]; exists {
+		t.Fatalf("stage projection disclosed participant identity")
+	}
+	session := payload["session"].(map[string]any)
+	if _, exists := session["host_id"]; exists {
+		t.Fatalf("stage projection disclosed host_id")
 	}
 }
 
