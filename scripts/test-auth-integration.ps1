@@ -435,7 +435,7 @@ try {
   Invoke-API -Method PATCH -Path "/api/v1/presentations/$createdID" -Client $otherClient -Headers @{ "X-CSRF-Token" = $otherCSRF } -Body (@{ title = "Unauthorized update" } | ConvertTo-Json -Compress) -ExpectedStatus 404 | Out-Null
   Invoke-API -Method POST -Path "/api/v1/presentations/$createdID/slides/reorder" -Client $otherClient -Headers @{ "X-CSRF-Token" = $otherCSRF } -Body (@{ slide_ids = @() } | ConvertTo-Json -Compress) -ExpectedStatus 404 | Out-Null
   Invoke-API -Method DELETE -Path "/api/v1/presentations/$createdID/results" -Client $otherClient -Headers @{ "X-CSRF-Token" = $otherCSRF } -ExpectedStatus 404 | Out-Null
-  Invoke-API -Method GET -Path "/api/v1/presentations/$createdID/sessions/$($liveSession.id)/questions/$questionID/results" -Client $otherClient -ExpectedStatus 404 | Out-Null
+  Invoke-API -Method GET -Path "/api/v1/presentations/$createdID/sessions/$($liveSession.id)/activities/$questionID/results" -Client $otherClient -ExpectedStatus 404 | Out-Null
   Invoke-API -Method PUT -Path "/api/v1/presentations/$duplicateID/access-code" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ access_code = $liveSession.join_code } | ConvertTo-Json -Compress) -ExpectedStatus 409 | Out-Null
 
   Invoke-API -Method DELETE -Path "/api/v1/presentations/$duplicateID" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -ExpectedStatus 204 | Out-Null
