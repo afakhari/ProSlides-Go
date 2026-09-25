@@ -97,13 +97,25 @@ PR #115 is the next verified authoring cleanup: migrations 0017 and 0018 already
 upgraded persisted authored Questions and frozen live-session Question snapshots
 to canonical Choice Activities, so the deprecated Question creation endpoint,
 generic `kind: question` translator, legacy Editor read adapter and their dead
-OpenAPI shapes are removed. Internal load/integration authoring fixtures now
-create the same versioned Choice Activity used by the product.
+OpenAPI shapes are removed. Post-merge CI #566, including browser E2E, and Push
+on main #405 are green.
 
-Other legacy paths, including numeric `slide_type`, old live action/state
-vocabulary in verification tooling, Choice response compatibility, deprecated
-question-result reads and persisted leaderboard compatibility, remain until
-their replacements are verified independently.
+PR #116 moves the maintained k6 and Compose integration scenarios onto the
+same canonical Activity contract: `present_item`, `close_activity`,
+`reveal_activity`, `show_overall_ranking`, versioned Activity responses,
+current SSE event names and Session-first Activity reports. State-version
+chaining comes from each authoritative command response rather than hard-coded
+transition counts. A temporary branch-only verification workflow exercised the
+full Compose integration matrix and a pinned SSE-enabled 10-participant k6
+smoke against PostgreSQL/Redis/API: the matrix passed, all 32 k6 checks passed,
+join/answer/SSE success rates were 100%, no HTTP request failed, and the final
+database reconciliation passed. The temporary workflow was removed before
+merge and is not part of the product CI surface.
+
+Other legacy paths, including numeric `slide_type`, Choice response
+compatibility inside production boundaries, deprecated question-result reads
+and persisted leaderboard compatibility, remain until their replacements are
+verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 

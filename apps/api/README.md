@@ -86,7 +86,7 @@ workload and pass/fail gates.
 
 Run `powershell -ExecutionPolicy Bypass -File scripts/test-auth-integration.ps1`
 from the repository root to execute the identity, content, live, scoring,
-role-scoped snapshot, paginated roster, per-question results, atomic slide
+role-scoped snapshot, paginated roster, per-Activity results, atomic slide
 ordering, authorization/non-disclosure, and SSE replay matrix. Use
 `-SkipComposeStartup` only for an
 already-running local stack and `-StopAfter` only when it is safe to stop it.
