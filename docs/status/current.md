@@ -92,14 +92,20 @@ Deferred frontend debt is tracked in `../frontend-debt.md`.
 
 Required `web` and `api` CI checks are the normal merge gates.
 
-`containers`/browser E2E and CodeQL remain useful non-required integration and
-security signals during the current single-developer pre-production phase.
-Investigate failures that plausibly come from the changed boundary; do not wait
-on unrelated non-required work merely for ceremony.
+During active v2 redesign, pull requests run only the cheap container
+configuration validation. The full Docker/browser E2E stack is intentionally
+deferred to pushes on `main` and manual workflow runs because registry pulls,
+image builds and Playwright installation dominate iteration cost. CodeQL remains
+a useful non-required security signal.
 
-High-risk live/domain slices explicitly verify the invariant they change, such
-as idempotency, stale-version conflict, frozen Session definitions, deadline
-rejection, reconnect recovery or participant non-disclosure.
+High-risk live/domain slices still verify the invariant they change with focused
+API/domain/protocol tests, including idempotency, stale-version conflict, frozen
+Session definitions, deadline rejection, reconnect recovery and participant
+non-disclosure. Browser E2E failures on `main` must still be investigated
+before continuing into another risky slice.
+
+V2.8 / issue #90 restores the stable critical browser flows to the pull-request
+gate after the final v2 live protocol and UI surfaces stop moving.
 
 ## Production-readiness boundary
 
