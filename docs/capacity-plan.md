@@ -14,10 +14,10 @@ raw results, and bottleneck analysis for every accepted run.
 | connect | target users establish authenticated SSE over 120 seconds |
 | steady | all streams remain open for 10 minutes with 15-second heartbeats |
 | join burst | target users join over 60 seconds; presence is compacted |
-| question open | one manager action; all clients receive state within the event SLO |
-| answer burst | 80% of users answer within 5 seconds; 100% within 15 seconds |
+| activity open | one manager action; all clients receive state within the event SLO |
+| response burst | 80% of users respond within 5 seconds; 100% within 15 seconds |
 | reconnect | 20% of SSE clients disconnect and recover through snapshot/cursor |
-| closure | manager closes question; aggregate stats and leaderboard are published |
+| closure | manager closes the Activity; aggregate results and any requested overall ranking are published |
 | host loss | manager disconnects/reconnects without changing authoritative state |
 
 Test levels are 1,000, then 5,000, then 10,000 concurrent participants. A level
@@ -29,7 +29,7 @@ These are acceptance thresholds to validate or revise with product evidence:
 
 | Signal | Gate |
 |---|---|
-| answer HTTP latency | p95 <= 500 ms, p99 <= 1 s during burst |
+| response HTTP latency | p95 <= 500 ms, p99 <= 1 s during burst |
 | manager command latency | p95 <= 250 ms, p99 <= 750 ms |
 | SSE event propagation | p95 <= 1 s, p99 <= 2 s |
 | reconnect recovery | p95 <= 3 s including snapshot |
@@ -45,7 +45,7 @@ These are acceptance thresholds to validate or revise with product evidence:
   transaction duration, lock waits, deadlocks, and database CPU/IO.
 - Active SSE connections, connection lifetime, reconnect count, bytes/events
   sent, broker sessions/subscribers, buffer drops, and ledger-to-client lag.
-- Accepted/duplicate/rejected answers and score-update duration.
+- Accepted/duplicate/rejected responses and score-update duration.
 - Process CPU, RSS, goroutines, GC pauses, file descriptors, and network throughput.
 
 Metrics must use bounded labels. Never label by participant, request, session,
@@ -103,13 +103,13 @@ capacity sequence and does not compete with that status document.
 
 Query PostgreSQL and reconcile:
 
-- accepted HTTP answer IDs equal durable answer rows;
-- each participant/question has at most one answer;
-- participant aggregate score equals the sum of immutable answer deltas;
+- accepted HTTP response IDs equal durable response rows;
+- each participant/Activity respects that Activity's submission cardinality;
+- participant aggregate score equals the sum of immutable scored-response deltas;
 - command request IDs are unique and return stable stored results;
 - state versions are monotonic;
 - every emitted durable event references an existing session and valid state;
-- no answer committed after the authoritative close/deadline boundary.
+- no response committed after the authoritative close/deadline boundary.
 
 Any mismatch fails the run even when latency is excellent.
 
