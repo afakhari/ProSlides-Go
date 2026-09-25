@@ -2,7 +2,9 @@ import type {
   EditorPresentation,
   EditorQuestion,
   EditorSlide,
+  EvaluationMode,
   QuestionType,
+  ScoringMode,
 } from "../../model/editor.ts";
 
 export type SlideTypeChoice =
@@ -12,6 +14,16 @@ export type SlideTypeChoice =
 
 export type TypeSelectionMode = QuestionType | "content";
 export type IdFactory = () => string;
+
+export type ChoicePolicy = {
+  evaluationMode: EvaluationMode;
+  scoringMode: ScoringMode;
+};
+
+const defaultChoicePolicy: ChoicePolicy = {
+  evaluationMode: "correctness",
+  scoringMode: "points",
+};
 
 export const slideChoiceToMode = (
   choice: SlideTypeChoice,
@@ -26,51 +38,60 @@ export const createDefaultQuestion = (
   slideId: string,
   questionType: QuestionType,
   createId: IdFactory,
-): EditorQuestion => ({
-  question_id: slideId,
-  title: "",
-  text: "سؤال جدید",
-  question_text: "سؤال جدید",
-  question_type: questionType,
-  evaluation_mode: "correctness",
-  scoring_mode: "points",
-  min_point: 0,
-  max_point: 100,
-  time_limit: 10,
-  question_time: 10,
-  image_url: "",
-  question_image: "",
-  faster_answers_more_points: false,
-  partial_scoring: false,
-  options: [
-    {
-      option_id: createId(),
-      text: "گزینه ۱",
-      is_correct: true,
-      image_url: "",
-      order: 1,
-    },
-    {
-      option_id: createId(),
-      text: "گزینه ۲",
-      is_correct: false,
-      image_url: "",
-      order: 2,
-    },
-  ],
-});
+  policy: ChoicePolicy = defaultChoicePolicy,
+): EditorQuestion => {
+  const isPoll =
+    policy.evaluationMode === "none" &&
+    policy.scoringMode === "none";
+  const isScored = policy.scoringMode === "points";
+
+  return {
+    question_id: slideId,
+    title: "",
+    text: isPoll ? "نظرسنجی جدید" : "سؤال جدید",
+    question_text: isPoll ? "نظرسنجی جدید" : "سؤال جدید",
+    question_type: questionType,
+    evaluation_mode: policy.evaluationMode,
+    scoring_mode: policy.scoringMode,
+    min_point: 0,
+    max_point: isScored ? 100 : 0,
+    time_limit: 10,
+    question_time: 10,
+    image_url: "",
+    question_image: "",
+    faster_answers_more_points: false,
+    partial_scoring: false,
+    options: [
+      {
+        option_id: createId(),
+        text: "گزینه ۱",
+        is_correct: policy.evaluationMode === "correctness",
+        image_url: "",
+        order: 1,
+      },
+      {
+        option_id: createId(),
+        text: "گزینه ۲",
+        is_correct: false,
+        image_url: "",
+        order: 2,
+      },
+    ],
+  };
+};
 
 export const createSlideForChoice = (
   order: number,
   choice: SlideTypeChoice,
   createId: IdFactory,
+  policy: ChoicePolicy = defaultChoicePolicy,
 ): EditorSlide => {
   const slideId = createId();
   const mode = slideChoiceToMode(choice);
   const question =
     mode === "content"
       ? null
-      : createDefaultQuestion(slideId, mode, createId);
+      : createDefaultQuestion(slideId, mode, createId, policy);
 
   return {
     slide_id: slideId,
@@ -107,6 +128,7 @@ export const convertSlideToQuestion = (
   slide: EditorSlide,
   questionType: QuestionType,
   createId: IdFactory,
+  policy?: ChoicePolicy,
 ): EditorSlide => {
   const existing = slide.question;
 
@@ -117,7 +139,13 @@ export const convertSlideToQuestion = (
       item_kind: "activity",
       activity_kind: "choice",
       schema_version: 1,
-      question: createDefaultQuestion(slide.slide_id, questionType, createId),
+      question: createDefaultQuestion(
+        slide.slide_id,
+        questionType,
+        createId,
+        policy ?? defaultChoicePolicy,
+      ),
+      show_leaderboard_after: false,
     };
   }
 
@@ -133,7 +161,9 @@ export const convertSlideToQuestion = (
   }
 
   const evaluationMode =
-    existing.evaluation_mode ?? "correctness";
+    policy?.evaluationMode ?? existing.evaluation_mode ?? "correctness";
+  const scoringMode =
+    policy?.scoringMode ?? existing.scoring_mode ?? "points";
   const firstCorrectIndex = options.findIndex(
     (option) => option.is_correct,
   );
