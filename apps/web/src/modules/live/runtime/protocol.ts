@@ -251,6 +251,8 @@ const choiceActivityToLegacy = (
     min_point: finiteNumber(scoring.min_points),
     question_type: questionType,
     has_multiple: questionType === "multiple",
+    is_scored: scoring.mode === "points",
+    has_correct_answer: evaluation.mode === "correctness",
     image_url: stringValue(prompt.image_url),
     show_leaderboard_after:
       results.show_overall_leaderboard_after === true,
