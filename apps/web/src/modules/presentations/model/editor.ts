@@ -16,6 +16,16 @@ export interface EditorOption {
   order: number;
 }
 
+export interface EditorTextActivity {
+  title: string;
+  text: string;
+  image_url: string;
+  max_length: number;
+  max_words: number;
+  time_limit: number;
+  aggregation: "word_frequency";
+}
+
 export interface EditorQuestion {
   question_id: string;
   title: string;
@@ -45,6 +55,7 @@ export interface EditorSlide {
   schema_version?: number;
   show_leaderboard_after: boolean;
   question: EditorQuestion | null;
+  text_activity?: EditorTextActivity | null;
   title?: string;
   content_text?: string;
   content_image_url?: string;
@@ -81,6 +92,126 @@ export const QUESTION_LIMITS = {
   minDurationSeconds: 1,
   maxDurationSeconds: 86_400,
 } as const;
+
+export const TEXT_ACTIVITY_LIMITS = {
+  title: 500,
+  promptText: 10_000,
+  imageUrl: 4_096,
+  minResponseLength: 1,
+  maxResponseLength: 500,
+  minWords: 1,
+  maxWords: 10,
+  minDurationSeconds: 1,
+  maxDurationSeconds: 86_400,
+} as const;
+
+export type TextActivityValidationField =
+  | "text_activity"
+  | "prompt_text"
+  | "prompt_image"
+  | "max_length"
+  | "max_words"
+  | "duration";
+
+export type TextActivityValidationIssue = {
+  code: string;
+  field: TextActivityValidationField;
+  message: string;
+};
+
+export const validateEditorTextActivity = (
+  activity: Partial<EditorTextActivity> | null | undefined,
+): TextActivityValidationIssue[] => {
+  if (!activity || typeof activity !== "object") {
+    return [{
+      code: "text_activity_required",
+      field: "text_activity",
+      message: "تنظیمات ابر واژه را تکمیل کنید.",
+    }];
+  }
+
+  const issues: TextActivityValidationIssue[] = [];
+  const prompt = String(activity.text ?? "").trim();
+  const title = String(activity.title ?? "");
+  const imageUrl = String(activity.image_url ?? "");
+  const maxLength = Number(activity.max_length);
+  const maxWords = Number(activity.max_words);
+  const duration = Number(activity.time_limit);
+
+  if (!prompt) {
+    issues.push({
+      code: "prompt_required",
+      field: "prompt_text",
+      message: "پرسش ابر واژه را وارد کنید.",
+    });
+  } else if (textLength(prompt) > TEXT_ACTIVITY_LIMITS.promptText) {
+    issues.push({
+      code: "prompt_too_long",
+      field: "prompt_text",
+      message: "متن پرسش ابر واژه بیش از حد طولانی است.",
+    });
+  }
+  if (textLength(title) > TEXT_ACTIVITY_LIMITS.title) {
+    issues.push({
+      code: "title_too_long",
+      field: "prompt_text",
+      message: "عنوان ابر واژه بیش از حد طولانی است.",
+    });
+  }
+  if (textLength(imageUrl) > TEXT_ACTIVITY_LIMITS.imageUrl) {
+    issues.push({
+      code: "image_too_long",
+      field: "prompt_image",
+      message: "آدرس تصویر ابر واژه بیش از حد طولانی است.",
+    });
+  }
+  if (
+    !Number.isInteger(maxLength) ||
+    maxLength < TEXT_ACTIVITY_LIMITS.minResponseLength ||
+    maxLength > TEXT_ACTIVITY_LIMITS.maxResponseLength
+  ) {
+    issues.push({
+      code: "max_length_invalid",
+      field: "max_length",
+      message: "حداکثر طول پاسخ باید بین ۱ تا ۵۰۰ نویسه باشد.",
+    });
+  }
+  if (
+    !Number.isInteger(maxWords) ||
+    maxWords < TEXT_ACTIVITY_LIMITS.minWords ||
+    maxWords > TEXT_ACTIVITY_LIMITS.maxWords
+  ) {
+    issues.push({
+      code: "max_words_invalid",
+      field: "max_words",
+      message: "تعداد واژه‌های پاسخ باید بین ۱ تا ۱۰ باشد.",
+    });
+  }
+  if (
+    !Number.isInteger(duration) ||
+    duration < TEXT_ACTIVITY_LIMITS.minDurationSeconds ||
+    duration > TEXT_ACTIVITY_LIMITS.maxDurationSeconds
+  ) {
+    issues.push({
+      code: "duration_invalid",
+      field: "duration",
+      message: "زمان پاسخ‌گویی باید بین ۱ ثانیه تا ۲۴ ساعت باشد.",
+    });
+  }
+  if (activity.aggregation !== "word_frequency") {
+    issues.push({
+      code: "aggregation_invalid",
+      field: "text_activity",
+      message: "روش تجمیع ابر واژه معتبر نیست.",
+    });
+  }
+
+  return issues;
+};
+
+export const getTextActivityValidationError = (
+  activity: Partial<EditorTextActivity> | null | undefined,
+): string | null => validateEditorTextActivity(activity)[0]?.message ?? null;
 
 export const CONTENT_LIMITS = {
   title: 500,
