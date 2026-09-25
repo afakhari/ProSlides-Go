@@ -17,7 +17,7 @@ SET kind = 'activity',
             'options', COALESCE((
                 SELECT jsonb_agg(
                     jsonb_build_object(
-                        'id', option_value->>'id',
+                        'id', COALESCE(NULLIF(option_value->>'id', ''), 'legacy-option-' || option_ordinality::text),
                         'text', option_value->>'text',
                         'image_url', COALESCE(option_value->>'image_url', ''),
                         'order', COALESCE((option_value->>'order')::int, option_ordinality::int)
@@ -31,7 +31,10 @@ SET kind = 'activity',
         'evaluation', jsonb_build_object(
             'mode', 'correctness',
             'correct_option_ids', COALESCE((
-                SELECT jsonb_agg(option_value->>'id' ORDER BY option_ordinality)
+                SELECT jsonb_agg(
+                    COALESCE(NULLIF(option_value->>'id', ''), 'legacy-option-' || option_ordinality::text)
+                    ORDER BY option_ordinality
+                )
                 FROM jsonb_array_elements(s.content->'options')
                     WITH ORDINALITY AS option_rows(option_value, option_ordinality)
                 WHERE COALESCE((option_value->>'is_correct')::boolean, false)
