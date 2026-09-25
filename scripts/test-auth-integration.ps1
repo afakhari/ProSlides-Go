@@ -193,7 +193,8 @@ try {
   Invoke-API -Method POST -Path "/api/v1/live/sessions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = $createSessionRequest; presentation_id = $createdID } | ConvertTo-Json -Compress) -ExpectedStatus 200 | Out-Null
 
   $startRequest = [guid]::NewGuid().ToString()
-  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = $startRequest; expected_state_version = 1; action = "start" } | ConvertTo-Json -Compress) -ExpectedStatus 201 | Out-Null
+  $started = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = $startRequest; expected_state_version = 1; action = "start" } | ConvertTo-Json -Compress) -ExpectedStatus 201
+  $startedPayload = $started.Content | ConvertFrom-Json
   Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = $startRequest; expected_state_version = 1; action = "start" } | ConvertTo-Json -Compress) -ExpectedStatus 200 | Out-Null
   # A fresh credential from the same host resumes the active run instead of
   # creating a second live session.
@@ -240,24 +241,28 @@ try {
     $burstResource.Handler.Dispose()
   }
 
-  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = 2; action = "open_question"; slide_id = $questionID } | ConvertTo-Json -Compress) -ExpectedStatus 201 | Out-Null
+  $presentedActivity = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = $startedPayload.state_version; action = "present_item"; item_id = $questionID } | ConvertTo-Json -Compress) -ExpectedStatus 201
+  $presentedActivityPayload = $presentedActivity.Content | ConvertFrom-Json
   $answerRequest = [guid]::NewGuid().ToString()
-  $answer = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body (@{ request_id = $answerRequest; question_slide_id = $questionID; selected_option_indexes = @(0, 1) } | ConvertTo-Json -Compress) -ExpectedStatus 201
-  if (($answer.Content | ConvertFrom-Json).score_delta -ne 100) { throw "Correct multiple answer was not scored at 100" }
-  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body (@{ request_id = $answerRequest; question_slide_id = $questionID; selected_option_indexes = @(0, 1) } | ConvertTo-Json -Compress) -ExpectedStatus 200 | Out-Null
-  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body (@{ request_id = [guid]::NewGuid().ToString(); question_slide_id = $questionID; selected_option_indexes = @(0) } | ConvertTo-Json -Compress) -ExpectedStatus 409 | Out-Null
-  Invoke-API -Method GET -Path "/api/v1/presentations/$createdID/sessions/$($liveSession.id)/questions/$questionID/results" -Client $participantClient -ExpectedStatus 401 | Out-Null
-  $questionResults = Invoke-API -Method GET -Path "/api/v1/presentations/$createdID/sessions/$($liveSession.id)/questions/$questionID/results?limit=1" -Client $loginClient -ExpectedStatus 200
-  $questionResultsPayload = $questionResults.Content | ConvertFrom-Json
-  if ($questionResultsPayload.response_count -ne 1 -or $questionResultsPayload.leaderboard.Count -ne 1 -or $questionResultsPayload.leaderboard[0].score -ne 100 -or $questionResultsPayload.leaderboard[0].rank -ne 1) { throw "Question leaderboard was not derived from the durable Go answer" }
-  if ($questionResultsPayload.options[0].number_of_submits -ne 1 -or $questionResultsPayload.options[1].number_of_submits -ne 1 -or $questionResultsPayload.options[2].number_of_submits -ne 0) { throw "Question option counts were incorrect" }
-  if ($questionResults.Content -match 'token|password_hash|request_id') { throw "Question results disclosed authentication or idempotency data" }
+  $answerBody = @{ request_id = $answerRequest; activity_item_id = $questionID; response = @{ selected_option_indexes = @(0, 1) } } | ConvertTo-Json -Compress -Depth 4
+  $answer = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body $answerBody -ExpectedStatus 201
+  if (($answer.Content | ConvertFrom-Json).score_delta -ne 100) { throw "Correct multiple response was not scored at 100" }
+  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body $answerBody -ExpectedStatus 200 | Out-Null
+  Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/answers" -Client $participantClient -Body (@{ request_id = [guid]::NewGuid().ToString(); activity_item_id = $questionID; response = @{ selected_option_indexes = @(0) } } | ConvertTo-Json -Compress -Depth 4) -ExpectedStatus 409 | Out-Null
+  $activityReportPath = "/api/v1/presentations/$createdID/sessions/$($liveSession.id)/activities/$questionID/results?limit=1"
+  Invoke-API -Method GET -Path $activityReportPath -Client $participantClient -ExpectedStatus 401 | Out-Null
+  $activityReport = Invoke-API -Method GET -Path $activityReportPath -Client $loginClient -ExpectedStatus 200
+  $activityReportPayload = $activityReport.Content | ConvertFrom-Json
+  if ($activityReportPayload.result.response_count -ne 1 -or $activityReportPayload.top_performers.Count -ne 1 -or $activityReportPayload.top_performers[0].score_delta -ne 100 -or $activityReportPayload.top_performers[0].rank -ne 1) { throw "Activity report did not derive the durable scored response" }
+  if ($activityReportPayload.result.payload.option_counts.'option-1' -ne 1 -or $activityReportPayload.result.payload.option_counts.'option-2' -ne 1 -or $activityReportPayload.result.payload.option_counts.'option-3' -ne 0) { throw "Activity option counts were incorrect" }
+  if ($activityReportPayload.responses.Count -ne 1 -or $activityReportPayload.responses[0].evaluation.score_delta -ne 100) { throw "Activity response history did not preserve evaluation" }
+  if ($activityReport.Content -match 'token|password_hash|request_id') { throw "Activity report disclosed authentication or idempotency data" }
   $snapshot = Invoke-API -Method GET -Path "/api/v1/live/sessions/$($liveSession.id)/snapshot" -Client $participantClient -ExpectedStatus 200
   $snapshotPayload = $snapshot.Content | ConvertFrom-Json
   if ($snapshotPayload.role -ne "participant" -or $snapshotPayload.participant.score -ne 100) { throw "Participant snapshot did not contain only the caller score" }
   if ($snapshotPayload.PSObject.Properties.Name -contains "participants" -or $snapshotPayload.PSObject.Properties.Name -contains "scores") { throw "Participant snapshot disclosed the complete roster or score map" }
   if ($snapshotPayload.session.PSObject.Properties.Name -contains "host_id" -or $snapshotPayload.session.PSObject.Properties.Name -contains "join_code") { throw "Participant snapshot disclosed manager-only session fields" }
-  if ($snapshot.Content -match 'is_correct|correct_option_indexes|correct_answer') { throw "Participant snapshot disclosed question correctness metadata" }
+  if ($snapshot.Content -match 'is_correct|correct_option_ids|correct_answer') { throw "Participant snapshot disclosed Activity correctness metadata" }
   if ($snapshotPayload.participant_count -ne 17 -or $snapshotPayload.last_event_id -lt 1) { throw "Snapshot did not include its participant count and SSE recovery cursor" }
 
   $managerSnapshot = Invoke-API -Method GET -Path "/api/v1/live/sessions/$($liveSession.id)/snapshot" -Client $loginClient -ExpectedStatus 200
