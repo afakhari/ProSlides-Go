@@ -50,15 +50,32 @@ test("rejects duplicate option identities and single-choice partial scoring", ()
 
 test("presentation validation is shared by editor and dashboard present actions", () => {
   assert.match(getPresentationValidationError({ slides: [] }), /حداقل یک اسلاید/i);
-  assert.equal(getPresentationValidationError({ slides: [{ slide_type: 1, question: validQuestion }] }), null);
+  const choice = {
+    item_kind: "activity",
+    activity_kind: "choice",
+    schema_version: 1,
+    show_leaderboard_after: false,
+    question: validQuestion,
+  };
+  assert.equal(getPresentationValidationError({ slides: [choice] }), null);
   assert.match(getPresentationValidationError({
-    slides: [{ slide_type: 1, question: { ...validQuestion, question_time: 0 } }],
+    slides: [{ ...choice, question: { ...validQuestion, question_time: 0 } }],
   }), /زمان/i);
   assert.match(getPresentationValidationError({
-    slides: [{ slide_type: 2, title: "", content_text: "", content_image_url: "" }],
+    slides: [{
+      item_kind: "content",
+      title: "",
+      content_text: "",
+      content_image_url: "",
+    }],
   }), /عنوان، متن یا تصویر/i);
   assert.equal(getPresentationValidationError({
-    slides: [{ slide_type: 2, title: "Introduction", content_text: "", content_image_url: "" }],
+    slides: [{
+      item_kind: "content",
+      title: "Introduction",
+      content_text: "",
+      content_image_url: "",
+    }],
   }), null);
 });
 
