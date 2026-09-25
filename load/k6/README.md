@@ -1,6 +1,12 @@
-# Live smoke load gate
+# Live protocol load scenario
 
-This scenario is the first capacity gate only. It provisions one real manager,
+This scenario currently exercises the pre-v2 question-specific live protocol.
+It is retained as regression/capacity evidence for the existing foundation and
+must evolve with the V2.2 live cut-over before it can be used for final v2
+capacity claims.
+
+This scenario is a capacity test tool, not a release gate during rapid v2 UI/
+domain redesign. It provisions one real manager,
 presentation, question, and session through HTTP, then runs the configured
 number of participants through join, snapshot, authenticated SSE, and answer.
 The manager opens the question only after clients begin subscribing; each
