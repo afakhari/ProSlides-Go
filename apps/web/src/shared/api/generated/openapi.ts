@@ -890,6 +890,7 @@ export interface components {
             /** @description Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). */
             rank?: number;
         };
+        /** @description The current participant's own accepted response outcome. Present only after the Activity is revealed. */
         PersonalActivityResult: {
             /** Format: uuid */
             activity_item_id: string;
