@@ -6,7 +6,7 @@ This document records the completed Django/Rust-to-Go parity program. It is not
 an active roadmap and must not be used to override the current v2 architecture
 or status.
 
-It is not the current project-status source. See `../status/current.md` for current priorities and production-readiness state.
+See `../status/current.md` for current priorities and production-readiness state.
 
 ## Parity summary
 
