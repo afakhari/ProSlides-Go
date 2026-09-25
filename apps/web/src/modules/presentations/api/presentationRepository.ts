@@ -1,9 +1,19 @@
-import type { EditorPresentation, EditorSlide } from "../model/editor.ts";
+import type {
+  EditorPresentation,
+  EditorQuestion,
+  EditorSlide,
+  QuestionType,
+} from "../model/editor.ts";
 import { requestJson, type ApiRequestOptions } from "../../../shared/api/http.ts";
 import type { components } from "../../../shared/api/generated/openapi.ts";
 import {
   editorSlideFromTransport,
   editorSlideToTransportDefinition,
+} from "./editorItemTransportRegistry.ts";
+
+export {
+  editorSlideFromTransport as slideToEditor,
+  editorSlideToTransportDefinition as editorSlideToDefinition,
 } from "./editorItemTransportRegistry.ts";
 
 type SlideDTO = components["schemas"]["Slide"];
@@ -24,7 +34,7 @@ const numberValue = (value: unknown, fallback: number): number => {
   return Number.isFinite(number) ? number : fallback;
 };
 
-const presentationToEditor = (presentation: PresentationDTO): EditorPresentation => {
+export const presentationToEditor = (presentation: PresentationDTO): EditorPresentation => {
   const settings = presentation.settings || {};
   const backgroundColor =
     typeof settings.background_color === "string"
