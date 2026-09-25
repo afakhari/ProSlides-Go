@@ -49,6 +49,11 @@ func (h *HTTP) listSessions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	presentationID := r.PathValue("presentationId")
+	if !validUUID(presentationID) {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
 	limit, ok := reportLimit(w, r, 20)
 	if !ok {
 		return
@@ -66,7 +71,7 @@ func (h *HTTP) listSessions(w http.ResponseWriter, r *http.Request) {
 
 	page, err := h.store.ListSessions(
 		r.Context(),
-		r.PathValue("presentationId"),
+		presentationID,
 		user.ID,
 		SessionQuery{Limit: limit, Cursor: cursor},
 	)
@@ -88,10 +93,16 @@ func (h *HTTP) sessionReport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	presentationID := r.PathValue("presentationId")
+	sessionID := r.PathValue("sessionId")
+	if !validUUID(presentationID) || !validUUID(sessionID) {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
 	report, err := h.store.SessionReport(
 		r.Context(),
-		r.PathValue("presentationId"),
-		r.PathValue("sessionId"),
+		presentationID,
+		sessionID,
 		user.ID,
 	)
 	if handleStoreError(w, err) {
@@ -105,6 +116,13 @@ func (h *HTTP) activityReport(w http.ResponseWriter, r *http.Request) {
 	user, err := h.current(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	presentationID := r.PathValue("presentationId")
+	sessionID := r.PathValue("sessionId")
+	activityItemID := r.PathValue("activityItemId")
+	if !validUUID(presentationID) || !validUUID(sessionID) || !validUUID(activityItemID) {
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 	limit, ok := reportLimit(w, r, 50)
@@ -124,9 +142,9 @@ func (h *HTTP) activityReport(w http.ResponseWriter, r *http.Request) {
 
 	page, err := h.store.ActivityReport(
 		r.Context(),
-		r.PathValue("presentationId"),
-		r.PathValue("sessionId"),
-		r.PathValue("activityItemId"),
+		presentationID,
+		sessionID,
+		activityItemID,
 		user.ID,
 		ResponseQuery{Limit: limit, Cursor: cursor},
 	)
@@ -148,6 +166,12 @@ func (h *HTTP) ranking(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	presentationID := r.PathValue("presentationId")
+	sessionID := r.PathValue("sessionId")
+	if !validUUID(presentationID) || !validUUID(sessionID) {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
 	limit, ok := reportLimit(w, r, 50)
 	if !ok {
 		return
@@ -165,8 +189,8 @@ func (h *HTTP) ranking(w http.ResponseWriter, r *http.Request) {
 
 	page, err := h.store.Ranking(
 		r.Context(),
-		r.PathValue("presentationId"),
-		r.PathValue("sessionId"),
+		presentationID,
+		sessionID,
 		user.ID,
 		RankingQuery{Limit: limit, Cursor: cursor},
 	)
