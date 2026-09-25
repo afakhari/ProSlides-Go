@@ -156,7 +156,7 @@ SET name = CASE name
         ELSE name
     END,
     payload = CASE
-        WHEN name = 'session.state_changed' THEN
+        WHEN name IN ('session.created', 'session.state_changed') THEN
             (payload - 'active_slide_id' - 'state')
             || jsonb_build_object(
                 'state', CASE
@@ -179,5 +179,7 @@ SET name = CASE name
         WHEN name = 'answer.stats' THEN
             (payload - 'question_slide_id')
             || jsonb_build_object('activity_item_id', payload->'question_slide_id')
+        WHEN name = 'leaderboard.updated' AND jsonb_typeof(payload) = 'array' THEN
+            jsonb_build_object('participant_count', jsonb_array_length(payload))
         ELSE payload
     END;
