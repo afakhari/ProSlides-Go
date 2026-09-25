@@ -32,6 +32,8 @@ type fakeStore struct {
 	owner            string
 	accessCode       string
 	expectedRevision *int64
+	slideKind         string
+	slideContent      json.RawMessage
 }
 
 func (f *fakeStore) FindOwned(_ context.Context, _ string, owner string) (Presentation, error) {
@@ -80,11 +82,15 @@ func (f *fakeStore) QuestionResults(_ context.Context, _, sessionID, slideID, ow
 func (f *fakeStore) CreateSlide(_ context.Context, _ string, owner string, position int, kind string, content json.RawMessage, expected *int64) (Slide, error) {
 	f.owner = owner
 	f.expectedRevision = expected
+	f.slideKind = kind
+	f.slideContent = append(json.RawMessage(nil), content...)
 	return Slide{ID: "slide", Position: position, Kind: kind, Content: content}, f.err
 }
 func (f *fakeStore) ReplaceSlide(_ context.Context, _, _, owner string, position int, kind string, content json.RawMessage, expected *int64) (Slide, error) {
 	f.owner = owner
 	f.expectedRevision = expected
+	f.slideKind = kind
+	f.slideContent = append(json.RawMessage(nil), content...)
 	return Slide{ID: "slide", Position: position, Kind: kind, Content: content}, f.err
 }
 func (f *fakeStore) DeleteSlide(_ context.Context, _, _, owner string, _ *int64) error {
@@ -176,16 +182,112 @@ func TestCreateSlideRequiresCSRFAndCreatesForOwner(t *testing.T) {
 		t.Fatalf("status=%d owner=%s", res.Code, store.owner)
 	}
 }
-func TestCreateMultipleQuestion(t *testing.T) {
+func TestCreateMultipleQuestionStoresV2ChoiceActivity(t *testing.T) {
 	m := http.NewServeMux()
-	NewHTTP(fakeSessions{}, &fakeStore{}).Register(m)
+	store := &fakeStore{}
+	NewHTTP(fakeSessions{}, store).Register(m)
 	q := httptest.NewRequest(http.MethodPost, "/api/v1/presentations/p/questions", strings.NewReader(`{"position":1,"text":"Choose","question_type":"multiple","options":[{"text":"A","is_correct":true},{"text":"B","is_correct":true}]}`))
 	q.AddCookie(&http.Cookie{Name: "proslides_session", Value: "t"})
 	q.Header.Set("X-CSRF-Token", "c")
 	r := httptest.NewRecorder()
 	m.ServeHTTP(r, q)
-	if r.Code != 201 {
-		t.Fatalf("status=%d", r.Code)
+	if r.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", r.Code, r.Body.String())
+	}
+	if store.slideKind != ItemKindActivity {
+		t.Fatalf("kind=%q, want %q", store.slideKind, ItemKindActivity)
+	}
+	var activity ActivityDefinition
+	if err := json.Unmarshal(store.slideContent, &activity); err != nil {
+		t.Fatalf("decode stored activity: %v", err)
+	}
+	if activity.ActivityKind != ActivityKindChoice ||
+		activity.Response.Selection != ChoiceSelectionMultiple ||
+		activity.Evaluation.Mode != EvaluationModeCorrectness ||
+		activity.Scoring.Mode != ScoringModePoints {
+		t.Fatalf("unexpected stored activity: %#v", activity)
+	}
+	if len(activity.Response.Options) != 2 ||
+		activity.Response.Options[0].ID != "option-1" ||
+		activity.Response.Options[1].ID != "option-2" {
+		t.Fatalf("legacy endpoint did not assign stable option ids: %#v", activity.Response.Options)
+	}
+}
+
+func TestGenericSlideEndpointNormalizesLegacyQuestionToV2Activity(t *testing.T) {
+	m := http.NewServeMux()
+	store := &fakeStore{}
+	NewHTTP(fakeSessions{}, store).Register(m)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/presentations/p/slides", strings.NewReader(`{
+		"position":0,
+		"kind":"question",
+		"content":{
+			"title":"",
+			"text":"Choose",
+			"question_type":"single",
+			"question_time":30,
+			"min_point":0,
+			"max_point":100,
+			"image_url":"",
+			"faster_answers_more_points":false,
+			"partial_scoring":false,
+			"show_leaderboard_after":true,
+			"options":[
+				{"id":"a","text":"A","is_correct":true,"image_url":"","order":1},
+				{"id":"b","text":"B","is_correct":false,"image_url":"","order":2}
+			]
+		}
+	}`))
+	req.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
+	req.Header.Set("X-CSRF-Token", "csrf")
+	result := httptest.NewRecorder()
+	m.ServeHTTP(result, req)
+	if result.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", result.Code, result.Body.String())
+	}
+	if store.slideKind != ItemKindActivity {
+		t.Fatalf("legacy question persisted as %q", store.slideKind)
+	}
+	var activity ActivityDefinition
+	if err := json.Unmarshal(store.slideContent, &activity); err != nil {
+		t.Fatal(err)
+	}
+	if !activity.Results.ShowOverallLeaderboardAfter {
+		t.Fatal("leaderboard behavior was not migrated")
+	}
+}
+
+func TestGenericSlideEndpointAcceptsCanonicalChoiceActivity(t *testing.T) {
+	m := http.NewServeMux()
+	store := &fakeStore{}
+	NewHTTP(fakeSessions{}, store).Register(m)
+	body := `{
+		"position":0,
+		"kind":"activity",
+		"content":{
+			"schema_version":1,
+			"activity_kind":"choice",
+			"prompt":{"title":"","text":"Choose","image_url":""},
+			"response":{"selection":"single","options":[
+				{"id":"a","text":"A","image_url":"","order":1},
+				{"id":"b","text":"B","image_url":"","order":2}
+			]},
+			"evaluation":{"mode":"correctness","correct_option_ids":["a"]},
+			"scoring":{"mode":"points","min_points":0,"max_points":100,"speed_bonus":false,"partial_credit":false},
+			"timing":{"duration_seconds":30},
+			"results":{"show_overall_leaderboard_after":false}
+		}
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/presentations/p/slides", strings.NewReader(body))
+	req.AddCookie(&http.Cookie{Name: "proslides_session", Value: "token"})
+	req.Header.Set("X-CSRF-Token", "csrf")
+	result := httptest.NewRecorder()
+	m.ServeHTTP(result, req)
+	if result.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", result.Code, result.Body.String())
+	}
+	if store.slideKind != ItemKindActivity {
+		t.Fatalf("kind=%q", store.slideKind)
 	}
 }
 
