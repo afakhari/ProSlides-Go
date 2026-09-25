@@ -31,10 +31,11 @@ app -> modules -> shared
 
 ## Frontend current state
 
-The production frontend source is now fully TypeScript/TSX. Modularization and
-verification hardening are still in progress, so TypeScript completion should
-not be confused with completion of the broader frontend professionalization
-program.
+The shipping application frontend source is fully TypeScript/TSX. The project
+is still pre-production and broad frontend redesign is expected, so the current
+development policy intentionally optimizes for fast iteration with cheap
+structural/correctness guardrails. Production-level verification is a separate
+hardening milestone, not a requirement for every visual iteration.
 
 Current strengths:
 
@@ -87,27 +88,36 @@ Current strengths:
 
 Remaining work:
 
-- cross-module public boundaries, runtime dependency cycles and unreachable
-  TypeScript source files are now intended to be CI-enforced; add export-level
-  dead-code analysis separately with an explicit false-positive policy;
-- continue semantic design-system/RTL convergence on mature surfaces as part of
-  bounded product changes;
-- a Vite-native Testing Library/MSW component-test layer now covers dashboard
-  pending, list failure/retry, filtering and create recovery/navigation; extend
-  it to high-risk editor/report/live API-state paths;
+- continue rapid redesign of frontend surfaces while preserving typed contracts,
+  editor revision/conflict semantics, live protocol rules and the enforced
+  module dependency graph;
+- use the existing Vitest/Testing Library/MSW harness selectively for risky
+  behavior touched by each redesign slice rather than expanding coverage for its
+  own sake;
+- converge semantic design-system, Persian/RTL and accessibility behavior as
+  redesigned surfaces stabilize;
+- defer broad E2E expansion, visual regression, export-level dead-code analysis,
+  exhaustive responsive/accessibility matrices and other production-readiness
+  hardening until they provide more signal than maintenance cost;
 - upgrade major framework/toolchain versions only in isolated compatibility
   changes after their runtime requirements are satisfied.
 
 ## Active priorities
 
-1. Keep frontend/backend contracts and verified editor/live correctness stable.
-2. Preserve the enforced module dependency graph while evolving features through
-   public module boundaries rather than deep cross-module imports.
-3. Remove duplicate ownership and compatibility adapters as soon as the
-   migrated boundary has equivalent verification.
-4. Extend component/API-state verification from dashboard into editor, report and live recovery/cancellation paths before broad UI restructuring.
-5. Keep performance, accessibility, Persian/RTL and cancellation behavior as
-   completion criteria for each slice.
+1. Maximize pre-production frontend redesign velocity; avoid polishing or
+   exhaustively testing UI that is expected to change again soon.
+2. Keep frontend/backend contracts, editor revision/conflict semantics, live
+   protocol correctness and authentication boundaries stable.
+3. Preserve the enforced module graph and TypeScript/API checks because they are
+   cheap guardrails with high regression value.
+4. Add tests alongside a redesign only when they protect costly behavioral
+   invariants, regressions already observed, or non-obvious recovery/cancellation
+   semantics.
+5. Move broad browser matrices, visual regression, exhaustive accessibility
+   review, export-level dead-code analysis and release hardening into an explicit
+   pre-production readiness phase.
+6. Keep Persian/RTL and accessibility semantics in the implementation direction,
+   but do not block rapid visual iteration on exhaustive audits of temporary UI.
 
 ## Documentation rules
 
@@ -116,9 +126,40 @@ Remaining work:
 - Frontend debt belongs in `frontend-status.md`.
 - Historical evidence must remain tied to its original commit and environment.
 
-## Verification baseline
+## Verification policy
 
-Applicable verification commands should be run before material changes:
+### Fast inner loop
+
+During active redesign, prefer the smallest relevant set locally. For ordinary
+frontend work this normally means:
+
+```sh
+cd apps/web
+npm run lint
+npm run typecheck
+npm run architecture:check
+npm run test:unit
+npm run test:component
+```
+
+Run `api:types:check` when API/generated types may be affected and `build`
+when route splitting, dependencies, styling compilation or bundle shape changes.
+
+### Pull-request safety net
+
+The required `web` and `api` CI checks remain the normal merge guardrails.
+The existing component suite is intentionally small and fast. Add tests only
+when the changed slice needs them.
+
+`containers`/browser E2E and CodeQL continue to provide integration/security
+signal but are intentionally not required merge checks during the current
+single-developer pre-production phase. A failure that plausibly comes from the
+changed integration boundary should still be investigated rather than ignored.
+
+### Production-readiness hardening
+
+Before the first production release, run and stabilize the full verification
+set, including:
 
 ```sh
 cd apps/web
@@ -133,3 +174,7 @@ npm run test:component
 npm run build
 npm run test:e2e
 ```
+
+That hardening milestone also includes full responsive/accessibility review,
+critical error/conflict/cancellation recovery, container/deployment validation,
+security scanning and deferred dead-code/dependency analysis.
