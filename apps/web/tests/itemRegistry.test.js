@@ -70,7 +70,7 @@ test("content and Activity registries stay bounded and authoring choices exclude
   assert.deepEqual(activityRegistry.map((entry) => entry.key), ["choice"]);
   assert.deepEqual(
     editorTypeChoices.map((choice) => choice.id),
-    ["choice-single", "choice-multiple", "content"],
+    ["poll", "choice-single", "choice-multiple", "content"],
   );
   assert.equal(
     editorTypeChoices.some((choice) => /leaderboard|ranking/i.test(choice.id)),
@@ -128,6 +128,61 @@ test("registry creates and converts editor items without top-level route knowled
     getEditorConversionConfirmation(contentSlide, "choice-single").title,
     /فعالیت انتخابی/,
   );
+});
+
+test("Poll stays a Choice preset while removing correctness, score, and ranking", () => {
+  const poll = createEditorSlideForType(
+    2,
+    "poll",
+    createIdSequence("poll-1", "option-a", "option-b"),
+  );
+
+  assert.equal(poll.activity_kind, "choice");
+  assert.equal(poll.schema_version, 1);
+  assert.equal(poll.question.question_type, "single");
+  assert.equal(poll.question.evaluation_mode, "none");
+  assert.equal(poll.question.scoring_mode, "none");
+  assert.equal(poll.question.min_point, 0);
+  assert.equal(poll.question.max_point, 0);
+  assert.deepEqual(
+    poll.question.options.map((option) => option.is_correct),
+    [false, false],
+  );
+  assert.equal(poll.show_leaderboard_after, false);
+  assert.equal(editorSlideMatchesTypeChoice(poll, "poll"), true);
+  assert.equal(getEditorItemTypeLabel(poll), "نظرسنجی");
+
+  const converted = convertEditorSlideToType(
+    choiceSlide,
+    "poll",
+    createIdSequence(),
+  );
+  assert.equal(converted.question.question_type, "single");
+  assert.equal(converted.question.evaluation_mode, "none");
+  assert.equal(converted.question.scoring_mode, "none");
+  assert.equal(converted.show_leaderboard_after, false);
+  assert.deepEqual(
+    converted.question.options.map((option) => option.is_correct),
+    [false, false],
+  );
+  assert.match(
+    getEditorConversionConfirmation(choiceSlide, "poll").description,
+    /پاسخ صحیح.*امتیازدهی.*رتبه‌بندی/,
+  );
+
+  const quizAgain = convertEditorSlideToType(
+    converted,
+    "choice-single",
+    createIdSequence(),
+  );
+  assert.equal(quizAgain.question.evaluation_mode, "correctness");
+  assert.equal(quizAgain.question.scoring_mode, "points");
+  assert.equal(quizAgain.question.max_point, 100);
+  assert.deepEqual(
+    quizAgain.question.options.map((option) => option.is_correct),
+    [true, false],
+  );
+  assert.equal(editorSlideMatchesTypeChoice(quizAgain, "choice-single"), true);
 });
 
 test("presentation validation resolves through item registrations", () => {
