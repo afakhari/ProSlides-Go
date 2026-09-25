@@ -46,7 +46,7 @@ func (s *PostgresStore) ListSessions(ctx context.Context, presentationID, ownerI
 			ls.state,
 			ls.created_at,
 			ls.ended_at,
-			ls.participant_count,
+			(SELECT count(*)::int FROM participants participant WHERE participant.session_id=ls.id),
 			(SELECT count(*)::int FROM live_session_slides item WHERE item.session_id=ls.id AND item.kind='activity'),
 			(SELECT count(*)::int FROM answers answer WHERE answer.session_id=ls.id),
 			EXISTS(
@@ -67,7 +67,7 @@ func (s *PostgresStore) ListSessions(ctx context.Context, presentationID, ownerI
 			ls.state,
 			ls.created_at,
 			ls.ended_at,
-			ls.participant_count,
+			(SELECT count(*)::int FROM participants participant WHERE participant.session_id=ls.id),
 			(SELECT count(*)::int FROM live_session_slides item WHERE item.session_id=ls.id AND item.kind='activity'),
 			(SELECT count(*)::int FROM answers answer WHERE answer.session_id=ls.id),
 			EXISTS(
@@ -130,7 +130,7 @@ func (s *PostgresStore) SessionReport(ctx context.Context, presentationID, sessi
 		ls.state,
 		ls.created_at,
 		ls.ended_at,
-		ls.participant_count,
+		(SELECT count(*)::int FROM participants participant WHERE participant.session_id=ls.id),
 		(SELECT count(*)::int FROM live_session_slides item WHERE item.session_id=ls.id AND item.kind='activity'),
 		(SELECT count(*)::int FROM answers answer WHERE answer.session_id=ls.id),
 		EXISTS(

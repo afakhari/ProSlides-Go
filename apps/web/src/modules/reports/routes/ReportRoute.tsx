@@ -179,7 +179,7 @@ export default function ReportRoute() {
             <p className="text-xs font-semibold text-content-muted">
               گزارش جلسه‌محور
             </p>
-            <h1 className="mt-1 truncate text-2xl font-black sm:text-3xl">
+            <h1 className="mt-1 truncate text-2xl font-black sm:text-3xl" dir="auto">
               {summary?.presentation_title || "گزارش ارائه"}
             </h1>
             <p className="mt-2 text-sm text-content-muted">
@@ -315,7 +315,7 @@ export default function ReportRoute() {
                   </h2>
                   <div
                     className="mt-3 flex gap-2 overflow-x-auto pb-1"
-                    role="tablist"
+                    role="group"
                     aria-label="انتخاب فعالیت گزارش"
                   >
                     {activities.map((activity) => {
@@ -325,8 +325,7 @@ export default function ReportRoute() {
                         <button
                           key={activity.activity_item_id}
                           type="button"
-                          role="tab"
-                          aria-selected={selected}
+                          aria-pressed={selected}
                           onClick={() =>
                             selectActivity(activity.activity_item_id)
                           }
@@ -338,7 +337,7 @@ export default function ReportRoute() {
                               : "border-border-subtle bg-surface-raised hover:border-brand-border",
                           ].join(" ")}
                         >
-                          <span className="block truncate text-sm font-bold">
+                          <span className="block truncate text-sm font-bold" dir="auto">
                             {activityTitle(activity)}
                           </span>
                           <span className="mt-1 block text-xs text-content-muted">
