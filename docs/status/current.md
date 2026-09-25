@@ -34,12 +34,17 @@ Authoritative sources:
 - durable decision: ADR 0004;
 - GitHub umbrella: issue #82.
 
-V2.1 / issue #83 is complete via PR #92. Authored Choice Activities now use
-one canonical versioned Activity definition while the live runtime retains its
-temporary frozen-session compatibility projection until V2.2.
+V2.1 / issue #83 is complete via PR #92. Authored Choice Activities use
+one canonical versioned Activity definition.
 
-**Active implementation slice: V2.2 / issue #84 — generic live Activity
-lifecycle and ranking semantics.**
+V2.2 / issue #84 is complete via PR #95. Live Sessions now use the generic
+`draft | lobby | presenting | ended` lifecycle, Activity response phases are
+separate from Session state, Activity results are distinct from cumulative
+overall ranking, canonical Activity definitions are frozen into each Session,
+and cumulative score ties use competition ranking semantics.
+
+**Active implementation slice: V2.3 / issue #85 — Content/Activity registries
+and Editor shell redesign.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
