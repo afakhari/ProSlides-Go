@@ -48,8 +48,15 @@ expectation aligned by PR #98. Content and Choice authoring now use bounded
 registries, the Editor has stable item-rail/canvas/inspector/top-actions
 regions, and synthetic leaderboard selection has been removed.
 
-**Active implementation slice: V2.4 / issue #86 — Stage, Backstage and
-Participant redesign.**
+V2.4 / issue #86 is complete via PRs #99, #101 and #104, with post-merge
+browser/accessibility corrections in #100, #102 and #103. Participant feedback
+is reconnect-safe and personal, the audience Stage is an isolated read-only
+projection with bounded ranking, and Backstage owns explicit presenter controls,
+private Activity results/top performers, cumulative ranking inspection and
+connection/recovery insight. Stage, Backstage and Participant therefore expose
+intentionally different capabilities over the same Session.
+
+**Active implementation slice: V2.5 / issue #87 — session-first Reports.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
