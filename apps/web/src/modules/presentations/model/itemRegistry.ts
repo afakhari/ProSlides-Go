@@ -12,10 +12,9 @@ import {
 export type EditorItemRegistryKey =
   | "content"
   | "choice"
-  | "text"
-  | "legacy-leaderboard";
+  | "text";
 
-export type EditorItemCategory = "content" | "activity" | "legacy";
+export type EditorItemCategory = "content" | "activity";
 
 export type EditorTypeChoiceId =
   | "content"
@@ -26,7 +25,7 @@ export type EditorTypeChoiceId =
 
 export type EditorTypeChoice = {
   id: EditorTypeChoiceId;
-  registrationKey: Exclude<EditorItemRegistryKey, "legacy-leaderboard">;
+  registrationKey: EditorItemRegistryKey;
   label: string;
   description: string;
   questionType?: QuestionType;
@@ -157,25 +156,12 @@ const textRegistration: EditorItemRegistration = {
   }],
 };
 
-const legacyLeaderboardRegistration: EditorItemRegistration = {
-  key: "legacy-leaderboard",
-  category: "legacy",
-  label: "جدول امتیازات قدیمی",
-  matches: (slide) => slide.item_kind === "legacy-leaderboard",
-  isConfigured: () => true,
-  getTitle: (slide) => slide.title?.trim() || "جدول امتیازات قدیمی",
-  getTypeLabel: () => "قدیمی",
-  validate: () => null,
-  getBehaviors: () => [],
-};
-
 export const contentRegistry = [contentRegistration] as const;
 export const activityRegistry = [choiceRegistration, textRegistration] as const;
 
 const editorItemRegistrations: readonly EditorItemRegistration[] = [
   ...contentRegistry,
   ...activityRegistry,
-  legacyLeaderboardRegistration,
 ];
 
 export const editorTypeChoices: readonly EditorTypeChoice[] = [
@@ -267,9 +253,6 @@ export const getPresentationValidationError = (
     const registration = resolveEditorItemRegistration(slide);
     if (!registration) {
       return "نوع یکی از آیتم‌های ارائه شناخته‌شده نیست.";
-    }
-    if (registration.category === "legacy") {
-      continue;
     }
     const error = registration.validate(slide);
     if (error) return error;
