@@ -551,6 +551,12 @@ test("manager and participant complete an Activity result and ranking lifecycle 
     await expect(
       participant.getByText("پاسخ صحیح", { exact: true }),
     ).toBeVisible();
+    await expect(
+      participant.getByText("انتخاب شما", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      participant.getByText("امتیاز این فعالیت", { exact: true }),
+    ).toBeVisible();
 
     await participant.reload();
     await expect(
@@ -559,15 +565,22 @@ test("manager and participant complete an Activity result and ranking lifecycle 
     await expect(
       participant.getByText("۱ پاسخ ثبت‌شده", { exact: true }),
     ).toBeVisible();
+    await expect(
+      participant.getByText("انتخاب شما", { exact: true }),
+    ).toBeVisible();
 
     await manager.getByRole("button", { name: "اسلاید بعدی" }).click();
-    await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
+    await expect(
+      participant.getByRole("heading", { name: "جایگاه فعلی شما" }),
+    ).toBeVisible({
       timeout: 15000,
     });
     await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
 
     await participant.reload();
-    await expect(participant.getByRole("heading", { name: "جایگاه شما" })).toBeVisible({
+    await expect(
+      participant.getByRole("heading", { name: "جایگاه فعلی شما" }),
+    ).toBeVisible({
       timeout: 15000,
     });
     await expect(participant.getByText("امتیاز شما")).toBeVisible();
