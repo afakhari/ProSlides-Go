@@ -283,6 +283,9 @@ test("register, create a presentation, and open its report @critical", async ({ 
   const itemTypeDialog = page.getByRole("dialog", {
     name: "نوع آیتم را انتخاب کنید",
   });
+  const firstTypeChoice = itemTypeDialog.locator(
+    '[data-item-type-choice="first"]',
+  );
   const singleChoiceType = itemTypeDialog.getByRole("button", {
     name: /تک‌گزینه‌ای/,
   });
@@ -290,11 +293,11 @@ test("register, create a presentation, and open its report @critical", async ({ 
     name: "انصراف",
   });
   await expect(itemTypeDialog).toBeVisible();
-  await expect(singleChoiceType).toBeFocused();
+  await expect(firstTypeChoice).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(cancelTypeSelection).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(singleChoiceType).toBeFocused();
+  await expect(firstTypeChoice).toBeFocused();
   expect(createSlideRequestCount).toBe(0);
 
   const createSlideRequest = page.waitForResponse(
