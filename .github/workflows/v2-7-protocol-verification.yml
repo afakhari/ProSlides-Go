@@ -89,7 +89,7 @@ jobs:
             -e ANSWER_WINDOW=5 \
             load/k6/live-smoke.js 2>&1 | tee /tmp/k6.log
 
-          session_id="$(grep -oP 'session_id\\":\\"\\K[0-9a-f-]+' /tmp/k6.log | tail -1)"
+          session_id="$(grep 'live_smoke_setup' /tmp/k6.log | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1 || true)"
           if [ -z "$session_id" ]; then
             echo "::error::Could not recover live_smoke_setup session_id"
             exit 1
