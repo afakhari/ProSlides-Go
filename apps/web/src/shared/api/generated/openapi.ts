@@ -1007,7 +1007,8 @@ export interface components {
             session_id: string;
             /** Format: uuid */
             presentation_id: string;
-            presentation_title: string;
+            /** @description Title frozen when this Session was created. Null for pre-V2.5 Sessions whose historical title cannot be recovered honestly. */
+            presentation_title: string | null;
             /** @enum {string} */
             state: "draft" | "lobby" | "presenting" | "ended";
             /** Format: date-time */
