@@ -88,7 +88,7 @@ test("manager reconciliation helpers locate authoritative question content and l
       order: 1,
     },
     {
-      item_kind: "content",
+      item_kind: "legacy-leaderboard",
       slide_id: "lb1",
       order: 1,
     },
