@@ -60,9 +60,10 @@ properties. Local component state stays local; no global store, state machine,
 SSR framework, microfrontend, or separate design-system package is added absent
 a measured need.
 
-The durable frontend target, state ownership, forms/API boundaries, styling,
-testing and migration order live in `docs/frontend-architecture.md`; ADR 0003
-records the decision rationale. Persian product/UX rules live in
+Frontend technical boundaries, state ownership, forms/API rules, styling and
+testing live in `docs/frontend-architecture.md`; ADR 0003 records the decision
+rationale. Active v2 sequencing lives in `docs/v2-development-plan.md`.
+Persian product/UX rules live in
 `docs/frontend-professionalization.md`. Current implementation status is kept only in `docs/status/current.md`;
 intentionally deferred frontend debt is in `docs/frontend-debt.md`.
 
