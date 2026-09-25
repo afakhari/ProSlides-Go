@@ -1,7 +1,6 @@
 package presentations
 
 import (
-	"encoding/json"
 	"strings"
 	"unicode/utf8"
 )
@@ -122,58 +121,4 @@ func activityFromLegacyQuestion(value legacyQuestionDefinition) ActivityDefiniti
 			ShowOverallLeaderboardAfter: value.ShowLeaderboardAfter,
 		},
 	}
-}
-
-// LegacyLiveSlideDefinition projects one authored Item into the frozen shape
-// consumed by the pre-V2.2 live engine. It does not mutate authoring storage.
-func LegacyLiveSlideDefinition(kind string, raw json.RawMessage) (string, json.RawMessage, error) {
-	if kind != ItemKindActivity {
-		return kind, raw, nil
-	}
-	var activity ActivityDefinition
-	if err := decodeStrictObject(raw, &activity); err != nil {
-		return "", nil, err
-	}
-	if err := validateActivityDefinition(activity); err != nil {
-		return "", nil, err
-	}
-	if activity.ActivityKind != ActivityKindChoice ||
-		activity.Evaluation.Mode != EvaluationModeCorrectness ||
-		activity.Scoring.Mode != ScoringModePoints {
-		return "", nil, errInvalidSlideDefinition
-	}
-
-	correct := make(map[string]struct{}, len(activity.Evaluation.CorrectOptionIDs))
-	for _, id := range activity.Evaluation.CorrectOptionIDs {
-		correct[id] = struct{}{}
-	}
-	options := make([]legacyQuestionOption, 0, len(activity.Response.Options))
-	for _, option := range activity.Response.Options {
-		_, isCorrect := correct[option.ID]
-		options = append(options, legacyQuestionOption{
-			ID:        option.ID,
-			Text:      option.Text,
-			IsCorrect: isCorrect,
-			ImageURL:  option.ImageURL,
-			Order:     option.Order,
-		})
-	}
-	legacy := legacyQuestionDefinition{
-		Title:                activity.Prompt.Title,
-		Text:                 activity.Prompt.Text,
-		QuestionType:         activity.Response.Selection,
-		QuestionTime:         activity.Timing.DurationSeconds,
-		MinPoint:             activity.Scoring.MinPoints,
-		MaxPoint:             activity.Scoring.MaxPoints,
-		ImageURL:             activity.Prompt.ImageURL,
-		FasterAnswers:        activity.Scoring.SpeedBonus,
-		PartialScoring:       activity.Scoring.PartialCredit,
-		ShowLeaderboardAfter: activity.Results.ShowOverallLeaderboardAfter,
-		Options:              options,
-	}
-	encoded, err := json.Marshal(legacy)
-	if err != nil {
-		return "", nil, errInvalidSlideDefinition
-	}
-	return "question", encoded, nil
 }
