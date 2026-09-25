@@ -3,23 +3,48 @@ import assert from "node:assert/strict";
 
 import { createLiveRuntime } from "../src/modules/live/runtime/LiveRuntime.ts";
 
-const managerSession = (id, state = "lobby", stateVersion = 1) => ({
+const managerSession = (
+  id,
+  state = "lobby",
+  stateVersion = 1,
+  {
+    activityPhase = null,
+    stageView = "item",
+    activeItemId = null,
+    endsAt = null,
+    remainingSeconds = null,
+  } = {},
+) => ({
   id,
   presentation_id: "presentation",
   host_id: "manager",
   join_code: "123456",
   state,
   state_version: stateVersion,
-  active_slide_id: null,
-  ends_at: null,
+  active_item_id: activeItemId,
+  activity_phase: activityPhase,
+  stage_view: stageView,
+  ends_at: endsAt,
+  remaining_seconds: remainingSeconds,
 });
 
 const managerSnapshot = (
   id,
-  { eventId = 1, stateVersion = 1, state = "lobby" } = {},
+  {
+    eventId = 1,
+    stateVersion = 1,
+    state = "lobby",
+    activityPhase = null,
+    stageView = "item",
+    activeItemId = null,
+  } = {},
 ) => ({
   role: "manager",
-  session: managerSession(id, state, stateVersion),
+  session: managerSession(id, state, stateVersion, {
+    activityPhase,
+    stageView,
+    activeItemId,
+  }),
   participant_count: 0,
   last_event_id: eventId,
 });
@@ -72,7 +97,7 @@ test("disconnect resets the authoritative cursor before selecting another sessio
   runtime.destroy();
 });
 
-test("runtime accepts monotonic answer stats and ignores stale SSE events", async () => {
+test("runtime accepts monotonic Activity results and ignores stale SSE events", async () => {
   let onEvent = null;
   const runtime = createLiveRuntime("manager", {
     storage: null,
@@ -97,16 +122,16 @@ test("runtime accepts monotonic answer stats and ignores stale SSE events", asyn
     schema_version: 1,
     session_id: "session",
     state_version: 2,
-    name: "answer.stats",
+    name: "activity.result_updated",
     payload: {
-      question_slide_id: "q1",
+      activity_item_id: "q1",
       response_count: 3,
       option_counts: { 0: 1, 1: 2 },
     },
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.question_stats.option_counts, {
+  assert.deepEqual(runtime.getState().snapshot.activity_result.option_counts, {
     0: 1,
     1: 2,
   });
@@ -116,16 +141,16 @@ test("runtime accepts monotonic answer stats and ignores stale SSE events", asyn
     schema_version: 1,
     session_id: "session",
     state_version: 2,
-    name: "answer.stats",
+    name: "activity.result_updated",
     payload: {
-      question_slide_id: "q1",
+      activity_item_id: "q1",
       response_count: 99,
       option_counts: { 0: 99 },
     },
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.question_stats.option_counts, {
+  assert.deepEqual(runtime.getState().snapshot.activity_result.option_counts, {
     0: 1,
     1: 2,
   });
@@ -161,7 +186,9 @@ test("failed manager actions reuse the same request id on retry", async () => {
         current = managerSnapshot("session", {
           eventId: 5,
           stateVersion: 3,
-          state: "question_open",
+          state: "presenting",
+          activityPhase: "accepting",
+          activeItemId: "q1",
         });
         return current.session;
       },
@@ -175,7 +202,8 @@ test("failed manager actions reuse the same request id on retry", async () => {
   assert.equal(await runtime.sendNavigation("start", { slide }), true);
   assert.equal(actionRequestIds.length, 2);
   assert.equal(actionRequestIds[0], actionRequestIds[1]);
-  assert.equal(runtime.getState().snapshot.session.state, "question_open");
+  assert.equal(runtime.getState().snapshot.session.state, "presenting");
+  assert.equal(runtime.getState().snapshot.session.activity_phase, "accepting");
 
   runtime.destroy();
 });
@@ -228,12 +256,20 @@ test("presence updates preserve score ordering while the manager is on a leaderb
     storage: null,
     transport: {
       createRequestId: () => "00000000-0000-4000-8000-000000000020",
-      createLiveSession: async () => managerSession("session", "leaderboard", 3),
+      createLiveSession: async () =>
+        managerSession("session", "presenting", 3, {
+          activityPhase: "revealed",
+          stageView: "overall_ranking",
+          activeItemId: "q1",
+        }),
       getLiveSnapshot: async () =>
         managerSnapshot("session", {
           eventId: 20,
           stateVersion: 3,
-          state: "leaderboard",
+          state: "presenting",
+          activityPhase: "revealed",
+          stageView: "overall_ranking",
+          activeItemId: "q1",
         }),
       getRosterPage: async (_id, order) => {
         rosterOrders.push(order);
@@ -343,7 +379,11 @@ test("a successful manager mutation stays successful when only the follow-up ref
       },
       getRosterPage: async (_id, order) => emptyRoster(order),
       streamLiveEvents: parkedStream,
-      applyLiveAction: async () => managerSession("session", "question_open", 2),
+      applyLiveAction: async () =>
+        managerSession("session", "presenting", 2, {
+          activityPhase: "accepting",
+          activeItemId: "q1",
+        }),
     },
   });
 
@@ -353,7 +393,8 @@ test("a successful manager mutation stays successful when only the follow-up ref
   });
 
   assert.equal(ok, true);
-  assert.equal(runtime.getState().snapshot.session.state, "question_open");
+  assert.equal(runtime.getState().snapshot.session.state, "presenting");
+  assert.equal(runtime.getState().snapshot.session.activity_phase, "accepting");
   assert.equal(runtime.getState().connectionError, "snapshot temporarily unavailable");
 
   runtime.destroy();
@@ -386,13 +427,13 @@ test("refresh requests arriving during roster loading are drained before reconne
           return managerSnapshot("session", {
             eventId: 2,
             stateVersion: 2,
-            state: "leaderboard",
+            state: "presenting",
           });
         }
         return managerSnapshot("session", {
           eventId: 3,
           stateVersion: 3,
-          state: "leaderboard",
+          state: "presenting",
         });
       },
       getRosterPage: async (_id, order) => {
@@ -429,7 +470,7 @@ test("refresh requests arriving during roster loading are drained before reconne
     schema_version: 1,
     session_id: "session",
     state_version: 3,
-    name: "leaderboard.updated",
+    name: "ranking.updated",
     payload: {},
     occurred_at: new Date().toISOString(),
   });
@@ -561,9 +602,11 @@ test("participant answer HTTP remains available while SSE is reconnecting", asyn
     session: {
       id: "session",
       presentation_id: "presentation",
-      state: "question_open",
+      state: "presenting",
       state_version: 2,
-      active_slide_id: "q1",
+      active_item_id: "q1",
+      activity_phase: "accepting",
+      stage_view: "item",
       ends_at: new Date(Date.now() + 30_000).toISOString(),
       remaining_seconds: 30,
     },

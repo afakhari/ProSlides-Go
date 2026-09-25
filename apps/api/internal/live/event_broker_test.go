@@ -181,10 +181,10 @@ func TestCompactEventsKeepsOnlyLatestPresenceInBurst(t *testing.T) {
 	}
 }
 
-func TestSanitizeReplayedEventRemovesHistoricalLeaderboardRows(t *testing.T) {
+func TestSanitizeReplayedEventRemovesHistoricalRankingRows(t *testing.T) {
 	event := Event{
 		SchemaVersion: 1,
-		Name:          "leaderboard.updated",
+		Name:          "ranking.updated",
 		Payload:       json.RawMessage(`[{"participant_id":"secret-1","score":100},{"participant_id":"secret-2","score":50}]`),
 	}
 	if err := sanitizeReplayedEvent(&event); err != nil {

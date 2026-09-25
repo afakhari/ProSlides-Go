@@ -48,6 +48,7 @@ export function AppPresentation({
     currentContent,
     leaderboardResults,
     modalLeaderboardResults,
+    questionResults,
   } = useServerData();
   const hasLeaderboard = hasLeaderboardEntries(leaderboardResults);
 
@@ -67,9 +68,9 @@ export function AppPresentation({
     quiz,
     currentQuestion,
     currentContent,
-    leaderboardResults,
     isConnected,
     sessionState: snapshot?.session?.state,
+    sessionStageView: snapshot?.session?.stage_view,
   });
 
   if (role === "manager") {
@@ -96,6 +97,7 @@ export function AppPresentation({
           quiz={quiz}
           currentQuestion={currentQuestion}
           currentContent={currentContent}
+          questionResults={questionResults}
           snapshot={snapshot}
           hasLeaderboard={hasLeaderboard}
           hasSeenActiveSlide={playerRecovery.hasSeenActiveSlide}

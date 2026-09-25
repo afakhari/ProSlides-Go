@@ -13,6 +13,39 @@ import {
 } from "../src/modules/live/runtime/protocol.ts";
 import { resolveLiveSession, streamLiveEvents } from "../src/modules/live/api/liveApi.ts";
 
+const choiceItem = ({
+  id = "activity-1",
+  duration = 30,
+  correct = ["a"],
+  showRanking = false,
+} = {}) => ({
+  id,
+  kind: "activity",
+  position: 0,
+  content: {
+    schema_version: 1,
+    activity_kind: "choice",
+    prompt: { title: "Quiz", text: "Choose", image_url: "" },
+    response: {
+      selection: "single",
+      options: [
+        { id: "a", text: "A", image_url: "", order: 1 },
+        { id: "b", text: "B", image_url: "", order: 2 },
+      ],
+    },
+    evaluation: { mode: "correctness", correct_option_ids: correct },
+    scoring: {
+      mode: "points",
+      min_points: 0,
+      max_points: 100,
+      speed_bonus: false,
+      partial_credit: false,
+    },
+    timing: { duration_seconds: duration },
+    results: { show_overall_leaderboard_after: showRanking },
+  },
+});
+
 test("equal state versions are accepted when event_id advances", () => {
   const cursor = { eventId: 10, stateVersion: 4 };
   const event = { event_id: 11, state_version: 4 };
@@ -33,32 +66,39 @@ test("reconnect replaces a stale event cursor with the fresh snapshot cursor", (
   assert.deepEqual(recovered, { eventId: 57, stateVersion: 8 });
 });
 
-test("participant projection ignores any supplied roster and exposes only self on leaderboard", () => {
+test("participant projection ignores supplied roster and exposes only self on overall ranking", () => {
   const projection = projectLiveSnapshot(
     {
       role: "participant",
-      session: { state: "leaderboard", state_version: 9 },
+      session: {
+        state: "presenting",
+        state_version: 9,
+        activity_phase: "revealed",
+        stage_view: "overall_ranking",
+      },
       participant_count: 10_000,
-      participant: { id: "self", display_name: "Me", avatar: "", score: 42 },
-      active_slide: null,
+      participant: { id: "self", display_name: "Me", avatar: "", score: 42, rank: 3 },
+      active_item: choiceItem(),
     },
-    [{ participant_id: "other", display_name: "Other", score: 999 }],
+    [{ participant_id: "other", display_name: "Other", score: 999, rank: 1 }],
   );
   assert.deepEqual(projection.users, []);
   assert.deepEqual(projection.leaderboardResults.map((row) => row.user_id), ["self"]);
-  assert.equal(projection.leaderboardResults[0].new_points, null);
+  assert.equal(projection.leaderboardResults[0].rank, 3);
   assert.equal(projection.participantCount, 10_000);
 });
 
-test("closed questions are not projected as a fresh participant question", () => {
+test("closed Activities are not projected as a fresh participant question", () => {
   const projection = projectLiveSnapshot({
     role: "participant",
-    session: { state: "question_closed", state_version: 8, active_slide_id: "q1" },
-    active_slide: {
-      id: "q1",
-      kind: "question",
-      content: { text: "سؤال", question_time: 30, options: [{ text: "گزینه" }] },
+    session: {
+      state: "presenting",
+      state_version: 8,
+      active_item_id: "activity-1",
+      activity_phase: "closed",
+      stage_view: "item",
     },
+    active_item: choiceItem(),
     participant: { id: "p1", display_name: "بازیکن", score: 0 },
     participant_count: 1,
   });
@@ -67,53 +107,83 @@ test("closed questions are not projected as a fresh participant question", () =>
   assert.equal(projection.leaderboardResults, null);
 });
 
-test("manager projection contains only the roster page supplied by pagination", () => {
+test("revealed Activity projects a read-only participant result before overall ranking", () => {
+  const projection = projectLiveSnapshot({
+    role: "participant",
+    session: {
+      state: "presenting",
+      state_version: 9,
+      active_item_id: "activity-1",
+      activity_phase: "revealed",
+      stage_view: "item",
+    },
+    active_item: choiceItem(),
+    participant: { id: "p1", display_name: "Player", score: 100 },
+    participant_count: 3,
+    activity_result: {
+      activity_item_id: "activity-1",
+      response_count: 3,
+      option_counts: { 0: 2, 1: 1 },
+    },
+  });
+
+  assert.equal(projection.currentQuestion.question_id, "activity-1");
+  assert.equal(projection.questionResults.question_id, "activity-1");
+  assert.equal(projection.questionResults.response_count, 3);
+  assert.deepEqual(
+    projection.questionResults.optionsResult.map((row) => row.number_of_submits),
+    [2, 1],
+  );
+  assert.equal(projection.leaderboardResults, null);
+});
+
+test("manager retains the closed Activity so results can render before ranking", () => {
+  const projection = projectLiveSnapshot({
+    role: "manager",
+    session: {
+      state: "presenting",
+      state_version: 8,
+      active_item_id: "activity-1",
+      activity_phase: "closed",
+      stage_view: "item",
+    },
+    active_item: choiceItem(),
+    participant_count: 2,
+    activity_result: {
+      activity_item_id: "activity-1",
+      response_count: 2,
+      option_counts: { 0: 1, 1: 1 },
+    },
+  });
+
+  assert.equal(projection.currentQuestion.question_id, "activity-1");
+  assert.equal(projection.questionResults.question_id, "activity-1");
+  assert.equal(projection.leaderboardResults, null);
+});
+
+test("manager projection contains only the bounded roster page supplied by pagination", () => {
   const projection = projectLiveSnapshot(
     {
       role: "manager",
-      session: { state: "leaderboard", state_version: 9 },
+      session: {
+        state: "presenting",
+        state_version: 9,
+        activity_phase: "revealed",
+        stage_view: "overall_ranking",
+      },
       participant_count: 10_000,
-      participant: null,
-      active_slide: null,
     },
-    [{ participant_id: "page-row", display_name: "Loaded", score: 7 }],
+    [{ participant_id: "page-row", display_name: "Loaded", score: 7, rank: 4 }],
   );
   assert.deepEqual(projection.users.map((row) => row.user_id), ["page-row"]);
   assert.equal(projection.leaderboardResults.length, 1);
-  assert.equal(projection.leaderboardResults[0].new_points, null);
+  assert.equal(projection.leaderboardResults[0].rank, 4);
 });
 
-test("manager presentation mapping retains correctness while participant active slides do not", () => {
+test("canonical Choice Activities preserve manager correctness in the authored adapter", () => {
   const managerSlide = presentationSlideToLegacy({
-    id: "slide-1",
-    position: 0,
-    kind: "question",
-    content: { options: [{ text: "A", is_correct: true }, { text: "B", is_correct: false }] },
-  });
-  assert.deepEqual(managerSlide.options.map((option) => option.answer), [true, false]);
-});
-
-test("manager presentation mapping projects canonical Choice Activities as questions", () => {
-  const managerSlide = presentationSlideToLegacy({
-    id: "slide-activity",
-    position: 0,
-    kind: "activity",
-    content: {
-      schema_version: 1,
-      activity_kind: "choice",
-      prompt: { title: "Quiz", text: "Choose", image_url: "" },
-      response: {
-        selection: "single",
-        options: [
-          { id: "a", text: "A", image_url: "", order: 1 },
-          { id: "b", text: "B", image_url: "", order: 2 },
-        ],
-      },
-      evaluation: { mode: "correctness", correct_option_ids: ["a"] },
-      scoring: { mode: "points", min_points: 0, max_points: 100 },
-      timing: { duration_seconds: 45 },
-      results: { show_overall_leaderboard_after: true },
-    },
+    ...choiceItem({ id: "slide-activity", duration: 45, showRanking: true }),
+    revision: 1,
   });
 
   assert.equal(managerSlide.slide_type, 1);
@@ -123,37 +193,57 @@ test("manager presentation mapping projects canonical Choice Activities as quest
   assert.deepEqual(managerSlide.options.map((option) => option.answer), [true, false]);
 });
 
-test("ended snapshots retain a bounded final leaderboard projection", () => {
+test("ended snapshots retain a bounded final ranking projection", () => {
   const participant = projectLiveSnapshot({
     role: "participant",
-    session: { state: "ended", state_version: 12 },
+    session: {
+      state: "ended",
+      state_version: 12,
+      activity_phase: null,
+      stage_view: "item",
+    },
     participant_count: 50,
-    participant: { id: "self", display_name: "Me", score: 88 },
+    participant: { id: "self", display_name: "Me", score: 88, rank: 2 },
   });
   assert.equal(participant.leaderboardResults.length, 1);
   assert.equal(participant.leaderboardResults[0].total_points, 88);
+  assert.equal(participant.leaderboardResults[0].rank, 2);
 });
 
-test("presenter navigation plans every quiz slide sequence without invalid transitions", () => {
-  const question = { slide_type: 1, slide_id: "question" };
+test("presenter navigation preserves the result boundary before optional overall ranking", () => {
+  const activity = { slide_type: 1, slide_id: "activity" };
   const content = { slide_type: 2, slide_id: "content", content_text: "Text" };
-  assert.deepEqual(planLiveNavigation("draft", "start", question), ["start", "open_question"]);
-  assert.deepEqual(planLiveNavigation("lobby", "start", content), ["open_content"]);
-  assert.deepEqual(planLiveNavigation("question_open", "next"), ["close_question", "show_leaderboard"]);
-  assert.deepEqual(planLiveNavigation("question_closed", "next"), ["show_leaderboard"]);
-  assert.deepEqual(planLiveNavigation("leaderboard", "next", question), ["open_question"]);
-  assert.deepEqual(planLiveNavigation("content", "next", content), ["open_content"]);
+  const ranking = { slide_type: 3 };
+
+  assert.deepEqual(planLiveNavigation("draft", "start", activity), ["start", "present_item"]);
+  assert.deepEqual(planLiveNavigation("lobby", "start", content), ["present_item"]);
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", null, "accepting", "item"),
+    ["close_activity", "reveal_activity"],
+  );
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", null, "closed", "item"),
+    ["reveal_activity"],
+  );
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", null, "revealed", "item"),
+    ["show_overall_ranking"],
+  );
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", activity, "revealed", "overall_ranking"),
+    ["present_item"],
+  );
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", content, null, "item"),
+    ["present_item"],
+  );
+  assert.deepEqual(
+    planLiveNavigation("presenting", "next", ranking, "revealed", "item"),
+    ["show_overall_ranking"],
+  );
   assert.deepEqual(planLiveNavigation("ended", "next"), []);
-  assert.deepEqual(
-    planLiveNavigation("ended", "next", question),
-    [],
-  );
-  assert.deepEqual(
-    planLiveNavigation("ended", "start", content),
-    [],
-  );
-  assert.deepEqual(planLiveEnd("question_open"), ["close_question", "end"]);
-  assert.deepEqual(planLiveEnd("content"), ["end"]);
+  assert.deepEqual(planLiveEnd("presenting", "accepting"), ["close_activity", "end"]);
+  assert.deepEqual(planLiveEnd("presenting", "revealed"), ["end"]);
   assert.deepEqual(planLiveEnd("ended"), []);
 });
 
@@ -171,16 +261,12 @@ test("stale event ids and true state regressions are rejected", () => {
 
 test("protocol rejects non-finite event identifiers without advancing the cursor", () => {
   const cursor = { eventId: 10, stateVersion: 4 };
-  const malformed = {
-    event_id: Number.NaN,
-    state_version: 5,
-  };
-
+  const malformed = { event_id: Number.NaN, state_version: 5 };
   assert.equal(shouldApplyLiveEvent(cursor, malformed), false);
   assert.deepEqual(advanceLiveCursor(cursor, malformed), cursor);
 });
 
-test("malformed active slide content is normalized without leaking unknown fields", () => {
+test("malformed content item is normalized without leaking unknown fields", () => {
   const content = normalizeLiveSlide(
     {
       id: "content-1",
@@ -203,76 +289,57 @@ test("malformed active slide content is normalized without leaking unknown field
   assert.equal("unexpected" in content, false);
 });
 
-test("participant question projection does not retain correctness flags", () => {
-  const question = normalizeLiveSlide(
-    {
-      id: "slide-1",
-      kind: "question",
-      content: {
-        text: "Choose",
-        question_time: 30,
-        options: [
-          { text: "A", is_correct: true },
-          { text: "B", is_correct: false },
-        ],
-      },
-    },
-    { state_version: 7, ends_at: new Date(Date.now() + 20_000).toISOString() },
-  );
-  assert.equal(question.question_id, "slide-1");
-  assert.deepEqual(
-    question.options.map((option) => option.option_id),
-    [0, 1],
-  );
+test("participant canonical Activity projection does not invent correctness when metadata is absent", () => {
+  const raw = choiceItem();
+  delete raw.content.evaluation.correct_option_ids;
+  const question = normalizeLiveSlide(raw, {
+    state_version: 7,
+    activity_phase: "accepting",
+    stage_view: "item",
+    ends_at: new Date(Date.now() + 20_000).toISOString(),
+  });
+  assert.equal(question.question_id, "activity-1");
+  assert.deepEqual(question.options.map((option) => option.option_id), [0, 1]);
   assert.equal("answer" in question.options[0], false);
-  assert.equal("is_correct" in question.options[0], false);
 });
 
-test("server-computed remaining_seconds wins over a skewed ends_at deadline", () => {
-  const endsAt = new Date(Date.now() + 30_000).toISOString();
-  const question = normalizeLiveSlide(
-    {
-      id: "q-reconnect",
-      kind: "question",
-      content: { text: "Rejoin", question_time: 30, options: [{ text: "A" }] },
-    },
-    { state_version: 12, ends_at: endsAt, remaining_seconds: 8 },
-  );
+test("server-computed remaining_seconds wins over a skewed deadline and is clamped", () => {
+  const question = normalizeLiveSlide(choiceItem({ duration: 30 }), {
+    state_version: 12,
+    activity_phase: "accepting",
+    stage_view: "item",
+    ends_at: new Date(Date.now() + 30_000).toISOString(),
+    remaining_seconds: 8,
+  });
   assert.equal(question.remaining_seconds, 8);
   assert.equal(question.question_time, 30);
-});
 
-test("server-computed remaining_seconds is clamped to the question window", () => {
-  const over = normalizeLiveSlide(
-    {
-      id: "q-over",
-      kind: "question",
-      content: { text: "Over", question_time: 10, options: [{ text: "A" }] },
-    },
-    { state_version: 1, ends_at: null, remaining_seconds: 999 },
-  );
+  const over = normalizeLiveSlide(choiceItem({ duration: 10 }), {
+    state_version: 1,
+    activity_phase: "accepting",
+    stage_view: "item",
+    ends_at: null,
+    remaining_seconds: 999,
+  });
   assert.equal(over.remaining_seconds, 10);
 
-  const under = normalizeLiveSlide(
-    {
-      id: "q-under",
-      kind: "question",
-      content: { text: "Under", question_time: 10, options: [{ text: "A" }] },
-    },
-    { state_version: 1, ends_at: null, remaining_seconds: -4 },
-  );
+  const under = normalizeLiveSlide(choiceItem({ duration: 10 }), {
+    state_version: 1,
+    activity_phase: "accepting",
+    stage_view: "item",
+    ends_at: null,
+    remaining_seconds: -4,
+  });
   assert.equal(under.remaining_seconds, 0);
 });
 
-test("missing server remaining_seconds falls back to the ends_at derivation", () => {
-  const question = normalizeLiveSlide(
-    {
-      id: "q-legacy",
-      kind: "question",
-      content: { text: "Legacy", question_time: 20, options: [{ text: "A" }] },
-    },
-    { state_version: 1, ends_at: new Date(Date.now() + 5_000).toISOString() },
-  );
+test("missing server remaining_seconds falls back to ends_at", () => {
+  const question = normalizeLiveSlide(choiceItem({ duration: 20 }), {
+    state_version: 1,
+    activity_phase: "accepting",
+    stage_view: "item",
+    ends_at: new Date(Date.now() + 5_000).toISOString(),
+  });
   assert.ok(question.remaining_seconds > 0);
   assert.ok(question.remaining_seconds <= 7);
 });
@@ -317,7 +384,13 @@ test("access codes resolve through the Go live API", async () => {
     return new Response(JSON.stringify({
       session_id: "session",
       presentation_id: "presentation",
-      presentation: { title: "آزمون", background_color: "#123456", background_image_url: "", music_url: "https://example.test/theme.mp3", text_color: "#ffffff" },
+      presentation: {
+        title: "آزمون",
+        background_color: "#123456",
+        background_image_url: "",
+        music_url: "https://example.test/theme.mp3",
+        text_color: "#ffffff",
+      },
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

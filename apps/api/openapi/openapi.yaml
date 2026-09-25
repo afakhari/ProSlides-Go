@@ -446,10 +446,10 @@ paths:
           description: >-
             Versioned text/event-stream. Each data field is a LiveEventEnvelope.
             Event names are session.created, presence.updated,
-            session.state_changed, answer.stats, and leaderboard.updated.
-            answer.stats is emitted once when a question closes and
-            leaderboard.updated is emitted when the leaderboard is shown;
-            individual answers and complete leaderboard rows are never
+            session.state_changed, activity.result_updated, and ranking.updated.
+            activity.result_updated is emitted when an Activity closes and
+            ranking.updated is emitted when the overall ranking is shown;
+            individual responses and complete ranking rows are never
             broadcast. Managers fetch rows from the paginated roster endpoint.
           content:
             text/event-stream:
@@ -460,7 +460,7 @@ paths:
   /api/v1/live/sessions/{sessionId}/answers:
     post:
       operationId: submitLiveAnswer
-      summary: Submit one idempotent answer while the question is open.
+      summary: Submit one idempotent response while the active Choice Activity is accepting.
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -470,14 +470,15 @@ paths:
             schema: { $ref: '#/components/schemas/AnswerRequest' }
       responses:
         '201':
-          description: Answer accepted and scored.
+          description: Response accepted; score_delta is zero for unscored Activities.
           content: { application/json: { schema: { $ref: '#/components/schemas/AnswerResult' } } }
         '200':
           description: Duplicate request; returns the original result.
           content: { application/json: { schema: { $ref: '#/components/schemas/AnswerResult' } } }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { description: Question is not open, has expired, or was already answered. }
+        '409':
+          description: The Activity is not accepting responses, has expired, the item changed, or the request conflicts with the current Session.
         '429': { description: Participant or session answer rate exceeded; Retry-After is returned. }
   /api/v1/live/sessions:
     post:
@@ -563,9 +564,10 @@ paths:
         Clients apply this snapshot first, then connect to events using
         last_event_id as Last-Event-ID. Participants receive only public
         session state, their own participant record and score, aggregate
-        participant count, and the active slide. Managers receive session
-        state and aggregate count; roster and leaderboard rows are available
-        only from the paginated manager endpoint.
+        participant count, and the active Item. Correctness metadata is hidden
+        until the Activity reaches the revealed phase. Managers receive Session
+        state and aggregate count; full ranking rows are available only from
+        the paginated manager endpoint.
       parameters: [{ $ref: '#/components/parameters/SessionId' }]
       responses:
         '200':
@@ -581,7 +583,7 @@ paths:
   /api/v1/live/sessions/{sessionId}/roster:
     get:
       operationId: listLiveRoster
-      summary: List a live session roster or leaderboard page as the manager.
+      summary: List a live session roster or cumulative ranking page as the manager.
       description: >-
         Manager-only keyset pagination. joined orders by joined_at ascending
         then participant id; score orders by score descending, joined_at
@@ -933,10 +935,10 @@ components:
         title: { type: string, maxLength: 500 }
     AnswerRequest:
       type: object
-      required: [request_id, question_slide_id, selected_option_indexes]
+      required: [request_id, activity_item_id, selected_option_indexes]
       properties:
         request_id: { type: string, format: uuid }
-        question_slide_id: { type: string, format: uuid }
+        activity_item_id: { type: string, format: uuid }
         selected_option_indexes:
           type: array
           items: { type: integer, minimum: 0 }
@@ -959,26 +961,30 @@ components:
       properties:
         request_id: { type: string, format: uuid }
         expected_state_version: { type: integer, minimum: 1 }
-        action: { type: string, enum: [start, open_content, open_question, close_question, show_leaderboard, end] }
-        slide_id: { type: string, format: uuid }
-        duration_seconds: { type: integer, minimum: 1, maximum: 86400 }
+        action: { type: string, enum: [start, present_item, close_activity, reveal_activity, show_overall_ranking, end] }
+        item_id: { type: string, format: uuid }
     LiveSession:
       type: object
-      required: [id, presentation_id, host_id, join_code, state, state_version]
+      required: [id, presentation_id, host_id, join_code, state, state_version, activity_phase, stage_view]
       properties:
         id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
         host_id: { type: string, format: uuid }
         join_code: { type: string, pattern: '^[A-Z0-9]{5,12}$' }
-        state: { type: string, enum: [draft, lobby, content, question_open, question_closed, leaderboard, ended] }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
         state_version: { type: integer }
-        active_slide_id: { type: string, format: uuid, nullable: true }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
         ends_at: { type: string, format: date-time, nullable: true }
         remaining_seconds:
           type: integer
           minimum: 0
           nullable: true
-          description: Authoritative whole seconds the open question has left, computed in the PostgreSQL clock domain (end_deadline minus clock_timestamp()). Present only while state is question_open; null otherwise.
+          description: Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise.
     Participant:
       type: object
       required: [id, display_name]
@@ -995,19 +1001,24 @@ components:
         duplicate: { type: boolean }
     PublicLiveSession:
       type: object
-      required: [id, presentation_id, state, state_version]
+      required: [id, presentation_id, state, state_version, activity_phase, stage_view]
       properties:
         id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
-        state: { type: string, enum: [draft, lobby, content, question_open, question_closed, leaderboard, ended] }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
         state_version: { type: integer, format: int64 }
-        active_slide_id: { type: string, format: uuid, nullable: true }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
         ends_at: { type: string, format: date-time, nullable: true }
         remaining_seconds:
           type: integer
           minimum: 0
           nullable: true
-          description: Authoritative whole seconds the open question has left, computed in the PostgreSQL clock domain (end_deadline minus clock_timestamp()). Present only while state is question_open; null otherwise.
+          description: Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise.
     ParticipantWithScore:
       type: object
       required: [id, display_name, score]
@@ -1017,7 +1028,10 @@ components:
         display_name: { type: string }
         avatar: { type: string }
         score: { type: integer, minimum: 0 }
-        rank: { type: integer, minimum: 1, description: Present for participant snapshots in leaderboard or ended state. }
+        rank:
+          type: integer
+          minimum: 1
+          description: "Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3)."
     LiveSessionLocator:
       type: object
       required: [session_id, presentation_id, presentation]
@@ -1045,14 +1059,14 @@ components:
       properties:
         role: { type: string, enum: [participant] }
         session: { $ref: '#/components/schemas/PublicLiveSession' }
-        active_slide:
+        active_item:
           type: object
           additionalProperties: true
-          description: Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted.
+          description: Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed.
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
         participant_count: { type: integer, minimum: 0 }
         last_event_id: { type: integer, format: int64, minimum: 0 }
-        question_stats: { $ref: '#/components/schemas/AnswerStatsPayload' }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     ManagerLiveSnapshot:
       type: object
       required: [role, session, participant_count, last_event_id]
@@ -1060,10 +1074,10 @@ components:
       properties:
         role: { type: string, enum: [manager] }
         session: { $ref: '#/components/schemas/LiveSession' }
-        active_slide: { type: object, additionalProperties: true }
+        active_item: { type: object, additionalProperties: true }
         participant_count: { type: integer, minimum: 0 }
         last_event_id: { type: integer, format: int64, minimum: 0 }
-        question_stats: { $ref: '#/components/schemas/AnswerStatsPayload' }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     RosterEntry:
       type: object
       required: [participant_id, display_name, score, joined_at]
@@ -1073,6 +1087,7 @@ components:
         display_name: { type: string }
         avatar: { type: string }
         score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, nullable: true, description: Competition rank when the roster is ordered by score. }
         joined_at: { type: string, format: date-time }
     RosterPage:
       type: object
@@ -1133,45 +1148,50 @@ components:
         schema_version:
           type: integer
           enum: [1, 2]
-          description: Version 2 is used by aggregate-only leaderboard.updated payloads; other current events remain version 1.
+          description: Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
         session_id: { type: string, format: uuid }
         state_version: { type: integer, format: int64 }
         name:
           type: string
-          enum: [session.created, presence.updated, session.state_changed, answer.stats, leaderboard.updated]
+          enum: [session.created, presence.updated, session.state_changed, activity.result_updated, ranking.updated]
         payload:
           oneOf:
             - { $ref: '#/components/schemas/SessionEventPayload' }
             - { $ref: '#/components/schemas/PresenceUpdatedPayload' }
-            - { $ref: '#/components/schemas/AnswerStatsPayload' }
-            - { $ref: '#/components/schemas/LeaderboardUpdatedPayload' }
+            - { $ref: '#/components/schemas/ActivityResultPayload' }
+            - { $ref: '#/components/schemas/RankingUpdatedPayload' }
         occurred_at: { type: string, format: date-time }
     SessionEventPayload:
       type: object
-      required: [state]
+      required: [state, activity_phase, stage_view]
       additionalProperties: false
       properties:
-        state: { type: string, enum: [draft, lobby, content, question_open, question_closed, leaderboard, ended] }
-        active_slide_id: { type: string, format: uuid, nullable: true }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
         ends_at: { type: string, format: date-time, nullable: true }
-        reason: { type: string, enum: [deadline_elapsed], description: Present only for an automatic server-deadline transition. }
+        reason: { type: string, enum: [deadline_elapsed], description: Present only when the server closes an Activity at its authoritative deadline. }
     PresenceUpdatedPayload:
       type: object
       required: [participant_delta]
       additionalProperties: false
       properties:
         participant_delta: { type: integer, minimum: 1, description: Number of committed joins compacted into this event. Apply it to the authoritative participant_count from the latest snapshot. }
-    AnswerStatsPayload:
+    ActivityResultPayload:
       type: object
-      required: [question_slide_id, response_count, option_counts]
+      required: [activity_item_id, response_count, option_counts]
       additionalProperties: false
       properties:
-        question_slide_id: { type: string, format: uuid }
+        activity_item_id: { type: string, format: uuid }
         response_count: { type: integer, minimum: 0 }
         option_counts:
           type: object
           additionalProperties: { type: integer, minimum: 0 }
-    LeaderboardUpdatedPayload:
+    RankingUpdatedPayload:
       type: object
       required: [participant_count]
       additionalProperties: false

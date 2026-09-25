@@ -8,6 +8,29 @@ const expected = banner + astToString(await openapiTS(schema));
 const actual = await readFile(generated, "utf8");
 
 if (actual !== expected) {
+  const actualLines = actual.split("\n");
+  const expectedLines = expected.split("\n");
+  const maxLines = Math.max(actualLines.length, expectedLines.length);
+  let firstMismatch = 0;
+
+  while (
+    firstMismatch < maxLines &&
+    actualLines[firstMismatch] === expectedLines[firstMismatch]
+  ) {
+    firstMismatch += 1;
+  }
+
+  const start = Math.max(0, firstMismatch - 3);
+  const end = Math.min(maxLines, firstMismatch + 8);
   console.error("Generated OpenAPI types are stale. Run `npm run api:types` and commit the result.");
+  console.error(`First mismatch near generated line ${firstMismatch + 1}:`);
+  for (let index = start; index < end; index += 1) {
+    console.error(
+      `${String(index + 1).padStart(5, " ")} expected: ${expectedLines[index] ?? "<EOF>"}`,
+    );
+    console.error(
+      `${String(index + 1).padStart(5, " ")} actual:   ${actualLines[index] ?? "<EOF>"}`,
+    );
+  }
   process.exitCode = 1;
 }

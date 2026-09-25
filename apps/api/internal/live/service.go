@@ -63,14 +63,14 @@ func (s *Service) Join(c context.Context, session, request, name, avatar string)
 	}
 	return participant, restored, err
 }
-func (s *Service) Action(c context.Context, session, host, request string, version int64, action, slide string, duration int) (Session, bool, error) {
-	if !validUUID(session) || !validUUID(host) || !validUUID(request) || version < 1 || (slide != "" && !validUUID(slide)) {
+func (s *Service) Action(c context.Context, session, host, request string, version int64, action, item string) (Session, bool, error) {
+	if !validUUID(session) || !validUUID(host) || !validUUID(request) || version < 1 || (item != "" && !validUUID(item)) {
 		return Session{}, false, ErrInvalid
 	}
-	return s.store.ApplyAction(c, session, host, request, version, action, slide, duration)
+	return s.store.ApplyAction(c, session, host, request, version, action, item)
 }
-func (s *Service) Submit(c context.Context, session, participantToken, request, slide string, selected []int) (AnswerResult, error) {
-	if !validUUID(session) || !validUUID(participantToken) || !validUUID(request) || !validUUID(slide) || len(selected) == 0 || len(selected) > 100 {
+func (s *Service) Submit(c context.Context, session, participantToken, request, item string, selected []int) (AnswerResult, error) {
+	if !validUUID(session) || !validUUID(participantToken) || !validUUID(request) || !validUUID(item) || len(selected) == 0 || len(selected) > 100 {
 		return AnswerResult{}, ErrInvalid
 	}
 	for _, v := range selected {
@@ -79,7 +79,7 @@ func (s *Service) Submit(c context.Context, session, participantToken, request, 
 		}
 	}
 	started := time.Now()
-	result, err := s.store.SubmitAnswer(c, session, tokenHash(participantToken), request, slide, selected, s.scoring)
+	result, err := s.store.SubmitAnswer(c, session, tokenHash(participantToken), request, item, selected, s.scoring)
 	s.answerNanos.Add(uint64(time.Since(started)))
 	switch {
 	case err == nil && result.Duplicate:

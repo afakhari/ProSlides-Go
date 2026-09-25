@@ -50,7 +50,7 @@ func (s *rejoinStore) CreateSession(context.Context, string, string, string, str
 func (s *rejoinStore) ResolveSession(context.Context, string) (SessionLocator, error) {
 	return SessionLocator{}, errors.New("unexpected ResolveSession")
 }
-func (s *rejoinStore) ApplyAction(context.Context, string, string, string, int64, string, string, int) (Session, bool, error) {
+func (s *rejoinStore) ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error) {
 	return Session{}, false, errors.New("unexpected ApplyAction")
 }
 func (s *rejoinStore) SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error) {

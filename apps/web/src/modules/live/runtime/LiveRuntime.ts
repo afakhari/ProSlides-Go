@@ -13,7 +13,7 @@ import type {
   LiveEvent,
   LiveSnapshot,
   ParticipantResult,
-  QuestionStats,
+  ActivityResult,
   RosterEntry,
   RosterPage,
 } from "../api/types.ts";
@@ -124,11 +124,11 @@ const errorMessage = (error: unknown) =>
 const recordPayload = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 
-const normalizeQuestionStats = (payload: unknown): QuestionStats | null => {
+const normalizeActivityResult = (payload: unknown): ActivityResult | null => {
   const raw = recordPayload(payload);
-  const questionSlideId = raw.question_slide_id;
+  const activityItemId = raw.activity_item_id;
   const rawCounts = recordPayload(raw.option_counts);
-  if (questionSlideId == null) return null;
+  if (activityItemId == null) return null;
 
   const optionCounts = Object.fromEntries(
     Object.entries(rawCounts).map(([key, value]) => [key, Number(value || 0)]),
@@ -139,7 +139,7 @@ const normalizeQuestionStats = (payload: unknown): QuestionStats | null => {
   );
 
   return {
-    question_slide_id: String(questionSlideId),
+    activity_item_id: String(activityItemId),
     response_count: Number.isFinite(responseCount) ? responseCount : 0,
     option_counts: optionCounts,
   };
@@ -368,7 +368,8 @@ export class LiveRuntime {
 
         if (next.role === "manager") {
           await this.loadRoster(
-            ["leaderboard", "ended"].includes(next.session.state)
+            next.session.stage_view === "overall_ranking" ||
+            next.session.state === "ended"
               ? "score"
               : "joined",
             false,
@@ -422,9 +423,11 @@ export class LiveRuntime {
         this.publish({ snapshot: next });
       }
       if (this.role === "manager") {
+        const snapshot = this.snapshotValue;
         const order: RosterOrder =
-          this.snapshotValue &&
-          ["leaderboard", "ended"].includes(this.snapshotValue.session.state)
+          snapshot &&
+          (snapshot.session.stage_view === "overall_ranking" ||
+            snapshot.session.state === "ended")
             ? "score"
             : "joined";
         void this.loadRoster(order, false);
@@ -432,12 +435,12 @@ export class LiveRuntime {
       return;
     }
 
-    if (event.name === "answer.stats") {
-      const stats = normalizeQuestionStats(event.payload);
-      if (stats && this.snapshotValue) {
+    if (event.name === "activity.result_updated") {
+      const result = normalizeActivityResult(event.payload);
+      if (result && this.snapshotValue) {
         const next: LiveSnapshot = {
           ...this.snapshotValue,
-          question_stats: stats,
+          activity_result: result,
         };
         this.snapshotValue = next;
         this.publish({ snapshot: next });
@@ -446,7 +449,7 @@ export class LiveRuntime {
     }
 
     if (
-      ["session.created", "session.state_changed", "leaderboard.updated"].includes(
+      ["session.created", "session.state_changed", "ranking.updated"].includes(
         event.name,
       )
     ) {
@@ -592,7 +595,8 @@ export class LiveRuntime {
       this.storeSnapshot(next);
       if (next.role === "manager") {
         await this.loadRoster(
-          ["leaderboard", "ended"].includes(next.session.state)
+          next.session.stage_view === "overall_ranking" ||
+            next.session.state === "ended"
             ? "score"
             : "joined",
           false,
@@ -628,23 +632,19 @@ export class LiveRuntime {
     const current = this.snapshotValue;
     if (!id || current?.role !== "manager") return false;
 
-    const slideId = slide?.slide_id == null ? "" : String(slide.slide_id);
-    const key = `${id}:${current.session.state_version}:${action}:${slideId}`;
+    const itemId = slide?.slide_id == null ? "" : String(slide.slide_id);
+    const key = `${id}:${current.session.state_version}:${action}:${itemId}`;
     let requestId = this.pendingActionIds.get(key);
     if (!requestId) {
       requestId = this.transport.createRequestId();
       this.pendingActionIds.set(key, requestId);
     }
 
-    const duration = Number(slide?.question_time || 0);
     const result = await this.transport.applyLiveAction(id, {
       request_id: requestId,
       expected_state_version: current.session.state_version,
       action,
-      ...(slideId ? { slide_id: slideId } : {}),
-      ...(action === "open_question" && duration > 0
-        ? { duration_seconds: duration }
-        : {}),
+      ...(action === "present_item" && itemId ? { item_id: itemId } : {}),
     });
 
     const next: LiveSnapshot = {
@@ -664,17 +664,18 @@ export class LiveRuntime {
     if (this.commandInFlight) return false;
     this.commandInFlight = true;
     try {
+      const session = this.snapshotValue?.session;
       const actions = planLiveNavigation(
-        this.snapshotValue?.session?.state,
+        session?.state,
         command,
         options.slide,
+        session?.activity_phase ?? null,
+        session?.stage_view ?? "item",
       );
       for (const action of actions) {
         const applied = await this.runAction(
           action,
-          ["open_question", "open_content"].includes(action)
-            ? options.slide
-            : undefined,
+          action === "present_item" ? options.slide : undefined,
         );
         if (!applied) throw new Error("Live action was not authorized");
       }
@@ -698,6 +699,7 @@ export class LiveRuntime {
     try {
       const actions = planLiveEnd(
         this.snapshotValue?.session?.state,
+        this.snapshotValue?.session?.activity_phase ?? null,
       );
       for (const action of actions) {
         if (!(await this.runAction(action))) {
@@ -787,7 +789,7 @@ export class LiveRuntime {
     try {
       await this.transport.submitLiveAnswer(id, {
         request_id: answer.request_id || this.transport.createRequestId(),
-        question_slide_id: String(answer.question_id),
+        activity_item_id: String(answer.question_id),
         selected_option_indexes: selected,
       });
       return true;

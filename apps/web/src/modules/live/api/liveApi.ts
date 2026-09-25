@@ -49,8 +49,8 @@ export const createLiveSession = (presentationId: string, requestId: string) => 
 export const resolveLiveSession = (joinCode: string) => requestJSON<LiveSessionLocator>(`live/sessions/resolve?join_code=${encodeURIComponent(joinCode)}`);
 export const getLiveSnapshot = (id: string) => requestJSON<LiveSnapshot>(`live/sessions/${encodeURIComponent(id)}/snapshot`);
 export const joinLiveSession = (id: string, input: { request_id: string; display_name: string; avatar?: string }) => requestJSON<ParticipantResult>(`live/sessions/${encodeURIComponent(id)}/join`, { method: "POST", body: JSON.stringify(input) });
-export const submitLiveAnswer = (id: string, input: { request_id: string; question_slide_id: string; selected_option_indexes: number[] }) => requestJSON<AnswerResult>(`live/sessions/${encodeURIComponent(id)}/answers`, { method: "POST", body: JSON.stringify(input) });
-export const applyLiveAction = (id: string, input: { request_id: string; expected_state_version: number; action: string; slide_id?: string; duration_seconds?: number }) => requestJSON<LiveSessionResult>(`live/sessions/${encodeURIComponent(id)}/actions`, { method: "POST", body: JSON.stringify(input) }, true);
+export const submitLiveAnswer = (id: string, input: { request_id: string; activity_item_id: string; selected_option_indexes: number[] }) => requestJSON<AnswerResult>(`live/sessions/${encodeURIComponent(id)}/answers`, { method: "POST", body: JSON.stringify(input) });
+export const applyLiveAction = (id: string, input: { request_id: string; expected_state_version: number; action: string; item_id?: string }) => requestJSON<LiveSessionResult>(`live/sessions/${encodeURIComponent(id)}/actions`, { method: "POST", body: JSON.stringify(input) }, true);
 
 export const getRosterPage = (id: string, order: "joined" | "score", cursor = "", limit = 100, signal?: AbortSignal) => {
   const query = new URLSearchParams({ order, limit: String(limit) });

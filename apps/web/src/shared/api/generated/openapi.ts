@@ -461,7 +461,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit one idempotent answer while the question is open. */
+        /** Submit one idempotent response while the active Choice Activity is accepting. */
         post: operations["submitLiveAnswer"];
         delete?: never;
         options?: never;
@@ -549,7 +549,7 @@ export interface paths {
         };
         /**
          * Get an authoritative role-scoped session snapshot and SSE recovery cursor.
-         * @description Clients apply this snapshot first, then connect to events using last_event_id as Last-Event-ID. Participants receive only public session state, their own participant record and score, aggregate participant count, and the active slide. Managers receive session state and aggregate count; roster and leaderboard rows are available only from the paginated manager endpoint.
+         * @description Clients apply this snapshot first, then connect to events using last_event_id as Last-Event-ID. Participants receive only public session state, their own participant record and score, aggregate participant count, and the active Item. Correctness metadata is hidden until the Activity reaches the revealed phase. Managers receive Session state and aggregate count; full ranking rows are available only from the paginated manager endpoint.
          */
         get: operations["getLiveSnapshot"];
         put?: never;
@@ -568,7 +568,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List a live session roster or leaderboard page as the manager.
+         * List a live session roster or cumulative ranking page as the manager.
          * @description Manager-only keyset pagination. joined orders by joined_at ascending then participant id; score orders by score descending, joined_at ascending, then participant id. Cursors are opaque and bound to the selected order.
          */
         get: operations["listLiveRoster"];
@@ -800,7 +800,7 @@ export interface components {
             /** Format: uuid */
             request_id: string;
             /** Format: uuid */
-            question_slide_id: string;
+            activity_item_id: string;
             selected_option_indexes: number[];
         };
         CreateLiveSessionRequest: {
@@ -823,10 +823,9 @@ export interface components {
             request_id: string;
             expected_state_version: number;
             /** @enum {string} */
-            action: "start" | "open_content" | "open_question" | "close_question" | "show_leaderboard" | "end";
+            action: "start" | "present_item" | "close_activity" | "reveal_activity" | "show_overall_ranking" | "end";
             /** Format: uuid */
-            slide_id?: string;
-            duration_seconds?: number;
+            item_id?: string;
         };
         LiveSession: {
             /** Format: uuid */
@@ -837,13 +836,17 @@ export interface components {
             host_id: string;
             join_code: string;
             /** @enum {string} */
-            state: "draft" | "lobby" | "content" | "question_open" | "question_closed" | "leaderboard" | "ended";
+            state: "draft" | "lobby" | "presenting" | "ended";
             state_version: number;
             /** Format: uuid */
-            active_slide_id?: string | null;
+            active_item_id?: string | null;
+            /** @enum {string|null} */
+            activity_phase: "accepting" | "closed" | "revealed" | null;
+            /** @enum {string} */
+            stage_view: "item" | "overall_ranking";
             /** Format: date-time */
             ends_at?: string | null;
-            /** @description Authoritative whole seconds the open question has left, computed in the PostgreSQL clock domain (end_deadline minus clock_timestamp()). Present only while state is question_open; null otherwise. */
+            /** @description Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise. */
             remaining_seconds?: number | null;
         };
         Participant: {
@@ -864,14 +867,18 @@ export interface components {
             /** Format: uuid */
             presentation_id: string;
             /** @enum {string} */
-            state: "draft" | "lobby" | "content" | "question_open" | "question_closed" | "leaderboard" | "ended";
+            state: "draft" | "lobby" | "presenting" | "ended";
             /** Format: int64 */
             state_version: number;
             /** Format: uuid */
-            active_slide_id?: string | null;
+            active_item_id?: string | null;
+            /** @enum {string|null} */
+            activity_phase: "accepting" | "closed" | "revealed" | null;
+            /** @enum {string} */
+            stage_view: "item" | "overall_ranking";
             /** Format: date-time */
             ends_at?: string | null;
-            /** @description Authoritative whole seconds the open question has left, computed in the PostgreSQL clock domain (end_deadline minus clock_timestamp()). Present only while state is question_open; null otherwise. */
+            /** @description Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise. */
             remaining_seconds?: number | null;
         };
         ParticipantWithScore: {
@@ -880,7 +887,7 @@ export interface components {
             display_name: string;
             avatar?: string;
             score: number;
-            /** @description Present for participant snapshots in leaderboard or ended state. */
+            /** @description Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). */
             rank?: number;
         };
         LiveSessionLocator: {
@@ -902,27 +909,27 @@ export interface components {
             /** @enum {string} */
             role: "participant";
             session: components["schemas"]["PublicLiveSession"];
-            /** @description Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted. */
-            active_slide?: {
+            /** @description Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed. */
+            active_item?: {
                 [key: string]: unknown;
             };
             participant: components["schemas"]["ParticipantWithScore"];
             participant_count: number;
             /** Format: int64 */
             last_event_id: number;
-            question_stats?: components["schemas"]["AnswerStatsPayload"];
+            activity_result?: components["schemas"]["ActivityResultPayload"];
         };
         ManagerLiveSnapshot: {
             /** @enum {string} */
             role: "manager";
             session: components["schemas"]["LiveSession"];
-            active_slide?: {
+            active_item?: {
                 [key: string]: unknown;
             };
             participant_count: number;
             /** Format: int64 */
             last_event_id: number;
-            question_stats?: components["schemas"]["AnswerStatsPayload"];
+            activity_result?: components["schemas"]["ActivityResultPayload"];
         };
         RosterEntry: {
             /** Format: uuid */
@@ -930,6 +937,8 @@ export interface components {
             display_name: string;
             avatar?: string;
             score: number;
+            /** @description Competition rank when the roster is ordered by score. */
+            rank?: number | null;
             /** Format: date-time */
             joined_at: string;
         };
@@ -975,7 +984,7 @@ export interface components {
             /** Format: int64 */
             event_id: number;
             /**
-             * @description Version 2 is used by aggregate-only leaderboard.updated payloads; other current events remain version 1.
+             * @description Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
              * @enum {integer}
              */
             schema_version: 1 | 2;
@@ -984,20 +993,24 @@ export interface components {
             /** Format: int64 */
             state_version: number;
             /** @enum {string} */
-            name: "session.created" | "presence.updated" | "session.state_changed" | "answer.stats" | "leaderboard.updated";
-            payload: components["schemas"]["SessionEventPayload"] | components["schemas"]["PresenceUpdatedPayload"] | components["schemas"]["AnswerStatsPayload"] | components["schemas"]["LeaderboardUpdatedPayload"];
+            name: "session.created" | "presence.updated" | "session.state_changed" | "activity.result_updated" | "ranking.updated";
+            payload: components["schemas"]["SessionEventPayload"] | components["schemas"]["PresenceUpdatedPayload"] | components["schemas"]["ActivityResultPayload"] | components["schemas"]["RankingUpdatedPayload"];
             /** Format: date-time */
             occurred_at: string;
         };
         SessionEventPayload: {
             /** @enum {string} */
-            state: "draft" | "lobby" | "content" | "question_open" | "question_closed" | "leaderboard" | "ended";
+            state: "draft" | "lobby" | "presenting" | "ended";
             /** Format: uuid */
-            active_slide_id?: string | null;
+            active_item_id?: string | null;
+            /** @enum {string|null} */
+            activity_phase: "accepting" | "closed" | "revealed" | null;
+            /** @enum {string} */
+            stage_view: "item" | "overall_ranking";
             /** Format: date-time */
             ends_at?: string | null;
             /**
-             * @description Present only for an automatic server-deadline transition.
+             * @description Present only when the server closes an Activity at its authoritative deadline.
              * @enum {string}
              */
             reason?: "deadline_elapsed";
@@ -1006,15 +1019,15 @@ export interface components {
             /** @description Number of committed joins compacted into this event. Apply it to the authoritative participant_count from the latest snapshot. */
             participant_delta: number;
         };
-        AnswerStatsPayload: {
+        ActivityResultPayload: {
             /** Format: uuid */
-            question_slide_id: string;
+            activity_item_id: string;
             response_count: number;
             option_counts: {
                 [key: string]: number;
             };
         };
-        LeaderboardUpdatedPayload: {
+        RankingUpdatedPayload: {
             participant_count: number;
         };
         Slide: {
@@ -1956,7 +1969,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, answer.stats, and leaderboard.updated. answer.stats is emitted once when a question closes and leaderboard.updated is emitted when the leaderboard is shown; individual answers and complete leaderboard rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
+            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes and ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1999,7 +2012,7 @@ export interface operations {
                     "application/json": components["schemas"]["AnswerResult"];
                 };
             };
-            /** @description Answer accepted and scored. */
+            /** @description Response accepted; score_delta is zero for unscored Activities. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -2010,7 +2023,7 @@ export interface operations {
             };
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
-            /** @description Question is not open */
+            /** @description The Activity is not accepting responses, has expired, the item changed, or the request conflicts with the current Session. */
             409: {
                 headers: {
                     [name: string]: unknown;

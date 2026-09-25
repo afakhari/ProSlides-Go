@@ -7,12 +7,18 @@ type ManagerLeaderboardDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   players: LegacyLiveUser[];
+  hasMore?: boolean;
+  isLoading?: boolean;
+  onLoadMore?: () => void;
 };
 
 export function ManagerLeaderboardDialog({
   isOpen,
   onClose,
   players,
+  hasMore = false,
+  isLoading = false,
+  onLoadMore,
 }: ManagerLeaderboardDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const maxScore = useMemo(
@@ -114,6 +120,19 @@ export function ManagerLeaderboardDialog({
           })
         )}
       </ol>
+
+      {hasMore && onLoadMore ? (
+        <div className="sticky bottom-0 flex justify-center border-t border-white/10 bg-slate-950/95 p-4 backdrop-blur">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={isLoading}
+            className="min-h-11 rounded-xl border border-white/20 bg-white/5 px-5 text-sm font-bold hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            {isLoading ? "در حال بارگذاری…" : "نمایش رتبه‌های بیشتر"}
+          </button>
+        </div>
+      ) : null}
     </dialog>
   );
 }

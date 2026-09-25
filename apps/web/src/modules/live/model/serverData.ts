@@ -37,6 +37,8 @@ export interface LegacyQuestionSlide {
   min_point?: number;
   question_type?: string;
   has_multiple?: boolean;
+  is_scored?: boolean;
+  has_correct_answer?: boolean;
   image_url?: string;
   show_leaderboard_after?: boolean;
   options?: LegacyQuestionOption[];
@@ -57,6 +59,7 @@ export type LegacyLiveSlide = LegacyQuestionSlide | LegacyContentSlide;
 
 export interface LegacyQuestionResult {
   question_id?: string | number | null;
+  response_count?: number;
   optionsResult?: Array<{
     option_id: string | number;
     number_of_submits?: number;

@@ -56,7 +56,7 @@ func TestNormalizeLegacyQuestionToChoiceActivity(t *testing.T) {
 	}
 }
 
-func TestChoiceActivityProjectsToLegacyLiveQuestion(t *testing.T) {
+func TestChoiceActivityRemainsCanonicalForLive(t *testing.T) {
 	activity := ActivityDefinition{
 		SchemaVersion: 1,
 		ActivityKind:  ActivityKindChoice,
@@ -90,27 +90,26 @@ func TestChoiceActivityProjectsToLegacyLiveQuestion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	kind, legacyRaw, err := LegacyLiveSlideDefinition(ItemKindActivity, raw)
+	kind, normalized, err := normalizeSlideDefinition(ItemKindActivity, raw)
 	if err != nil {
-		t.Fatalf("project live definition: %v", err)
+		t.Fatalf("normalize activity definition: %v", err)
 	}
-	if kind != "question" {
-		t.Fatalf("kind = %q, want question", kind)
+	if kind != ItemKindActivity {
+		t.Fatalf("kind = %q, want %q", kind, ItemKindActivity)
 	}
-	var legacy legacyQuestionDefinition
-	if err := json.Unmarshal(legacyRaw, &legacy); err != nil {
-		t.Fatalf("decode legacy projection: %v", err)
+
+	decoded, err := DecodeActivityDefinition(normalized)
+	if err != nil {
+		t.Fatalf("decode normalized activity: %v", err)
 	}
-	if legacy.QuestionType != "multiple" ||
-		legacy.QuestionTime != 45 ||
-		legacy.MinPoint != 10 ||
-		legacy.MaxPoint != 100 ||
-		!legacy.PartialScoring ||
-		!legacy.ShowLeaderboardAfter {
-		t.Fatalf("unexpected legacy projection: %#v", legacy)
-	}
-	if !legacy.Options[0].IsCorrect || legacy.Options[1].IsCorrect || !legacy.Options[2].IsCorrect {
-		t.Fatalf("correctness projection mismatch: %#v", legacy.Options)
+	if decoded.ActivityKind != ActivityKindChoice ||
+		decoded.Response.Selection != ChoiceSelectionMultiple ||
+		decoded.Timing.DurationSeconds != 45 ||
+		decoded.Scoring.MinPoints != 10 ||
+		decoded.Scoring.MaxPoints != 100 ||
+		!decoded.Scoring.PartialCredit ||
+		!decoded.Results.ShowOverallLeaderboardAfter {
+		t.Fatalf("canonical Activity semantics changed: %#v", decoded)
 	}
 }
 

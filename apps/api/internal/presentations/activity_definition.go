@@ -1,6 +1,7 @@
 package presentations
 
 import (
+	"encoding/json"
 	"strings"
 	"unicode/utf8"
 )
@@ -69,6 +70,17 @@ type ActivityDefinition struct {
 	Scoring       ChoiceScoringPolicy    `json:"scoring"`
 	Timing        ActivityTimingPolicy   `json:"timing"`
 	Results       ActivityResultPolicy   `json:"results"`
+}
+
+func DecodeActivityDefinition(raw json.RawMessage) (ActivityDefinition, error) {
+	var value ActivityDefinition
+	if err := decodeStrictObject(raw, &value); err != nil {
+		return ActivityDefinition{}, err
+	}
+	if err := validateActivityDefinition(value); err != nil {
+		return ActivityDefinition{}, err
+	}
+	return value, nil
 }
 
 func validateActivityDefinition(value ActivityDefinition) error {

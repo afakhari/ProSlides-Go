@@ -39,6 +39,7 @@ export function LiveSessionProvider({
       submitAnswer: runtime.submitAnswer,
       sendNavigation: runtime.sendNavigation,
       sendEnd: runtime.sendEnd,
+      loadRoster: runtime.loadRoster,
       loadMoreRoster: runtime.loadMoreRoster,
     }),
     [runtime, state],

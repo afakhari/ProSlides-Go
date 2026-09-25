@@ -31,7 +31,16 @@ export function ManagerPickAnswerQuestion({
   isRemoteReady,
   onEndGame,
 }: ManagerQuestionProps) {
-  const { isConnected, sendNavigation, sendEnd } = useLiveSession();
+  const {
+    isConnected,
+    sendNavigation,
+    sendEnd,
+    snapshot,
+    loadRoster,
+    loadMoreRoster,
+    hasMoreRoster,
+    isRosterLoading,
+  } = useLiveSession();
   const {
     questionResults,
     modalLeaderboardResults,
@@ -122,6 +131,7 @@ export function ManagerPickAnswerQuestion({
     () => currentQuestion?.options ?? [],
     [currentQuestion],
   );
+  const hasCorrectAnswer = currentQuestion?.has_correct_answer !== false;
   const votes = useMemo(
     () =>
       options.map((option) => {
@@ -134,7 +144,7 @@ export function ManagerPickAnswerQuestion({
     [options, resultOptions],
   );
 
-  const showResults = resultMatches && resultOptions.length > 0;
+  const showResults = resultMatches && questionResults !== null;
   const totalVotes = votes.reduce((sum, count) => sum + count, 0);
 
   useEffect(() => {
@@ -158,20 +168,27 @@ export function ManagerPickAnswerQuestion({
 
   const handleNext = async () => {
     if (!currentQuestion) return;
-    const nextSlide = quiz.slides[currentSlide];
 
-    if (!currentQuestion.show_leaderboard_after && !nextSlide) {
-      if (await sendEnd()) onEndGame();
+    const phase = snapshot?.session.activity_phase ?? null;
+    if (phase === "accepting" || phase === "closed") {
+      await sendNavigation("next");
       return;
     }
+
+    const nextSlide = quiz.slides[currentSlide];
 
     if (currentQuestion.show_leaderboard_after) {
       await sendNavigation("next");
       return;
     }
 
-    if (nextSlide) {
-      await sendNavigation("next", { slide: nextSlide });
+    if (!nextSlide) {
+      if (await sendEnd()) onEndGame();
+      return;
+    }
+
+    if (await sendNavigation("next", { slide: nextSlide })) {
+      // The authoritative snapshot will move the controller to the next item.
     }
   };
 
@@ -289,7 +306,7 @@ export function ManagerPickAnswerQuestion({
                       <div className="flex h-full w-full items-end">
                         <div
                           className={`w-full rounded-t-2xl transition-[height] duration-700 ${
-                            showResults
+                            showResults && hasCorrectAnswer
                               ? correct
                                 ? "bg-success"
                                 : "bg-danger/80"
@@ -297,7 +314,10 @@ export function ManagerPickAnswerQuestion({
                           }`}
                           style={{
                             height: showResults ? `${height}%` : "8%",
-                            backgroundColor: showResults ? undefined : color,
+                            backgroundColor:
+                              showResults && hasCorrectAnswer
+                                ? undefined
+                                : color,
                           }}
                           aria-hidden="true"
                         />
@@ -322,7 +342,10 @@ export function ManagerPickAnswerQuestion({
         totalSlides={totalSlides}
         onNext={currentQuestion ? handleNext : undefined}
         onEnd={handleEnd}
-        onShowLeaderboard={() => setShowLeaderboard(true)}
+        onShowLeaderboard={() => {
+          setShowLeaderboard(true);
+          void loadRoster("score", false);
+        }}
         endOnLastSlide={false}
       />
 
@@ -330,6 +353,9 @@ export function ManagerPickAnswerQuestion({
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
         players={modalLeaderboardResults ?? []}
+        hasMore={hasMoreRoster}
+        isLoading={isRosterLoading}
+        onLoadMore={() => void loadMoreRoster()}
       />
     </div>
   );
