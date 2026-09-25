@@ -9,6 +9,18 @@ const actual = await readFile(generated, "utf8");
 
 if (actual !== expected) {
   console.error("Generated OpenAPI types are stale. Run `npm run api:types` and commit the result.");
+  const expectedLines = expected.split("\n");
+  const actualLines = actual.split("\n");
+  const firstDifferentLine = expectedLines.findIndex(
+    (line, index) => line !== actualLines[index],
+  );
+  if (firstDifferentLine >= 0) {
+    const from = Math.max(0, firstDifferentLine - 8);
+    const to = firstDifferentLine + 16;
+    console.error(`--- first generated difference at line ${firstDifferentLine + 1} ---`);
+    console.error("EXPECTED:\n" + expectedLines.slice(from, to).join("\n"));
+    console.error("ACTUAL:\n" + actualLines.slice(from, to).join("\n"));
+  }
   for (const marker of ["CreateSlideRequest:", "Slide: {", "createQuestionSlide:"]) {
     const index = expected.indexOf(marker);
     if (index >= 0) {
