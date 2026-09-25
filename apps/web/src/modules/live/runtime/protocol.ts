@@ -376,7 +376,7 @@ export const participantToLegacy = (
 
 export const presentationSlideToLegacy = (
   slide: PresentationSlide,
-): LegacyQuestionSlide | LegacyContentSlide | null => {
+): LegacyLiveSlide | null => {
   const content = recordValue(slide.content);
 
   if (
