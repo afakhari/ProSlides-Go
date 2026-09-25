@@ -129,10 +129,14 @@ identity is now owned by canonical `item_kind + activity_kind + schema_version`;
 numeric live projection compatibility remains isolated under `modules/live`
 for a separate evidence-driven cut-over.
 
-Other legacy paths, including numeric live `slide_type` projection,
-`latest-session`, persisted/synthetic leaderboard compatibility and remaining
-live frontend model translations, remain until their replacements are verified
-independently.
+PR #120 removes numeric `slide_type` from the live frontend projection and
+navigation model. Live Activities and Content now use explicit `item_kind`;
+the remaining persisted leaderboard compatibility is isolated as
+`legacy-leaderboard` for a separate migration-backed deletion.
+
+Other legacy paths, including `latest-session`, persisted/synthetic leaderboard
+compatibility and remaining live frontend model translations, remain until
+their replacements are verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
