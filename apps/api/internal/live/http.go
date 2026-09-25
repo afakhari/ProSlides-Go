@@ -153,10 +153,25 @@ func (h *HTTP) answer(w http.ResponseWriter, r *http.Request) {
 		RequestID      string          `json:"request_id"`
 		ActivityItemID string          `json:"activity_item_id"`
 		Response       json.RawMessage `json:"response"`
+		Selected       []int           `json:"selected_option_indexes"`
 	}
 	if decodeJSON(w, r, &b) != nil {
 		returnError(w, ErrInvalid)
 		return
+	}
+	if len(b.Response) > 0 && len(b.Selected) > 0 {
+		returnError(w, ErrInvalid)
+		return
+	}
+	if len(b.Response) == 0 && len(b.Selected) > 0 {
+		var marshalErr error
+		b.Response, marshalErr = json.Marshal(choiceActivityResponse{
+			SelectedOptionIndexes: b.Selected,
+		})
+		if marshalErr != nil {
+			returnError(w, marshalErr)
+			return
+		}
 	}
 	x, e := h.service.Submit(r.Context(), r.PathValue("sessionId"), token.Value, b.RequestID, b.ActivityItemID, b.Response)
 	if e != nil {
