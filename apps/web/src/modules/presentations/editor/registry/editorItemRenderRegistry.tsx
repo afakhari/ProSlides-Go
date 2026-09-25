@@ -75,11 +75,15 @@ function PassiveDraftBoundary({ children }: DraftBoundaryProps) {
   return <>{children}</>;
 }
 
-function ContentCanvasAdapter({
-  isFullSize: _isFullSize,
-  ...props
-}: EditorCanvasProps) {
-  return <ContentCanvas {...props} />;
+function ContentCanvasAdapter(props: EditorCanvasProps) {
+  return (
+    <ContentCanvas
+      slide={props.slide}
+      quizBackground={props.quizBackground}
+      quizBackgroundImage={props.quizBackgroundImage}
+      textColor={props.textColor}
+    />
+  );
 }
 
 function LegacyLeaderboardCanvas(props: EditorCanvasProps) {
