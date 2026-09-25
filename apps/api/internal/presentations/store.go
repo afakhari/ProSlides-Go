@@ -49,10 +49,6 @@ type PresentationPatch struct {
 	Settings         json.RawMessage
 	ExpectedRevision *int64
 }
-type SessionLocator struct {
-	SessionID      string `json:"session_id"`
-	PresentationID string `json:"presentation_id"`
-}
 type AccessCodeResult struct {
 	AccessCode string `json:"access_code"`
 }
@@ -64,7 +60,6 @@ type Store interface {
 	SetAccessCode(context.Context, string, string, string) (AccessCodeResult, error)
 	Delete(context.Context, string, string) error
 	Duplicate(context.Context, string, string, string) (Presentation, error)
-	LatestSession(context.Context, string, string) (SessionLocator, error)
 	DeleteResults(context.Context, string, string) error
 	CreateSlide(context.Context, string, string, int, string, json.RawMessage, *int64) (Slide, error)
 	ReplaceSlide(context.Context, string, string, string, int, string, json.RawMessage, *int64) (Slide, error)

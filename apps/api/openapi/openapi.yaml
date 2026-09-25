@@ -291,18 +291,6 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/CSRFError' }
         '404': { $ref: '#/components/responses/NotFound' }
-  /api/v1/presentations/{presentationId}/latest-session:
-    get:
-      deprecated: true
-      operationId: getLatestPresentationSession
-      summary: Resolve the newest live session for an owned presentation.
-      description: Temporary migration convenience. Session-first report clients should list presentation Sessions instead.
-      parameters:
-        - $ref: '#/components/parameters/PresentationId'
-      responses:
-        '200': { description: Latest session locator., content: { application/json: { schema: { $ref: '#/components/schemas/LiveSessionLocator' } } } }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/presentations/{presentationId}/sessions:
     get:
       operationId: listPresentationReportSessions

@@ -167,15 +167,6 @@ func (s *PostgresStore) Duplicate(c context.Context, id, owner, title string) (P
 	return s.FindOwned(c, newID, owner)
 }
 
-func (s *PostgresStore) LatestSession(c context.Context, id, owner string) (SessionLocator, error) {
-	var locator SessionLocator
-	err := s.pool.QueryRow(c, `SELECT ls.id::text,ls.presentation_id::text FROM live_sessions ls JOIN presentations p ON p.id=ls.presentation_id WHERE p.id=$1 AND p.owner_id=$2 ORDER BY ls.created_at DESC,ls.id DESC LIMIT 1`, id, owner).Scan(&locator.SessionID, &locator.PresentationID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return SessionLocator{}, ErrNotFound
-	}
-	return locator, err
-}
-
 func (s *PostgresStore) DeleteResults(c context.Context, id, owner string) error {
 	tx, err := s.pool.BeginTx(c, pgx.TxOptions{})
 	if err != nil {

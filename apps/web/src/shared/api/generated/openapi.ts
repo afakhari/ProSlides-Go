@@ -299,27 +299,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/presentations/{presentationId}/latest-session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Resolve the newest live session for an owned presentation.
-         * @deprecated
-         * @description Temporary migration convenience. Session-first report clients should list presentation Sessions instead.
-         */
-        get: operations["getLatestPresentationSession"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/presentations/{presentationId}/sessions": {
         parameters: {
             query?: never;
@@ -1893,30 +1872,6 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["CSRFError"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getLatestPresentationSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                presentationId: components["parameters"]["PresentationId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Latest session locator. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LiveSessionLocator"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
