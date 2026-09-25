@@ -151,7 +151,7 @@ const choiceDraftTransport: EditorTransportRegistration = {
 // this shape; V2.7 removes the adapter after legacy data is no longer present.
 const legacyQuestionTransport: EditorTransportRegistration = {
   key: "legacy-question",
-  matchesTransport: ({ slide }) => slide.kind === "question",
+  matchesTransport: ({ slide }) => String(slide.kind) === "question",
   fromTransport: ({ slide, content }) => {
     const rawOptions = Array.isArray(content.options)
       ? content.options as Record<string, unknown>[]
