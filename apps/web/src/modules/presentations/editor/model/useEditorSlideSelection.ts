@@ -101,7 +101,6 @@ export function useEditorSlideSelection({
   return {
     activeSlide,
     activeSlideId: activeSlide?.slide_id ?? null,
-    activeSlideType: activeSlide?.slide_type ?? null,
     selectSlideImmediate,
     requestSlideSelection,
   };
