@@ -1,8 +1,9 @@
-# ProSlides target architecture
+# ProSlides system architecture
 
 ## Status and intent
 
-This is the target and current architecture for the Go migration. It is designed
+This document owns current infrastructure/backend correctness invariants and the
+system architecture that v2 preserves. It is designed
 to scale to a measured 10,000 concurrent participants in one live session, but
 that capacity is **not yet certified**. Certification requires the workload and
 gates in `docs/capacity-plan.md`; architecture alone is not proof.
@@ -36,8 +37,8 @@ can replay from the durable event ledger and then deliver new events locally.
 
 ## Frontend boundary
 
-The browser remains a React 19/Vite single-page application. Its accepted
-incremental target is:
+The browser remains a React 19/Vite TypeScript single-page application. Its
+durable dependency boundary is:
 
 ```text
 app (bootstrap, router, providers, route layouts/errors)
@@ -52,9 +53,9 @@ one cache layer when introduced deliberately; the live runtime remains a
 separate typed snapshot + HTTP command + SSE reducer because event ordering,
 replay, and reconnect are domain requirements rather than generic cache state.
 
-New or substantially changed UI is TS/TSX at module boundaries. Existing JSX
-migrates by feature, with lint/typecheck coverage expanding in the same change.
-Styling uses one Tailwind v4/CSS semantic-token source and logical RTL-aware
+Application source is TS/TSX. New work must preserve typed module/domain
+boundaries rather than reintroducing untyped compatibility leaves. Styling uses
+one Tailwind v4/CSS semantic-token source and logical RTL-aware
 properties. Local component state stays local; no global store, state machine,
 SSR framework, microfrontend, or separate design-system package is added absent
 a measured need.
@@ -62,8 +63,8 @@ a measured need.
 The durable frontend target, state ownership, forms/API boundaries, styling,
 testing and migration order live in `docs/frontend-architecture.md`; ADR 0003
 records the decision rationale. Persian product/UX rules live in
-`docs/frontend-professionalization.md`. Current implementation status is kept
-separately in `docs/status/current.md` and `docs/frontend-status.md`.
+`docs/frontend-professionalization.md`. Current implementation status is kept only in `docs/status/current.md`;
+intentionally deferred frontend debt is in `docs/frontend-debt.md`.
 
 ## Module boundaries
 
@@ -262,6 +263,7 @@ addresses only from the explicitly configured application subnet.
 4. Local 100 and repeatable 1k protocol evidence exists, but no production-like
    1k or any 5k/10k gate exists; therefore 10k is a target, not a claim.
 
-The ordered capacity work and pass/fail thresholds are in
-`docs/capacity-plan.md`. Deployment inputs and migration status are recorded in
-`docs/configuration.md` and `docs/migration-status.md`.
+The capacity gates and evidence rules are in `docs/capacity-plan.md`.
+Deployment inputs are recorded in `docs/configuration.md`; the completed
+Django/Rust-to-Go parity record is archived under
+`docs/archive/legacy-to-go-migration-parity.md`.
