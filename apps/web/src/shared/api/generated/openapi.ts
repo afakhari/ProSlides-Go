@@ -546,7 +546,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit one idempotent response while the active Choice Activity is accepting. */
+        /** Submit one idempotent response while the active Activity is accepting. */
         post: operations["submitLiveAnswer"];
         delete?: never;
         options?: never;
