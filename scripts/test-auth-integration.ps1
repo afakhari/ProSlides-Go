@@ -120,7 +120,34 @@ try {
   $createdID = $createdInitial.id
   $contentResponse = Invoke-API -Method POST -Path "/api/v1/presentations/$createdID/slides" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF; "If-Match" = [string]$createdInitial.revision } -Body (@{ position = 0; kind = "content"; content = @{ text = "Created through API" } } | ConvertTo-Json -Compress) -ExpectedStatus 201
   $contentID = ($contentResponse.Content | ConvertFrom-Json).id
-  $questionResponse = Invoke-API -Method POST -Path "/api/v1/presentations/$createdID/questions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ position = 1; text = "Choose"; question_type = "multiple"; question_time = 30; max_point = 100; min_point = 0; partial_scoring = $true; faster_answers_more_points = $false; options = @(@{ text = "A"; is_correct = $true }, @{ text = "B"; is_correct = $true }, @{ text = "C"; is_correct = $false }) } | ConvertTo-Json -Compress -Depth 4) -ExpectedStatus 201
+  $questionDefinition = @{
+    position = 1
+    kind = "activity"
+    content = @{
+      schema_version = 1
+      activity_kind = "choice"
+      prompt = @{ title = ""; text = "Choose"; image_url = "" }
+      response = @{
+        selection = "multiple"
+        options = @(
+          @{ id = "option-1"; text = "A"; image_url = ""; order = 1 },
+          @{ id = "option-2"; text = "B"; image_url = ""; order = 2 },
+          @{ id = "option-3"; text = "C"; image_url = ""; order = 3 }
+        )
+      }
+      evaluation = @{ mode = "correctness"; correct_option_ids = @("option-1", "option-2") }
+      scoring = @{
+        mode = "points"
+        min_points = 0
+        max_points = 100
+        speed_bonus = $false
+        partial_credit = $true
+      }
+      timing = @{ duration_seconds = 30 }
+      results = @{ show_overall_leaderboard_after = $false }
+    }
+  } | ConvertTo-Json -Compress -Depth 8
+  $questionResponse = Invoke-API -Method POST -Path "/api/v1/presentations/$createdID/slides" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body $questionDefinition -ExpectedStatus 201
   $questionID = ($questionResponse.Content | ConvertFrom-Json).id
   $beforeInsert = (Invoke-API -Method GET -Path "/api/v1/presentations/$createdID" -Client $loginClient -ExpectedStatus 200).Content | ConvertFrom-Json
   $insertedResponse = Invoke-API -Method POST -Path "/api/v1/presentations/$createdID/slides" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF; "If-Match" = [string]$beforeInsert.revision } -Body (@{ position = 1; kind = "content"; content = @{ text = "Inserted between existing slides" } } | ConvertTo-Json -Compress) -ExpectedStatus 201
