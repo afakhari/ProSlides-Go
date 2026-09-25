@@ -43,8 +43,13 @@ separate from Session state, Activity results are distinct from cumulative
 overall ranking, canonical Activity definitions are frozen into each Session,
 and cumulative score ties use competition ranking semantics.
 
-**Active implementation slice: V2.3 / issue #85 — Content/Activity registries
-and Editor shell redesign.**
+V2.3 / issue #85 is complete via PR #97, with the post-merge browser
+expectation aligned by PR #98. Content and Choice authoring now use bounded
+registries, the Editor has stable item-rail/canvas/inspector/top-actions
+regions, and synthetic leaderboard selection has been removed.
+
+**Active implementation slice: V2.4 / issue #86 — Stage, Backstage and
+Participant redesign.**
 
 v2 is a staged migration of the existing system, not a rewrite.
 
