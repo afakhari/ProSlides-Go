@@ -255,9 +255,9 @@ invariant, especially:
 
 ## GitHub tracking
 
-The v2 program is tracked by one umbrella GitHub issue with one issue per slice.
-The umbrella issue owns sequencing. Individual issues own acceptance criteria
-and PR links.
+The v2 program is tracked by umbrella GitHub issue #82. Slice issues #83-#90
+own their acceptance criteria and PR links; issue #82 owns the ordered checklist
+and cross-slice sequencing.
 
 Do not duplicate the live checklist in status/current.md. That document should
 link here and state only which slice is active.
