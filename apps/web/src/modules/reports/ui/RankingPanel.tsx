@@ -70,7 +70,7 @@ export function RankingPanel({
                     {entry.avatar && (
                       <span aria-hidden="true">{entry.avatar}</span>
                     )}
-                    <span className="truncate font-semibold">
+                    <span className="truncate font-semibold" dir="auto">
                       {entry.display_name}
                     </span>
                   </div>
