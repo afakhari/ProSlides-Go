@@ -23,6 +23,9 @@ type ChoiceDefinition = {
     mode?: string;
     correct_option_ids?: string[];
   };
+  scoring?: {
+    mode?: string;
+  };
 };
 
 type ChoiceResponse = {
@@ -45,6 +48,17 @@ export const activityTitle = (activity: ReportActivitySummary): string => {
 export const activityPrompt = (activity: ReportActivitySummary): string => {
   const definition = asChoiceDefinition(activity);
   return definition.prompt?.text?.trim() || "";
+};
+
+export const isPollActivity = (
+  activity: ReportActivitySummary,
+): boolean => {
+  const definition = asChoiceDefinition(activity);
+  return (
+    definition.activity_kind === "choice" &&
+    definition.evaluation?.mode === "none" &&
+    definition.scoring?.mode === "none"
+  );
 };
 
 const frozenChoiceOptions = (
