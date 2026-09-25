@@ -158,15 +158,26 @@ export function participant(data) {
     client.on("event", (event) => {
       if (event.name !== "session.state_changed") return;
       const envelope = JSON.parse(event.data);
-      if (envelope.payload && envelope.payload.state === "question_open" && !answerAttempted) {
+      if (
+        envelope.payload &&
+        envelope.payload.state === "presenting" &&
+        envelope.payload.activity_phase === "accepting" &&
+        !answerAttempted
+      ) {
         answerAttempted = true;
         const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
-          request_id: requestID(), question_slide_id: data.questionID, selected_option_indexes: [0],
+          request_id: requestID(),
+          activity_item_id: data.questionID,
+          response: { selected_option_indexes: [0] },
         }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
         answerDuration.add(answered.timings.duration);
         answerSucceeded = answered.status === 201;
       }
-      if (envelope.payload && envelope.payload.state === "question_closed") {
+      if (
+        envelope.payload &&
+        envelope.payload.state === "presenting" &&
+        envelope.payload.activity_phase === "closed"
+      ) {
         receivedClose = true;
         eventLag.add(Math.max(0, Date.now() - Date.parse(envelope.occurred_at)));
         client.close();
@@ -188,14 +199,19 @@ export function controller(data) {
     "X-CSRF-Token": data.managerCSRF,
     Cookie: `proslides_session=${data.managerSession}; proslides_csrf=${data.managerCSRF}`,
   };
-  const opened = json(http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
-    request_id: requestID(), expected_state_version: data.stateVersion, action: "open_question", slide_id: data.questionID,
-  }), { headers, tags: { operation: "controller_open" } }), "controller open question");
+  const presented = json(http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
+    request_id: requestID(),
+    expected_state_version: data.stateVersion,
+    action: "present_item",
+    item_id: data.questionID,
+  }), { headers, tags: { operation: "controller_present" } }), "controller present Activity");
   sleep(answerWindow);
   const closed = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
-    request_id: requestID(), expected_state_version: opened.state_version, action: "close_question",
+    request_id: requestID(),
+    expected_state_version: presented.state_version,
+    action: "close_activity",
   }), { headers, tags: { operation: "controller_close" } });
-  check(closed, { "controller closed question": (value) => value.status === 201 });
+  check(closed, { "controller closed Activity": (value) => value.status === 201 });
 }
 
 export function teardown(data) {
@@ -204,12 +220,30 @@ export function teardown(data) {
     "X-CSRF-Token": data.managerCSRF,
     Cookie: `proslides_session=${data.managerSession}; proslides_csrf=${data.managerCSRF}`,
   };
-  const leaderboard = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
-    request_id: requestID(), expected_state_version: data.stateVersion + 2, action: "show_leaderboard",
-  }), { headers, tags: { operation: "teardown_leaderboard" } });
-  if (leaderboard.status === 201) {
-    http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
-      request_id: requestID(), expected_state_version: data.stateVersion + 3, action: "end",
-    }), { headers, tags: { operation: "teardown_end" } });
+  const snapshot = json(http.get(`${baseURL}/api/v1/live/sessions/${data.sessionID}/snapshot`, {
+    headers, tags: { operation: "teardown_snapshot" },
+  }), "manager snapshot");
+  let stateVersion = snapshot.session.state_version;
+
+  if (snapshot.session.activity_phase === "closed") {
+    const revealed = json(http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
+      request_id: requestID(),
+      expected_state_version: stateVersion,
+      action: "reveal_activity",
+    }), { headers, tags: { operation: "teardown_reveal" } }), "reveal Activity");
+    stateVersion = revealed.state_version;
   }
+
+  const ranked = json(http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
+    request_id: requestID(),
+    expected_state_version: stateVersion,
+    action: "show_overall_ranking",
+  }), { headers, tags: { operation: "teardown_ranking" } }), "show overall ranking");
+
+  const ended = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
+    request_id: requestID(),
+    expected_state_version: ranked.state_version,
+    action: "end",
+  }), { headers, tags: { operation: "teardown_end" } });
+  check(ended, { "controller ended Session": (value) => value.status === 201 });
 }
