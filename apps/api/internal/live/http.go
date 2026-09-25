@@ -150,15 +150,30 @@ func (h *HTTP) answer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		RequestID      string `json:"request_id"`
-		ActivityItemID string `json:"activity_item_id"`
-		Selected       []int  `json:"selected_option_indexes"`
+		RequestID      string          `json:"request_id"`
+		ActivityItemID string          `json:"activity_item_id"`
+		Response       json.RawMessage `json:"response"`
+		Selected       []int           `json:"selected_option_indexes"`
 	}
 	if decodeJSON(w, r, &b) != nil {
 		returnError(w, ErrInvalid)
 		return
 	}
-	x, e := h.service.Submit(r.Context(), r.PathValue("sessionId"), token.Value, b.RequestID, b.ActivityItemID, b.Selected)
+	if len(b.Response) > 0 && len(b.Selected) > 0 {
+		returnError(w, ErrInvalid)
+		return
+	}
+	if len(b.Response) == 0 && len(b.Selected) > 0 {
+		var marshalErr error
+		b.Response, marshalErr = json.Marshal(choiceActivityResponse{
+			SelectedOptionIndexes: b.Selected,
+		})
+		if marshalErr != nil {
+			returnError(w, marshalErr)
+			return
+		}
+	}
+	x, e := h.service.Submit(r.Context(), r.PathValue("sessionId"), token.Value, b.RequestID, b.ActivityItemID, b.Response)
 	if e != nil {
 		if !errors.Is(e, ErrInvalid) && !errors.Is(e, ErrUnauthorized) && !errors.Is(e, ErrConflict) && !errors.Is(e, ErrInvalidTransition) {
 			slog.Error("live answer command failed", "session_id", r.PathValue("sessionId"), "request_id", b.RequestID, "error", e)

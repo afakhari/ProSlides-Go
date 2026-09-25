@@ -125,16 +125,18 @@ test("runtime accepts monotonic Activity results and ignores stale SSE events", 
     name: "activity.result_updated",
     payload: {
       activity_item_id: "q1",
+      activity_kind: "choice",
+      schema_version: 1,
       response_count: 3,
-      option_counts: { 0: 1, 1: 2 },
+      payload: { option_counts: { 0: 1, 1: 2 } },
     },
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.activity_result.option_counts, {
-    0: 1,
-    1: 2,
-  });
+  assert.deepEqual(
+    runtime.getState().snapshot.activity_result.payload.option_counts,
+    { 0: 1, 1: 2 },
+  );
 
   onEvent({
     event_id: 9,
@@ -144,15 +146,61 @@ test("runtime accepts monotonic Activity results and ignores stale SSE events", 
     name: "activity.result_updated",
     payload: {
       activity_item_id: "q1",
+      activity_kind: "choice",
+      schema_version: 1,
       response_count: 99,
-      option_counts: { 0: 99 },
+      payload: { option_counts: { 0: 99 } },
     },
     occurred_at: new Date().toISOString(),
   });
 
-  assert.deepEqual(runtime.getState().snapshot.activity_result.option_counts, {
-    0: 1,
-    1: 2,
+  assert.deepEqual(
+    runtime.getState().snapshot.activity_result.payload.option_counts,
+    { 0: 1, 1: 2 },
+  );
+
+  runtime.destroy();
+});
+
+test("runtime normalizes legacy Choice result events during V2.6 compatibility", async () => {
+  let onEvent = null;
+  const runtime = createLiveRuntime("manager", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000003",
+      createLiveSession: async () => managerSession("session"),
+      getLiveSnapshot: async () =>
+        managerSnapshot("session", { eventId: 20, stateVersion: 4 }),
+      getRosterPage: async (_id, order) => emptyRoster(order),
+      streamLiveEvents: async (_id, _lastEventId, options) => {
+        onEvent = options.onEvent;
+        return parkedStream(_id, _lastEventId, options);
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("presentation"), true);
+  onEvent({
+    event_id: 21,
+    schema_version: 1,
+    session_id: "session",
+    state_version: 4,
+    name: "activity.result_updated",
+    payload: {
+      activity_item_id: "legacy-choice",
+      response_count: 5,
+      option_counts: { 0: 2, 1: 3 },
+    },
+    occurred_at: new Date().toISOString(),
+  });
+
+  assert.deepEqual(runtime.getState().snapshot.activity_result, {
+    activity_item_id: "legacy-choice",
+    activity_kind: "choice",
+    schema_version: 1,
+    response_count: 5,
+    payload: { option_counts: { 0: 2, 1: 3 } },
+    option_counts: { 0: 2, 1: 3 },
   });
 
   runtime.destroy();
@@ -601,8 +649,8 @@ test("successful participant answer retry clears the transient submission error"
   assert.equal(await runtime.connect("session"), true);
   const answer = {
     request_id: "00000000-0000-4000-8000-000000000031",
-    question_id: "11111111-1111-4111-8111-111111111111",
-    selected_option_indexes: [0],
+    activity_item_id: "11111111-1111-4111-8111-111111111111",
+    response: { selected_option_indexes: [0] },
   };
 
   assert.equal(await runtime.submitAnswer(answer), false);
@@ -631,15 +679,15 @@ test("participant answer validation rejects malformed option indexes before tran
   assert.equal(await runtime.connect("session"), true);
   assert.equal(
     await runtime.submitAnswer({
-      question_id: "q1",
-      selected_option_indexes: [1, 1],
+      activity_item_id: "q1",
+      response: { selected_option_indexes: [1, 1] },
     }),
     "rejected",
   );
   assert.equal(
     await runtime.submitAnswer({
-      question_id: "q1",
-      selected_option_indexes: [-1],
+      activity_item_id: "q1",
+      response: { selected_option_indexes: [-1] },
     }),
     "rejected",
   );
@@ -647,6 +695,44 @@ test("participant answer validation rejects malformed option indexes before tran
   runtime.destroy();
 });
 
+
+test("participant runtime submits Text Activity responses through the same command boundary", async () => {
+  const submitted = [];
+  const runtime = createLiveRuntime("player", {
+    storage: null,
+    transport: {
+      submitLiveAnswer: async (_id, input) => {
+        submitted.push(input);
+        return {
+          answer_id: "answer-text",
+          score_delta: 0,
+          duplicate: false,
+        };
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("session"), true);
+  assert.equal(
+    await runtime.submitAnswer({
+      request_id: "00000000-0000-4000-8000-000000000039",
+      activity_item_id: "cloud-1",
+      response: { text: "داده هوش" },
+    }),
+    true,
+  );
+  assert.deepEqual(submitted[0].response, { text: "داده هوش" });
+
+  assert.equal(
+    await runtime.submitAnswer({
+      activity_item_id: "cloud-1",
+      response: { text: "   " },
+    }),
+    "rejected",
+  );
+  assert.equal(submitted.length, 1);
+  runtime.destroy();
+});
 
 test("participant answer HTTP remains available while SSE is reconnecting", async () => {
   let submissions = 0;
@@ -692,7 +778,9 @@ test("participant answer HTTP remains available while SSE is reconnecting", asyn
       },
       submitLiveAnswer: async (_id, input) => {
         submissions += 1;
-        assert.deepEqual(input.selected_option_indexes, [0]);
+        assert.deepEqual(input.response, {
+          selected_option_indexes: [0],
+        });
         return {
           answer_id: "answer",
           score_delta: 100,
@@ -724,8 +812,8 @@ test("participant answer HTTP remains available while SSE is reconnecting", asyn
   assert.equal(
     await runtime.submitAnswer({
       request_id: "00000000-0000-4000-8000-000000000042",
-      question_id: "q1",
-      selected_option_indexes: [0],
+      activity_item_id: "q1",
+      response: { selected_option_indexes: [0] },
     }),
     true,
   );

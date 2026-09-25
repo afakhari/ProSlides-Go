@@ -45,8 +45,10 @@ test("participant answer payload uses stable option indexes, not option ids", ()
     }),
     {
       request_id: "22222222-2222-4222-8222-222222222222",
-      question_id: "11111111-1111-4111-8111-111111111111",
-      selected_option_indexes: [1],
+      activity_item_id: "11111111-1111-4111-8111-111111111111",
+      response: {
+        selected_option_indexes: [1],
+      },
     },
   );
 });

@@ -67,10 +67,13 @@ const contentSlide = {
 
 test("content and Activity registries stay bounded and authoring choices exclude leaderboard pseudo-items", () => {
   assert.deepEqual(contentRegistry.map((entry) => entry.key), ["content"]);
-  assert.deepEqual(activityRegistry.map((entry) => entry.key), ["choice"]);
+  assert.deepEqual(
+    activityRegistry.map((entry) => entry.key),
+    ["choice", "text"],
+  );
   assert.deepEqual(
     editorTypeChoices.map((choice) => choice.id),
-    ["poll", "choice-single", "choice-multiple", "content"],
+    ["poll", "word-cloud", "choice-single", "choice-multiple", "content"],
   );
   assert.equal(
     editorTypeChoices.some((choice) => /leaderboard|ranking/i.test(choice.id)),
@@ -78,10 +81,10 @@ test("content and Activity registries stay bounded and authoring choices exclude
   );
 });
 
-test("Choice registration does not capture future Activity kinds", () => {
+test("Activity registrations remain explicit and do not capture future kinds", () => {
   const futureActivity = {
     ...choiceSlide,
-    activity_kind: "text",
+    activity_kind: "scale",
   };
 
   assert.equal(resolveEditorItemRegistration(futureActivity), null);
@@ -184,6 +187,54 @@ test("Poll stays a Choice preset while removing correctness, score, and ranking"
     [true, false],
   );
   assert.equal(editorSlideMatchesTypeChoice(quizAgain, "choice-single"), true);
+});
+
+test("Word Cloud is a canonical Text Activity with no scoring or ranking", () => {
+  const cloud = createEditorSlideForType(
+    3,
+    "word-cloud",
+    createIdSequence("cloud-1"),
+  );
+
+  assert.equal(cloud.activity_kind, "text");
+  assert.equal(cloud.schema_version, 1);
+  assert.equal(cloud.question, null);
+  assert.equal(cloud.text_activity.aggregation, "word_frequency");
+  assert.equal(cloud.text_activity.max_words, 3);
+  assert.equal(cloud.text_activity.max_length, 80);
+  assert.equal(cloud.text_activity.time_limit, 30);
+  assert.equal(cloud.show_leaderboard_after, false);
+  assert.equal(editorSlideMatchesTypeChoice(cloud, "word-cloud"), true);
+  assert.equal(getEditorItemTypeLabel(cloud), "ابر واژه");
+  assert.deepEqual(
+    getEditorItemBehaviors(cloud).map((behavior) => behavior.id),
+    ["activity-result"],
+  );
+
+  const converted = convertEditorSlideToType(
+    choiceSlide,
+    "word-cloud",
+    createIdSequence(),
+  );
+  assert.equal(converted.slide_id, choiceSlide.slide_id);
+  assert.equal(converted.activity_kind, "text");
+  assert.equal(converted.question, null);
+  assert.equal(converted.text_activity.aggregation, "word_frequency");
+  assert.equal(converted.show_leaderboard_after, false);
+  assert.match(
+    getEditorConversionConfirmation(choiceSlide, "word-cloud").description,
+    /فراوانی واژه/,
+  );
+
+  const quizAgain = convertEditorSlideToType(
+    converted,
+    "choice-single",
+    createIdSequence("choice-a", "choice-b"),
+  );
+  assert.equal(quizAgain.activity_kind, "choice");
+  assert.equal(quizAgain.text_activity, null);
+  assert.equal(quizAgain.question.question_type, "single");
+  assert.equal(quizAgain.question.scoring_mode, "points");
 });
 
 test("presentation validation resolves through item registrations", () => {

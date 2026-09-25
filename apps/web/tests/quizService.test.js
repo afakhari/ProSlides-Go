@@ -121,15 +121,69 @@ test("Choice transport round-trips unevaluated unscored policy without inventing
   );
 });
 
+test("Word Cloud round-trips through the canonical Text Activity transport", () => {
+  const slide = {
+    slide_id: "text-1",
+    revision: 2,
+    order: 3,
+    slide_type: 1,
+    item_kind: "activity",
+    activity_kind: "text",
+    schema_version: 1,
+    show_leaderboard_after: false,
+    question: null,
+    text_activity: {
+      title: "نظر جمع",
+      text: "سه واژه بنویسید",
+      image_url: "",
+      max_length: 80,
+      max_words: 3,
+      time_limit: 30,
+      aggregation: "word_frequency",
+    },
+  };
+
+  const definition = editorSlideToDefinition(slide);
+  assert.equal(definition.kind, "activity");
+  assert.equal(definition.content.activity_kind, "text");
+  assert.deepEqual(definition.content.response, {
+    max_length: 80,
+    max_words: 3,
+  });
+  assert.deepEqual(definition.content.evaluation, { mode: "none" });
+  assert.deepEqual(definition.content.scoring, { mode: "none" });
+  assert.equal(definition.content.results.aggregation, "word_frequency");
+  assert.equal(
+    definition.content.results.show_overall_leaderboard_after,
+    false,
+  );
+
+  const restored = presentationToEditor({
+    ...presentationDTO,
+    slides: [{
+      id: "text-1",
+      revision: 2,
+      position: 3,
+      kind: "activity",
+      content: definition.content,
+    }],
+  }).slides[0];
+
+  assert.equal(restored.activity_kind, "text");
+  assert.equal(restored.question, null);
+  assert.equal(restored.text_activity.max_words, 3);
+  assert.equal(restored.text_activity.aggregation, "word_frequency");
+});
+
 test("unknown canonical Activity kinds fail closed instead of becoming legacy question drafts", () => {
   assert.throws(
     () => editorSlideToDefinition({
-      slide_id: "text-1",
+      slide_id: "scale-1",
       revision: 1,
       order: 0,
       slide_type: 1,
       item_kind: "activity",
-      activity_kind: "text",
+      activity_kind: "scale",
       schema_version: 1,
       show_leaderboard_after: false,
       question: null,

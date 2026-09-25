@@ -29,15 +29,32 @@ export interface ParticipantWithScore {
   rank?: number;
 }
 
+export interface WordFrequencyTerm {
+  text: string;
+  count: number;
+}
+
 export interface ActivityResult {
   activity_item_id: string;
+  activity_kind: "choice" | "text";
+  schema_version: number;
   response_count: number;
-  option_counts: Record<string, number>;
+  payload:
+    | { option_counts: Record<string, number> }
+    | { terms: WordFrequencyTerm[] };
+  /** @deprecated V2.7 removes this derived Choice-only compatibility field. */
+  option_counts?: Record<string, number>;
 }
+
+export type ActivityResponse =
+  | { selected_option_indexes: number[] }
+  | { text: string; terms?: string[] };
 
 export interface PersonalActivityResult {
   activity_item_id: string;
-  selected_option_indexes: number[];
+  response: ActivityResponse;
+  /** @deprecated V2.7 removes this derived Choice-only compatibility field. */
+  selected_option_indexes?: number[];
   score_delta: number;
 }
 

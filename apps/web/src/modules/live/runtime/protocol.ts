@@ -241,6 +241,7 @@ const choiceActivityToLegacy = (
   return {
     slide_type: 1,
     slide_id: id,
+    activity_kind: "choice",
     question_id: id,
     run_id: session.state_version,
     question_text: stringValue(prompt.text),
@@ -260,6 +261,56 @@ const choiceActivityToLegacy = (
   };
 };
 
+const textActivityToLegacy = (
+  id: string,
+  content: UnknownRecord,
+  session: ProtocolSession,
+): LegacyQuestionSlide => {
+  const prompt = recordValue(content.prompt);
+  const response = recordValue(content.response);
+  const timing = recordValue(content.timing);
+  const questionTime = finiteNumber(timing.duration_seconds);
+  const endsAt =
+    typeof session.ends_at === "string"
+      ? Date.parse(session.ends_at)
+      : Number.NaN;
+  const serverRemaining = optionalFiniteNumber(session.remaining_seconds);
+  const serverRemainingSeconds =
+    serverRemaining === undefined
+      ? undefined
+      : Math.max(
+          0,
+          Math.min(
+            questionTime > 0 ? questionTime : serverRemaining,
+            serverRemaining,
+          ),
+        );
+  const derivedSeconds = Number.isFinite(endsAt)
+    ? Math.max(0, (endsAt - Date.now()) / 1000)
+    : undefined;
+
+  return {
+    slide_type: 1,
+    slide_id: id,
+    activity_kind: "text",
+    question_id: id,
+    run_id: session.state_version,
+    question_text: stringValue(prompt.text),
+    question_title: stringValue(prompt.title),
+    question_time: questionTime,
+    remaining_seconds: serverRemainingSeconds ?? derivedSeconds,
+    question_type: "text",
+    has_multiple: false,
+    is_scored: false,
+    has_correct_answer: false,
+    image_url: stringValue(prompt.image_url),
+    show_leaderboard_after: false,
+    response_max_length: finiteNumber(response.max_length),
+    response_max_words: finiteNumber(response.max_words),
+    options: [],
+  };
+};
+
 export const normalizeLiveSlide = (
   activeItem: unknown,
   session: ProtocolSession = {},
@@ -269,11 +320,14 @@ export const normalizeLiveSlide = (
   const content = recordValue(activeItem.content);
   const id = String(activeItem.id || session.active_item_id || "");
 
-  if (
-    activeItem.kind === "activity" &&
-    content.activity_kind === "choice"
-  ) {
-    return choiceActivityToLegacy(id, content, session);
+  if (activeItem.kind === "activity") {
+    if (content.activity_kind === "choice") {
+      return choiceActivityToLegacy(id, content, session);
+    }
+    if (content.activity_kind === "text") {
+      return textActivityToLegacy(id, content, session);
+    }
+    return null;
   }
 
   if (activeItem.kind !== "content") return null;
@@ -330,8 +384,15 @@ export const presentationSlideToLegacy = (
 ): LegacyQuestionSlide | LegacyContentSlide | null => {
   const content = recordValue(slide.content);
 
-  if (slide.kind === "activity" && content.activity_kind === "choice") {
-    return choiceActivityToLegacy(slide.id, content, {
+  if (
+    slide.kind === "activity" &&
+    (content.activity_kind === "choice" || content.activity_kind === "text")
+  ) {
+    const project =
+      content.activity_kind === "text"
+        ? textActivityToLegacy
+        : choiceActivityToLegacy;
+    return project(slide.id, content, {
       active_item_id: slide.id,
       state_version: 0,
       ends_at: null,
@@ -400,16 +461,27 @@ export const projectLiveSnapshot = (
 
   const result = snapshot.activity_result;
   const questionResults = result
-    ? {
-        question_id: result.activity_item_id,
-        response_count: result.response_count,
-        optionsResult: Object.entries(
-          result.option_counts ?? {},
-        ).map(([optionId, count]) => ({
-          option_id: Number(optionId),
-          number_of_submits: finiteNumber(count),
-        })),
-      }
+    ? result.activity_kind === "text"
+      ? {
+          question_id: result.activity_item_id,
+          response_count: result.response_count,
+          wordTerms:
+            "terms" in result.payload
+              ? result.payload.terms
+              : [],
+        }
+      : {
+          question_id: result.activity_item_id,
+          response_count: result.response_count,
+          optionsResult: Object.entries(
+            "option_counts" in result.payload
+              ? result.payload.option_counts
+              : {},
+          ).map(([optionId, count]) => ({
+            option_id: Number(optionId),
+            number_of_submits: finiteNumber(count),
+          })),
+        }
     : null;
 
   const activityVisibleToLegacyQuestion =

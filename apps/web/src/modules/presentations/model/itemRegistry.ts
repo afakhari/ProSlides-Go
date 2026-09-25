@@ -1,6 +1,7 @@
 import {
   getContentValidationError,
   getQuestionValidationError,
+  getTextActivityValidationError,
   type EditorPresentation,
   type EditorSlide,
   type EvaluationMode,
@@ -11,6 +12,7 @@ import {
 export type EditorItemRegistryKey =
   | "content"
   | "choice"
+  | "text"
   | "legacy-leaderboard";
 
 export type EditorItemCategory = "content" | "activity" | "legacy";
@@ -18,6 +20,7 @@ export type EditorItemCategory = "content" | "activity" | "legacy";
 export type EditorTypeChoiceId =
   | "content"
   | "poll"
+  | "word-cloud"
   | "choice-single"
   | "choice-multiple";
 
@@ -147,6 +150,34 @@ const choiceRegistration: EditorItemRegistration = {
   },
 };
 
+const textRegistration: EditorItemRegistration = {
+  key: "text",
+  category: "activity",
+  label: "فعالیت متنی",
+  matches: (slide) =>
+    slide.item_kind === "activity" &&
+    slide.activity_kind === "text" &&
+    slide.schema_version === 1,
+  isConfigured: (slide) => Boolean(slide.text_activity),
+  getTitle: (slide) =>
+    slide.text_activity?.text?.trim() ||
+    "ابر واژه",
+  getTypeLabel: () => "ابر واژه",
+  validate: (slide) => {
+    const error = getTextActivityValidationError(slide.text_activity);
+    if (error) return error;
+    if (slide.show_leaderboard_after) {
+      return "ابر واژه امتیازی نیست و رتبه‌بندی کلی پس از آن نمایش داده نمی‌شود.";
+    }
+    return null;
+  },
+  getBehaviors: () => [{
+    id: "activity-result",
+    label: "ابر واژه نتیجه",
+    tone: "info",
+  }],
+};
+
 const legacyLeaderboardRegistration: EditorItemRegistration = {
   key: "legacy-leaderboard",
   category: "legacy",
@@ -162,7 +193,7 @@ const legacyLeaderboardRegistration: EditorItemRegistration = {
 };
 
 export const contentRegistry = [contentRegistration] as const;
-export const activityRegistry = [choiceRegistration] as const;
+export const activityRegistry = [choiceRegistration, textRegistration] as const;
 
 const editorItemRegistrations: readonly EditorItemRegistration[] = [
   ...contentRegistry,
@@ -180,6 +211,13 @@ export const editorTypeChoices: readonly EditorTypeChoice[] = [
     questionType: "single",
     evaluationMode: "none",
     scoringMode: "none",
+  },
+  {
+    id: "word-cloud",
+    registrationKey: "text",
+    label: "ابر واژه",
+    description:
+      "شرکت‌کنندگان چند واژه می‌فرستند و نتیجه بر اساس فراوانی واژه‌ها شکل می‌گیرد.",
   },
   {
     id: "choice-single",

@@ -59,8 +59,10 @@ export type LiveCommandSlide = LiveNavigationSlide;
 
 export interface LiveAnswerInput {
   request_id?: string;
-  question_id: string | number;
-  selected_option_indexes: number[];
+  activity_item_id: string | number;
+  response:
+    | { selected_option_indexes: number[] }
+    | { text: string };
 }
 
 interface RuntimeStorage {
@@ -131,21 +133,84 @@ const recordPayload = (value: unknown): Record<string, unknown> =>
 const normalizeActivityResult = (payload: unknown): ActivityResult | null => {
   const raw = recordPayload(payload);
   const activityItemId = raw.activity_item_id;
-  const rawCounts = recordPayload(raw.option_counts);
   if (activityItemId == null) return null;
 
-  const optionCounts = Object.fromEntries(
-    Object.entries(rawCounts).map(([key, value]) => [key, Number(value || 0)]),
-  );
-  const responseCount = Number(
-    raw.response_count ??
-      Object.values(optionCounts).reduce((total, value) => total + value, 0),
-  );
+  const responseCount = Number(raw.response_count ?? 0);
+  const normalizedResponseCount =
+    Number.isFinite(responseCount) && responseCount >= 0 ? responseCount : 0;
 
+  // Temporary V2.6 replay compatibility. Pre-generic Choice events stored
+  // option_counts at the top level and carried no Activity kind/version.
+  // Normalize them immediately so the rest of the runtime has one truth.
+  const legacyCounts = recordPayload(raw.option_counts);
+  if (
+    raw.activity_kind == null &&
+    Object.keys(legacyCounts).length > 0
+  ) {
+    const optionCounts = Object.fromEntries(
+      Object.entries(legacyCounts).map(([key, value]) => [
+        key,
+        Number(value || 0),
+      ]),
+    );
+    return {
+      activity_item_id: String(activityItemId),
+      activity_kind: "choice",
+      schema_version: 1,
+      response_count: normalizedResponseCount,
+      payload: { option_counts: optionCounts },
+      option_counts: optionCounts,
+    };
+  }
+
+  const activityKind = raw.activity_kind;
+  const schemaVersion = Number(raw.schema_version);
+  const resultPayload = recordPayload(raw.payload);
+  if (
+    (activityKind !== "choice" && activityKind !== "text") ||
+    !Number.isFinite(schemaVersion) ||
+    schemaVersion < 1
+  ) {
+    return null;
+  }
+
+  if (activityKind === "choice") {
+    const rawCounts = recordPayload(
+      resultPayload.option_counts ?? raw.option_counts,
+    );
+    const optionCounts = Object.fromEntries(
+      Object.entries(rawCounts).map(([key, value]) => [
+        key,
+        Number(value || 0),
+      ]),
+    );
+    return {
+      activity_item_id: String(activityItemId),
+      activity_kind: "choice",
+      schema_version: schemaVersion,
+      response_count: normalizedResponseCount,
+      payload: { option_counts: optionCounts },
+      option_counts: optionCounts,
+    };
+  }
+
+  const rawTerms = Array.isArray(resultPayload.terms)
+    ? resultPayload.terms
+    : [];
+  const terms = rawTerms.flatMap((value) => {
+    const term = recordPayload(value);
+    const text = typeof term.text === "string" ? term.text : "";
+    const count = Number(term.count);
+    return text && Number.isFinite(count) && count > 0
+      ? [{ text, count }]
+      : [];
+  });
   return {
     activity_item_id: String(activityItemId),
-    response_count: Number.isFinite(responseCount) ? responseCount : 0,
-    option_counts: optionCounts,
+    activity_kind: "text",
+    schema_version: schemaVersion,
+    response_count: normalizedResponseCount,
+    payload: { terms },
   };
 };
 
@@ -801,21 +866,26 @@ export class LiveRuntime {
     const id = this.selectedSessionId;
     if (!id || !answer) return false;
 
-    const selected = answer.selected_option_indexes;
-    const unique = new Set(selected);
-    if (
-      selected.length === 0 ||
-      unique.size !== selected.length ||
-      selected.some((index) => !Number.isInteger(index) || index < 0)
-    ) {
+    const response = answer.response;
+    if ("selected_option_indexes" in response) {
+      const selected = response.selected_option_indexes;
+      const unique = new Set(selected);
+      if (
+        selected.length === 0 ||
+        unique.size !== selected.length ||
+        selected.some((index) => !Number.isInteger(index) || index < 0)
+      ) {
+        return "rejected" as const;
+      }
+    } else if (!response.text.trim()) {
       return "rejected" as const;
     }
 
     try {
       await this.transport.submitLiveAnswer(id, {
         request_id: answer.request_id || this.transport.createRequestId(),
-        activity_item_id: String(answer.question_id),
-        selected_option_indexes: selected,
+        activity_item_id: String(answer.activity_item_id),
+        response,
       });
       return true;
     } catch (error) {

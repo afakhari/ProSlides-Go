@@ -29,6 +29,7 @@ export interface LegacyQuestionSlide {
     question_id?: string | number | null;
   };
   run_id?: string | number | null;
+  activity_kind?: "choice" | "text";
   question_text?: string;
   question_title?: string;
   question_time?: string | number | null;
@@ -41,6 +42,8 @@ export interface LegacyQuestionSlide {
   has_correct_answer?: boolean;
   image_url?: string;
   show_leaderboard_after?: boolean;
+  response_max_length?: number;
+  response_max_words?: number;
   options?: LegacyQuestionOption[];
 }
 
@@ -64,6 +67,10 @@ export interface LegacyQuestionResult {
     option_id: string | number;
     number_of_submits?: number;
     answer?: boolean;
+  }>;
+  wordTerms?: Array<{
+    text: string;
+    count: number;
   }>;
 }
 

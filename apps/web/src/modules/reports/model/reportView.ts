@@ -1,4 +1,5 @@
 import type {
+  ReportActivityPage,
   ReportActivityResponse,
   ReportActivitySummary,
   ReportSessionSummary,
@@ -10,7 +11,7 @@ type ChoiceOption = {
   order?: number;
 };
 
-type ChoiceDefinition = {
+type ActivityDefinitionView = {
   activity_kind?: string;
   prompt?: {
     title?: string;
@@ -26,18 +27,40 @@ type ChoiceDefinition = {
   scoring?: {
     mode?: string;
   };
+  results?: {
+    aggregation?: string;
+  };
 };
 
 type ChoiceResponse = {
   selected_option_indexes?: number[];
 };
 
-const asChoiceDefinition = (
+type TextResponse = {
+  text?: string;
+  terms?: string[];
+};
+
+type ChoiceResultPayload = {
+  option_counts?: Record<string, number>;
+};
+
+export type WordFrequencyTermView = {
+  text: string;
+  count: number;
+};
+
+type WordFrequencyResultPayload = {
+  terms?: WordFrequencyTermView[];
+};
+
+const asActivityDefinition = (
   activity: ReportActivitySummary,
-): ChoiceDefinition => activity.definition as ChoiceDefinition;
+): ActivityDefinitionView =>
+  activity.definition as ActivityDefinitionView;
 
 export const activityTitle = (activity: ReportActivitySummary): string => {
-  const definition = asChoiceDefinition(activity);
+  const definition = asActivityDefinition(activity);
   return (
     definition.prompt?.title?.trim() ||
     definition.prompt?.text?.trim() ||
@@ -46,14 +69,14 @@ export const activityTitle = (activity: ReportActivitySummary): string => {
 };
 
 export const activityPrompt = (activity: ReportActivitySummary): string => {
-  const definition = asChoiceDefinition(activity);
+  const definition = asActivityDefinition(activity);
   return definition.prompt?.text?.trim() || "";
 };
 
 export const isPollActivity = (
   activity: ReportActivitySummary,
 ): boolean => {
-  const definition = asChoiceDefinition(activity);
+  const definition = asActivityDefinition(activity);
   return (
     definition.activity_kind === "choice" &&
     definition.evaluation?.mode === "none" &&
@@ -61,9 +84,22 @@ export const isPollActivity = (
   );
 };
 
+export const isWordCloudActivity = (
+  activity: ReportActivitySummary,
+): boolean => {
+  const definition = asActivityDefinition(activity);
+  return (
+    definition.activity_kind === "text" &&
+    definition.results?.aggregation === "word_frequency"
+  );
+};
+
 const frozenChoiceOptions = (
   activity: ReportActivitySummary,
-): ChoiceOption[] => asChoiceDefinition(activity).response?.options ?? [];
+): ChoiceOption[] =>
+  asActivityDefinition(activity).activity_kind === "choice"
+    ? asActivityDefinition(activity).response?.options ?? []
+    : [];
 
 export const choiceOptions = (
   activity: ReportActivitySummary,
@@ -72,11 +108,39 @@ export const choiceOptions = (
     (left, right) => (left.order ?? 0) - (right.order ?? 0),
   );
 
+export const choiceResultCounts = (
+  page: ReportActivityPage,
+): Record<string, number> => {
+  if (page.result.activity_kind !== "choice") return {};
+  const payload = page.result.payload as ChoiceResultPayload;
+  return payload.option_counts ?? {};
+};
+
+export const wordCloudTerms = (
+  page: ReportActivityPage,
+): WordFrequencyTermView[] => {
+  if (page.result.activity_kind !== "text") return [];
+  const payload = page.result.payload as WordFrequencyResultPayload;
+  return (payload.terms ?? []).filter(
+    (term) =>
+      Boolean(term?.text?.trim()) &&
+      Number.isFinite(Number(term.count)) &&
+      Number(term.count) > 0,
+  );
+};
+
 export const responseLabels = (
   activity: ReportActivitySummary,
   response: ReportActivityResponse,
 ): string[] => {
-  // Accepted response indexes refer to the frozen array positions used by the
+  const definition = asActivityDefinition(activity);
+  if (definition.activity_kind === "text") {
+    const payload = response.response as TextResponse;
+    const text = payload.text?.trim();
+    return text ? [text] : [];
+  }
+
+  // Accepted Choice indexes refer to the frozen array positions used by the
   // live runtime. Display ordering must never be applied before index lookup.
   const options = frozenChoiceOptions(activity);
   const payload = response.response as ChoiceResponse;

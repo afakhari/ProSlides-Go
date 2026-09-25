@@ -843,8 +843,8 @@ export interface components {
             /** @default false */
             show_leaderboard_after: boolean;
         };
-        /** @description Versioned audience Activity definition. V2.1 supports the Choice primitive; future Activity kinds add new versioned definitions rather than extending this object with unrelated fields. */
-        ActivityItemDefinition: components["schemas"]["ChoiceActivityDefinition"];
+        /** @description Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted. */
+        ActivityItemDefinition: components["schemas"]["ChoiceActivityDefinition"] | components["schemas"]["TextActivityDefinition"];
         ChoiceActivityDefinition: {
             /** @enum {integer} */
             schema_version: 1;
@@ -856,6 +856,36 @@ export interface components {
             scoring: components["schemas"]["ChoiceScoringPolicy"];
             timing: components["schemas"]["ActivityTimingPolicy"];
             results: components["schemas"]["ActivityResultPolicy"];
+        };
+        TextActivityDefinition: {
+            /** @enum {integer} */
+            schema_version: 1;
+            /** @enum {string} */
+            activity_kind: "text";
+            prompt: components["schemas"]["ActivityPrompt"];
+            response: components["schemas"]["TextResponsePolicy"];
+            evaluation: components["schemas"]["TextEvaluationPolicy"];
+            scoring: components["schemas"]["TextScoringPolicy"];
+            timing: components["schemas"]["ActivityTimingPolicy"];
+            results: components["schemas"]["TextResultPolicy"];
+        };
+        TextResponsePolicy: {
+            max_length: number;
+            max_words: number;
+        };
+        TextEvaluationPolicy: {
+            /** @enum {string} */
+            mode: "none";
+        };
+        TextScoringPolicy: {
+            /** @enum {string} */
+            mode: "none";
+        };
+        TextResultPolicy: {
+            /** @enum {string} */
+            aggregation: "word_frequency";
+            /** @enum {boolean} */
+            show_overall_leaderboard_after: false;
         };
         ActivityPrompt: {
             title: string;
@@ -901,12 +931,28 @@ export interface components {
         LeaderboardContent: {
             title?: string;
         };
+        /** @description Submit exactly one Activity response representation. response is the canonical V2 field. selected_option_indexes is temporary Choice-only compatibility and is removed in V2.7. */
         AnswerRequest: {
             /** Format: uuid */
             request_id: string;
             /** Format: uuid */
             activity_item_id: string;
+            response?: components["schemas"]["ChoiceActivityResponse"] | components["schemas"]["TextActivityResponse"];
+            /**
+             * @deprecated
+             * @description Temporary pre-generic Choice response compatibility. Do not use for Text Activities.
+             */
+            selected_option_indexes?: number[];
+        };
+        ChoiceActivityResponse: {
             selected_option_indexes: number[];
+        };
+        TextActivityResponse: {
+            text: string;
+        };
+        StoredTextActivityResponse: {
+            text: string;
+            terms: string[];
         };
         CreateLiveSessionRequest: {
             /** Format: uuid */
@@ -999,7 +1045,12 @@ export interface components {
         PersonalActivityResult: {
             /** Format: uuid */
             activity_item_id: string;
-            selected_option_indexes: number[];
+            response: components["schemas"]["ChoiceActivityResponse"] | components["schemas"]["StoredTextActivityResponse"];
+            /**
+             * @deprecated
+             * @description Derived Choice-only compatibility field; response is authoritative.
+             */
+            selected_option_indexes?: number[];
             score_delta: number;
         };
         ReportSessionSummary: {
@@ -1048,10 +1099,10 @@ export interface components {
             /** Format: uuid */
             activity_item_id: string;
             /** @enum {string} */
-            activity_kind: "choice";
+            activity_kind: "choice" | "text";
             schema_version: number;
             response_count: number;
-            payload: components["schemas"]["ReportChoiceResultPayload"];
+            payload: components["schemas"]["ReportChoiceResultPayload"] | components["schemas"]["WordFrequencyResultPayload"];
         };
         ReportResponseEvaluation: {
             /** @enum {string} */
@@ -1272,11 +1323,26 @@ export interface components {
             /** @description Number of committed joins compacted into this event. Apply it to the authoritative participant_count from the latest snapshot. */
             participant_delta: number;
         };
+        WordFrequencyTerm: {
+            text: string;
+            count: number;
+        };
+        WordFrequencyResultPayload: {
+            terms: components["schemas"]["WordFrequencyTerm"][];
+        };
         ActivityResultPayload: {
             /** Format: uuid */
             activity_item_id: string;
+            /** @enum {string} */
+            activity_kind: "choice" | "text";
+            schema_version: number;
             response_count: number;
-            option_counts: {
+            payload: components["schemas"]["ReportChoiceResultPayload"] | components["schemas"]["WordFrequencyResultPayload"];
+            /**
+             * @deprecated
+             * @description Derived Choice-only compatibility field; payload is authoritative.
+             */
+            option_counts?: {
                 [key: string]: number;
             };
         };

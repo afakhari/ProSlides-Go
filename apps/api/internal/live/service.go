@@ -69,17 +69,18 @@ func (s *Service) Action(c context.Context, session, host, request string, versi
 	}
 	return s.store.ApplyAction(c, session, host, request, version, action, item)
 }
-func (s *Service) Submit(c context.Context, session, participantToken, request, item string, selected []int) (AnswerResult, error) {
-	if !validUUID(session) || !validUUID(participantToken) || !validUUID(request) || !validUUID(item) || len(selected) == 0 || len(selected) > 100 {
+func (s *Service) Submit(c context.Context, session, participantToken, request, item string, response ActivityResponsePayload) (AnswerResult, error) {
+	if !validUUID(session) ||
+		!validUUID(participantToken) ||
+		!validUUID(request) ||
+		!validUUID(item) ||
+		len(response) == 0 ||
+		len(response) > 8192 ||
+		!json.Valid(response) {
 		return AnswerResult{}, ErrInvalid
 	}
-	for _, v := range selected {
-		if v < 0 {
-			return AnswerResult{}, ErrInvalid
-		}
-	}
 	started := time.Now()
-	result, err := s.store.SubmitAnswer(c, session, tokenHash(participantToken), request, item, selected, s.scoring)
+	result, err := s.store.SubmitAnswer(c, session, tokenHash(participantToken), request, item, response, s.scoring)
 	s.answerNanos.Add(uint64(time.Since(started)))
 	switch {
 	case err == nil && result.Duplicate:

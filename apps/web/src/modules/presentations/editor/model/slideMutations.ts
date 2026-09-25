@@ -2,6 +2,7 @@ import type {
   EditorPresentation,
   EditorQuestion,
   EditorSlide,
+  EditorTextActivity,
   EvaluationMode,
   QuestionType,
   ScoringMode,
@@ -80,6 +81,32 @@ export const createDefaultQuestion = (
   };
 };
 
+export const createDefaultTextActivity = (): EditorTextActivity => ({
+  title: "",
+  text: "این موضوع را با چه واژه‌هایی توصیف می‌کنید؟",
+  image_url: "",
+  max_length: 80,
+  max_words: 3,
+  time_limit: 30,
+  aggregation: "word_frequency",
+});
+
+export const createTextActivitySlide = (
+  order: number,
+  createId: IdFactory,
+): EditorSlide => ({
+  slide_id: createId(),
+  revision: 1,
+  order,
+  slide_type: 1,
+  item_kind: "activity",
+  activity_kind: "text",
+  schema_version: 1,
+  show_leaderboard_after: false,
+  question: null,
+  text_activity: createDefaultTextActivity(),
+});
+
 export const createSlideForChoice = (
   order: number,
   choice: SlideTypeChoice,
@@ -106,6 +133,7 @@ export const createSlideForChoice = (
     content_text: "",
     content_image_url: "",
     question,
+    text_activity: null,
   };
 };
 
@@ -118,10 +146,27 @@ export const convertSlideToContent = (
   activity_kind: undefined,
   schema_version: undefined,
   question: null,
+  text_activity: null,
   title: slide.title || "اسلاید محتوایی جدید",
   content_text: slide.content_text || "",
   content_image_url: slide.content_image_url || "",
   show_leaderboard_after: false,
+});
+
+export const convertSlideToTextActivity = (
+  slide: EditorSlide,
+): EditorSlide => ({
+  ...slide,
+  slide_type: 1,
+  item_kind: "activity",
+  activity_kind: "text",
+  schema_version: 1,
+  show_leaderboard_after: false,
+  question: null,
+  text_activity:
+    slide.activity_kind === "text" && slide.text_activity
+      ? slide.text_activity
+      : createDefaultTextActivity(),
 });
 
 export const convertSlideToQuestion = (
@@ -139,6 +184,7 @@ export const convertSlideToQuestion = (
       item_kind: "activity",
       activity_kind: "choice",
       schema_version: 1,
+      text_activity: null,
       question: createDefaultQuestion(
         slide.slide_id,
         questionType,
@@ -199,6 +245,7 @@ export const convertSlideToQuestion = (
     schema_version: slide.schema_version ?? 1,
     show_leaderboard_after:
       scoringMode === "points" && slide.show_leaderboard_after === true,
+    text_activity: null,
     question: {
       ...existing,
       question_type: questionType,

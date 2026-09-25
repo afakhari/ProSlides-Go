@@ -2,9 +2,11 @@ package reports
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/proslides/proslides/internal/presentations"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -243,36 +245,76 @@ func (s *PostgresStore) ActivityReport(ctx context.Context, presentationID, sess
 		return page, err
 	}
 
-	indexedCounts := map[int]int{}
-	countRows, err := tx.Query(ctx, `SELECT selected.value::int,count(*)::int
-		FROM answers answer
-		CROSS JOIN LATERAL jsonb_array_elements_text(
-			COALESCE(answer.answer->'selected_option_indexes','[]'::jsonb)
-		) selected(value)
-		WHERE answer.session_id=$1 AND answer.question_slide_id=$2
-		GROUP BY selected.value::int`, sessionID, activityID)
+	definition, err := presentations.DecodeActivityDefinition(page.Activity.Definition)
 	if err != nil {
 		return page, err
 	}
-	for countRows.Next() {
-		var index, count int
-		if err := countRows.Scan(&index, &count); err != nil {
-			countRows.Close()
-			return page, err
-		}
-		indexedCounts[index] = count
-	}
-	if err := countRows.Err(); err != nil {
-		countRows.Close()
-		return page, err
-	}
-	countRows.Close()
 
-	definition, err := parseChoiceDefinition(page.Activity.Definition)
-	if err != nil {
-		return page, err
+	var resultPayload json.RawMessage
+	switch definition.ActivityKind {
+	case presentations.ActivityKindChoice:
+		indexedCounts := map[int]int{}
+		countRows, countErr := tx.Query(ctx, `SELECT selected.value::int,count(*)::int
+			FROM answers answer
+			CROSS JOIN LATERAL jsonb_array_elements_text(
+				COALESCE(answer.answer->'selected_option_indexes','[]'::jsonb)
+			) selected(value)
+			WHERE answer.session_id=$1 AND answer.question_slide_id=$2
+			GROUP BY selected.value::int`, sessionID, activityID)
+		if countErr != nil {
+			return page, countErr
+		}
+		for countRows.Next() {
+			var index, count int
+			if scanErr := countRows.Scan(&index, &count); scanErr != nil {
+				countRows.Close()
+				return page, scanErr
+			}
+			indexedCounts[index] = count
+		}
+		if rowsErr := countRows.Err(); rowsErr != nil {
+			countRows.Close()
+			return page, rowsErr
+		}
+		countRows.Close()
+		resultPayload, err = choiceResultPayload(definition, indexedCounts)
+
+	case presentations.ActivityKindText:
+		type termCount struct {
+			Text  string `json:"text"`
+			Count int    `json:"count"`
+		}
+		terms := make([]termCount, 0, 100)
+		termRows, termErr := tx.Query(ctx, `SELECT term.value,count(*)::int
+			FROM answers answer
+			CROSS JOIN LATERAL jsonb_array_elements_text(
+				COALESCE(answer.answer->'terms','[]'::jsonb)
+			) term(value)
+			WHERE answer.session_id=$1 AND answer.question_slide_id=$2
+			GROUP BY term.value
+			ORDER BY count(*) DESC,term.value
+			LIMIT 100`, sessionID, activityID)
+		if termErr != nil {
+			return page, termErr
+		}
+		for termRows.Next() {
+			var term termCount
+			if scanErr := termRows.Scan(&term.Text, &term.Count); scanErr != nil {
+				termRows.Close()
+				return page, scanErr
+			}
+			terms = append(terms, term)
+		}
+		if rowsErr := termRows.Err(); rowsErr != nil {
+			termRows.Close()
+			return page, rowsErr
+		}
+		termRows.Close()
+		resultPayload, err = json.Marshal(map[string]any{"terms": terms})
+
+	default:
+		return page, errors.New("unsupported Activity kind in report")
 	}
-	resultPayload, err := choiceResultPayload(page.Activity.Definition, indexedCounts)
 	if err != nil {
 		return page, err
 	}

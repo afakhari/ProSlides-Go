@@ -150,16 +150,30 @@ function StageActivity({
   const revealed = snapshot.session.activity_phase === "revealed";
   const closed = snapshot.session.activity_phase === "closed";
   const result = snapshot.activity_result;
+  const isWordCloud = question.activity_kind === "text";
+  const choiceCounts =
+    result?.activity_kind === "choice" && "option_counts" in result.payload
+      ? result.payload.option_counts
+      : {};
   const counts = useMemo(() => {
     const map = new Map<number, number>();
-    for (const [index, count] of Object.entries(result?.option_counts ?? {})) {
+    for (const [index, count] of Object.entries(choiceCounts)) {
       map.set(Number(index), Number(count));
     }
     return map;
-  }, [result?.option_counts]);
+  }, [choiceCounts]);
+  const wordTerms =
+    result?.activity_kind === "text" && "terms" in result.payload
+      ? result.payload.terms
+      : [];
+  const maxTermCount = Math.max(
+    1,
+    ...wordTerms.map((term) => Math.max(0, Number(term.count))),
+  );
   const total = Number(result?.response_count ?? 0);
   const options = question.options ?? [];
   const isPoll =
+    !isWordCloud &&
     question.has_correct_answer === false &&
     question.is_scored === false;
 
@@ -169,22 +183,31 @@ function StageActivity({
         <div className="text-center">
           <p className="text-sm font-bold text-[color:var(--live-muted)]">
             {revealed
-              ? isPoll
-                ? "نتیجه نظرسنجی"
-                : "نتیجه فعالیت"
+              ? isWordCloud
+                ? "نتیجه ابر واژه"
+                : isPoll
+                  ? "نتیجه نظرسنجی"
+                  : "نتیجه فعالیت"
               : closed
                 ? "پاسخ‌گویی بسته شد"
-                : isPoll
-                  ? "نظرسنجی"
-                  : "فعالیت"}
+                : isWordCloud
+                  ? "ابر واژه"
+                  : isPoll
+                    ? "نظرسنجی"
+                    : "فعالیت"}
           </p>
-          <h1 className="mx-auto mt-2 max-w-5xl text-3xl font-black leading-tight sm:text-5xl" dir="auto">
+          <h1
+            className="mx-auto mt-2 max-w-5xl text-3xl font-black leading-tight sm:text-5xl"
+            dir="auto"
+          >
             {question.question_text || question.question_title || "فعالیت"}
           </h1>
-          {!revealed && !closed && Number(question.remaining_seconds ?? 0) > 0 ? (
+          {!revealed &&
+          !closed &&
+          Number(question.remaining_seconds ?? 0) > 0 ? (
             <StageTimer
               seconds={Number(question.remaining_seconds ?? 0)}
-              identity={`${String(question.question_id ?? question.slide_id ?? "")}:${snapshot.session.state_version}`}
+              identity={String(question.question_id ?? question.slide_id ?? "") + ":" + String(snapshot.session.state_version)}
             />
           ) : null}
           {revealed ? (
@@ -194,54 +217,100 @@ function StageActivity({
           ) : null}
         </div>
 
-        <div className="mt-8 grid flex-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {options.map((option, index) => {
-            const count = counts.get(index) ?? 0;
-            const percentage = total > 0 ? (count / total) * 100 : 0;
-            const correct = revealed && option.answer === true;
-            return (
-              <article
-                key={String(option.option_id ?? index)}
-                className={`flex min-h-44 flex-col overflow-hidden rounded-3xl border p-5 shadow-xl ${correct ? "border-success/70 bg-success/15" : "border-white/10 bg-white/5"}`}
-              >
-                {option.image_url ? (
-                  <img
-                    src={option.image_url}
-                    alt=""
-                    className="mx-auto mb-4 max-h-28 max-w-full rounded-2xl object-contain"
-                  />
-                ) : null}
-                <p className="text-center text-lg font-black" dir="auto">
-                  {option.option_text}
-                </p>
-                {revealed ? (
-                  <div className="mt-auto pt-5">
-                    <div className="flex items-end justify-between gap-3">
-                      <span className="text-sm text-[color:var(--live-muted)]">
-                        {correct ? "پاسخ صحیح" : ""}
-                      </span>
-                      <strong className="text-2xl">
-                        {count.toLocaleString("fa-IR")}
-                      </strong>
+        {isWordCloud ? (
+          <div
+            className="mt-8 flex min-h-[18rem] flex-1 flex-wrap items-center justify-center gap-x-7 gap-y-5 rounded-[2.5rem] border border-white/10 bg-white/5 p-7 shadow-2xl"
+            aria-label={revealed ? "ابر واژه نتیجه" : "در انتظار پاسخ‌های ابر واژه"}
+          >
+            {!revealed ? (
+              <p className="max-w-2xl text-center text-lg font-bold leading-8 text-[color:var(--live-muted)]">
+                پاسخ‌ها در حال جمع‌آوری هستند. ابر واژه پس از نمایش نتیجه روی
+                Stage ظاهر می‌شود.
+              </p>
+            ) : wordTerms.length === 0 ? (
+              <p className="text-center text-lg text-[color:var(--live-muted)]">
+                هنوز واژه‌ای برای نمایش وجود ندارد.
+              </p>
+            ) : (
+              wordTerms.map((term) => {
+                const ratio = Math.max(0.3, term.count / maxTermCount);
+                return (
+                  <span
+                    key={term.text}
+                    dir="auto"
+                    className="font-black leading-none"
+                    style={{ fontSize: 22 + Math.round(ratio * 48) }}
+                    aria-label={
+                      term.text +
+                      "، " +
+                      term.count.toLocaleString("fa-IR") +
+                      " بار"
+                    }
+                  >
+                    {term.text}
+                  </span>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="mt-8 grid flex-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {options.map((option, index) => {
+              const count = counts.get(index) ?? 0;
+              const percentage = total > 0 ? (count / total) * 100 : 0;
+              const correct = revealed && option.answer === true;
+              return (
+                <article
+                  key={String(option.option_id ?? index)}
+                  className={
+                    "flex min-h-44 flex-col overflow-hidden rounded-3xl border p-5 shadow-xl " +
+                    (correct
+                      ? "border-success/70 bg-success/15"
+                      : "border-white/10 bg-white/5")
+                  }
+                >
+                  {option.image_url ? (
+                    <img
+                      src={option.image_url}
+                      alt=""
+                      className="mx-auto mb-4 max-h-28 max-w-full rounded-2xl object-contain"
+                    />
+                  ) : null}
+                  <p className="text-center text-lg font-black" dir="auto">
+                    {option.option_text}
+                  </p>
+                  {revealed ? (
+                    <div className="mt-auto pt-5">
+                      <div className="flex items-end justify-between gap-3">
+                        <span className="text-sm text-[color:var(--live-muted)]">
+                          {correct ? "پاسخ صحیح" : ""}
+                        </span>
+                        <strong className="text-2xl">
+                          {count.toLocaleString("fa-IR")}
+                        </strong>
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-current transition-[width] duration-500"
+                          style={{
+                            width:
+                              Math.max(0, Math.min(100, percentage)) + "%",
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-current transition-[width] duration-500"
-                        style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="mx-auto mt-auto h-2 w-2/3 rounded-full"
-                    style={{ backgroundColor: getColorForUser(index) }}
-                    aria-hidden="true"
-                  />
-                )}
-              </article>
-            );
-          })}
-        </div>
+                  ) : (
+                    <div
+                      className="mx-auto mt-auto h-2 w-2/3 rounded-full"
+                      style={{ backgroundColor: getColorForUser(index) }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
     </main>
   );

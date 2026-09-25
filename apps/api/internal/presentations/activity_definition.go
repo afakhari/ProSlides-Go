@@ -11,6 +11,7 @@ const (
 
 	ActivitySchemaVersion1 = 1
 	ActivityKindChoice      = "choice"
+	ActivityKindText        = "text"
 
 	ChoiceSelectionSingle   = "single"
 	ChoiceSelectionMultiple = "multiple"
@@ -20,6 +21,8 @@ const (
 
 	ScoringModeNone   = "none"
 	ScoringModePoints = "points"
+
+	TextAggregationWordFrequency = "word_frequency"
 )
 
 type ActivityPrompt struct {
@@ -35,41 +38,163 @@ type ChoiceOptionDefinition struct {
 	Order    int    `json:"order"`
 }
 
-type ChoiceResponsePolicy struct {
-	Selection string                   `json:"selection"`
-	Options   []ChoiceOptionDefinition `json:"options"`
+// ActivityResponsePolicy is intentionally concrete rather than a free-form bag.
+// Choice uses selection/options. Text uses max_length/max_words. Validation
+// rejects fields that do not belong to the selected Activity kind.
+type ActivityResponsePolicy struct {
+	Selection string                   `json:"selection,omitempty"`
+	Options   []ChoiceOptionDefinition `json:"options,omitempty"`
+	MaxLength int                      `json:"max_length,omitempty"`
+	MaxWords  int                      `json:"max_words,omitempty"`
 }
 
-type ChoiceEvaluationPolicy struct {
+type ActivityEvaluationPolicy struct {
 	Mode             string   `json:"mode"`
-	CorrectOptionIDs []string `json:"correct_option_ids"`
+	CorrectOptionIDs []string `json:"correct_option_ids,omitempty"`
 }
 
-type ChoiceScoringPolicy struct {
+type ActivityScoringPolicy struct {
 	Mode          string `json:"mode"`
-	MinPoints     int    `json:"min_points"`
-	MaxPoints     int    `json:"max_points"`
-	SpeedBonus    bool   `json:"speed_bonus"`
-	PartialCredit bool   `json:"partial_credit"`
+	MinPoints     int    `json:"min_points,omitempty"`
+	MaxPoints     int    `json:"max_points,omitempty"`
+	SpeedBonus    bool   `json:"speed_bonus,omitempty"`
+	PartialCredit bool   `json:"partial_credit,omitempty"`
 }
+
+// Compatibility aliases keep the existing Choice construction sites local while
+// ActivityDefinition becomes kind-aware. V2.7 can remove the aliases with the
+// remaining legacy question adapters.
+type ChoiceResponsePolicy = ActivityResponsePolicy
+type ChoiceEvaluationPolicy = ActivityEvaluationPolicy
+type ChoiceScoringPolicy = ActivityScoringPolicy
 
 type ActivityTimingPolicy struct {
 	DurationSeconds int `json:"duration_seconds"`
 }
 
 type ActivityResultPolicy struct {
-	ShowOverallLeaderboardAfter bool `json:"show_overall_leaderboard_after"`
+	Aggregation                  string `json:"aggregation,omitempty"`
+	ShowOverallLeaderboardAfter bool   `json:"show_overall_leaderboard_after"`
 }
 
 type ActivityDefinition struct {
-	SchemaVersion int                    `json:"schema_version"`
-	ActivityKind  string                 `json:"activity_kind"`
-	Prompt        ActivityPrompt         `json:"prompt"`
-	Response      ChoiceResponsePolicy   `json:"response"`
-	Evaluation    ChoiceEvaluationPolicy `json:"evaluation"`
-	Scoring       ChoiceScoringPolicy    `json:"scoring"`
-	Timing        ActivityTimingPolicy   `json:"timing"`
-	Results       ActivityResultPolicy   `json:"results"`
+	SchemaVersion int                      `json:"schema_version"`
+	ActivityKind  string                   `json:"activity_kind"`
+	Prompt        ActivityPrompt           `json:"prompt"`
+	Response      ActivityResponsePolicy   `json:"response"`
+	Evaluation    ActivityEvaluationPolicy `json:"evaluation"`
+	Scoring       ActivityScoringPolicy    `json:"scoring"`
+	Timing        ActivityTimingPolicy     `json:"timing"`
+	Results       ActivityResultPolicy     `json:"results"`
+}
+
+func (value ActivityDefinition) MarshalJSON() ([]byte, error) {
+	type common struct {
+		SchemaVersion int            `json:"schema_version"`
+		ActivityKind  string         `json:"activity_kind"`
+		Prompt        ActivityPrompt `json:"prompt"`
+		Timing        ActivityTimingPolicy `json:"timing"`
+	}
+
+	switch value.ActivityKind {
+	case ActivityKindChoice:
+		type choiceResponse struct {
+			Selection string                   `json:"selection"`
+			Options   []ChoiceOptionDefinition `json:"options"`
+		}
+		type choiceEvaluation struct {
+			Mode             string   `json:"mode"`
+			CorrectOptionIDs []string `json:"correct_option_ids"`
+		}
+		type choiceScoring struct {
+			Mode          string `json:"mode"`
+			MinPoints     int    `json:"min_points"`
+			MaxPoints     int    `json:"max_points"`
+			SpeedBonus    bool   `json:"speed_bonus"`
+			PartialCredit bool   `json:"partial_credit"`
+		}
+		type choiceResults struct {
+			ShowOverallLeaderboardAfter bool `json:"show_overall_leaderboard_after"`
+		}
+		return json.Marshal(struct {
+			common
+			Response   choiceResponse   `json:"response"`
+			Evaluation choiceEvaluation `json:"evaluation"`
+			Scoring    choiceScoring    `json:"scoring"`
+			Results    choiceResults    `json:"results"`
+		}{
+			common: common{
+				SchemaVersion: value.SchemaVersion,
+				ActivityKind:  value.ActivityKind,
+				Prompt:        value.Prompt,
+				Timing:        value.Timing,
+			},
+			Response: choiceResponse{
+				Selection: value.Response.Selection,
+				Options:   value.Response.Options,
+			},
+			Evaluation: choiceEvaluation{
+				Mode:             value.Evaluation.Mode,
+				CorrectOptionIDs: nonNilStrings(value.Evaluation.CorrectOptionIDs),
+			},
+			Scoring: choiceScoring{
+				Mode:          value.Scoring.Mode,
+				MinPoints:     value.Scoring.MinPoints,
+				MaxPoints:     value.Scoring.MaxPoints,
+				SpeedBonus:    value.Scoring.SpeedBonus,
+				PartialCredit: value.Scoring.PartialCredit,
+			},
+			Results: choiceResults{
+				ShowOverallLeaderboardAfter: value.Results.ShowOverallLeaderboardAfter,
+			},
+		})
+
+	case ActivityKindText:
+		type textResponse struct {
+			MaxLength int `json:"max_length"`
+			MaxWords  int `json:"max_words"`
+		}
+		type modeOnly struct {
+			Mode string `json:"mode"`
+		}
+		type textResults struct {
+			Aggregation                  string `json:"aggregation"`
+			ShowOverallLeaderboardAfter bool   `json:"show_overall_leaderboard_after"`
+		}
+		return json.Marshal(struct {
+			common
+			Response   textResponse `json:"response"`
+			Evaluation modeOnly     `json:"evaluation"`
+			Scoring    modeOnly     `json:"scoring"`
+			Results    textResults  `json:"results"`
+		}{
+			common: common{
+				SchemaVersion: value.SchemaVersion,
+				ActivityKind:  value.ActivityKind,
+				Prompt:        value.Prompt,
+				Timing:        value.Timing,
+			},
+			Response: textResponse{
+				MaxLength: value.Response.MaxLength,
+				MaxWords:  value.Response.MaxWords,
+			},
+			Evaluation: modeOnly{Mode: value.Evaluation.Mode},
+			Scoring:    modeOnly{Mode: value.Scoring.Mode},
+			Results: textResults{
+				Aggregation:                  value.Results.Aggregation,
+				ShowOverallLeaderboardAfter: value.Results.ShowOverallLeaderboardAfter,
+			},
+		})
+	default:
+		return nil, errInvalidSlideDefinition
+	}
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func DecodeActivityDefinition(raw json.RawMessage) (ActivityDefinition, error) {
@@ -84,7 +209,7 @@ func DecodeActivityDefinition(raw json.RawMessage) (ActivityDefinition, error) {
 }
 
 func validateActivityDefinition(value ActivityDefinition) error {
-	if value.SchemaVersion != ActivitySchemaVersion1 || value.ActivityKind != ActivityKindChoice {
+	if value.SchemaVersion != ActivitySchemaVersion1 {
 		return errInvalidSlideDefinition
 	}
 	if strings.TrimSpace(value.Prompt.Text) == "" ||
@@ -93,12 +218,34 @@ func validateActivityDefinition(value ActivityDefinition) error {
 		utf8.RuneCountInString(value.Prompt.ImageURL) > 4096 {
 		return errInvalidSlideDefinition
 	}
-	if value.Response.Selection != ChoiceSelectionSingle && value.Response.Selection != ChoiceSelectionMultiple {
+	if value.Timing.DurationSeconds < 1 || value.Timing.DurationSeconds > 86400 {
+		return errInvalidSlideDefinition
+	}
+
+	switch value.ActivityKind {
+	case ActivityKindChoice:
+		return validateChoiceActivityDefinition(value)
+	case ActivityKindText:
+		return validateTextActivityDefinition(value)
+	default:
+		return errInvalidSlideDefinition
+	}
+}
+
+func validateChoiceActivityDefinition(value ActivityDefinition) error {
+	if value.Response.MaxLength != 0 ||
+		value.Response.MaxWords != 0 ||
+		value.Results.Aggregation != "" {
+		return errInvalidSlideDefinition
+	}
+	if value.Response.Selection != ChoiceSelectionSingle &&
+		value.Response.Selection != ChoiceSelectionMultiple {
 		return errInvalidSlideDefinition
 	}
 	if len(value.Response.Options) < 2 || len(value.Response.Options) > 100 {
 		return errInvalidSlideDefinition
 	}
+
 	ids := make(map[string]struct{}, len(value.Response.Options))
 	orders := make(map[int]struct{}, len(value.Response.Options))
 	for _, option := range value.Response.Options {
@@ -161,19 +308,44 @@ func validateActivityDefinition(value ActivityDefinition) error {
 			value.Scoring.MinPoints < 0 ||
 			value.Scoring.MaxPoints < 1 ||
 			value.Scoring.MinPoints > value.Scoring.MaxPoints ||
-			(value.Response.Selection == ChoiceSelectionSingle && value.Scoring.PartialCredit) {
+			(value.Response.Selection == ChoiceSelectionSingle &&
+				value.Scoring.PartialCredit) {
 			return errInvalidSlideDefinition
 		}
 	default:
 		return errInvalidSlideDefinition
 	}
 
-	if value.Timing.DurationSeconds < 1 || value.Timing.DurationSeconds > 86400 {
-		return errInvalidSlideDefinition
-	}
-	if value.Results.ShowOverallLeaderboardAfter && value.Scoring.Mode != ScoringModePoints {
+	if value.Results.ShowOverallLeaderboardAfter &&
+		value.Scoring.Mode != ScoringModePoints {
 		return errInvalidSlideDefinition
 	}
 	return nil
 }
 
+func validateTextActivityDefinition(value ActivityDefinition) error {
+	if value.Response.Selection != "" ||
+		len(value.Response.Options) != 0 ||
+		value.Response.MaxLength < 1 ||
+		value.Response.MaxLength > 500 ||
+		value.Response.MaxWords < 1 ||
+		value.Response.MaxWords > 10 {
+		return errInvalidSlideDefinition
+	}
+	if value.Evaluation.Mode != EvaluationModeNone ||
+		len(value.Evaluation.CorrectOptionIDs) != 0 {
+		return errInvalidSlideDefinition
+	}
+	if value.Scoring.Mode != ScoringModeNone ||
+		value.Scoring.MinPoints != 0 ||
+		value.Scoring.MaxPoints != 0 ||
+		value.Scoring.SpeedBonus ||
+		value.Scoring.PartialCredit {
+		return errInvalidSlideDefinition
+	}
+	if value.Results.Aggregation != TextAggregationWordFrequency ||
+		value.Results.ShowOverallLeaderboardAfter {
+		return errInvalidSlideDefinition
+	}
+	return nil
+}

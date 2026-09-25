@@ -186,12 +186,116 @@ func TestPollNormalizesAsCanonicalUnscoredChoice(t *testing.T) {
 		decoded.Results.ShowOverallLeaderboardAfter {
 		t.Fatalf("Poll policy changed during normalization: %#v", decoded)
 	}
+	var pollJSON map[string]any
+	if err := json.Unmarshal(normalized, &pollJSON); err != nil {
+		t.Fatal(err)
+	}
+	evaluationJSON := pollJSON["evaluation"].(map[string]any)
+	scoringJSON := pollJSON["scoring"].(map[string]any)
+	if _, ok := evaluationJSON["correct_option_ids"]; !ok {
+		t.Fatal("normalized Choice must retain required correct_option_ids")
+	}
+	for _, key := range []string{"min_points", "max_points", "speed_bonus", "partial_credit"} {
+		if _, ok := scoringJSON[key]; !ok {
+			t.Fatalf("normalized Choice scoring missing required %s", key)
+		}
+	}
 	for _, option := range decoded.Response.Options {
 		for _, correctID := range decoded.Evaluation.CorrectOptionIDs {
 			if option.ID == correctID {
 				t.Fatalf("Poll unexpectedly gained a correct option: %s", option.ID)
 			}
 		}
+	}
+}
+
+func TestWordCloudTextActivityNormalizesAsCanonicalText(t *testing.T) {
+	activity := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindText,
+		Prompt: ActivityPrompt{
+			Title: "نظر جمع",
+			Text:  "این جلسه را با چه واژه‌هایی توصیف می‌کنید؟",
+		},
+		Response: ActivityResponsePolicy{
+			MaxLength: 80,
+			MaxWords:  3,
+		},
+		Evaluation: ActivityEvaluationPolicy{Mode: EvaluationModeNone},
+		Scoring:    ActivityScoringPolicy{Mode: ScoringModeNone},
+		Timing:     ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{
+			Aggregation: TextAggregationWordFrequency,
+		},
+	}
+	raw, err := json.Marshal(activity)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kind, normalized, err := normalizeSlideDefinition(ItemKindActivity, raw)
+	if err != nil {
+		t.Fatalf("normalize Word Cloud: %v", err)
+	}
+	if kind != ItemKindActivity {
+		t.Fatalf("kind = %q, want %q", kind, ItemKindActivity)
+	}
+	decoded, err := DecodeActivityDefinition(normalized)
+	if err != nil {
+		t.Fatalf("decode normalized Word Cloud: %v", err)
+	}
+	if decoded.ActivityKind != ActivityKindText ||
+		decoded.Response.MaxLength != 80 ||
+		decoded.Response.MaxWords != 3 ||
+		decoded.Results.Aggregation != TextAggregationWordFrequency ||
+		decoded.Evaluation.Mode != EvaluationModeNone ||
+		decoded.Scoring.Mode != ScoringModeNone ||
+		decoded.Results.ShowOverallLeaderboardAfter {
+		t.Fatalf("Word Cloud policy changed during normalization: %#v", decoded)
+	}
+	var textJSON map[string]any
+	if err := json.Unmarshal(normalized, &textJSON); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := textJSON["evaluation"].(map[string]any)["correct_option_ids"]; ok {
+		t.Fatal("normalized Text evaluation leaked Choice-only fields")
+	}
+	if _, ok := textJSON["scoring"].(map[string]any)["max_points"]; ok {
+		t.Fatal("normalized Text scoring leaked Choice-only fields")
+	}
+	responseJSON := textJSON["response"].(map[string]any)
+	if responseJSON["max_length"] != float64(80) || responseJSON["max_words"] != float64(3) {
+		t.Fatalf("normalized Text response = %#v", responseJSON)
+	}
+}
+
+func TestTextActivityRejectsScoringAndLeaderboardPolicy(t *testing.T) {
+	base := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindText,
+		Prompt:        ActivityPrompt{Text: "یک واژه بنویسید"},
+		Response: ActivityResponsePolicy{
+			MaxLength: 80,
+			MaxWords:  3,
+		},
+		Evaluation: ActivityEvaluationPolicy{Mode: EvaluationModeNone},
+		Scoring:    ActivityScoringPolicy{Mode: ScoringModeNone},
+		Timing:     ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{
+			Aggregation: TextAggregationWordFrequency,
+		},
+	}
+
+	scored := base
+	scored.Scoring = ActivityScoringPolicy{Mode: ScoringModePoints, MaxPoints: 100}
+	if err := validateActivityDefinition(scored); err == nil {
+		t.Fatal("Text Activity unexpectedly accepted scoring")
+	}
+
+	ranked := base
+	ranked.Results.ShowOverallLeaderboardAfter = true
+	if err := validateActivityDefinition(ranked); err == nil {
+		t.Fatal("Text Activity unexpectedly accepted overall leaderboard")
 	}
 }
 

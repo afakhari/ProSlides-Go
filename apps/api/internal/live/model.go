@@ -68,6 +68,8 @@ type PublicLivePresentation struct {
 	TextColor          string `json:"text_color"`
 }
 
+type ActivityResponsePayload = json.RawMessage
+
 type AnswerResult struct {
 	AnswerID   string `json:"answer_id"`
 	ScoreDelta int    `json:"score_delta"`
@@ -75,9 +77,10 @@ type AnswerResult struct {
 }
 
 type PersonalActivityResult struct {
-	ActivityItemID        string `json:"activity_item_id"`
-	SelectedOptionIndexes []int  `json:"selected_option_indexes"`
-	ScoreDelta            int    `json:"score_delta"`
+	ActivityItemID        string          `json:"activity_item_id"`
+	Response              json.RawMessage `json:"response"`
+	SelectedOptionIndexes []int           `json:"selected_option_indexes,omitempty"`
+	ScoreDelta            int             `json:"score_delta"`
 }
 
 type Event struct {
@@ -142,9 +145,12 @@ type StageSnapshot struct {
 }
 
 type ActivityResult struct {
-	ActivityItemID string         `json:"activity_item_id"`
-	ResponseCount  int            `json:"response_count"`
-	OptionCounts   map[string]int `json:"option_counts"`
+	ActivityItemID string          `json:"activity_item_id"`
+	ActivityKind   string          `json:"activity_kind"`
+	SchemaVersion  int             `json:"schema_version"`
+	ResponseCount  int             `json:"response_count"`
+	Payload        json.RawMessage `json:"payload"`
+	OptionCounts   map[string]int  `json:"option_counts,omitempty"`
 }
 
 type RosterEntry struct {
@@ -182,7 +188,7 @@ type Store interface {
 	ResolveSession(context.Context, string) (SessionLocator, error)
 	Join(context.Context, string, string, string, string, []byte) (Participant, bool, error)
 	ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error)
-	SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error)
+	SubmitAnswer(context.Context, string, []byte, string, string, ActivityResponsePayload, ScoringPolicy) (AnswerResult, error)
 	ParticipantSnapshot(context.Context, string, []byte) (ParticipantSnapshot, error)
 	ManagerSnapshot(context.Context, string, string) (ManagerSnapshot, error)
 	StageSnapshot(context.Context, string, string) (StageSnapshot, error)

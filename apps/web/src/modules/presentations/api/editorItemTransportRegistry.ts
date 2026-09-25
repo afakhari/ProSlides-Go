@@ -114,6 +114,7 @@ const choiceTransport: EditorTransportRegistration = {
       schema_version: numberValue(content.schema_version, 1),
       show_leaderboard_after:
         results.show_overall_leaderboard_after === true,
+      text_activity: null,
       question: {
         question_id: slide.id,
         title: stringValue(prompt.title),
@@ -144,6 +145,42 @@ const choiceTransport: EditorTransportRegistration = {
   },
 };
 
+const textTransport: EditorTransportRegistration = {
+  key: "text",
+  matchesTransport: ({ slide, content }) =>
+    slide.kind === "activity" &&
+    content.activity_kind === "text" &&
+    content.schema_version === 1,
+  fromTransport: ({ slide, content }) => {
+    const prompt = recordValue(content.prompt);
+    const response = recordValue(content.response);
+    const timing = recordValue(content.timing);
+    const results = recordValue(content.results);
+    if (results.aggregation !== "word_frequency") {
+      throw new Error("Unsupported Text Activity aggregation.");
+    }
+
+    return {
+      ...commonEditorSlide(slide),
+      slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "text",
+      schema_version: 1,
+      show_leaderboard_after: false,
+      question: null,
+      text_activity: {
+        title: stringValue(prompt.title),
+        text: stringValue(prompt.text),
+        image_url: stringValue(prompt.image_url),
+        max_length: numberValue(response.max_length, 80),
+        max_words: numberValue(response.max_words, 3),
+        time_limit: numberValue(timing.duration_seconds, 30),
+        aggregation: "word_frequency",
+      },
+    };
+  },
+};
+
 const contentTransport: EditorTransportRegistration = {
   key: "content",
   matchesTransport: ({ slide }) => slide.kind === "content",
@@ -152,6 +189,7 @@ const contentTransport: EditorTransportRegistration = {
     slide_type: 2,
     item_kind: "content",
     question: null,
+    text_activity: null,
     title: stringValue(content.title),
     content_text: stringValue(content.text ?? content.content_text),
     content_image_url: stringValue(
@@ -170,6 +208,7 @@ const choiceDraftTransport: EditorTransportRegistration = {
     show_leaderboard_after:
       content.show_leaderboard_after === true,
     question: null,
+    text_activity: null,
   }),
 };
 
@@ -228,12 +267,14 @@ const legacyLeaderboardTransport: EditorTransportRegistration = {
     slide_type: 3,
     item_kind: "legacy-leaderboard",
     question: null,
+    text_activity: null,
     title: stringValue(content.title, "Leaderboard"),
   }),
 };
 
 const transportRegistry: readonly EditorTransportRegistration[] = [
   choiceTransport,
+  textTransport,
   contentTransport,
   choiceDraftTransport,
   legacyQuestionTransport,
@@ -364,6 +405,43 @@ export const editorSlideToTransportDefinition = (
           show_overall_leaderboard_after:
             question.scoring_mode !== "none" &&
             slide.show_leaderboard_after === true,
+        },
+      },
+    };
+  }
+
+  if (registration.key === "text") {
+    const activity = slide.text_activity;
+    if (!activity) {
+      throw new Error("Text Activity requires configured response settings.");
+    }
+    return {
+      position,
+      kind: "activity",
+      content: {
+        schema_version: 1,
+        activity_kind: "text",
+        prompt: {
+          title: activity.title || "",
+          text: activity.text || "",
+          image_url: activity.image_url || "",
+        },
+        response: {
+          max_length: activity.max_length,
+          max_words: activity.max_words,
+        },
+        evaluation: {
+          mode: "none",
+        },
+        scoring: {
+          mode: "none",
+        },
+        timing: {
+          duration_seconds: activity.time_limit,
+        },
+        results: {
+          aggregation: "word_frequency",
+          show_overall_leaderboard_after: false,
         },
       },
     };

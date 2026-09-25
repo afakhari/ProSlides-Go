@@ -61,6 +61,32 @@ const pollItem = () => {
   return item;
 };
 
+const wordCloudItem = () => ({
+  id: "cloud-1",
+  kind: "activity",
+  position: 1,
+  content: {
+    schema_version: 1,
+    activity_kind: "text",
+    prompt: {
+      title: "Cloud",
+      text: "Describe the session",
+      image_url: "",
+    },
+    response: {
+      max_length: 80,
+      max_words: 3,
+    },
+    evaluation: { mode: "none" },
+    scoring: { mode: "none" },
+    timing: { duration_seconds: 30 },
+    results: {
+      aggregation: "word_frequency",
+      show_overall_leaderboard_after: false,
+    },
+  },
+});
+
 test("equal state versions are accepted when event_id advances", () => {
   const cursor = { eventId: 10, stateVersion: 4 };
   const event = { event_id: 11, state_version: 4 };
@@ -137,8 +163,10 @@ test("revealed Activity projects a read-only participant result before overall r
     participant_count: 3,
     activity_result: {
       activity_item_id: "activity-1",
+      activity_kind: "choice",
+      schema_version: 1,
       response_count: 3,
-      option_counts: { 0: 2, 1: 1 },
+      payload: { option_counts: { 0: 2, 1: 1 } },
     },
   });
 
@@ -166,8 +194,10 @@ test("manager retains the closed Activity so results can render before ranking",
     participant_count: 2,
     activity_result: {
       activity_item_id: "activity-1",
+      activity_kind: "choice",
+      schema_version: 1,
       response_count: 2,
-      option_counts: { 0: 1, 1: 1 },
+      payload: { option_counts: { 0: 1, 1: 1 } },
     },
   });
 
@@ -239,8 +269,10 @@ test("Poll projects through the existing Choice live protocol without correctnes
     participant_count: 2,
     activity_result: {
       activity_item_id: "activity-1",
+      activity_kind: "choice",
+      schema_version: 1,
       response_count: 2,
-      option_counts: { 0: 1, 1: 1 },
+      payload: { option_counts: { 0: 1, 1: 1 } },
     },
     has_scoring: false,
   });
@@ -252,6 +284,60 @@ test("Poll projects through the existing Choice live protocol without correctnes
     projection.questionResults.optionsResult.map((row) => row.number_of_submits),
     [1, 1],
   );
+  assert.equal(projection.leaderboardResults, null);
+});
+
+test("Word Cloud projects through the generic Activity lifecycle and result envelope", () => {
+  const question = normalizeLiveSlide(wordCloudItem(), {
+    state_version: 6,
+    activity_phase: "accepting",
+    stage_view: "item",
+    remaining_seconds: 17,
+  });
+
+  assert.equal(question.activity_kind, "text");
+  assert.equal(question.question_id, "cloud-1");
+  assert.equal(question.question_type, "text");
+  assert.equal(question.is_scored, false);
+  assert.equal(question.has_correct_answer, false);
+  assert.equal(question.response_max_words, 3);
+  assert.equal(question.response_max_length, 80);
+  assert.equal(question.remaining_seconds, 17);
+  assert.deepEqual(question.options, []);
+
+  const projection = projectLiveSnapshot({
+    role: "participant",
+    session: {
+      state: "presenting",
+      state_version: 7,
+      active_item_id: "cloud-1",
+      activity_phase: "revealed",
+      stage_view: "item",
+    },
+    active_item: wordCloudItem(),
+    participant: { id: "p1", display_name: "Player", score: 0 },
+    participant_count: 3,
+    activity_result: {
+      activity_item_id: "cloud-1",
+      activity_kind: "text",
+      schema_version: 1,
+      response_count: 3,
+      payload: {
+        terms: [
+          { text: "داده", count: 3 },
+          { text: "هوش", count: 2 },
+        ],
+      },
+    },
+    has_scoring: false,
+  });
+
+  assert.equal(projection.currentQuestion.activity_kind, "text");
+  assert.equal(projection.questionResults.response_count, 3);
+  assert.deepEqual(projection.questionResults.wordTerms, [
+    { text: "داده", count: 3 },
+    { text: "هوش", count: 2 },
+  ]);
   assert.equal(projection.leaderboardResults, null);
 });
 

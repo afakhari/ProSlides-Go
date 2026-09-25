@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/proslides/proslides/internal/presentations"
 )
 
 var ErrNotFound = errors.New("report resource not found")
@@ -140,42 +142,18 @@ type Store interface {
 	Ranking(context.Context, string, string, string, RankingQuery) (RankingPage, error)
 }
 
-type choiceDefinition struct {
-	SchemaVersion int    `json:"schema_version"`
-	ActivityKind  string `json:"activity_kind"`
-	Response     struct {
-		Options []struct {
-			ID string `json:"id"`
-		} `json:"options"`
-	} `json:"response"`
-	Evaluation struct {
-		Mode             string   `json:"mode"`
-		CorrectOptionIDs []string `json:"correct_option_ids"`
-	} `json:"evaluation"`
-}
-
 type choiceResponse struct {
 	SelectedOptionIndexes []int `json:"selected_option_indexes"`
 }
 
-func parseChoiceDefinition(raw json.RawMessage) (choiceDefinition, error) {
-	var definition choiceDefinition
-	if err := json.Unmarshal(raw, &definition); err != nil {
-		return definition, err
-	}
-	if definition.ActivityKind != "choice" {
-		return definition, nil
-	}
-	return definition, nil
-}
-
 func evaluateResponse(definitionRaw, responseRaw json.RawMessage, scoreDelta int) (ResponseEvaluation, error) {
 	evaluation := ResponseEvaluation{Mode: "none", ScoreDelta: scoreDelta}
-	definition, err := parseChoiceDefinition(definitionRaw)
+	definition, err := presentations.DecodeActivityDefinition(definitionRaw)
 	if err != nil {
 		return evaluation, err
 	}
-	if definition.ActivityKind != "choice" || definition.Evaluation.Mode != "correctness" {
+	if definition.ActivityKind != presentations.ActivityKindChoice ||
+		definition.Evaluation.Mode != presentations.EvaluationModeCorrectness {
 		return evaluation, nil
 	}
 	evaluation.Mode = "correctness"
@@ -211,15 +189,11 @@ func evaluateResponse(definitionRaw, responseRaw json.RawMessage, scoreDelta int
 	return evaluation, nil
 }
 
-func choiceResultPayload(definitionRaw json.RawMessage, indexedCounts map[int]int) (json.RawMessage, error) {
-	definition, err := parseChoiceDefinition(definitionRaw)
-	if err != nil {
-		return nil, err
-	}
+func choiceResultPayload(
+	definition presentations.ActivityDefinition,
+	indexedCounts map[int]int,
+) (json.RawMessage, error) {
 	counts := map[string]int{}
-	if definition.ActivityKind != "choice" {
-		return json.Marshal(map[string]any{})
-	}
 	for _, option := range definition.Response.Options {
 		counts[option.ID] = 0
 	}
@@ -231,3 +205,4 @@ func choiceResultPayload(definitionRaw json.RawMessage, indexedCounts map[int]in
 	}
 	return json.Marshal(map[string]any{"option_counts": counts})
 }
+
