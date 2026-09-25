@@ -401,20 +401,6 @@ export const presentationSlideToLegacy = (
     });
   }
 
-  if (slide.kind === "question_draft") {
-    return {
-      slide_type: 1,
-      slide_id: slide.id,
-      question_id: slide.id,
-      question_text: "",
-      question_type: "single",
-      question_time: 10,
-      options: [],
-      show_leaderboard_after:
-        content.show_leaderboard_after === true,
-    };
-  }
-
   return normalizeLiveSlide(
     {
       id: slide.id,
