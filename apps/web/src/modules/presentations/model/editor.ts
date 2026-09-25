@@ -350,20 +350,3 @@ export const validateEditorContent = (
 export const getContentValidationError = (
   content: ContentLike | null | undefined,
 ): string | null => validateEditorContent(content)[0]?.message ?? null;
-
-export const getPresentationValidationError = (
-  presentation: Pick<EditorPresentation, "slides">,
-): string | null => {
-  if (!presentation.slides.length) return "برای اجرا حداقل یک اسلاید اضافه کنید.";
-  for (const slide of presentation.slides) {
-    if (slide.slide_type === 1) {
-      const error = getQuestionValidationError(slide.question);
-      if (error) return error;
-    }
-    if (slide.slide_type === 2) {
-      const error = getContentValidationError(slide);
-      if (error) return error;
-    }
-  }
-  return null;
-};
