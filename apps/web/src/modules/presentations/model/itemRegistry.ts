@@ -3,7 +3,9 @@ import {
   getQuestionValidationError,
   type EditorPresentation,
   type EditorSlide,
+  type EvaluationMode,
   type QuestionType,
+  type ScoringMode,
 } from "./editor.ts";
 
 export type EditorItemRegistryKey =
@@ -15,6 +17,7 @@ export type EditorItemCategory = "content" | "activity" | "legacy";
 
 export type EditorTypeChoiceId =
   | "content"
+  | "poll"
   | "choice-single"
   | "choice-multiple";
 
@@ -24,6 +27,8 @@ export type EditorTypeChoice = {
   label: string;
   description: string;
   questionType?: QuestionType;
+  evaluationMode?: EvaluationMode;
+  scoringMode?: ScoringMode;
 };
 
 export type EditorItemBehavior = {
@@ -96,11 +101,14 @@ const choiceRegistration: EditorItemRegistration = {
   getTypeLabel: (slide) =>
     slide.item_kind === "question-draft"
       ? "انتخاب نوع آیتم"
-      : slide.question?.question_type === "multiple"
-        ? "چندگزینه‌ای"
-        : slide.question?.question_type === "single"
-          ? "تک‌گزینه‌ای"
-          : "انتخاب نوع فعالیت",
+      : slide.question?.evaluation_mode === "none" &&
+          slide.question?.scoring_mode === "none"
+        ? "نظرسنجی"
+        : slide.question?.question_type === "multiple"
+          ? "چندگزینه‌ای"
+          : slide.question?.question_type === "single"
+            ? "تک‌گزینه‌ای"
+            : "انتخاب نوع فعالیت",
   validate: (slide) => {
     if (slide.item_kind === "question-draft" && !slide.question) {
       return "پیش از اجرا نوع آیتم را انتخاب کنید.";
@@ -164,11 +172,23 @@ const editorItemRegistrations: readonly EditorItemRegistration[] = [
 
 export const editorTypeChoices: readonly EditorTypeChoice[] = [
   {
+    id: "poll",
+    registrationKey: "choice",
+    label: "نظرسنجی",
+    description:
+      "انتخاب بدون پاسخ صحیح و امتیاز؛ نتیجه به‌صورت توزیع پاسخ‌ها نمایش داده می‌شود.",
+    questionType: "single",
+    evaluationMode: "none",
+    scoringMode: "none",
+  },
+  {
     id: "choice-single",
     registrationKey: "choice",
     label: "تک‌گزینه‌ای",
     description: "یک پاسخ صحیح؛ نتیجه فعالیت پس از بسته‌شدن نمایش داده می‌شود.",
     questionType: "single",
+    evaluationMode: "correctness",
+    scoringMode: "points",
   },
   {
     id: "choice-multiple",
@@ -176,6 +196,8 @@ export const editorTypeChoices: readonly EditorTypeChoice[] = [
     label: "چندگزینه‌ای",
     description: "چند پاسخ صحیح؛ نتیجه فعالیت پس از بسته‌شدن نمایش داده می‌شود.",
     questionType: "multiple",
+    evaluationMode: "correctness",
+    scoringMode: "points",
   },
   {
     id: "content",
