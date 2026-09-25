@@ -9,10 +9,9 @@ import type { LiveState, StageView } from "../api/types.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import {
   findContentSlideIndex,
-  findLeaderboardSlideIndex,
   findQuestionSlideIndex,
+  findSlideIndexById,
   isContentSlide,
-  isLeaderboardSlide,
   isQuestionSlide,
   type ManagerPresentationView,
 } from "../model/presentationFlow.ts";
@@ -29,6 +28,7 @@ type UseManagerPresentationControllerOptions = {
   isConnected: boolean;
   sessionState?: LiveState;
   sessionStageView?: StageView;
+  activeItemId?: string | null;
 };
 
 export type ManagerPresentationController = {
@@ -49,13 +49,12 @@ export function useManagerPresentationController({
   isConnected,
   sessionState,
   sessionStageView,
+  activeItemId,
 }: UseManagerPresentationControllerOptions): ManagerPresentationController {
   const [fallbackView, setFallbackView] =
     useState<ManagerPresentationView>("ManagerJoinPage");
   const [currentSlide, setCurrentSlide] = useState(1);
   const [isSynced, setIsSynced] = useState(!enabled);
-  const [lastQuestionSlideIndex, setLastQuestionSlideIndex] =
-    useState<number | null>(null);
 
   const totalSlides = quiz.slides.length;
   const isOverallRanking = sessionStageView === "overall_ranking";
@@ -65,7 +64,6 @@ export function useManagerPresentationController({
       setIsSynced(true);
       setFallbackView("ManagerJoinPage");
       setCurrentSlide(1);
-      setLastQuestionSlideIndex(null);
       return;
     }
 
@@ -104,7 +102,6 @@ export function useManagerPresentationController({
     );
 
     if (index >= 0) {
-      setLastQuestionSlideIndex(index);
       setCurrentSlide(index + 1);
     }
 
@@ -125,12 +122,7 @@ export function useManagerPresentationController({
   useEffect(() => {
     if (!enabled || !isOverallRanking) return;
 
-    const index = findLeaderboardSlideIndex({
-      slides: quiz.slides,
-      currentSlide,
-      lastQuestionSlideIndex,
-    });
-
+    const index = findSlideIndexById(quiz.slides, activeItemId);
     if (index >= 0) {
       setCurrentSlide(index + 1);
     }
@@ -140,8 +132,7 @@ export function useManagerPresentationController({
     enabled,
     isOverallRanking,
     quiz.slides,
-    currentSlide,
-    lastQuestionSlideIndex,
+    activeItemId,
   ]);
 
   const handleNext = useCallback(() => {
@@ -162,9 +153,7 @@ export function useManagerPresentationController({
     const nextSlide = quiz.slides[currentSlide];
     if (!nextSlide) return;
 
-    if (isLeaderboardSlide(nextSlide)) {
-      setFallbackView("ManagerLeaderBoard");
-    } else if (isContentSlide(nextSlide)) {
+    if (isContentSlide(nextSlide)) {
       setFallbackView("ManagerContentSlide");
     } else if (isQuestionSlide(nextSlide)) {
       setFallbackView("ManagerPickAnswerQuestion");
