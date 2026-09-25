@@ -1064,7 +1064,14 @@ components:
     AnswerRequest:
       type: object
       additionalProperties: false
-      required: [request_id, activity_item_id, response]
+      required: [request_id, activity_item_id]
+      description: >-
+        Submit exactly one Activity response representation. response is the
+        canonical V2 field. selected_option_indexes is temporary Choice-only
+        compatibility and is removed in V2.7.
+      oneOf:
+        - required: [response]
+        - required: [selected_option_indexes]
       properties:
         request_id: { type: string, format: uuid }
         activity_item_id: { type: string, format: uuid }
@@ -1072,6 +1079,14 @@ components:
           oneOf:
             - $ref: '#/components/schemas/ChoiceActivityResponse'
             - $ref: '#/components/schemas/TextActivityResponse'
+        selected_option_indexes:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          deprecated: true
+          description: Temporary pre-generic Choice response compatibility. Do not use for Text Activities.
+          items: { type: integer, minimum: 0 }
     ChoiceActivityResponse:
       type: object
       additionalProperties: false
@@ -1202,6 +1217,11 @@ components:
           oneOf:
             - $ref: '#/components/schemas/ChoiceActivityResponse'
             - $ref: '#/components/schemas/StoredTextActivityResponse'
+        selected_option_indexes:
+          type: array
+          deprecated: true
+          description: Derived Choice-only compatibility field; response is authoritative.
+          items: { type: integer, minimum: 0 }
         score_delta: { type: integer, minimum: 0 }
     ReportSessionSummary:
       type: object
@@ -1565,6 +1585,11 @@ components:
           oneOf:
             - $ref: '#/components/schemas/ReportChoiceResultPayload'
             - $ref: '#/components/schemas/WordFrequencyResultPayload'
+        option_counts:
+          type: object
+          deprecated: true
+          description: Derived Choice-only compatibility field; payload is authoritative.
+          additionalProperties: { type: integer, minimum: 0 }
     RankingUpdatedPayload:
       type: object
       required: [participant_count]
