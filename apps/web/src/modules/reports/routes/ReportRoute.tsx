@@ -44,11 +44,13 @@ export default function ReportRoute() {
     [sessionsQuery.data],
   );
 
-  const selectedSessionId = sessions.some(
-    (session) => session.session_id === selectedSessionParam,
+  const requestedSessionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    selectedSessionParam,
   )
     ? selectedSessionParam
-    : sessions[0]?.session_id || "";
+    : "";
+  const selectedSessionId =
+    requestedSessionId || sessions[0]?.session_id || "";
 
   const sessionQuery = useQuery({
     ...reportSessionQuery(presentationId, selectedSessionId),
