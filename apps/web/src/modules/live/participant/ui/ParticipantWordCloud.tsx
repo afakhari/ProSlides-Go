@@ -15,22 +15,17 @@ type SubmitState =
   | "rejected"
   | "expired";
 
-const uniqueTerms = (value: string): string[] => {
-  const matches =
+const responseTerms = (value: string): string[] =>
+  (
     value
       .normalize("NFKC")
       .toLocaleLowerCase()
-      .match(/[\p{L}\p{N}\p{M}\u200c\u200d'’]+/gu) ?? [];
-  const seen = new Set<string>();
-  const terms: string[] = [];
-  for (const raw of matches) {
-    const term = raw.replace(/^['’\u200c\u200d]+|['’\u200c\u200d]+$/gu, "");
-    if (!term || seen.has(term)) continue;
-    seen.add(term);
-    terms.push(term);
-  }
-  return terms;
-};
+      .match(/[\p{L}\p{N}\p{M}\u200c\u200d'’]+/gu) ?? []
+  )
+    .map((raw) =>
+      raw.replace(/^['’\u200c\u200d]+|['’\u200c\u200d]+$/gu, ""),
+    )
+    .filter(Boolean);
 
 export function ParticipantWordCloud({
   roomId,
@@ -96,7 +91,7 @@ export function ParticipantWordCloud({
     };
   }, [identity, totalSeconds]);
 
-  const terms = useMemo(() => uniqueTerms(value), [value]);
+  const terms = useMemo(() => responseTerms(value), [value]);
   const normalized = value.normalize("NFKC").trim();
   const tooLong = Array.from(normalized).length > maxLength;
   const tooManyWords = terms.length > maxWords;
