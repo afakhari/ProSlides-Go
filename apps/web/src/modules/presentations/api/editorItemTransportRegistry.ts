@@ -86,6 +86,9 @@ const choiceTransport: EditorTransportRegistration = {
     return {
       ...commonEditorSlide(slide),
       slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "choice",
+      schema_version: numberValue(content.schema_version, 1),
       show_leaderboard_after:
         results.show_overall_leaderboard_after === true,
       question: {
@@ -126,6 +129,7 @@ const contentTransport: EditorTransportRegistration = {
   fromTransport: ({ slide, content }) => ({
     ...commonEditorSlide(slide),
     slide_type: 2,
+    item_kind: "content",
     question: null,
     title: stringValue(content.title),
     content_text: stringValue(content.text ?? content.content_text),
@@ -141,6 +145,7 @@ const choiceDraftTransport: EditorTransportRegistration = {
   fromTransport: ({ slide, content }) => ({
     ...commonEditorSlide(slide),
     slide_type: 1,
+    item_kind: "question-draft",
     show_leaderboard_after:
       content.show_leaderboard_after === true,
     question: null,
@@ -162,6 +167,9 @@ const legacyQuestionTransport: EditorTransportRegistration = {
     return {
       ...commonEditorSlide(slide),
       slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "choice",
+      schema_version: 1,
       show_leaderboard_after:
         content.show_leaderboard_after === true,
       question: {
@@ -197,6 +205,7 @@ const legacyLeaderboardTransport: EditorTransportRegistration = {
   fromTransport: ({ slide, content }) => ({
     ...commonEditorSlide(slide),
     slide_type: 3,
+    item_kind: "legacy-leaderboard",
     question: null,
     title: stringValue(content.title, "Leaderboard"),
   }),
