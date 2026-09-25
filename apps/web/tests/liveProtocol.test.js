@@ -231,7 +231,7 @@ test("canonical Choice Activities preserve manager correctness in the authored a
     revision: 1,
   });
 
-  assert.equal(managerSlide.slide_type, 1);
+  assert.equal(managerSlide.item_kind, "activity");
   assert.equal(managerSlide.question_text, "Choose");
   assert.equal(managerSlide.question_time, 45);
   assert.equal(managerSlide.show_leaderboard_after, true);
@@ -359,9 +359,9 @@ test("ended snapshots retain a bounded final ranking projection", () => {
 });
 
 test("presenter navigation preserves the result boundary before optional overall ranking", () => {
-  const activity = { slide_type: 1, slide_id: "activity" };
-  const content = { slide_type: 2, slide_id: "content", content_text: "Text" };
-  const ranking = { slide_type: 3 };
+  const activity = { item_kind: "activity", slide_id: "activity" };
+  const content = { item_kind: "content", slide_id: "content", content_text: "Text" };
+  const ranking = { item_kind: "legacy-leaderboard" };
 
   assert.deepEqual(planLiveNavigation("draft", "start", activity), ["start", "present_item"]);
   assert.deepEqual(planLiveNavigation("lobby", "start", content), ["present_item"]);
@@ -427,7 +427,7 @@ test("malformed content item is normalized without leaking unknown fields", () =
   );
 
   assert.deepEqual(content, {
-    slide_type: 2,
+    item_kind: "content",
     slide_id: "content-1",
     order: 3,
     title: "",

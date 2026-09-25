@@ -21,7 +21,7 @@ export interface LegacyQuestionOption {
 }
 
 export interface LegacyQuestionSlide {
-  slide_type: 1;
+  item_kind: "activity";
   slide_id?: string | number | null;
   order?: string | number | null;
   question_id?: string | number | null;
@@ -48,7 +48,7 @@ export interface LegacyQuestionSlide {
 }
 
 export interface LegacyContentSlide {
-  slide_type: 2;
+  item_kind: "content";
   slide_id?: string | number | null;
   order?: string | number | null;
   slide_order?: string | number | null;
@@ -58,7 +58,17 @@ export interface LegacyContentSlide {
   content_image_url?: string;
 }
 
-export type LegacyLiveSlide = LegacyQuestionSlide | LegacyContentSlide;
+export interface LegacyLeaderboardSlide {
+  item_kind: "legacy-leaderboard";
+  slide_id?: string | number | null;
+  order?: string | number | null;
+  title?: string;
+}
+
+export type LegacyLiveSlide =
+  | LegacyQuestionSlide
+  | LegacyContentSlide
+  | LegacyLeaderboardSlide;
 
 export interface LegacyQuestionResult {
   question_id?: string | number | null;

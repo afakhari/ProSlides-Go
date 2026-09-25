@@ -236,7 +236,7 @@ test("failed manager actions reuse the same request id on retry", async () => {
   });
 
   assert.equal(await runtime.connect("presentation"), true);
-  const slide = { slide_type: 1, slide_id: "q1", question_time: 30 };
+  const slide = { item_kind: "activity", slide_id: "q1", question_time: 30 };
 
   assert.equal(await runtime.sendNavigation("start", { slide }), false);
   assert.equal(await runtime.sendNavigation("start", { slide }), true);
@@ -482,7 +482,7 @@ test("a successful manager mutation stays successful when only the follow-up ref
 
   assert.equal(await runtime.connect("presentation"), true);
   const ok = await runtime.sendNavigation("start", {
-    slide: { slide_type: 1, slide_id: "q1", question_time: 30 },
+    slide: { item_kind: "activity", slide_id: "q1", question_time: 30 },
   });
 
   assert.equal(ok, true);

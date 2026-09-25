@@ -20,7 +20,7 @@ test("participant option selection stays index-based across object recreation", 
 
 test("participant answer payload uses stable option indexes, not option ids", () => {
   const question = {
-    slide_type: 1,
+    item_kind: "activity",
     question_id: "11111111-1111-4111-8111-111111111111",
     run_id: 7,
     options: [
@@ -56,7 +56,7 @@ test("participant answer payload uses stable option indexes, not option ids", ()
 test("participant question run identity changes only when question or run changes", () => {
   assert.equal(
     questionRunIdentity({
-      slide_type: 1,
+      item_kind: "activity",
       question_id: "q1",
       run_id: 9,
     }),
@@ -64,7 +64,7 @@ test("participant question run identity changes only when question or run change
   );
   assert.equal(
     questionRunIdentity({
-      slide_type: 1,
+      item_kind: "activity",
       question_id: "q1",
     }),
     "q1:na",
@@ -76,21 +76,21 @@ test("participant question run identity changes only when question or run change
 test("participant question multiplicity follows explicit server question type", () => {
   assert.equal(
     isMultipleChoiceQuestion({
-      slide_type: 1,
+      item_kind: "activity",
       question_type: "single",
     }),
     false,
   );
   assert.equal(
     isMultipleChoiceQuestion({
-      slide_type: 1,
+      item_kind: "activity",
       question_type: "multiple",
     }),
     true,
   );
   assert.equal(
     isMultipleChoiceQuestion({
-      slide_type: 1,
+      item_kind: "activity",
       question_type: "single",
       has_multiple: true,
     }),
@@ -102,7 +102,7 @@ test("participant answer builder rejects indexes outside the projected options",
   assert.equal(
     buildParticipantAnswer({
       question: {
-        slide_type: 1,
+        item_kind: "activity",
         question_id: "q1",
         options: [{ option_id: 0, option_index: 0, option_text: "الف" }],
       },
