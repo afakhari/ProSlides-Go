@@ -423,10 +423,11 @@ export class LiveRuntime {
         this.publish({ snapshot: next });
       }
       if (this.role === "manager") {
+        const snapshot = this.snapshotValue;
         const order: RosterOrder =
-          this.snapshotValue &&
-          this.snapshotValue.session.stage_view === "overall_ranking" ||
-          this.snapshotValue.session.state === "ended"
+          snapshot &&
+          (snapshot.session.stage_view === "overall_ranking" ||
+            snapshot.session.state === "ended")
             ? "score"
             : "joined";
         void this.loadRoster(order, false);
