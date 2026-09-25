@@ -11,6 +11,7 @@ import type {
 } from "../api/types.ts";
 import type {
   LegacyContentSlide,
+  LegacyLeaderboardSlide,
   LegacyLiveSlide,
   LegacyLiveUser,
   LegacyQuestionOption,
@@ -36,8 +37,7 @@ export type LiveNavigationCommand = "start" | "next";
 export interface LiveNavigationSlide {
   slide_id?: string | number | null;
   question_time?: string | number | null;
-  slide_type?: number | null;
-  kind?: string | null;
+  item_kind?: "activity" | "content" | "legacy-leaderboard" | null;
   title?: string | null;
   content_text?: string | null;
   content_image_url?: string | null;
@@ -113,12 +113,7 @@ export const liveCursorFromSnapshot = (
 
 const isLeaderboardSlide = (
   slide: LiveNavigationSlide | null | undefined,
-): boolean =>
-  slide?.slide_type === 3 ||
-  (slide?.slide_type === 2 &&
-    !slide.title &&
-    !slide.content_text &&
-    !slide.content_image_url);
+): boolean => slide?.item_kind === "legacy-leaderboard";
 
 const actionForSlide = (
   slide: LiveNavigationSlide | null | undefined,
@@ -239,7 +234,7 @@ const choiceActivityToLegacy = (
   );
 
   return {
-    slide_type: 1,
+    item_kind: "activity",
     slide_id: id,
     activity_kind: "choice",
     question_id: id,
@@ -290,7 +285,7 @@ const textActivityToLegacy = (
     : undefined;
 
   return {
-    slide_type: 1,
+    item_kind: "activity",
     slide_id: id,
     activity_kind: "text",
     question_id: id,
@@ -333,7 +328,7 @@ export const normalizeLiveSlide = (
   if (activeItem.kind !== "content") return null;
 
   const contentSlide: LegacyContentSlide = {
-    slide_type: 2,
+    item_kind: "content",
     slide_id: id,
     order:
       typeof activeItem.position === "number" ||
@@ -399,6 +394,16 @@ export const presentationSlideToLegacy = (
       activity_phase: null,
       stage_view: "item",
     });
+  }
+
+  if (slide.kind === "leaderboard") {
+    const leaderboard: LegacyLeaderboardSlide = {
+      item_kind: "legacy-leaderboard",
+      slide_id: slide.id,
+      order: slide.position,
+      title: stringValue(content.title, "Leaderboard"),
+    };
+    return leaderboard;
   }
 
   return normalizeLiveSlide(
@@ -471,7 +476,7 @@ export const projectLiveSnapshot = (
     : null;
 
   const activityVisibleToLegacyQuestion =
-    active?.slide_type === 1 &&
+    active?.item_kind === "activity" &&
     snapshot.session.state === "presenting" &&
     snapshot.session.stage_view === "item" &&
     (
@@ -484,11 +489,11 @@ export const projectLiveSnapshot = (
   return {
     users: managerRows,
     currentQuestion:
-      activityVisibleToLegacyQuestion && active?.slide_type === 1
+      activityVisibleToLegacyQuestion && active?.item_kind === "activity"
         ? active
         : null,
     currentContent:
-      active?.slide_type === 2 &&
+      active?.item_kind === "content" &&
       snapshot.session.state === "presenting" &&
       snapshot.session.stage_view === "item"
         ? active
