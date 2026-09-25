@@ -47,10 +47,14 @@ export const activityPrompt = (activity: ReportActivitySummary): string => {
   return definition.prompt?.text?.trim() || "";
 };
 
+const frozenChoiceOptions = (
+  activity: ReportActivitySummary,
+): ChoiceOption[] => asChoiceDefinition(activity).response?.options ?? [];
+
 export const choiceOptions = (
   activity: ReportActivitySummary,
 ): ChoiceOption[] =>
-  [...(asChoiceDefinition(activity).response?.options ?? [])].sort(
+  [...frozenChoiceOptions(activity)].sort(
     (left, right) => (left.order ?? 0) - (right.order ?? 0),
   );
 
@@ -58,7 +62,9 @@ export const responseLabels = (
   activity: ReportActivitySummary,
   response: ReportActivityResponse,
 ): string[] => {
-  const options = choiceOptions(activity);
+  // Accepted response indexes refer to the frozen array positions used by the
+  // live runtime. Display ordering must never be applied before index lookup.
+  const options = frozenChoiceOptions(activity);
   const payload = response.response as ChoiceResponse;
   const selected = payload.selected_option_indexes ?? [];
   return selected
