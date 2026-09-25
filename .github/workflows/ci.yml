@@ -57,6 +57,7 @@ jobs:
       - run: npm run api:types:check
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run architecture:check
       - run: npm run test:unit
       - run: npm run build
 
