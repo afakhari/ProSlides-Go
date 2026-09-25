@@ -379,6 +379,7 @@ function QuestionInspectorInner({
             <QuestionOptionsEditor
               options={draft.options}
               questionType={draft.type}
+              evaluationMode={draft.evaluationMode}
               disabled={isSaving || conflictPending}
               issues={visibleIssues}
               onAdd={addOption}
@@ -440,6 +441,14 @@ function QuestionInspectorInner({
                 </p>
               </div>
 
+              {draft.scoringMode === "none" && (
+                <Notice tone="info" className="mt-3 items-start">
+                  این Activity بدون امتیاز ذخیره شده است. تنظیمات امتیازدهی برای
+                  حفظ قرارداد فعلی غیرفعال‌اند؛ presetهای بدون امتیاز در مرحله
+                  Activityهای جدید به‌صورت مستقل وارد انتخاب‌گر می‌شوند.
+                </Notice>
+              )}
+
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
                   <label
@@ -454,7 +463,11 @@ function QuestionInspectorInner({
                     inputMode="numeric"
                     dir="ltr"
                     value={draft.maxPointsInput}
-                    disabled={isSaving || conflictPending}
+                    disabled={
+                      isSaving ||
+                      conflictPending ||
+                      draft.scoringMode === "none"
+                    }
                     aria-invalid={Boolean(pointsError)}
                     onChange={(event) => setMaxPointsInput(event.target.value)}
                     className="h-10 w-full rounded-control border border-border-subtle bg-surface px-3 text-center text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -476,6 +489,7 @@ function QuestionInspectorInner({
                     disabled={
                       isSaving ||
                       conflictPending ||
+                      draft.scoringMode === "none" ||
                       !draft.fasterAnswersMorePoints
                     }
                     aria-invalid={Boolean(pointsError)}
@@ -490,7 +504,11 @@ function QuestionInspectorInner({
                 </p>
               )}
 
-              <label className="mt-4 flex min-h-12 cursor-pointer items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3">
+              <label className={`mt-4 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
+                draft.scoringMode === "none"
+                  ? "cursor-not-allowed opacity-70"
+                  : "cursor-pointer"
+              }`}>
                 <span>
                   <span className="block text-sm font-medium">
                     پاسخ سریع‌تر، امتیاز بیشتر
@@ -502,7 +520,11 @@ function QuestionInspectorInner({
                 <input
                   type="checkbox"
                   checked={draft.fasterAnswersMorePoints}
-                  disabled={isSaving || conflictPending}
+                  disabled={
+                    isSaving ||
+                    conflictPending ||
+                    draft.scoringMode === "none"
+                  }
                   onChange={(event) => setFasterPoints(event.target.checked)}
                   className="mt-1 size-5 shrink-0 accent-brand"
                 />
@@ -510,7 +532,7 @@ function QuestionInspectorInner({
 
               <label
                 className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle p-3 ${
-                  draft.type === "single"
+                  draft.type === "single" || draft.scoringMode === "none"
                     ? "cursor-not-allowed bg-canvas opacity-70"
                     : "cursor-pointer bg-canvas"
                 }`}
@@ -526,7 +548,10 @@ function QuestionInspectorInner({
                   type="checkbox"
                   checked={draft.partialScoring}
                   disabled={
-                    isSaving || conflictPending || draft.type === "single"
+                    isSaving ||
+                    conflictPending ||
+                    draft.type === "single" ||
+                    draft.scoringMode === "none"
                   }
                   onChange={(event) => setPartialScoring(event.target.checked)}
                   className="mt-1 size-5 shrink-0 accent-brand"
@@ -544,24 +569,36 @@ function QuestionInspectorInner({
                 پس از فعالیت
               </h3>
               <Notice tone="info" className="mt-2 items-start">
-                نتیجه همین فعالیت، شامل توزیع پاسخ‌ها و پاسخ صحیح، پس از
-                بسته‌شدن Activity نمایش داده می‌شود. این مرحله از رتبه‌بندی
-                کلی جلسه جداست.
+                نتیجه همین فعالیت، شامل توزیع پاسخ‌ها
+                {draft.evaluationMode === "correctness"
+                  ? " و پاسخ صحیح"
+                  : ""}
+                ، پس از بسته‌شدن Activity نمایش داده می‌شود. این مرحله از
+                رتبه‌بندی کلی جلسه جداست.
               </Notice>
-              <label className="mt-3 flex min-h-12 cursor-pointer items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3">
+              <label className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
+                draft.scoringMode === "none"
+                  ? "cursor-not-allowed opacity-70"
+                  : "cursor-pointer"
+              }`}>
                 <span>
                   <span className="block text-sm font-medium">
                     نمایش رتبه‌بندی کلی بعد از نتیجه
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-content-muted">
-                    پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز
-                    روی Stage نمایش داده می‌شود.
+                    {draft.scoringMode === "none"
+                      ? "رتبه‌بندی کلی فقط برای Activity امتیازی قابل نمایش است."
+                      : "پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز روی Stage نمایش داده می‌شود."}
                   </span>
                 </span>
                 <input
                   type="checkbox"
                   checked={draft.showLeaderboardAfter}
-                  disabled={isSaving || conflictPending}
+                  disabled={
+                    isSaving ||
+                    conflictPending ||
+                    draft.scoringMode === "none"
+                  }
                   onChange={(event) => setLeaderboard(event.target.checked)}
                   className="mt-1 size-5 shrink-0 accent-brand"
                 />
