@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,6 +189,27 @@ func snapshotHandler(store *snapshotStore) http.Handler {
 	service := NewService(store, DeductionPolicy{})
 	NewHTTP(service, NewEventBroker(store, time.Hour, 1), snapshotAuth{}, false).Register(mux)
 	return mux
+}
+
+func TestAnswerRejectsTopLevelChoiceCompatibilityField(t *testing.T) {
+	handler := snapshotHandler(&snapshotStore{})
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/live/sessions/"+testSessionID+"/answers",
+		strings.NewReader(`{
+			"request_id":"11111111-1111-4111-8111-111111111111",
+			"activity_item_id":"22222222-2222-4222-8222-222222222222",
+			"selected_option_indexes":[0]
+		}`),
+	)
+	request.AddCookie(&http.Cookie{Name: "proslides_participant", Value: testParticipantToken})
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
 }
 
 func TestParticipantSnapshotDoesNotDiscloseRosterScoresOrManagerFields(t *testing.T) {
