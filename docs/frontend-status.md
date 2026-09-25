@@ -27,10 +27,10 @@ history; reviewed work merged after that commit is active mainline work.
 
 | Priority | Weakness / risk | Required remedy |
 |---:|---|---|
-| P1 | Production frontend source is now TypeScript/TSX and the former top-level `pages/components/utils` compatibility leaves are gone, but dependency enforcement and dead-export analysis are still incomplete. | Enforce public module boundaries and add dead-code/dependency tooling before declaring modularization complete. |
+| P1 | Production frontend source is TypeScript/TSX and top-level compatibility leaves are gone. Cross-module imports, runtime cycles and unreachable source files are now CI-enforced, but unused-export analysis is still incomplete. | Add conservative dead-export analysis only after the file-level architecture gate has proved stable; avoid heuristic checks that create false positives. |
 | P2 | Dashboard ownership is typed and semantic-token adoption is improved, but some mature product surfaces still contain older utility-color styling that should converge opportunistically. | Continue semantic styling and logical-direction cleanup only with bounded feature work; avoid a broad cosmetic rewrite. |
 | P2 | Component/API-state testing is thinner than domain and browser integration coverage. | Add Vite-native component tests with Testing Library/MSW for pending, validation, error, cancellation and recovery paths. |
-| P2 | Dependency enforcement covers `shared -> modules/app` and `modules -> app`, but cross-module public API rules and dead-code detection are not yet complete. | Strengthen lint/dependency checks and introduce dead-export/dependency analysis after compatibility shims shrink. |
+| P2 | Architecture CI now enforces `shared -> modules/app`, `modules -> app`, public-only cross-module access, runtime acyclicity and source reachability. Export-level dead-code detection remains intentionally separate. | Add export-level analysis with an explicit false-positive policy and exemptions for framework/public entry points. |
 | P3 | Major framework versions should be kept current, but upgrades can carry runtime compatibility requirements. | Upgrade React/React Router/toolchain in isolated changes with full CI/E2E rather than coupling upgrades to architectural migrations. |
 
 ## Editor status
@@ -52,10 +52,9 @@ remain independent from SSE delivery health, retries reuse one request ID in
 memory, legacy persistent answer queues are retired, and participant profiles
 are scoped per room. The highest-value remaining boundaries are:
 
-1. add stronger cross-module dependency/dead-code tooling now that production
-   source is TypeScript/TSX and top-level compatibility roots are gone;
-2. add focused component/API-state coverage for dashboard and other migrated
+1. add focused component/API-state coverage for dashboard and other migrated
    boundaries;
+2. add conservative export-level dead-code analysis with explicit exemptions;
 3. continue semantic styling/accessibility convergence only where it improves a
    concrete product flow;
 4. keep framework/toolchain upgrades isolated behind full CI/E2E compatibility
@@ -63,9 +62,7 @@ are scoped per room. The highest-value remaining boundaries are:
 
 ## Claim boundary
 
-The production frontend source can now be described as TypeScript/TSX. The
-frontend should not yet be described as fully modular or complete until
-cross-module enforcement, dead-code analysis and verification gaps are closed.
+The production frontend source can now be described as TypeScript/TSX. The frontend should not yet be described as fully complete until export-level dead-code analysis and verification gaps are closed.
 
 Historical measurements remain tied to the commit and environment where they
 were recorded and are not current production evidence.

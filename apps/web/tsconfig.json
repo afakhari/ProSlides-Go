@@ -15,9 +15,7 @@
     "skipLibCheck": true,
     "types": [
       "vite/client"
-    ],
-    "allowJs": true,
-    "checkJs": false
+    ]
   },
   "include": [
     "src/**/*.ts",
