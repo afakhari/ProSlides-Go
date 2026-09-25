@@ -6,20 +6,23 @@ import { quizService } from "../../api/presentationRepository.ts";
 import type {
   EditorPresentation,
   EditorSlide,
-  QuestionType,
-  SlideType,
 } from "../../model/editor.ts";
 import {
-  appendPresentationSlide,
-  convertSlideToContent,
-  convertSlideToQuestion,
-  createSlideForChoice,
+  getEditorTypeChoice,
+  resolveEditorItemRegistration,
+} from "../../model/itemRegistry.ts";
+import {
+  createEditorSlideForType,
+  convertEditorSlideToType,
+  editorSlideMatchesTypeChoice,
+  getEditorConversionConfirmation,
+  type EditorTypeChoiceId,
+} from "../registry/editorItemRegistry.ts";
+import {
   activeSlideIdAfterDeletion,
+  appendPresentationSlide,
   removePresentationSlide,
   replacePresentationSlide,
-  slideChoiceToMode,
-  type SlideTypeChoice,
-  type TypeSelectionMode,
 } from "./slideMutations.ts";
 
 type ConfirmOptions = {
@@ -34,10 +37,7 @@ type UseEditorSlideMutationsOptions = {
   activeSlide: EditorSlide | null;
   updatePresentation: (presentation: EditorPresentation) => void;
   refreshPresentation: () => void | Promise<void>;
-  selectSlide: (
-    slideId: string | null,
-    slideType?: SlideType | null,
-  ) => void;
+  selectSlide: (slideId: string | null) => void;
   activateContentPanel: () => void;
   closeSlidesPanel: () => void;
   recoverConflict: () => void | Promise<void>;
@@ -77,7 +77,7 @@ export function useEditorSlideMutations({
     null,
   );
   const [typeSelectionMode, setTypeSelectionMode] =
-    useState<TypeSelectionMode | null>(null);
+    useState<EditorTypeChoiceId | null>(null);
   const addSlideGateRef = useRef(false);
   const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -108,7 +108,7 @@ export function useEditorSlideMutations({
       updatePresentation(
         replacePresentationSlide(presentation, updatedSlide),
       );
-      selectSlide(updatedSlide.slide_id, updatedSlide.slide_type);
+      selectSlide(updatedSlide.slide_id);
     },
     [presentation, selectSlide, updatePresentation],
   );
@@ -158,13 +158,13 @@ export function useEditorSlideMutations({
         }
         if (error.code === "slide_has_results") {
           setTypeSelectionError(
-            "این اسلاید نتیجه زنده دارد. پیش از تغییر نوع، نتایج ارائه را بازنشانی کنید.",
+            "این آیتم نتیجه زنده دارد. پیش از تغییر نوع، نتایج ارائه را بازنشانی کنید.",
           );
           return;
         }
       }
 
-      console.error("Editor slide mutation failed:", error);
+      console.error("Editor item mutation failed:", error);
       setTypeSelectionError(fallbackMessage);
     },
     [recoverConflict],
@@ -176,7 +176,7 @@ export function useEditorSlideMutations({
         (slide) => slide.slide_id === slideId,
       );
       if (!deletedSlide) {
-        showNotice("این اسلاید دیگر در ارائه وجود ندارد.", "warning");
+        showNotice("این آیتم دیگر در ارائه وجود ندارد.", "warning");
         await refreshPresentation();
         return;
       }
@@ -207,14 +207,14 @@ export function useEditorSlideMutations({
           error.code === "slide_has_results"
         ) {
           showNotice(
-            "این اسلاید نتیجه زنده دارد و در حال حاضر قابل حذف نیست.",
+            "این آیتم نتیجه زنده دارد و در حال حاضر قابل حذف نیست.",
             "warning",
           );
           return;
         }
 
-        console.error("Failed to delete slide:", error);
-        showNotice("حذف اسلاید انجام نشد. دوباره تلاش کنید.", "error");
+        console.error("Failed to delete editor item:", error);
+        showNotice("حذف آیتم انجام نشد. دوباره تلاش کنید.", "error");
         return;
       }
 
@@ -222,14 +222,14 @@ export function useEditorSlideMutations({
 
       try {
         await refreshPresentation();
-        showNotice("اسلاید حذف شد.", "success");
+        showNotice("آیتم حذف شد.", "success");
       } catch (error) {
-        console.error("Slide deleted but presentation refresh failed:", error);
+        console.error("Item deleted but presentation refresh failed:", error);
         updatePresentation(
           removePresentationSlide(presentation, slideId),
         );
         showNotice(
-          "اسلاید حذف شد، اما تازه‌سازی ارائه کامل نشد. وضعیت محلی به‌روز شده است.",
+          "آیتم حذف شد، اما تازه‌سازی ارائه کامل نشد. وضعیت محلی به‌روز شده است.",
           "warning",
         );
       }
@@ -245,20 +245,20 @@ export function useEditorSlideMutations({
     ],
   );
 
-  const applyQuestionTypeChange = useCallback(
+  const applyTypeChange = useCallback(
     async (
       slide: EditorSlide,
-      questionType: QuestionType,
-      requestedMode: TypeSelectionMode,
+      choiceId: EditorTypeChoiceId,
     ) => {
+      const choice = getEditorTypeChoice(choiceId);
       setIsSelectingType(true);
       setTypeSelectionError(null);
-      setTypeSelectionMode(requestedMode);
+      setTypeSelectionMode(choiceId);
 
       try {
-        const nextSlide = convertSlideToQuestion(
+        const nextSlide = convertEditorSlideToType(
           slide,
-          questionType,
+          choiceId,
           () => globalThis.crypto.randomUUID(),
         );
         const updatedSlide = await quizService.updateSlide(
@@ -268,15 +268,13 @@ export function useEditorSlideMutations({
         );
 
         applyUpdatedSlide(updatedSlide);
-        showTypeNotice(
-          `نوع سؤال به ${requestedMode === "single" ? "تک‌گزینه‌ای" : "چندگزینه‌ای"} تغییر کرد.`,
-        );
+        showTypeNotice(`نوع آیتم به «${choice.label}» تغییر کرد.`);
         setShowTypeBox(false);
         activateContentPanel();
       } catch (error) {
         await handleMutationError(
           error,
-          "این سؤال جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
+          "این آیتم جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
           "اعمال این تغییر ممکن نشد. دوباره تلاش کنید.",
         );
       } finally {
@@ -292,55 +290,20 @@ export function useEditorSlideMutations({
     ],
   );
 
-  const applyContentTypeChange = useCallback(
-    async (slide: EditorSlide) => {
-      setIsSelectingType(true);
-      setTypeSelectionError(null);
-      setTypeSelectionMode("content");
-
-      try {
-        const updatedSlide = await quizService.updateSlide(
-          presentation.quiz_id,
-          slide.slide_id,
-          convertSlideToContent(slide),
-        );
-        applyUpdatedSlide(updatedSlide);
-        showTypeNotice("نوع اسلاید به محتوا تغییر کرد.");
-        setShowTypeBox(false);
-        activateContentPanel();
-      } catch (error) {
-        await handleMutationError(
-          error,
-          "این اسلاید جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
-          "تبدیل این اسلاید ممکن نشد. دوباره تلاش کنید.",
-        );
-      } finally {
-        setIsSelectingType(false);
-      }
-    },
-    [
-      activateContentPanel,
-      applyUpdatedSlide,
-      handleMutationError,
-      presentation.quiz_id,
-      showTypeNotice,
-    ],
-  );
-
   const createSlide = useCallback(
-    async (choice: SlideTypeChoice) => {
+    async (choiceId: EditorTypeChoiceId) => {
       if (isSelectingType) return;
 
-      const mode = slideChoiceToMode(choice);
-      const newSlide = createSlideForChoice(
+      const choice = getEditorTypeChoice(choiceId);
+      const newSlide = createEditorSlideForType(
         presentation.slides.length,
-        choice,
+        choiceId,
         () => globalThis.crypto.randomUUID(),
       );
 
       setIsSelectingType(true);
       setTypeSelectionError(null);
-      setTypeSelectionMode(mode);
+      setTypeSelectionMode(choiceId);
 
       try {
         const createdSlide = await quizService.createSlide(
@@ -351,16 +314,16 @@ export function useEditorSlideMutations({
         updatePresentation(
           appendPresentationSlide(presentation, createdSlide),
         );
-        selectSlide(createdSlide.slide_id, createdSlide.slide_type);
+        selectSlide(createdSlide.slide_id);
         setShowTypeBox(false);
         activateContentPanel();
         resetCreationGate();
-        showNotice("اسلاید ساخته شد.", "success");
+        showNotice(`«${choice.label}» ساخته شد.`, "success");
       } catch (error) {
         await handleMutationError(
           error,
           "ارائه تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
-          "ساخت اسلاید انجام نشد. دوباره تلاش کنید.",
+          "ساخت آیتم انجام نشد. دوباره تلاش کنید.",
         );
       } finally {
         setIsSelectingType(false);
@@ -379,170 +342,54 @@ export function useEditorSlideMutations({
   );
 
   const selectType = useCallback(
-    async (choice: SlideTypeChoice) => {
+    async (choiceId: EditorTypeChoiceId) => {
       if (isCreatingSlide) {
-        await createSlide(choice);
+        await createSlide(choiceId);
         return;
       }
-      if (!activeSlide || ![1, 2].includes(activeSlide.slide_type)) return;
-      if (isSelectingType) return;
+      if (!activeSlide || isSelectingType) return;
 
-      const requestedMode = slideChoiceToMode(choice);
-
-      if (requestedMode === "content") {
-        if (activeSlide.slide_type === 2) {
-          setShowTypeBox(false);
-          activateContentPanel();
-          return;
-        }
-
-        if (activeSlide.question) {
-          requestConfirmation(
-            () => {
-              void applyContentTypeChange(activeSlide);
-            },
-            {
-              title: "تبدیل به اسلاید محتوایی؟",
-              description:
-                "سؤال و گزینه‌های آن با محتوا جایگزین می‌شوند. ادامه می‌دهید؟",
-              confirmText: "تبدیل",
-              cancelText: "انصراف",
-            },
-          );
-          return;
-        }
-
-        await applyContentTypeChange(activeSlide);
-        return;
-      }
-
-      const currentQuestion = activeSlide.question;
-      if (activeSlide.slide_type === 2) {
-        requestConfirmation(
-          () => {
-            void applyQuestionTypeChange(
-              activeSlide,
-              requestedMode,
-              requestedMode,
-            );
-          },
-          {
-            title: "تبدیل به سؤال؟",
-            description:
-              "اسلاید محتوایی با یک سؤال جدید جایگزین می‌شود. ادامه می‌دهید؟",
-            confirmText: "تبدیل",
-            cancelText: "انصراف",
-          },
+      const registration = resolveEditorItemRegistration(activeSlide);
+      if (!registration || registration.category === "legacy") {
+        setTypeSelectionError(
+          "نوع این آیتم قدیمی است و از انتخاب‌گر جدید قابل تبدیل نیست.",
         );
         return;
       }
 
-      if (currentQuestion?.question_type === requestedMode) {
-        showTypeNotice(
-          `نوع سؤال هم‌اکنون ${requestedMode === "single" ? "تک‌گزینه‌ای" : "چندگزینه‌ای"} است.`,
-          2_000,
-        );
+      if (editorSlideMatchesTypeChoice(activeSlide, choiceId)) {
+        const choice = getEditorTypeChoice(choiceId);
+        showTypeNotice(`نوع آیتم هم‌اکنون «${choice.label}» است.`, 2_000);
         setShowTypeBox(false);
         activateContentPanel();
         return;
       }
 
-      if (
-        currentQuestion?.question_type === "multiple" &&
-        requestedMode === "single"
-      ) {
+      const confirmation = getEditorConversionConfirmation(
+        activeSlide,
+        choiceId,
+      );
+      if (confirmation) {
         requestConfirmation(
           () => {
-            void applyQuestionTypeChange(
-              activeSlide,
-              requestedMode,
-              requestedMode,
-            );
+            void applyTypeChange(activeSlide, choiceId);
           },
-          {
-            title: "تغییر به تک‌گزینه‌ای؟",
-            description:
-              "در حالت تک‌گزینه‌ای فقط یک گزینه صحیح باقی می‌ماند. ادامه می‌دهید؟",
-            confirmText: "ادامه",
-            cancelText: "انصراف",
-          },
+          confirmation,
         );
         return;
       }
 
-      await applyQuestionTypeChange(
-        activeSlide,
-        requestedMode,
-        requestedMode,
-      );
+      await applyTypeChange(activeSlide, choiceId);
     },
     [
       activeSlide,
       activateContentPanel,
-      applyContentTypeChange,
-      applyQuestionTypeChange,
+      applyTypeChange,
       createSlide,
       isCreatingSlide,
       isSelectingType,
       requestConfirmation,
       showTypeNotice,
-    ],
-  );
-
-  const deleteLeaderboardSlide = useCallback(
-    async (sourceSlideId: string) => {
-      const sourceSlide = presentation.slides.find(
-        (slide) =>
-          slide.slide_id === sourceSlideId && slide.slide_type === 1,
-      );
-      if (!sourceSlide) {
-        showNotice(
-          "اسلاید سؤال مربوط به جدول امتیازات دیگر وجود ندارد.",
-          "warning",
-        );
-        await refreshPresentation();
-        return;
-      }
-
-      try {
-        const updatedSlide = await quizService.deleteLeaderboardSlide(
-          presentation.quiz_id,
-          sourceSlide,
-        );
-        updatePresentation(
-          replacePresentationSlide(presentation, updatedSlide),
-        );
-        showNotice("جدول امتیازات حذف شد.", "success");
-      } catch (error) {
-        if (error instanceof ApiError && error.isConflict) {
-          await recoverConflict();
-          showNotice(
-            "این اسلاید جای دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد.",
-            "warning",
-          );
-          return;
-        }
-        if (
-          error instanceof ApiError &&
-          error.code === "slide_has_results"
-        ) {
-          showNotice(
-            "این اسلاید نتیجه زنده دارد و جدول امتیازات آن فعلاً قابل حذف نیست.",
-            "warning",
-          );
-          return;
-        }
-
-        console.error("Failed to delete leaderboard slide:", error);
-        showNotice("حذف جدول امتیازات انجام نشد.", "error");
-      }
-    },
-    [
-      presentation,
-      recoverConflict,
-      refreshPresentation,
-      showNotice,
-      updatePresentation,
     ],
   );
 
@@ -559,7 +406,6 @@ export function useEditorSlideMutations({
     cancelTypeSelection,
     selectType,
     deleteSlide,
-    deleteLeaderboardSlide,
     applyUpdatedSlide,
   };
 }
