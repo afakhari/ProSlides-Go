@@ -12,6 +12,11 @@ system of record, Redis for optional ephemeral coordination, HTTP for commands,
 and SSE for server-to-client delivery. It deliberately avoids the operational
 cost of microservices and a message broker until measurements justify them.
 
+The active ProSlides v2 product-model target is defined separately in
+`docs/v2-product-architecture.md` and ADR 0004. v2 changes the domain vocabulary
+and live/product projections while preserving these infrastructure and
+correctness invariants.
+
 ## System context
 
 ```text
@@ -65,9 +70,9 @@ separately in `docs/status/current.md` and `docs/frontend-status.md`.
 | Module | Owns | Must not own |
 |---|---|---|
 | `identity` | accounts, password hashes, email verification/reset delivery, Google verification, opaque sessions, CSRF | live state or scores |
-| `presentations` | presentations, slides, question definitions | accepting answers |
-| `live` | live state machine, participants, answers, scoring, snapshots, events | account lifecycle |
-| `reports` (future) | immutable post-session projections and exports | live command handling |
+| `presentations` | presentations and authored Content/Activity Item definitions; legacy slides/questions during migration | accepting live responses |
+| `live` | sessions, participants, responses/evaluations, cumulative scoring/ranking, snapshots, events | account lifecycle or mutable authoring truth |
+| `reports` (future) | immutable/session-scoped result projections and exports | live command handling |
 | `media` (future) | object metadata and access policy | binary storage in PostgreSQL |
 | `platform` | process lifecycle, config, HTTP, PostgreSQL, Redis; future telemetry | product rules |
 

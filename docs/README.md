@@ -7,8 +7,9 @@ not repeat the project's current state.
 
 1. `../AGENTS.md` — repository-wide development rules and safety rails.
 2. `status/current.md` — the single current-state and active-priority source.
-3. The architecture document and ADR relevant to the work.
-4. OpenAPI, configuration, runbooks, and code in scope.
+3. For v2 work, `v2-product-architecture.md` and `v2-development-plan.md`.
+4. The architecture document and ADR relevant to the work.
+5. OpenAPI, configuration, runbooks, and code in scope.
 
 When documentation and code disagree, verify the implementation and evidence.
 Do not silently choose the more convenient source.
@@ -18,8 +19,10 @@ Do not silently choose the more convenient source.
 | Question | Authoritative source |
 |---|---|
 | What is the current state and what work is active? | `status/current.md` |
-| What are the system/backend/live invariants? | `architecture.md`, ADR 0001/0002, OpenAPI |
-| What is the frontend target architecture? | `frontend-architecture.md`, ADR 0003 |
+| What is the ProSlides v2 product/domain target? | `v2-product-architecture.md`, ADR 0004 |
+| What is the ordered v2 implementation plan? | `v2-development-plan.md` |
+| What are the system/backend/live invariants? | `architecture.md`, ADR 0001/0002/0004, OpenAPI |
+| What is the frontend target architecture? | `frontend-architecture.md`, ADR 0003/0004 |
 | What are the Persian UX/design/accessibility rules? | `frontend-professionalization.md` |
 | What frontend debt remains? | `frontend-status.md` |
 | What frontend measurements were accepted in F5? | `frontend-quality-baseline.md` |

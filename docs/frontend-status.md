@@ -71,25 +71,18 @@ preserving:
 - separation of authoring, preview and live runtime state;
 - one presentation revision contract across mutations.
 
-## Next migration focus
+## Active v2 relationship
 
-Both live roles now own typed module-local presentation UI. Participant join,
-waiting, question, leaderboard, content and final-result surfaces are
-module-owned; answer selection uses stable option indexes, answer HTTP commands
-remain independent from SSE delivery health, retries reuse one request ID in
-memory, legacy persistent answer queues are retired, and participant profiles
-are scoped per room. The highest-value remaining boundaries are:
+The previous frontend-modernization program established the TypeScript/module
+baseline that v2 builds on. New product/domain/editor/live redesign sequencing
+is no longer owned by this debt document.
 
-1. execute planned frontend redesigns quickly while preserving API/domain/live
-   invariants and the enforced module graph;
-2. add targeted component/API-state tests only for high-risk behavior touched by
-   each redesign slice;
-3. converge semantic styling, Persian/RTL and accessibility as redesigned
-   surfaces stabilize instead of polishing soon-to-be-replaced UI;
-4. schedule broad state-matrix coverage, export-level dead-code analysis,
-   visual regression and full accessibility/responsive verification for the
-   pre-production hardening phase;
-5. keep framework/toolchain upgrades isolated from large UI redesigns.
+Use `v2-product-architecture.md` for the v2 target and
+`v2-development-plan.md` / GitHub issue #82 for implementation order.
+
+Frontend debt listed above should be resolved opportunistically when a v2 slice
+touches the relevant surface, or in the final hardening slice. It must not
+become a parallel roadmap that competes with v2.
 
 ## Claim boundary
 

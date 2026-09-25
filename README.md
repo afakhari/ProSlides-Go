@@ -46,9 +46,12 @@ For hot reload, verification, provider configuration and troubleshooting, use
 
 Read [AGENTS.md](AGENTS.md) before changing the repository. External API/SSE
 changes start in `apps/api/openapi/openapi.yaml`. Frontend work follows
-[frontend architecture](docs/frontend-architecture.md),
-[frontend product guidelines](docs/frontend-professionalization.md) and
-[ADR 0003](docs/decisions/0003-modular-react-frontend.md).
+[frontend architecture](docs/frontend-architecture.md) and
+[frontend product guidelines](docs/frontend-professionalization.md).
+The active ProSlides v2 redesign is defined by
+[v2 product architecture](docs/v2-product-architecture.md),
+[v2 development plan](docs/v2-development-plan.md) and
+[ADR 0004](docs/decisions/0004-v2-activity-session-model.md).
 
 Use [docs/README.md](docs/README.md) as the documentation authority map.
 Deployment and operations procedures are in

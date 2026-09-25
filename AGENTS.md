@@ -8,9 +8,10 @@ historical work belongs in Git/evidence/archive documents.
 
 1. this file;
 2. `docs/status/current.md`;
-3. architecture/ADR/OpenAPI for the scope;
-4. code and tests in scope;
-5. runbooks/evidence only when relevant.
+3. for v2 work, `docs/v2-product-architecture.md` and `docs/v2-development-plan.md`;
+4. architecture/ADR/OpenAPI for the scope;
+5. code and tests in scope;
+6. runbooks/evidence only when relevant.
 
 ## Non-negotiable architecture
 
@@ -89,18 +90,10 @@ Never without explicit owner approval:
 
 ## Verification
 
-Typical frontend:
-
-```sh
-cd apps/web
-npm ci
-npm run api:types:check
-npm run lint
-npm run typecheck
-npm run test:unit
-npm run build
-npm run test:e2e
-```
+Use the verification policy in `docs/status/current.md` for frontend work. The
+pre-production fast loop intentionally does not require full browser E2E for
+every visual iteration. Contract/live changes still require the focused checks
+for the invariant they modify.
 
 Typical backend:
 
@@ -115,7 +108,7 @@ Use `docs/local-development.md` for environment-specific commands.
 Capacity work additionally follows `docs/capacity-plan.md` and
 `load/k6/README.md`.
 
-A passing `tsc` currently proves only TS/TSX coverage, not all remaining JSX.
+A passing `tsc` is a type-safety guardrail, not proof of behavioral correctness.
 A passing local load run proves only the recorded topology.
 
 ## Documentation

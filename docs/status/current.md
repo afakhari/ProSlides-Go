@@ -29,6 +29,27 @@ a Go modular-monolith backend.
 app -> modules -> shared
 ```
 
+## ProSlides v2 program
+
+A new pre-production product generation is now the active development program.
+Its target model is defined in `../v2-product-architecture.md`, the durable
+decision is ADR 0004, and the ordered implementation slices are owned by
+`../v2-development-plan.md`.
+
+v2 is a staged migration of the existing Go/PostgreSQL/HTTP/SSE and React/Vite
+system, not a rewrite. The current correctness invariants remain in force while
+the product model moves from question/content-specific concepts toward
+Content/Activity Items, generic live Activity lifecycle, explicit Activity
+results versus cumulative Session ranking, Stage/Backstage/Participant
+projections, and Session-first reports.
+
+Scope locks for v2.0 are intentional: presenter-paced individual participation
+only; no team mode, no self-paced/assignment mode, no parallel /api/v2, and no
+generic flow-builder abstraction.
+
+The v2 architecture/tracking baseline is defined by the v2 documents, ADR 0004
+and GitHub issue #82. The next active implementation slice is V2.1 (issue #83).
+
 ## Frontend current state
 
 The shipping application frontend source is fully TypeScript/TSX. The project
@@ -104,20 +125,17 @@ Remaining work:
 
 ## Active priorities
 
-1. Maximize pre-production frontend redesign velocity; avoid polishing or
-   exhaustively testing UI that is expected to change again soon.
-2. Keep frontend/backend contracts, editor revision/conflict semantics, live
-   protocol correctness and authentication boundaries stable.
-3. Preserve the enforced module graph and TypeScript/API checks because they are
-   cheap guardrails with high regression value.
-4. Add tests alongside a redesign only when they protect costly behavioral
-   invariants, regressions already observed, or non-obvious recovery/cancellation
-   semantics.
-5. Move broad browser matrices, visual regression, exhaustive accessibility
-   review, export-level dead-code analysis and release hardening into an explicit
-   pre-production readiness phase.
-6. Keep Persian/RTL and accessibility semantics in the implementation direction,
-   but do not block rapid visual iteration on exhaustive audits of temporary UI.
+1. Start V2.1 from `../v2-development-plan.md` / GitHub issue #83.
+2. Preserve current live/editor correctness while migrating one vertical
+   boundary at a time; do not run a separate long-lived v2 implementation.
+3. Keep OpenAPI, TypeScript, lint, architecture checks and focused domain tests
+   as cheap continuous guardrails.
+4. Keep redesign velocity high: test expensive behavioral invariants, not
+   temporary layout/DOM details.
+5. Defer broad release hardening until the v2 surfaces and protocol stabilize.
+
+The v2 plan owns sequencing and acceptance criteria; this current-state document
+only identifies the active slice.
 
 ## Documentation rules
 
