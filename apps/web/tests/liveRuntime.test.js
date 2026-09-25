@@ -220,6 +220,7 @@ test("explicit manager Activity controls refresh authoritative state", async () 
   const runtime = createLiveRuntime("manager", {
     storage: null,
     transport: {
+      createLiveSession: async () => current.session,
       getLiveSnapshot: async () => current,
       getRosterPage: async (_id, order) => emptyRoster(order),
       applyLiveAction: async (_id, input) => {
