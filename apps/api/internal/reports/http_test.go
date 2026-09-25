@@ -71,7 +71,12 @@ func (s *reportTestStore) ActivityReport(_ context.Context, presentationID, sess
 			ActivityItemID: activityID,
 			Definition:     json.RawMessage(`{"activity_kind":"choice"}`),
 		},
-		Result:        ActivityResult{ActivityItemID: activityID, OptionCounts: map[string]int{}},
+		Result: ActivityResult{
+			ActivityItemID: activityID,
+			ActivityKind:   "choice",
+			SchemaVersion:  1,
+			Payload:        json.RawMessage(`{"option_counts":{}}`),
+		},
 		TopPerformers: []ActivityTopPerformer{},
 		Responses:     []ActivityResponse{},
 		Limit:         query.Limit,
