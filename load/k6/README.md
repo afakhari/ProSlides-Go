@@ -1,17 +1,19 @@
 # Live protocol load scenario
 
-This scenario currently exercises the pre-v2 question-specific live protocol.
-It is retained as regression/capacity evidence for the existing foundation and
-must evolve with the V2.2 live cut-over before it can be used for final v2
-capacity claims.
+This scenario exercises the canonical v2 presenter-paced Activity lifecycle.
+It is regression/capacity evidence for the current live foundation, but final
+production capacity claims still require the V2.8 gates and topology recorded
+in `docs/capacity-plan.md`.
 
 This scenario is a capacity test tool, not a release gate during rapid v2 UI/
-domain redesign. It provisions one real manager,
-presentation, question, and session through HTTP, then runs the configured
-number of participants through join, snapshot, authenticated SSE, and answer.
-The manager opens the question only after clients begin subscribing; each
-participant answers from the durable `question_open` event, and the manager
-then closes it so every stream measures the real snapshot/SSE/HTTP ordering.
+domain redesign. It provisions one real manager, Presentation, Choice Activity,
+and Session through HTTP, then runs the configured number of participants
+through join, snapshot, authenticated SSE, and canonical Activity response.
+The manager presents the Activity only after clients begin subscribing;
+participants respond after the durable `session.state_changed` transition to
+`presenting/accepting`, and the manager closes it through
+`close_activity`. Teardown reveals the Activity, shows the overall ranking and
+ends the Session using authoritative state versions returned by each command.
 It never writes scores outside the API.
 
 Build the pinned SSE-enabled binary, then run from the repository root against
