@@ -1288,7 +1288,7 @@ export interface components {
             /** Format: int64 */
             event_id: number;
             /**
-             * @description Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
+             * @description Version 2 is used by activity.result_updated generic result envelopes and aggregate-only ranking.updated payloads; other current events remain version 1.
              * @enum {integer}
              */
             schema_version: 1 | 2;
