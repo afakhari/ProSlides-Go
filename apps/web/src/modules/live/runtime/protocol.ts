@@ -394,7 +394,7 @@ export const projectLiveSnapshot = (
     snapshot.session.stage_view === "overall_ranking" ||
     snapshot.session.state === "ended"
       ? snapshot.role === "manager"
-        ? managerRows
+        ? managerRows.slice(0, 5)
         : participantRows
       : null;
 
