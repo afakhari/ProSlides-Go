@@ -24,8 +24,9 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
-      - name: Capture npm audit
+      - name: Compute safe audit fix
         shell: bash
         run: |
-          npm audit --json > /tmp/npm-audit.json || true
-          cat /tmp/npm-audit.json
+          npm audit fix --package-lock-only
+          git diff -- package-lock.json
+          npm audit --json
