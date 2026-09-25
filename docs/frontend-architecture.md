@@ -325,13 +325,15 @@ not hand-roll focus trapping/restoration when a proven primitive exists.
 
 Target WCAG 2.2 AA for product flows.
 
-Completion includes keyboard access, visible/unobscured focus, names for icon
-controls, modal focus containment/restoration, alternatives to pointer-only
-reordering, meaningful live regions, practical touch targets, safe-area-aware
-mobile controls and no horizontal overflow.
+New or materially changed controls should keep semantic HTML, accessible names,
+keyboard reachability and obvious focus behavior intact while they are being
+built. Exhaustive keyboard/screen-reader sweeps, viewport matrices and contrast
+audits may be consolidated into the pre-production hardening phase while the UI
+is still undergoing broad redesign.
 
-Retain 390x844 and 1440x900 as regression anchors, but add intermediate and
-container-driven checks when component layout changes. Use container queries
+Retain 390x844 and 1440x900 as production-readiness regression anchors. During
+active redesign, check the viewport(s) materially affected by the current slice
+instead of running the full matrix after every iteration. Use container queries
 where component behavior depends on available component space rather than the
 global viewport.
 
@@ -339,21 +341,53 @@ global viewport.
 
 Target test stack:
 
-- existing Node protocol/domain tests during migration;
-- Vitest for new TS domain/component tests;
-- Testing Library for user-visible component behavior;
-- MSW for API success/failure/conflict/cancellation states;
-- axe for accessibility smoke;
-- Playwright for real critical flows;
-- limited visual snapshots only for stable states.
+- existing Node protocol/domain tests for stable domain invariants;
+- Vitest for fast TS domain/component tests;
+- Testing Library for user-visible behavior rather than DOM structure;
+- MSW for API success/failure/conflict/cancellation states when those behaviors
+  are risky or actively changing;
+- axe for focused accessibility smoke;
+- Playwright for a small set of real critical flows;
+- limited visual snapshots only after a surface is visually stable.
 
-Critical vertical slices test pending, success, recoverable error and relevant
-conflict/reconnect/cancellation behavior. The complete manager/participant live
-lifecycle should become a deterministic CI gate.
+### Pre-production velocity policy
 
-Architecture dependency rules should be enforced with dedicated lint/dependency
-tooling. Dead files/exports/dependencies should be checked with a tool such as
-Knip after the migration baseline is stable.
+The project is currently pre-production and active frontend redesign speed takes
+priority over maximizing coverage. Tests should protect expensive-to-rediscover
+behavior, not freeze an interface that is about to change.
+
+During active redesign:
+
+- keep fast structural guardrails such as TypeScript, lint, OpenAPI consistency,
+  dependency boundaries and existing stable unit/component tests;
+- add or update tests when a slice changes high-risk behavior such as editor
+  revision/conflict handling, live protocol/reconnect rules, auth boundaries,
+  cancellation, mutation idempotency or recovery;
+- prefer assertions on roles, outcomes, requests and state transitions over DOM
+  hierarchy, Tailwind classes, exact layout or incidental copy;
+- do not expand component coverage merely to improve a coverage percentage;
+- do not require new broad E2E or visual-regression coverage for surfaces that
+  are intentionally being redesigned again soon;
+- treat non-required integration checks as diagnostic during rapid iteration,
+  while investigating failures that plausibly indicate a real regression in the
+  changed area.
+
+### Production-readiness hardening
+
+Before the first production release, run a dedicated hardening phase that closes
+deferred verification deliberately. It should include:
+
+- full critical-flow Playwright coverage and repeated stability runs;
+- editor/report/live pending, error, cancellation, conflict and recovery paths;
+- responsive anchors and relevant intermediate/container states;
+- keyboard, focus, screen-reader and contrast review;
+- bundle/performance regression review;
+- container/deployment validation and security scanning;
+- conservative dead-file/export/dependency analysis with explicit exemptions.
+
+Architecture dependency rules remain enforced continuously because they are
+cheap and prevent expensive structural regressions. Export-level dead-code
+analysis may wait until the redesign surface has stabilized.
 
 ## Performance and observability
 
@@ -375,7 +409,8 @@ This list records sequencing constraints, not current completion status. Current
 4. Introduce the single TanStack Query REST cache through identity/reports.
 5. Enforce dependency boundaries and continue TypeScript module migration.
 6. Extract typed live runtime from React context.
-7. Add component/API-state tests and CI browser lifecycle gating.
+7. Keep a small fast component/API-state safety net during active redesign and
+   defer broad UI coverage to pre-production hardening.
 8. Upgrade major toolchain pieces in isolated, compatibility-tested changes.
    Framework major upgrades must satisfy their declared React/Node runtime
    requirements before adoption; do not combine them with unrelated architecture
