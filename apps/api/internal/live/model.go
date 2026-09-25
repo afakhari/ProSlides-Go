@@ -68,6 +68,8 @@ type PublicLivePresentation struct {
 	TextColor          string `json:"text_color"`
 }
 
+type ActivityResponsePayload = json.RawMessage
+
 type AnswerResult struct {
 	AnswerID   string `json:"answer_id"`
 	ScoreDelta int    `json:"score_delta"`
@@ -184,7 +186,7 @@ type Store interface {
 	ResolveSession(context.Context, string) (SessionLocator, error)
 	Join(context.Context, string, string, string, string, []byte) (Participant, bool, error)
 	ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error)
-	SubmitAnswer(context.Context, string, []byte, string, string, json.RawMessage, ScoringPolicy) (AnswerResult, error)
+	SubmitAnswer(context.Context, string, []byte, string, string, ActivityResponsePayload, ScoringPolicy) (AnswerResult, error)
 	ParticipantSnapshot(context.Context, string, []byte) (ParticipantSnapshot, error)
 	ManagerSnapshot(context.Context, string, string) (ManagerSnapshot, error)
 	StageSnapshot(context.Context, string, string) (StageSnapshot, error)
