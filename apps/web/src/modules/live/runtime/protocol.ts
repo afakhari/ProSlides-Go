@@ -11,7 +11,6 @@ import type {
 } from "../api/types.ts";
 import type {
   LegacyContentSlide,
-  LegacyLeaderboardSlide,
   LegacyLiveSlide,
   LegacyLiveUser,
   LegacyQuestionOption,
@@ -37,7 +36,7 @@ export type LiveNavigationCommand = "start" | "next";
 export interface LiveNavigationSlide {
   slide_id?: string | number | null;
   question_time?: string | number | null;
-  item_kind?: "activity" | "content" | "legacy-leaderboard" | null;
+  item_kind?: "activity" | "content" | null;
   title?: string | null;
   content_text?: string | null;
   content_image_url?: string | null;
@@ -111,18 +110,10 @@ export const liveCursorFromSnapshot = (
   stateVersion: finiteNumber(snapshot.session.state_version),
 });
 
-const isLeaderboardSlide = (
-  slide: LiveNavigationSlide | null | undefined,
-): boolean => slide?.item_kind === "legacy-leaderboard";
-
 const actionForSlide = (
   slide: LiveNavigationSlide | null | undefined,
-): LiveActionName | null => {
-  if (!slide) return null;
-  return isLeaderboardSlide(slide)
-    ? "show_overall_ranking"
-    : "present_item";
-};
+): LiveActionName | null =>
+  slide ? "present_item" : null;
 
 export const planLiveNavigation = (
   state: LiveState | undefined,
@@ -394,16 +385,6 @@ export const presentationSlideToLegacy = (
       activity_phase: null,
       stage_view: "item",
     });
-  }
-
-  if (slide.kind === "leaderboard") {
-    const leaderboard: LegacyLeaderboardSlide = {
-      item_kind: "legacy-leaderboard",
-      slide_id: slide.id,
-      order: slide.position,
-      title: stringValue(content.title, "Leaderboard"),
-    };
-    return leaderboard;
   }
 
   return normalizeLiveSlide(
