@@ -61,6 +61,28 @@ func TestNormalizeTextActivityResponseFreezesUnicodeTerms(t *testing.T) {
 	}
 }
 
+func TestNormalizeTextActivityResponseCanonicalizesPersianArabicGlyphVariants(t *testing.T) {
+	normalized, _, err := normalizeActivityResponse(
+		wordCloudDefinition(4),
+		json.RawMessage(`{"text":"یادگیری يادگيري کتاب كتاب"}`),
+	)
+	if err != nil {
+		t.Fatalf("normalize Persian variants: %v", err)
+	}
+
+	var stored storedTextActivityResponse
+	if err := json.Unmarshal(normalized, &stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored.Text != "یادگیری يادگيري کتاب كتاب" {
+		t.Fatalf("authored text should be preserved apart from NFKC/trim, got %q", stored.Text)
+	}
+	wantTerms := []string{"یادگیری", "کتاب"}
+	if !reflect.DeepEqual(stored.Terms, wantTerms) {
+		t.Fatalf("terms = %#v, want %#v", stored.Terms, wantTerms)
+	}
+}
+
 func TestNormalizeTextActivityResponseCountsRepeatedWordsTowardLimit(t *testing.T) {
 	_, _, err := normalizeActivityResponse(
 		wordCloudDefinition(3),
