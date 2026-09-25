@@ -7,6 +7,7 @@ import (
 
 func TestEvaluateChoiceResponseUsesFrozenDefinition(t *testing.T) {
 	definition := json.RawMessage(`{
+		"schema_version":1,
 		"activity_kind":"choice",
 		"response":{"options":[{"id":"a"},{"id":"b"},{"id":"c"}]},
 		"evaluation":{"mode":"correctness","correct_option_ids":["a","c"]}
@@ -42,6 +43,7 @@ func TestEvaluateChoiceResponseUsesFrozenDefinition(t *testing.T) {
 
 func TestEvaluateUnscoredChoiceDoesNotInventCorrectness(t *testing.T) {
 	definition := json.RawMessage(`{
+		"schema_version":1,
 		"activity_kind":"choice",
 		"response":{"options":[{"id":"a"},{"id":"b"}]},
 		"evaluation":{"mode":"none","correct_option_ids":[]}
@@ -60,18 +62,25 @@ func TestEvaluateUnscoredChoiceDoesNotInventCorrectness(t *testing.T) {
 	}
 }
 
-func TestAggregateChoiceCountsUsesFrozenOptionIDs(t *testing.T) {
+func TestChoiceResultPayloadUsesFrozenOptionIDs(t *testing.T) {
 	definition := json.RawMessage(`{
+		"schema_version":1,
 		"activity_kind":"choice",
 		"response":{"options":[{"id":"alpha"},{"id":"beta"},{"id":"gamma"}]},
 		"evaluation":{"mode":"none","correct_option_ids":[]}
 	}`)
 
-	counts, err := aggregateChoiceCounts(definition, map[int]int{0: 2, 2: 5})
+	payload, err := choiceResultPayload(definition, map[int]int{0: 2, 2: 5})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if counts["alpha"] != 2 || counts["beta"] != 0 || counts["gamma"] != 5 {
-		t.Fatalf("unexpected option counts: %#v", counts)
+	var decoded struct {
+		OptionCounts map[string]int `json:"option_counts"`
+	}
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.OptionCounts["alpha"] != 2 || decoded.OptionCounts["beta"] != 0 || decoded.OptionCounts["gamma"] != 5 {
+		t.Fatalf("unexpected option counts: %#v", decoded.OptionCounts)
 	}
 }
