@@ -1,9 +1,9 @@
-# Go backend foundation
+# ProSlides Go backend
 
-This is the ProSlides Go modular monolith. It provides identity, owner-scoped
-presentation/slide/question APIs, durable live sessions, idempotent answers,
-pluggable scoring, role-scoped snapshots, manager-paginated rosters, and SSE
-replay. PostgreSQL uses
+This is the current Go modular-monolith foundation that ProSlides v2 migrates
+incrementally. It currently provides identity, owner-scoped presentation/
+slide/question APIs, durable live sessions, idempotent answers, scoring,
+role-scoped snapshots, manager-paginated rosters and SSE replay. PostgreSQL uses
 `pgxpool` and is authoritative. Redis uses `go-redis` for readiness and
 distributed fixed-window identity rate limits, never durable live state.
 
@@ -40,10 +40,12 @@ each readiness check. Never place real credentials in `.env.example` or Git.
 migration sequence. All identity, SMTP, Google, proxy, and runtime variables are documented in
 [`docs/configuration.md`](../../docs/configuration.md).
 
-API contract changes begin in `openapi/openapi.yaml`. See the repository root
-`AGENTS.md` and `docs/status/current.md` before changing code.
+API contract changes begin in `openapi/openapi.yaml`. Before v2 work, read the
+repository root `AGENTS.md`, `docs/status/current.md`,
+`docs/v2-product-architecture.md` and the active slice in
+`docs/v2-development-plan.md`.
 
-## Implemented API status
+## Current implementation baseline
 
 Authentication uses opaque server-side sessions and CSRF cookies. Optional
 email verification and password reset use hashed one-time secrets and the
