@@ -66,7 +66,8 @@ const choiceTransport: EditorTransportRegistration = {
   key: "choice",
   matchesTransport: ({ slide, content }) =>
     slide.kind === "activity" &&
-    content.activity_kind === "choice",
+    content.activity_kind === "choice" &&
+    content.schema_version === 1,
   fromTransport: ({ slide, content }) => {
     const prompt = recordValue(content.prompt);
     const response = recordValue(content.response);
@@ -80,8 +81,30 @@ const choiceTransport: EditorTransportRegistration = {
     const rawOptions = Array.isArray(response.options)
       ? response.options as Record<string, unknown>[]
       : [];
-    const selection: QuestionType =
-      response.selection === "multiple" ? "multiple" : "single";
+    const selectionValue = response.selection;
+    if (
+      selectionValue !== "single" &&
+      selectionValue !== "multiple"
+    ) {
+      throw new Error("Unsupported Choice selection policy.");
+    }
+    const selection: QuestionType = selectionValue;
+
+    const evaluationMode = evaluation.mode;
+    if (
+      evaluationMode !== "none" &&
+      evaluationMode !== "correctness"
+    ) {
+      throw new Error("Unsupported Choice evaluation policy.");
+    }
+
+    const scoringMode = scoring.mode;
+    if (
+      scoringMode !== "none" &&
+      scoringMode !== "points"
+    ) {
+      throw new Error("Unsupported Choice scoring policy.");
+    }
 
     return {
       ...commonEditorSlide(slide),
@@ -97,10 +120,8 @@ const choiceTransport: EditorTransportRegistration = {
         text: stringValue(prompt.text),
         question_text: stringValue(prompt.text),
         question_type: selection,
-        evaluation_mode:
-          evaluation.mode === "none" ? "none" : "correctness",
-        scoring_mode:
-          scoring.mode === "none" ? "none" : "points",
+        evaluation_mode: evaluationMode,
+        scoring_mode: scoringMode,
         time_limit: numberValue(timing.duration_seconds, 10),
         question_time: numberValue(timing.duration_seconds, 10),
         min_point: numberValue(scoring.min_points, 0),
