@@ -35,7 +35,6 @@ func (h *HTTP) Register(m *http.ServeMux) {
 	m.HandleFunc("PUT /api/v1/presentations/{presentationId}/access-code", h.setAccessCode)
 	m.HandleFunc("DELETE /api/v1/presentations/{presentationId}", h.delete)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/duplicate", h.duplicate)
-	m.HandleFunc("GET /api/v1/presentations/{presentationId}/latest-session", h.latestSession)
 	m.HandleFunc("DELETE /api/v1/presentations/{presentationId}/results", h.deleteResults)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/slides", h.createSlide)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/slides/reorder", h.reorderSlides)
@@ -215,19 +214,6 @@ func (h *HTTP) duplicate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, p)
-}
-
-func (h *HTTP) latestSession(w http.ResponseWriter, r *http.Request) {
-	user, err := h.current(r)
-	if err != nil {
-		errJSON(w, 401, "unauthorized")
-		return
-	}
-	locator, err := h.store.LatestSession(r.Context(), r.PathValue("presentationId"), user.ID)
-	if handleStoreError(w, err) {
-		return
-	}
-	writeJSON(w, 200, locator)
 }
 
 func (h *HTTP) deleteResults(w http.ResponseWriter, r *http.Request) {
