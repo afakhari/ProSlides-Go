@@ -20,6 +20,7 @@ import { formatPersianNumber } from "../../../../shared/forms/numbers.ts";
 import { Button } from "../../../../shared/ui/primitives/Button.tsx";
 import {
   QUESTION_LIMITS,
+  type EvaluationMode,
   type QuestionType,
   type QuestionValidationIssue,
 } from "../../model/editor.ts";
@@ -28,6 +29,7 @@ import type { QuestionDraftOption } from "../model/questionDraft.ts";
 type QuestionOptionsEditorProps = {
   options: QuestionDraftOption[];
   questionType: QuestionType;
+  evaluationMode: EvaluationMode;
   disabled: boolean;
   issues: QuestionValidationIssue[];
   onAdd: () => void;
@@ -52,6 +54,7 @@ const optionIssue = (
 export default function QuestionOptionsEditor({
   options,
   questionType,
+  evaluationMode,
   disabled,
   issues,
   onAdd,
@@ -70,6 +73,8 @@ export default function QuestionOptionsEditor({
     )?.message ?? null;
   const canDelete = options.length > QUESTION_LIMITS.minOptions;
   const canAdd = options.length < QUESTION_LIMITS.maxOptions;
+  const correctnessDisabled =
+    disabled || evaluationMode === "none";
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -84,13 +89,19 @@ export default function QuestionOptionsEditor({
             گزینه‌های پاسخ
           </h3>
           <p className="mt-1 text-xs leading-5 text-content-muted">
-            {questionType === "single"
-              ? "دقیقاً یک پاسخ صحیح انتخاب کنید."
-              : "یک یا چند پاسخ صحیح انتخاب کنید."}
+            {evaluationMode === "none"
+              ? "این فعالیت پاسخ صحیح ندارد و فقط توزیع انتخاب‌ها را ثبت می‌کند."
+              : questionType === "single"
+                ? "دقیقاً یک پاسخ صحیح انتخاب کنید."
+                : "یک یا چند پاسخ صحیح انتخاب کنید."}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand-ink">
-          {questionType === "single" ? "تک‌گزینه‌ای" : "چندگزینه‌ای"}
+          {evaluationMode === "none"
+            ? "بدون پاسخ صحیح"
+            : questionType === "single"
+              ? "تک‌گزینه‌ای"
+              : "چندگزینه‌ای"}
         </span>
       </div>
 
@@ -148,12 +159,18 @@ export default function QuestionOptionsEditor({
                           <Button
                             variant={option.isCorrect ? "secondary" : "outline"}
                             size="icon"
-                            disabled={disabled}
-                            aria-pressed={option.isCorrect}
+                            disabled={correctnessDisabled}
+                            aria-pressed={
+                              evaluationMode === "none"
+                                ? undefined
+                                : option.isCorrect
+                            }
                             aria-label={
-                              option.isCorrect
-                                ? `گزینه ${formatPersianNumber(index + 1)} پاسخ صحیح است`
-                                : `انتخاب گزینه ${formatPersianNumber(index + 1)} به‌عنوان پاسخ صحیح`
+                              evaluationMode === "none"
+                                ? `گزینه ${formatPersianNumber(index + 1)}؛ این فعالیت پاسخ صحیح ندارد`
+                                : option.isCorrect
+                                  ? `گزینه ${formatPersianNumber(index + 1)} پاسخ صحیح است`
+                                  : `انتخاب گزینه ${formatPersianNumber(index + 1)} به‌عنوان پاسخ صحیح`
                             }
                             className="size-9 shrink-0"
                             onClick={() => onToggleCorrect(option.id)}

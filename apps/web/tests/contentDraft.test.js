@@ -101,5 +101,7 @@ test("content serialization preserves authored whitespace and slide revision", (
   assert.equal(serialized.title, "  عنوان با فاصله  ");
   assert.equal(serialized.content_text, "  خط اول\nخط دوم  ");
   assert.equal(serialized.slide_type, 2);
+  assert.equal(serialized.item_kind, "content");
+  assert.equal(serialized.activity_kind, undefined);
   assert.equal(serialized.question, null);
 });

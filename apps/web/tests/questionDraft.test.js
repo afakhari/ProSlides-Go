@@ -97,8 +97,52 @@ test("dirty comparison is structural and save serialization preserves revision",
   assert.equal(questionDraftEquals(draft, changed), false);
   const serialized = questionDraftToEditorSlide(changed);
   assert.equal(serialized.revision, 3);
+  assert.equal(serialized.item_kind, "activity");
+  assert.equal(serialized.activity_kind, "choice");
+  assert.equal(serialized.schema_version, 1);
   assert.equal(serialized.question?.text, "سؤال تازه");
   assert.deepEqual(serialized.question?.options.map((option) => option.order), [1, 2]);
+});
+
+test("draft preserves unevaluated unscored Choice policy without creating hidden scoring state", () => {
+  const pollSlide = {
+    ...slide,
+    show_leaderboard_after: false,
+    item_kind: "activity",
+    activity_kind: "choice",
+    schema_version: 1,
+    question: {
+      ...slide.question,
+      evaluation_mode: "none",
+      scoring_mode: "none",
+      min_point: 0,
+      max_point: 0,
+      faster_answers_more_points: false,
+      partial_scoring: false,
+      options: slide.question.options.map((option) => ({
+        ...option,
+        is_correct: false,
+      })),
+    },
+  };
+
+  const draft = createQuestionDraft(pollSlide);
+  assert.ok(draft);
+  assert.equal(draft.evaluationMode, "none");
+  assert.equal(draft.scoringMode, "none");
+  assert.equal(draft.showLeaderboardAfter, false);
+  assert.deepEqual(
+    draft.options.map((option) => option.isCorrect),
+    [false, false],
+  );
+  assert.equal(validateQuestionDraft(draft).length, 0);
+
+  const serialized = questionDraftToEditorSlide(draft);
+  assert.equal(serialized.question.evaluation_mode, "none");
+  assert.equal(serialized.question.scoring_mode, "none");
+  assert.equal(serialized.question.min_point, 0);
+  assert.equal(serialized.question.max_point, 0);
+  assert.equal(serialized.show_leaderboard_after, false);
 });
 
 test("draft validation mirrors backend timing, scoring, option and unicode limits", () => {

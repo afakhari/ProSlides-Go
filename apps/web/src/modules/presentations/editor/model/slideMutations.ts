@@ -32,6 +32,8 @@ export const createDefaultQuestion = (
   text: "سؤال جدید",
   question_text: "سؤال جدید",
   question_type: questionType,
+  evaluation_mode: "correctness",
+  scoring_mode: "points",
   min_point: 0,
   max_point: 100,
   time_limit: 10,
@@ -75,6 +77,9 @@ export const createSlideForChoice = (
     revision: 1,
     order,
     slide_type: mode === "content" ? 2 : 1,
+    item_kind: mode === "content" ? "content" : "activity",
+    activity_kind: mode === "content" ? undefined : "choice",
+    schema_version: mode === "content" ? undefined : 1,
     show_leaderboard_after: false,
     title: mode === "content" ? "اسلاید محتوایی جدید" : "",
     content_text: "",
@@ -88,6 +93,9 @@ export const convertSlideToContent = (
 ): EditorSlide => ({
   ...slide,
   slide_type: 2,
+  item_kind: "content",
+  activity_kind: undefined,
+  schema_version: undefined,
   question: null,
   title: slide.title || "اسلاید محتوایی جدید",
   content_text: slide.content_text || "",
@@ -106,6 +114,9 @@ export const convertSlideToQuestion = (
     return {
       ...slide,
       slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "choice",
+      schema_version: 1,
       question: createDefaultQuestion(slide.slide_id, questionType, createId),
     };
   }
@@ -121,22 +132,32 @@ export const convertSlideToQuestion = (
     });
   }
 
-  const firstCorrectIndex = options.findIndex((option) => option.is_correct);
-  const keepCorrectIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+  const evaluationMode =
+    existing.evaluation_mode ?? "correctness";
+  const firstCorrectIndex = options.findIndex(
+    (option) => option.is_correct,
+  );
+  const keepCorrectIndex =
+    firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
   const normalizedOptions = options.map((option, index) => ({
     ...option,
     is_correct:
-      questionType === "single"
-        ? index === keepCorrectIndex
-        : firstCorrectIndex === -1
-          ? index === 0
-          : option.is_correct,
+      evaluationMode === "none"
+        ? false
+        : questionType === "single"
+          ? index === keepCorrectIndex
+          : firstCorrectIndex === -1
+            ? index === 0
+            : option.is_correct,
     order: index + 1,
   }));
 
   return {
     ...slide,
     slide_type: 1,
+    item_kind: "activity",
+    activity_kind: "choice",
+    schema_version: slide.schema_version ?? 1,
     question: {
       ...existing,
       question_type: questionType,

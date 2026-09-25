@@ -22,6 +22,8 @@ export type QuestionPreviewModel = {
   pointsLabel: string;
   optionCountLabel: string;
   options: QuestionPreviewOption[];
+  evaluated: boolean;
+  scored: boolean;
   fasterAnswersMorePoints: boolean;
   partialScoring: boolean;
   showLeaderboardAfter: boolean;
@@ -46,11 +48,14 @@ export const createQuestionPreviewModel = (
   const maxPoint = parseDraftInteger(draft.maxPointsInput);
   const pointsAreValid = validPoints(minPoint, maxPoint);
 
-  const pointsLabel = !pointsAreValid
-    ? "امتیاز نامعتبر"
-    : draft.fasterAnswersMorePoints
-      ? `${formatPersianNumber(minPoint)} تا ${formatPersianNumber(maxPoint)} امتیاز`
-      : `${formatPersianNumber(maxPoint)} امتیاز`;
+  const scored = draft.scoringMode === "points";
+  const pointsLabel = !scored
+    ? "بدون امتیاز"
+    : !pointsAreValid
+      ? "امتیاز نامعتبر"
+      : draft.fasterAnswersMorePoints
+        ? `${formatPersianNumber(minPoint)} تا ${formatPersianNumber(maxPoint)} امتیاز`
+        : `${formatPersianNumber(maxPoint)} امتیاز`;
 
   return {
     questionText: draft.text.trim(),
@@ -70,12 +75,19 @@ export const createQuestionPreviewModel = (
       id: option.id,
       text: option.text.trim(),
       imageUrl: option.imageUrl.trim(),
-      isCorrect: option.isCorrect,
+      isCorrect:
+        draft.evaluationMode === "correctness" &&
+        option.isCorrect,
       position: index + 1,
     })),
-    fasterAnswersMorePoints: draft.fasterAnswersMorePoints,
+    evaluated: draft.evaluationMode === "correctness",
+    scored,
+    fasterAnswersMorePoints:
+      scored && draft.fasterAnswersMorePoints,
     partialScoring:
-      draft.type === "multiple" && draft.partialScoring,
+      scored &&
+      draft.type === "multiple" &&
+      draft.partialScoring,
     showLeaderboardAfter: draft.showLeaderboardAfter,
     validationIssueCount: validateQuestionDraft(draft).length,
   };

@@ -65,6 +65,79 @@ test("presentation adapter keeps revisions and stable option identities", () => 
   );
 });
 
+test("Choice transport round-trips unevaluated unscored policy without inventing correctness or score", () => {
+  const pollDTO = {
+    ...presentationDTO,
+    slides: [{
+      ...presentationDTO.slides[0],
+      id: "poll-1",
+      content: {
+        ...presentationDTO.slides[0].content,
+        response: {
+          ...presentationDTO.slides[0].content.response,
+          selection: "multiple",
+        },
+        evaluation: {
+          mode: "none",
+          correct_option_ids: [],
+        },
+        scoring: {
+          mode: "none",
+          min_points: 0,
+          max_points: 0,
+          speed_bonus: false,
+          partial_credit: false,
+        },
+        results: {
+          show_overall_leaderboard_after: false,
+        },
+      },
+    }],
+  };
+
+  const editor = presentationToEditor(pollDTO);
+  const slide = editor.slides[0];
+
+  assert.equal(slide.item_kind, "activity");
+  assert.equal(slide.activity_kind, "choice");
+  assert.equal(slide.schema_version, 1);
+  assert.equal(slide.question.evaluation_mode, "none");
+  assert.equal(slide.question.scoring_mode, "none");
+  assert.deepEqual(
+    slide.question.options.map((option) => option.is_correct),
+    [false, false],
+  );
+
+  const definition = editorSlideToDefinition(slide);
+  assert.equal(definition.kind, "activity");
+  assert.equal(definition.content.activity_kind, "choice");
+  assert.equal(definition.content.evaluation.mode, "none");
+  assert.deepEqual(definition.content.evaluation.correct_option_ids, []);
+  assert.equal(definition.content.scoring.mode, "none");
+  assert.equal(definition.content.scoring.max_points, 0);
+  assert.equal(
+    definition.content.results.show_overall_leaderboard_after,
+    false,
+  );
+});
+
+test("unknown canonical Activity kinds fail closed instead of becoming legacy question drafts", () => {
+  assert.throws(
+    () => editorSlideToDefinition({
+      slide_id: "text-1",
+      revision: 1,
+      order: 0,
+      slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "text",
+      schema_version: 1,
+      show_leaderboard_after: false,
+      question: null,
+    }),
+    /Unsupported editor item definition/,
+  );
+});
+
 test("access code update uses its dedicated CSRF-protected endpoint", async (t) => {
   const calls = [];
   const originalFetch = globalThis.fetch;

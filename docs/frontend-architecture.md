@@ -305,8 +305,11 @@ Live rendering converges on three explicit projections:
 - Participant for mobile-first personal interaction.
 
 Activity results and cumulative Session leaderboard are separate UI/domain
-concepts. Synthetic leaderboard entries may remain during migration but are not
-the v2 persisted authoring model.
+concepts. The v2 authoring rail contains only persisted Items; Activity-result
+and optional overall-ranking behavior is shown as metadata on the owning
+Activity rather than as a selectable synthetic leaderboard entry. Compatibility
+for genuinely persisted legacy leaderboard Items remains isolated until the
+V2.7 cleanup slice.
 
 v2.0 intentionally excludes team mode and self-paced/assignment UI. Do not add
 speculative frontend state for those modes.

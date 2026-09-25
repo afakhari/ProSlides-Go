@@ -254,10 +254,14 @@ export default function QuestionCanvas({
               امتیازدهی جزئی
             </span>
           )}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1">
+            <CheckCircle2 className="size-3.5" aria-hidden="true" />
+            نتیجه فعالیت پس از پاسخ‌گویی
+          </span>
           {preview.showLeaderboardAfter && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1">
               <Trophy className="size-3.5" aria-hidden="true" />
-              جدول امتیازات بعد از سؤال
+              سپس رتبه‌بندی کلی
             </span>
           )}
         </footer>
