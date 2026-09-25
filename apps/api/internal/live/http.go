@@ -266,7 +266,7 @@ func (h *HTTP) roster(w http.ResponseWriter, r *http.Request) {
 type eventViewer struct {
 	role             string
 	rateLimitIdentity string
-	viewer.participantToken string
+	participantToken string
 }
 
 func (h *HTTP) eventViewer(r *http.Request) (eventViewer, error) {
@@ -300,7 +300,7 @@ func (h *HTTP) eventViewer(r *http.Request) (eventViewer, error) {
 	return eventViewer{
 		role:             "participant",
 		rateLimitIdentity: "participant:" + participant.Value,
-		viewer.participantToken: participant.Value,
+		participantToken: participant.Value,
 	}, nil
 }
 
