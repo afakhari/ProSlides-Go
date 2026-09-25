@@ -5,6 +5,7 @@ import type {
   LegacyQuestionResult,
   LegacyQuestionSlide,
 } from "../../model/serverData.ts";
+import { useLiveSession } from "../../react/useLiveSession.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
 
 type ParticipantActivityResultProps = {
@@ -18,6 +19,7 @@ export function ParticipantActivityResult({
   question,
   result,
 }: ParticipantActivityResultProps) {
+  const { isConnected } = useLiveSession();
   const options = question.options ?? [];
   const counts = useMemo(() => {
     const byOption = new Map<string, number>();
@@ -37,7 +39,7 @@ export function ParticipantActivityResult({
   const hasCorrectAnswer = question.has_correct_answer !== false;
 
   return (
-    <ParticipantShell quiz={quiz} connected showConnection>
+    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
       <section className="flex flex-1 flex-col py-3">
         <div className="flex flex-1 flex-col rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-4 shadow-2xl backdrop-blur-xl sm:p-7">
           <div className="text-center">
