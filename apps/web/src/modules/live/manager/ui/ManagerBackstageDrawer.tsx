@@ -394,7 +394,7 @@ export function ManagerBackstageDrawer({
                 </p>
                 {topPerformers.length > 0 ? (
                   <ol className="mt-3 space-y-2">
-                    {topPerformers.map((performer, index) => (
+                    {topPerformers.map((performer) => (
                       <li
                         key={performer.participant_id}
                         className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-black/20 px-3 py-2"
