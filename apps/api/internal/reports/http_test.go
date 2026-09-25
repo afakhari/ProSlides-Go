@@ -23,6 +23,8 @@ func (reportTestSessions) Current(context.Context, string) (identity.StoredSessi
 	return identity.StoredSession{User: identity.User{ID: "owner"}}, nil
 }
 
+func reportString(value string) *string { return &value }
+
 type reportTestStore struct {
 	listCalls     int
 	sessionCalls  int
@@ -37,7 +39,7 @@ func (s *reportTestStore) ListSessions(_ context.Context, presentationID, ownerI
 		Items: []SessionSummary{{
 			SessionID:         testSessionID,
 			PresentationID:    presentationID,
-			PresentationTitle: "Frozen title",
+			PresentationTitle: reportString("Frozen title"),
 			State:             "ended",
 			CreatedAt:         createdAt,
 			ParticipantCount:  2,
@@ -56,7 +58,7 @@ func (s *reportTestStore) SessionReport(_ context.Context, presentationID, sessi
 		Session: SessionSummary{
 			SessionID:         sessionID,
 			PresentationID:    presentationID,
-			PresentationTitle: "Frozen title",
+			PresentationTitle: reportString("Frozen title"),
 			State:             "ended",
 			CreatedAt:         time.Date(2026, time.September, 25, 10, 30, 0, 0, time.UTC),
 		},
