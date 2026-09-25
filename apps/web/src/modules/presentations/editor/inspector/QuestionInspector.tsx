@@ -541,15 +541,21 @@ function QuestionInspectorInner({
 
             <section aria-labelledby="question-flow-heading">
               <h3 id="question-flow-heading" className="text-sm font-semibold">
-                جریان ارائه
+                پس از فعالیت
               </h3>
-              <label className="mt-2 flex min-h-12 cursor-pointer items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3">
+              <Notice tone="info" className="mt-2 items-start">
+                نتیجه همین فعالیت، شامل توزیع پاسخ‌ها و پاسخ صحیح، پس از
+                بسته‌شدن Activity نمایش داده می‌شود. این مرحله از رتبه‌بندی
+                کلی جلسه جداست.
+              </Notice>
+              <label className="mt-3 flex min-h-12 cursor-pointer items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3">
                 <span>
                   <span className="block text-sm font-medium">
-                    نمایش جدول امتیازات بعد از سؤال
+                    نمایش رتبه‌بندی کلی بعد از نتیجه
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-content-muted">
-                    پس از بسته‌شدن سؤال، جایگاه شرکت‌کنندگان نمایش داده می‌شود.
+                    پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز
+                    روی Stage نمایش داده می‌شود.
                   </span>
                 </span>
                 <input
