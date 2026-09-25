@@ -931,12 +931,18 @@ export interface components {
         LeaderboardContent: {
             title?: string;
         };
+        /** @description Submit exactly one Activity response representation. response is the canonical V2 field. selected_option_indexes is temporary Choice-only compatibility and is removed in V2.7. */
         AnswerRequest: {
             /** Format: uuid */
             request_id: string;
             /** Format: uuid */
             activity_item_id: string;
-            response: components["schemas"]["ChoiceActivityResponse"] | components["schemas"]["TextActivityResponse"];
+            response?: components["schemas"]["ChoiceActivityResponse"] | components["schemas"]["TextActivityResponse"];
+            /**
+             * @deprecated
+             * @description Temporary pre-generic Choice response compatibility. Do not use for Text Activities.
+             */
+            selected_option_indexes?: number[];
         };
         ChoiceActivityResponse: {
             selected_option_indexes: number[];
@@ -1040,6 +1046,11 @@ export interface components {
             /** Format: uuid */
             activity_item_id: string;
             response: components["schemas"]["ChoiceActivityResponse"] | components["schemas"]["StoredTextActivityResponse"];
+            /**
+             * @deprecated
+             * @description Derived Choice-only compatibility field; response is authoritative.
+             */
+            selected_option_indexes?: number[];
             score_delta: number;
         };
         ReportSessionSummary: {
@@ -1327,6 +1338,13 @@ export interface components {
             schema_version: number;
             response_count: number;
             payload: components["schemas"]["ReportChoiceResultPayload"] | components["schemas"]["WordFrequencyResultPayload"];
+            /**
+             * @deprecated
+             * @description Derived Choice-only compatibility field; payload is authoritative.
+             */
+            option_counts?: {
+                [key: string]: number;
+            };
         };
         RankingUpdatedPayload: {
             participant_count: number;
