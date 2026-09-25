@@ -53,6 +53,14 @@ export interface ParticipantSnapshot {
   activity_result?: ActivityResult;
 }
 
+export interface ActivityTopPerformer {
+  participant_id: string;
+  display_name: string;
+  avatar?: string;
+  score_delta: number;
+  rank: number;
+}
+
 export interface ManagerSnapshot {
   role: "manager";
   session: ManagerLiveSession;
@@ -61,6 +69,7 @@ export interface ManagerSnapshot {
   has_scoring: boolean;
   last_event_id: number;
   activity_result?: ActivityResult;
+  activity_top_performers: ActivityTopPerformer[];
 }
 
 export interface StageRankingEntry {

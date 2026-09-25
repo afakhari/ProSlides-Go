@@ -38,6 +38,7 @@ export function LiveSessionProvider({
       joinParticipant: runtime.joinParticipant,
       submitAnswer: runtime.submitAnswer,
       sendNavigation: runtime.sendNavigation,
+      sendManagerAction: runtime.sendManagerAction,
       sendEnd: runtime.sendEnd,
       loadRoster: runtime.loadRoster,
       loadMoreRoster: runtime.loadMoreRoster,

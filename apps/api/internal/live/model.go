@@ -102,14 +102,23 @@ type ParticipantSnapshot struct {
 	PersonalActivityResult *PersonalActivityResult `json:"personal_activity_result,omitempty"`
 }
 
+type ActivityTopPerformer struct {
+	ParticipantID string `json:"participant_id"`
+	DisplayName   string `json:"display_name"`
+	Avatar        string `json:"avatar,omitempty"`
+	ScoreDelta    int    `json:"score_delta"`
+	Rank          int    `json:"rank"`
+}
+
 type ManagerSnapshot struct {
-	Role             string          `json:"role"`
-	Session          Session         `json:"session"`
-	ActiveItem       json.RawMessage `json:"active_item,omitempty"`
-	ParticipantCount int             `json:"participant_count"`
-	HasScoring       bool            `json:"has_scoring"`
-	LastEventID      int64           `json:"last_event_id"`
-	ActivityResult   *ActivityResult `json:"activity_result,omitempty"`
+	Role                  string                 `json:"role"`
+	Session               Session                `json:"session"`
+	ActiveItem            json.RawMessage        `json:"active_item,omitempty"`
+	ParticipantCount      int                    `json:"participant_count"`
+	HasScoring            bool                   `json:"has_scoring"`
+	LastEventID           int64                  `json:"last_event_id"`
+	ActivityResult        *ActivityResult        `json:"activity_result,omitempty"`
+	ActivityTopPerformers []ActivityTopPerformer `json:"activity_top_performers"`
 }
 
 type StageRankingEntry struct {

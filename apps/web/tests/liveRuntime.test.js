@@ -208,6 +208,59 @@ test("failed manager actions reuse the same request id on retry", async () => {
   runtime.destroy();
 });
 
+test("explicit manager Activity controls refresh authoritative state", async () => {
+  const applied = [];
+  let current = managerSnapshot("session", {
+    eventId: 3,
+    stateVersion: 4,
+    state: "presenting",
+    activityPhase: "accepting",
+  });
+
+  const runtime = createLiveRuntime("manager", {
+    storage: null,
+    transport: {
+      createLiveSession: async () => current.session,
+      getLiveSnapshot: async () => current,
+      getRosterPage: async (_id, order) => emptyRoster(order),
+      applyLiveAction: async (_id, input) => {
+        applied.push(input.action);
+        current = managerSnapshot("session", {
+          eventId: current.last_event_id + 1,
+          stateVersion: current.session.state_version + 1,
+          state: "presenting",
+          activityPhase:
+            input.action === "close_activity"
+              ? "closed"
+              : input.action === "reveal_activity"
+                ? "revealed"
+                : current.session.activity_phase,
+          stageView:
+            input.action === "show_overall_ranking"
+              ? "overall_ranking"
+              : current.session.stage_view,
+        });
+        return current.session;
+      },
+      streamLiveEvents: parkedStream,
+    },
+  });
+
+  assert.equal(await runtime.connect("presentation"), true);
+  assert.equal(await runtime.sendManagerAction("close_activity"), true);
+  assert.equal(runtime.getState().snapshot.session.activity_phase, "closed");
+  assert.equal(await runtime.sendManagerAction("reveal_activity"), true);
+  assert.equal(runtime.getState().snapshot.session.activity_phase, "revealed");
+  assert.equal(await runtime.sendManagerAction("show_overall_ranking"), true);
+  assert.equal(runtime.getState().snapshot.session.stage_view, "overall_ranking");
+  assert.deepEqual(applied, [
+    "close_activity",
+    "reveal_activity",
+    "show_overall_ranking",
+  ]);
+  runtime.destroy();
+});
+
 test("stream reconnect refreshes the snapshot before resuming from the new cursor", async () => {
   let snapshotReads = 0;
   const streamCursors = [];

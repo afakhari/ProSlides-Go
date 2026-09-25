@@ -58,7 +58,12 @@ export function ManagerPresentationView({
     <>
       {content}
       {view !== "ManagerFinalLeaderboard" ? (
-        <ManagerBackstageDrawer quiz={quiz} currentSlide={currentSlide} />
+        <ManagerBackstageDrawer
+          quiz={quiz}
+          currentSlide={currentSlide}
+          onAdvance={handleNext}
+          onEndGame={handleEndGame}
+        />
       ) : null}
     </>
   );

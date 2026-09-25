@@ -31,6 +31,10 @@ import {
 
 export type LiveClientRole = "manager" | "player";
 export type RosterOrder = "joined" | "score";
+export type LiveManagerControlAction =
+  | "close_activity"
+  | "reveal_activity"
+  | "show_overall_ranking";
 
 export interface LiveJoinResult {
   clientUserId: string;
@@ -678,6 +682,27 @@ export class LiveRuntime {
           action === "present_item" ? options.slide : undefined,
         );
         if (!applied) throw new Error("Live action was not authorized");
+      }
+      try {
+        await this.refreshAuthoritative();
+      } catch (refreshError) {
+        this.publish({ connectionError: errorMessage(refreshError) });
+      }
+      return true;
+    } catch (error) {
+      this.publish({ connectionError: errorMessage(error) });
+      return false;
+    } finally {
+      this.commandInFlight = false;
+    }
+  };
+
+  sendManagerAction = async (action: LiveManagerControlAction) => {
+    if (this.commandInFlight || this.role !== "manager") return false;
+    this.commandInFlight = true;
+    try {
+      if (!(await this.runAction(action))) {
+        throw new Error("Live manager action was not authorized");
       }
       try {
         await this.refreshAuthoritative();
