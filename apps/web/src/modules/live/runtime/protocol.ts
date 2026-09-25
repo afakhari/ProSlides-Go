@@ -402,6 +402,7 @@ export const projectLiveSnapshot = (
   const questionResults = result
     ? {
         question_id: result.activity_item_id,
+        response_count: result.response_count,
         optionsResult: Object.entries(
           result.option_counts ?? {},
         ).map(([optionId, count]) => ({
@@ -417,10 +418,9 @@ export const projectLiveSnapshot = (
     snapshot.session.stage_view === "item" &&
     (
       snapshot.session.activity_phase === "accepting" ||
+      snapshot.session.activity_phase === "revealed" ||
       (snapshot.role === "manager" &&
-        ["closed", "revealed"].includes(
-          snapshot.session.activity_phase ?? "",
-        ))
+        snapshot.session.activity_phase === "closed")
     );
 
   return {
