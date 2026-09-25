@@ -656,7 +656,11 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     ).toBeVisible({
       timeout: 15000,
     });
-    await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    await expect(
+      manager
+        .getByRole("main")
+        .getByText("شرکت‌کننده تست", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
     await expect(
       stage.getByRole("heading", { name: "جدول امتیازات" }),
     ).toBeVisible({ timeout: 15000 });
