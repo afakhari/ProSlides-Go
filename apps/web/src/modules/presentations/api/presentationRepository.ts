@@ -8,15 +8,6 @@ type PresentationSummaryDTO = components["schemas"]["PresentationSummary"];
 type AccessCodeResultDTO = components["schemas"]["AccessCodeResult"];
 type CreateSlideRequestDTO = components["schemas"]["CreateSlideRequest"];
 
-export type QuestionLeaderboardEntry = {
-  rust_session_id: string;
-  player_name: string;
-  avatar: string;
-  score: number;
-  rank: number;
-  time_taken: number | null;
-};
-
 export { ApiError as QuizServiceError } from "../../../shared/api/http.ts";
 
 type RequestOptions = ApiRequestOptions;
@@ -338,36 +329,6 @@ export const quizService = {
     json: { slide_ids: slideIDs.map(String) },
   }),
 
-  getQuestionResults: async (quizID: string, slideID: string, limit = 100) => {
-    try {
-      const locator = await request<{ session_id: string }>(`/presentations/${quizID}/latest-session`);
-      return await request<Record<string, unknown>>(`/presentations/${quizID}/sessions/${locator.session_id}/questions/${slideID}/results?limit=${limit}`);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) return null;
-      throw error;
-    }
-  },
-  getQuestionLeaderboard: async (
-    quizID: string,
-    slideID: string,
-  ): Promise<QuestionLeaderboardEntry[]> => {
-    const page = await quizService.getQuestionResults(
-      quizID,
-      slideID,
-      100,
-    ) as { leaderboard?: Array<Record<string, unknown>> } | null;
-    return (page?.leaderboard || []).map((item) => ({
-      rust_session_id: stringValue(item.participant_id),
-      player_name: stringValue(item.display_name),
-      avatar: stringValue(item.avatar),
-      score: numberValue(item.score, 0),
-      rank: numberValue(item.rank, 0),
-      time_taken:
-        item.time_taken_ms == null
-          ? null
-          : numberValue(item.time_taken_ms, 0) / 1000,
-    }));
-  },
   getSlidesFromAPI: (quizID: string) => quizService.getQuiz(quizID),
 };
 
