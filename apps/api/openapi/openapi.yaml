@@ -369,25 +369,6 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-  /api/v1/presentations/{presentationId}/sessions/{sessionId}/questions/{slideId}/results:
-    get:
-      deprecated: true
-      operationId: getQuestionResults
-      summary: Return persisted option counts and a stable bounded per-question leaderboard for an owned session.
-      description: This is the Go-native replacement for Django's Rust result-ingestion endpoints. Results are derived from durable answers and never accept a second externally supplied score ledger.
-      parameters:
-        - $ref: '#/components/parameters/PresentationId'
-        - $ref: '#/components/parameters/SessionId'
-        - { name: slideId, in: path, required: true, schema: { type: string, format: uuid } }
-        - $ref: '#/components/parameters/RosterLimit'
-        - $ref: '#/components/parameters/RosterCursor'
-      responses:
-        '200':
-          description: Question results for the requested owned live session.
-          content: { application/json: { schema: { $ref: '#/components/schemas/QuestionResultsPage' } } }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/presentations/{presentationId}/results:
     delete:
       operationId: deletePresentationResults
@@ -1406,45 +1387,6 @@ components:
           type: array
           items: { $ref: '#/components/schemas/RosterEntry' }
         order: { type: string, enum: [joined, score] }
-        limit: { type: integer, minimum: 1, maximum: 100 }
-        has_more: { type: boolean }
-        next_cursor: { type: string, nullable: true }
-    QuestionOptionResult:
-      type: object
-      required: [option_index, option_id, option_text, is_correct, number_of_submits]
-      additionalProperties: false
-      properties:
-        option_index: { type: integer, minimum: 0 }
-        option_id: { type: string }
-        option_text: { type: string }
-        is_correct: { type: boolean }
-        number_of_submits: { type: integer, minimum: 0 }
-    QuestionLeaderboardEntry:
-      type: object
-      required: [participant_id, display_name, score, rank, submitted_at]
-      additionalProperties: false
-      properties:
-        participant_id: { type: string, format: uuid }
-        display_name: { type: string }
-        avatar: { type: string }
-        score: { type: integer, minimum: 0 }
-        rank: { type: integer, minimum: 1 }
-        time_taken_ms: { type: integer, minimum: 0, nullable: true }
-        submitted_at: { type: string, format: date-time }
-    QuestionResultsPage:
-      type: object
-      required: [session_id, question_slide_id, response_count, options, leaderboard, limit, has_more]
-      additionalProperties: false
-      properties:
-        session_id: { type: string, format: uuid }
-        question_slide_id: { type: string, format: uuid }
-        response_count: { type: integer, minimum: 0 }
-        options:
-          type: array
-          items: { $ref: '#/components/schemas/QuestionOptionResult' }
-        leaderboard:
-          type: array
-          items: { $ref: '#/components/schemas/QuestionLeaderboardEntry' }
         limit: { type: integer, minimum: 1, maximum: 100 }
         has_more: { type: boolean }
         next_cursor: { type: string, nullable: true }

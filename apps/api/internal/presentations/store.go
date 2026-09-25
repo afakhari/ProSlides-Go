@@ -56,42 +56,6 @@ type SessionLocator struct {
 type AccessCodeResult struct {
 	AccessCode string `json:"access_code"`
 }
-type QuestionResultCursor struct {
-	Score       int       `json:"s"`
-	SubmittedAt time.Time `json:"t"`
-	AnswerID    string    `json:"i"`
-}
-type QuestionResultsQuery struct {
-	Limit  int
-	Cursor *QuestionResultCursor
-}
-type QuestionOptionResult struct {
-	OptionIndex     int    `json:"option_index"`
-	OptionID        string `json:"option_id"`
-	OptionText      string `json:"option_text"`
-	IsCorrect       bool   `json:"is_correct"`
-	NumberOfSubmits int    `json:"number_of_submits"`
-}
-type QuestionLeaderboardEntry struct {
-	ParticipantID string    `json:"participant_id"`
-	DisplayName   string    `json:"display_name"`
-	Avatar        string    `json:"avatar,omitempty"`
-	Score         int       `json:"score"`
-	Rank          int       `json:"rank"`
-	TimeTakenMS   *int64    `json:"time_taken_ms"`
-	SubmittedAt   time.Time `json:"submitted_at"`
-	answerID      string
-}
-type QuestionResultsPage struct {
-	SessionID       string                     `json:"session_id"`
-	QuestionSlideID string                     `json:"question_slide_id"`
-	ResponseCount   int                        `json:"response_count"`
-	Options         []QuestionOptionResult     `json:"options"`
-	Leaderboard     []QuestionLeaderboardEntry `json:"leaderboard"`
-	Limit           int                        `json:"limit"`
-	HasMore         bool                       `json:"has_more"`
-	NextCursor      *string                    `json:"next_cursor,omitempty"`
-}
 type Store interface {
 	ListOwned(context.Context, string) ([]PresentationSummary, error)
 	FindOwned(context.Context, string, string) (Presentation, error)
@@ -102,7 +66,6 @@ type Store interface {
 	Duplicate(context.Context, string, string, string) (Presentation, error)
 	LatestSession(context.Context, string, string) (SessionLocator, error)
 	DeleteResults(context.Context, string, string) error
-	QuestionResults(context.Context, string, string, string, string, QuestionResultsQuery) (QuestionResultsPage, error)
 	CreateSlide(context.Context, string, string, int, string, json.RawMessage, *int64) (Slide, error)
 	ReplaceSlide(context.Context, string, string, string, int, string, json.RawMessage, *int64) (Slide, error)
 	DeleteSlide(context.Context, string, string, string, *int64) error

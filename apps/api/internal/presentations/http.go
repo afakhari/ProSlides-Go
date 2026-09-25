@@ -2,7 +2,6 @@ package presentations
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -37,7 +36,6 @@ func (h *HTTP) Register(m *http.ServeMux) {
 	m.HandleFunc("DELETE /api/v1/presentations/{presentationId}", h.delete)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/duplicate", h.duplicate)
 	m.HandleFunc("GET /api/v1/presentations/{presentationId}/latest-session", h.latestSession)
-	m.HandleFunc("GET /api/v1/presentations/{presentationId}/sessions/{sessionId}/questions/{slideId}/results", h.questionResults)
 	m.HandleFunc("DELETE /api/v1/presentations/{presentationId}/results", h.deleteResults)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/slides", h.createSlide)
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/slides/reorder", h.reorderSlides)
@@ -230,44 +228,6 @@ func (h *HTTP) latestSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, locator)
-}
-
-func (h *HTTP) questionResults(w http.ResponseWriter, r *http.Request) {
-	user, err := h.current(r)
-	if err != nil {
-		errJSON(w, 401, "unauthorized")
-		return
-	}
-	limit := 50
-	if raw := r.URL.Query().Get("limit"); raw != "" {
-		limit, err = strconv.Atoi(raw)
-		if err != nil || limit < 1 || limit > 100 {
-			errJSON(w, 400, "invalid_request")
-			return
-		}
-	}
-	var cursor *QuestionResultCursor
-	if raw := r.URL.Query().Get("cursor"); raw != "" {
-		decoded, decodeErr := base64.RawURLEncoding.DecodeString(raw)
-		var value QuestionResultCursor
-		if decodeErr != nil || json.Unmarshal(decoded, &value) != nil || !validUUID(value.AnswerID) || value.SubmittedAt.IsZero() {
-			errJSON(w, 400, "invalid_cursor")
-			return
-		}
-		cursor = &value
-	}
-	page, err := h.store.QuestionResults(r.Context(), r.PathValue("presentationId"), r.PathValue("sessionId"), r.PathValue("slideId"), user.ID, QuestionResultsQuery{Limit: limit, Cursor: cursor})
-	if handleStoreError(w, err) {
-		return
-	}
-	if page.HasMore && len(page.Leaderboard) > 0 {
-		last := page.Leaderboard[len(page.Leaderboard)-1]
-		raw, _ := json.Marshal(QuestionResultCursor{Score: last.Score, SubmittedAt: last.SubmittedAt, AnswerID: last.answerID})
-		next := base64.RawURLEncoding.EncodeToString(raw)
-		page.NextCursor = &next
-	}
-	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, 200, page)
 }
 
 func (h *HTTP) deleteResults(w http.ResponseWriter, r *http.Request) {
