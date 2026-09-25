@@ -512,7 +512,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await expect(
       stage.getByRole("heading", { name: "چرخه کامل تست زنده" }),
     ).toBeVisible({ timeout: 15000 });
-    await expect(stage.getByText(fixture.accessCode, { exact: true })).toBeVisible();
+    await expect(
+      stage.getByRole("main").getByText(fixture.accessCode, { exact: true }),
+    ).toBeVisible();
     await expectAccessible(stage, "audience Stage lobby");
 
     await participant.goto(`/${fixture.accessCode}`);
