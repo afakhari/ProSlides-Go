@@ -215,6 +215,11 @@ jobs:
         working-directory: apps/web
         run: npm run test:e2e
 
+      - name: Repeat critical browser E2E
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        working-directory: apps/web
+        run: npm run test:e2e:critical -- --repeat-each=2
+
       - name: Print stack logs on failure
         if: failure()
         run: docker compose logs --no-color --tail=200 api postgres redis
