@@ -21,14 +21,6 @@ async function expectNoOverflow(page) {
   ).toBe(true);
 }
 
-function waitForManagerSession(page) {
-  return page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === "/api/v1/auth/me" &&
-      response.request().method() === "GET",
-  );
-}
-
 function waitForReportSessions(page, presentationId) {
   return page.waitForResponse((response) => {
     const url = new URL(response.url());
