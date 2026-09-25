@@ -212,18 +212,6 @@ export function ManagerLeaderBoard({
               </ol>
             )}
 
-            {hasMoreRoster ? (
-              <div className="mt-5 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => void loadMoreRoster()}
-                  disabled={isRosterLoading}
-                  className="min-h-11 rounded-xl border border-white/20 bg-white/5 px-4 text-sm font-bold hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                >
-                  {isRosterLoading ? "در حال بارگذاری…" : "نمایش بیشتر"}
-                </button>
-              </div>
-            ) : null}
           </div>
         </section>
       </main>
@@ -240,6 +228,9 @@ export function ManagerLeaderBoard({
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
         players={modalLeaderboardResults ?? sourcePlayers}
+        hasMore={hasMoreRoster}
+        isLoading={isRosterLoading}
+        onLoadMore={() => void loadMoreRoster()}
       />
     </div>
   );
