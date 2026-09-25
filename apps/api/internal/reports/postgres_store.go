@@ -435,6 +435,13 @@ func (s *PostgresStore) Ranking(ctx context.Context, presentationID, sessionID, 
 		return page, nil
 	}
 
+	// Cumulative scores are mutable while a Session is running, so a score-based
+	// cursor cannot provide stable pagination until the Session is final.
+	// Active reports expose a bounded top slice only; ended Sessions paginate.
+	if !page.IsFinal {
+		query.Cursor = nil
+	}
+
 	var rows pgx.Rows
 	if query.Cursor == nil {
 		rows, err = tx.Query(ctx, `WITH ranked AS (
@@ -494,8 +501,8 @@ func (s *PostgresStore) Ranking(ctx context.Context, presentationID, sessionID, 
 	}
 	rows.Close()
 	if len(page.Items) > query.Limit {
-		page.HasMore = true
 		page.Items = page.Items[:query.Limit]
+		page.HasMore = page.IsFinal
 	}
 
 	if err := tx.Commit(ctx); err != nil {
