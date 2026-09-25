@@ -159,13 +159,24 @@ function StageActivity({
   }, [result?.option_counts]);
   const total = Number(result?.response_count ?? 0);
   const options = question.options ?? [];
+  const isPoll =
+    question.has_correct_answer === false &&
+    question.is_scored === false;
 
   return (
     <main className="flex min-h-screen flex-col px-5 pb-10 pt-24 sm:px-8">
       <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <div className="text-center">
           <p className="text-sm font-bold text-[color:var(--live-muted)]">
-            {revealed ? "نتیجه فعالیت" : closed ? "پاسخ‌گویی بسته شد" : "فعالیت"}
+            {revealed
+              ? isPoll
+                ? "نتیجه نظرسنجی"
+                : "نتیجه فعالیت"
+              : closed
+                ? "پاسخ‌گویی بسته شد"
+                : isPoll
+                  ? "نظرسنجی"
+                  : "فعالیت"}
           </p>
           <h1 className="mx-auto mt-2 max-w-5xl text-3xl font-black leading-tight sm:text-5xl" dir="auto">
             {question.question_text || question.question_title || "فعالیت"}
