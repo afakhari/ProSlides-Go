@@ -23,14 +23,11 @@ Because the project is pre-production, internal contract compatibility is not a
 goal by itself. Compatibility code exists only to keep a slice safely
 migratable, then is removed.
 
-## Baseline
+## Architecture baseline
 
-The v2 program begins after commit:
-
-    1e075016fa69b6ec3e5783ba9947b6e3a6d8211d
-
-This is a documentation baseline, not a release or production claim. Git remains
-authoritative for later v2 commits.
+PR #81 established the v2 architecture and tracking baseline. Git remains
+authoritative for the exact commit history; this plan does not duplicate a
+moving SHA.
 
 ## Scope locks
 
