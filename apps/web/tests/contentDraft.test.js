@@ -14,7 +14,7 @@ const slide = {
   slide_id: "content-1",
   revision: 4,
   order: 2,
-  slide_type: 2,
+  item_kind: "content",
   show_leaderboard_after: false,
   question: null,
   title: "عنوان",
@@ -100,7 +100,6 @@ test("content serialization preserves authored whitespace and slide revision", (
   assert.equal(serialized.revision, 4);
   assert.equal(serialized.title, "  عنوان با فاصله  ");
   assert.equal(serialized.content_text, "  خط اول\nخط دوم  ");
-  assert.equal(serialized.slide_type, 2);
   assert.equal(serialized.item_kind, "content");
   assert.equal(serialized.activity_kind, undefined);
   assert.equal(serialized.question, null);
