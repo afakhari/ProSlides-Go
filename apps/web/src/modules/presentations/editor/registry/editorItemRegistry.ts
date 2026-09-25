@@ -75,6 +75,8 @@ export const getEditorConversionConfirmation = (
 ): EditorConversionConfirmation | null => {
   if (editorSlideMatchesTypeChoice(slide, choiceId)) return null;
 
+  const currentRegistration = resolveEditorItemRegistration(slide);
+
   if (choiceId === "content") {
     return slide.question
       ? {
@@ -87,7 +89,7 @@ export const getEditorConversionConfirmation = (
       : null;
   }
 
-  if (slide.slide_type === 2) {
+  if (currentRegistration?.key === "content") {
     return {
       title: "تبدیل به فعالیت انتخابی؟",
       description:
@@ -99,6 +101,7 @@ export const getEditorConversionConfirmation = (
 
   if (
     slide.question?.question_type === "multiple" &&
+    slide.question.evaluation_mode !== "none" &&
     choiceId === "choice-single"
   ) {
     return {
