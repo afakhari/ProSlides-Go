@@ -12,6 +12,7 @@ type RuntimeCommands = Pick<
   | "joinParticipant"
   | "submitAnswer"
   | "sendNavigation"
+  | "sendManagerAction"
   | "sendEnd"
   | "loadRoster"
   | "loadMoreRoster"
