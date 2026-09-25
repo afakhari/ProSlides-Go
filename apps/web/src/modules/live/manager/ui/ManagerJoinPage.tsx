@@ -28,6 +28,7 @@ export function ManagerJoinPage({
     hasMoreRoster,
     isRosterLoading,
     loadMoreRoster,
+    snapshot,
   } = useLiveSession();
   const { users, currentQuestion, currentContent, leaderboardResults } =
     useServerData();
@@ -38,6 +39,7 @@ export function ManagerJoinPage({
   const [startError, setStartError] = useState("");
 
   const sessionInProgress =
+    snapshot?.session.state === "presenting" ||
     currentQuestion !== null ||
     currentContent !== null ||
     (leaderboardResults?.length ?? 0) > 0;
