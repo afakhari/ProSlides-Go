@@ -384,7 +384,7 @@ try {
   $restoredManagerSnapshot = (Invoke-API -Method GET -Path "/api/v1/live/sessions/$($liveSession.id)/snapshot" -Client $loginClient -ExpectedStatus 200).Content | ConvertFrom-Json
   if ($restoredManagerSnapshot.participant_count -ne 17) { throw "Rejoin changed the participant count instead of restoring the existing record" }
   $activeNameTakeover = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/join" -Client $rejoinClient -Body (@{ request_id = [guid]::NewGuid().ToString(); display_name = "Burst Player 0"; avatar = "T" } | ConvertTo-Json -Compress) -ExpectedStatus 409
-  if ((($activeNameTakeover.Content.ReadAsStringAsync().GetAwaiter().GetResult()) | ConvertFrom-Json).error -ne "display_name_taken") { throw "Active name takeover was not rejected" }
+  if ((($activeNameTakeover.Content | ConvertFrom-Json).error) -ne "display_name_taken") { throw "Active name takeover was not rejected" }
   $rejoinClient.Dispose()
   $rejoinHandler.Dispose()
   $participantCookies.SetCookies($apiBaseUrl, "proslides_participant=$rejoinRequestID; Path=/")
