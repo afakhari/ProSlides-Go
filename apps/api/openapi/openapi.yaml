@@ -478,26 +478,6 @@ paths:
         '403': { $ref: '#/components/responses/CSRFError' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { description: The slide has durable live answers; reset presentation results before deleting it. }
-  /api/v1/presentations/{presentationId}/questions:
-    post:
-      operationId: createQuestionSlide
-      summary: Add a single- or multiple-choice question slide.
-      deprecated: true
-      description: Legacy compatibility endpoint. New authoring clients use the generic slide endpoint with an Activity definition; the server persists this request as a v2 Choice Activity.
-      parameters:
-        - $ref: '#/components/parameters/PresentationId'
-        - $ref: '#/components/parameters/CSRFToken'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CreateQuestionRequest' }
-      responses:
-        '201': { description: Question slide created. }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/CSRFError' }
-        '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/live/sessions/{sessionId}/events:
     get:
       operationId: subscribeLiveSession
@@ -895,43 +875,12 @@ components:
           maxItems: 1000
           uniqueItems: true
           items: { type: string, format: uuid }
-    CreateQuestionRequest:
-      type: object
-      required: [position, text, question_type, options]
-      properties:
-        position: { type: integer, minimum: 0 }
-        text: { type: string, minLength: 1 }
-        question_type: { type: string, enum: [single, multiple] }
-        question_time: { type: integer, minimum: 1, maximum: 86400, default: 30 }
-        max_point: { type: integer, minimum: 1, default: 100 }
-        min_point: { type: integer, minimum: 0, default: 0 }
-        faster_answers_more_points: { type: boolean, default: false }
-        partial_scoring:
-          type: boolean
-          default: false
-          description: When true, score is max(0, correct selections minus incorrect selections) divided by the number of correct options; the scoring policy is an implementation boundary and may be replaced later.
-        options:
-          type: array
-          minItems: 2
-          items:
-            type: object
-            required: [text, is_correct]
-            properties:
-              text: { type: string, minLength: 1 }
-              is_correct: { type: boolean }
     EditableSlideContent:
       description: Content is validated against the accompanying authoring item kind. Unknown fields are rejected by the API.
       anyOf:
-        - $ref: '#/components/schemas/QuestionDraftContent'
         - $ref: '#/components/schemas/ActivityItemDefinition'
         - $ref: '#/components/schemas/ContentSlideContent'
         - $ref: '#/components/schemas/LeaderboardContent'
-    QuestionDraftContent:
-      type: object
-      additionalProperties: false
-      description: Temporary pre-V2.3 editor compatibility shape for an untyped question placeholder.
-      properties:
-        show_leaderboard_after: { type: boolean, default: false }
     ActivityItemDefinition:
       description: Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted.
       oneOf:
