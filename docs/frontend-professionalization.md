@@ -27,8 +27,10 @@ and must use safe direction boundaries rather than forced alignment.
 5. Empty states identify the next useful action.
 6. Unimplemented controls are hidden or explicitly unavailable.
 7. Motion is functional, normally short, and respects reduced-motion settings.
-8. Keyboard, focus, screen-reader behavior and touch targets are definition of
-   done, not post-launch polish.
+8. New and materially changed interactions preserve semantic HTML, accessible
+   names, keyboard reachability and usable touch targets; exhaustive manual
+   accessibility audit is consolidated before production rather than repeated
+   after every pre-production visual iteration.
 9. Runtime presentation theming may change visual mood without changing basic
    interaction/accessibility semantics.
 10. Responsive behavior is designed, not merely shrunk.
@@ -110,7 +112,10 @@ Required behavior includes:
 - usable touch targets;
 - readable contrast across allowed runtime themes.
 
-Automated axe checks are a gate, not a substitute for keyboard/manual review.
+Automated axe checks are useful smoke coverage, not a substitute for
+keyboard/manual review. During active pre-production redesign, run focused
+checks on changed critical flows and consolidate the full manual audit before
+the production-readiness milestone.
 
 ## Motion
 
@@ -123,15 +128,31 @@ boundary. All effects require reduced-motion behavior.
 
 ## Browser acceptance
 
-Material UI changes should be checked in a real browser for:
+The project is currently pre-production and broad frontend redesign is active.
+Browser verification is therefore staged to preserve iteration speed.
 
-- desktop and mobile anchor sizes;
-- relevant intermediate/container states;
+For ordinary redesign slices, perform a focused real-browser smoke check of the
+changed flow, including the most relevant viewport, basic RTL behavior,
+interaction/focus sanity and obvious console/network failures. Do not require
+the full device/state matrix or new E2E scenarios merely because markup,
+spacing, composition or visual hierarchy changed.
+
+Use broader browser automation immediately when a change touches a costly
+behavioral invariant such as authentication, editor revision/conflict handling,
+full-document navigation, live manager/participant coordination, cancellation
+or mutation recovery.
+
+Before production, complete the full acceptance matrix for:
+
+- desktop and mobile anchor sizes plus relevant intermediate/container states;
 - RTL and mixed LTR content;
-- keyboard focus/order;
+- keyboard focus/order and manual accessibility review;
 - reduced motion;
 - horizontal overflow;
 - console/network errors;
-- pending/error/recovery paths.
+- pending/error/recovery/conflict/cancellation paths;
+- critical end-to-end manager and participant journeys.
 
-Static screenshots alone do not prove interaction quality.
+Static screenshots alone do not prove interaction quality, but visual-regression
+coverage should wait until a surface is stable enough that snapshots protect a
+design rather than obstruct its redesign.
