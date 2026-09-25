@@ -80,7 +80,11 @@ stream as soon as an Activity closed, which exposed unrevealed aggregate
 results to participant network clients even though participant snapshots
 correctly withheld them. The corrective slice makes Activity-result SSE
 manager-only until reveal, tightens Persian Word Cloud aggregation
-normalization, and reconciles the live-contract/version documentation.
+normalization, reconciles the live-contract/version documentation, and refreshes
+the vulnerable transitive web-tooling lock entries identified by `npm audit`.
+The refreshed lock resolves `@redocly/openapi-core`/ `js-yaml` and `qs`
+to patched versions, with a clean zero-vulnerability audit on the same Node/npm
+toolchain used by CI.
 
 **Next implementation slice after the stabilization gate is green on
 `main`: V2.7 / issue #89 — remove verified legacy
