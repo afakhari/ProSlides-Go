@@ -74,13 +74,13 @@ func normalizeActivityResponse(
 		if text == "" || utf8.RuneCountInString(text) > definition.Response.MaxLength {
 			return nil, nil, ErrInvalid
 		}
-		terms := wordCloudTerms(text)
-		if len(terms) == 0 || len(terms) > definition.Response.MaxWords {
+		tokens := wordCloudTokens(text)
+		if len(tokens) == 0 || len(tokens) > definition.Response.MaxWords {
 			return nil, nil, ErrInvalid
 		}
 		normalized, err := json.Marshal(storedTextActivityResponse{
 			Text:  text,
-			Terms: terms,
+			Terms: uniqueWordCloudTerms(tokens),
 		})
 		if err != nil {
 			return nil, nil, err
@@ -91,10 +91,9 @@ func normalizeActivityResponse(
 	}
 }
 
-func wordCloudTerms(value string) []string {
+func wordCloudTokens(value string) []string {
 	normalized := strings.ToLower(norm.NFKC.String(value))
-	terms := make([]string, 0, 4)
-	seen := map[string]struct{}{}
+	tokens := make([]string, 0, 4)
 	var current []rune
 
 	flush := func() {
@@ -103,14 +102,9 @@ func wordCloudTerms(value string) []string {
 		}
 		term := strings.Trim(string(current), "'’\u200c\u200d")
 		current = current[:0]
-		if term == "" {
-			return
+		if term != "" {
+			tokens = append(tokens, term)
 		}
-		if _, duplicate := seen[term]; duplicate {
-			return
-		}
-		seen[term] = struct{}{}
-		terms = append(terms, term)
 	}
 
 	for _, r := range normalized {
@@ -126,6 +120,19 @@ func wordCloudTerms(value string) []string {
 		flush()
 	}
 	flush()
+	return tokens
+}
+
+func uniqueWordCloudTerms(tokens []string) []string {
+	terms := make([]string, 0, len(tokens))
+	seen := make(map[string]struct{}, len(tokens))
+	for _, term := range tokens {
+		if _, duplicate := seen[term]; duplicate {
+			continue
+		}
+		seen[term] = struct{}{}
+		terms = append(terms, term)
+	}
 	return terms
 }
 
