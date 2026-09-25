@@ -245,7 +245,14 @@ export const editorSlideToTransportDefinition = (
 ): CreateSlideRequestDTO => {
   const position = numberValue(slide.order, fallbackPosition);
 
-  if (slide.slide_type === 1 && !slide.question) {
+  const isLegacyQuestionDraft =
+    slide.item_kind == null &&
+    slide.slide_type === 1 &&
+    !slide.question;
+  if (
+    slide.item_kind === "question-draft" ||
+    isLegacyQuestionDraft
+  ) {
     return {
       position,
       kind: "question_draft",
