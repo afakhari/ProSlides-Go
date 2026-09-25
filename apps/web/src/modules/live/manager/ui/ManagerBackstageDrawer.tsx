@@ -446,7 +446,7 @@ export function ManagerBackstageDrawer({
               رتبه‌بندی خصوصی Stage را تغییر نمی‌دهد و از roster محدود manager خوانده می‌شود.
             </p>
 
-            {session?.state !== "ended" ? (
+            {session?.state !== "ended" && primaryControl.kind !== "end" ? (
               <button
                 type="button"
                 onClick={() => setConfirmEnd(true)}
