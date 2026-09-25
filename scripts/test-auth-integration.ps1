@@ -387,7 +387,7 @@ try {
   if ((($activeNameTakeover.Content | ConvertFrom-Json).error) -ne "display_name_taken") { throw "Active name takeover was not rejected" }
   $rejoinClient.Dispose()
   $rejoinHandler.Dispose()
-  $participantCookies.SetCookies($apiBaseUrl, "proslides_participant=$rejoinRequestID; Path=/")
+  $participantCookies.SetCookies($apiBaseUrl, "proslides_participant=$rejoinRequestID; Path=/api/v1/live/sessions/$($liveSession.id)")
 
   $presentedContent = Invoke-API -Method POST -Path "/api/v1/live/sessions/$($liveSession.id)/actions" -Client $loginClient -Headers @{ "X-CSRF-Token" = $loginCSRF } -Body (@{ request_id = [guid]::NewGuid().ToString(); expected_state_version = $rankedAfterDeadlinePayload.state_version; action = "present_item"; item_id = $contentID } | ConvertTo-Json -Compress) -ExpectedStatus 201
   $presentedContentPayload = $presentedContent.Content | ConvertFrom-Json
