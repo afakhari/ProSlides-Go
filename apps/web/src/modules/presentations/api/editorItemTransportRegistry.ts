@@ -108,7 +108,6 @@ const choiceTransport: EditorTransportRegistration = {
 
     return {
       ...commonEditorSlide(slide),
-      slide_type: 1,
       item_kind: "activity",
       activity_kind: "choice",
       schema_version: numberValue(content.schema_version, 1),
@@ -162,7 +161,6 @@ const textTransport: EditorTransportRegistration = {
 
     return {
       ...commonEditorSlide(slide),
-      slide_type: 1,
       item_kind: "activity",
       activity_kind: "text",
       schema_version: 1,
@@ -186,7 +184,6 @@ const contentTransport: EditorTransportRegistration = {
   matchesTransport: ({ slide }) => slide.kind === "content",
   fromTransport: ({ slide, content }) => ({
     ...commonEditorSlide(slide),
-    slide_type: 2,
     item_kind: "content",
     question: null,
     text_activity: null,
@@ -203,7 +200,6 @@ const legacyLeaderboardTransport: EditorTransportRegistration = {
   matchesTransport: ({ slide }) => slide.kind === "leaderboard",
   fromTransport: ({ slide, content }) => ({
     ...commonEditorSlide(slide),
-    slide_type: 3,
     item_kind: "legacy-leaderboard",
     question: null,
     text_activity: null,

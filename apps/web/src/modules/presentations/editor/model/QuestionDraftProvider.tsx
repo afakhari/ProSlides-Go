@@ -31,7 +31,13 @@ export default function QuestionDraftProvider({
   active = true,
   children,
 }: QuestionDraftProviderProps) {
-  if (!active || slide?.slide_type !== 1 || !slide.question) {
+  if (
+    !active ||
+    slide?.item_kind !== "activity" ||
+    slide.activity_kind !== "choice" ||
+    slide.schema_version !== 1 ||
+    !slide.question
+  ) {
     return (
       <QuestionDraftContext.Provider value={null}>
         {children}

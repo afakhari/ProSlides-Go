@@ -12,7 +12,9 @@ const slide = {
   slide_id: "slide-preview",
   revision: 7,
   order: 0,
-  slide_type: 1,
+  item_kind: "activity",
+  activity_kind: "choice",
+  schema_version: 1,
   show_leaderboard_after: true,
   question: {
     question_id: "slide-preview",

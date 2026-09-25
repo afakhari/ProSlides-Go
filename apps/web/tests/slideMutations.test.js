@@ -20,7 +20,9 @@ const questionSlide = {
   slide_id: "slide-1",
   revision: 4,
   order: 0,
-  slide_type: 1,
+  item_kind: "activity",
+  activity_kind: "choice",
+  schema_version: 1,
   show_leaderboard_after: true,
   title: "",
   content_text: "",
@@ -54,7 +56,7 @@ test("new slide creation stays type-first and creates valid defaults", () => {
     idFactory("content-id"),
   );
   assert.equal(content.slide_id, "content-id");
-  assert.equal(content.slide_type, 2);
+  assert.equal(content.item_kind, "content");
   assert.equal(content.question, null);
   assert.equal(content.order, 3);
 
@@ -63,7 +65,8 @@ test("new slide creation stays type-first and creates valid defaults", () => {
     "Single Choice",
     idFactory("question-id", "option-1", "option-2"),
   );
-  assert.equal(question.slide_type, 1);
+  assert.equal(question.item_kind, "activity");
+  assert.equal(question.activity_kind, "choice");
   assert.equal(question.question?.question_type, "single");
   assert.deepEqual(
     question.question?.options.map((option) => [
@@ -134,7 +137,7 @@ test("question conversion repairs missing options and missing correct answers", 
 test("content conversion removes question-only state and leaderboard follow-up", () => {
   const converted = convertSlideToContent(questionSlide);
 
-  assert.equal(converted.slide_type, 2);
+  assert.equal(converted.item_kind, "content");
   assert.equal(converted.question, null);
   assert.equal(converted.show_leaderboard_after, false);
   assert.equal(converted.title, "اسلاید محتوایی جدید");

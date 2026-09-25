@@ -126,7 +126,6 @@ export const wordCloudDraftToEditorSlide = (
     slide_id: draft.slideId,
     revision: draft.revision,
     order: draft.order,
-    slide_type: 1,
     item_kind: "activity",
     activity_kind: "text",
     schema_version: 1,

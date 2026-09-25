@@ -84,7 +84,12 @@ const normalizeQuestion = (question: EditorQuestion): EditorQuestion => ({
 });
 
 export const createQuestionDraft = (slide: EditorSlide): QuestionDraft | null => {
-  if (slide.slide_type !== 1 || !slide.question) return null;
+  if (
+    slide.item_kind !== "activity" ||
+    slide.activity_kind !== "choice" ||
+    slide.schema_version !== 1 ||
+    !slide.question
+  ) return null;
   const question = normalizeQuestion(slide.question);
 
   return {
@@ -397,7 +402,6 @@ export const questionDraftToEditorSlide = (
     slide_id: draft.slideId,
     revision: draft.revision,
     order: draft.order,
-    slide_type: 1,
     item_kind: "activity",
     activity_kind: "choice",
     schema_version: 1,

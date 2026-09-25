@@ -28,7 +28,7 @@ export type ContentDraftAction =
 export const createContentDraft = (
   slide: EditorSlide,
 ): ContentDraft | null => {
-  if (slide.slide_type !== 2) return null;
+  if (slide.item_kind !== "content") return null;
   return {
     slideId: slide.slide_id,
     revision: slide.revision,
@@ -98,7 +98,6 @@ export const contentDraftToEditorSlide = (
     slide_id: draft.slideId,
     revision: draft.revision,
     order: draft.order,
-    slide_type: 2,
     item_kind: "content",
     activity_kind: undefined,
     schema_version: undefined,

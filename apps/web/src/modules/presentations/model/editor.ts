@@ -1,7 +1,6 @@
 export type QuestionType = "single" | "multiple";
 export type EvaluationMode = "none" | "correctness";
 export type ScoringMode = "none" | "points";
-export type SlideType = 1 | 2 | 3;
 export type EditorItemKind =
   | "content"
   | "activity"
@@ -48,8 +47,7 @@ export interface EditorSlide {
   slide_id: string;
   revision: number;
   order: number;
-  slide_type: SlideType;
-  item_kind?: EditorItemKind;
+  item_kind: EditorItemKind;
   activity_kind?: string;
   schema_version?: number;
   show_leaderboard_after: boolean;

@@ -124,9 +124,15 @@ PR #118 removes the deprecated per-question result read plus its Choice-specific
 cursor/models/SQL/OpenAPI surface. Historical result reads are owned solely by
 the Session-first per-Activity report boundary verified in PR #116.
 
-Other legacy paths, including numeric `slide_type`, `latest-session`,
-persisted/synthetic leaderboard compatibility and remaining frontend model
-translations, remain until their replacements are verified independently.
+PR #119 removes numeric `slide_type` from the Editor domain model. Editor
+identity is now owned by canonical `item_kind + activity_kind + schema_version`;
+numeric live projection compatibility remains isolated under `modules/live`
+for a separate evidence-driven cut-over.
+
+Other legacy paths, including numeric live `slide_type` projection,
+`latest-session`, persisted/synthetic leaderboard compatibility and remaining
+live frontend model translations, remain until their replacements are verified
+independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
