@@ -13,6 +13,7 @@ type RuntimeCommands = Pick<
   | "submitAnswer"
   | "sendNavigation"
   | "sendEnd"
+  | "loadRoster"
   | "loadMoreRoster"
 >;
 
