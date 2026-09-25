@@ -272,16 +272,20 @@ type eventViewer struct {
 func (h *HTTP) eventViewer(r *http.Request) (eventViewer, error) {
 	sessionID := r.PathValue("sessionId")
 	if manager, err := h.manager(r, false); err == nil {
-		if authErr := h.service.AuthorizeViewer(
+		authErr := h.service.AuthorizeViewer(
 			r.Context(),
 			sessionID,
 			manager.ID,
 			"",
-		); authErr == nil {
+		)
+		if authErr == nil {
 			return eventViewer{
 				role:             "manager",
 				rateLimitIdentity: "manager:" + manager.ID,
 			}, nil
+		}
+		if !errors.Is(authErr, ErrUnauthorized) {
+			return eventViewer{}, authErr
 		}
 	}
 
