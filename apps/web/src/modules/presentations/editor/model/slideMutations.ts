@@ -182,17 +182,37 @@ export const convertSlideToQuestion = (
     order: index + 1,
   }));
 
+  const maxPoints =
+    scoringMode === "none"
+      ? 0
+      : Math.max(1, Number(existing.max_point) || 100);
+  const minPoints =
+    scoringMode === "none"
+      ? 0
+      : Math.min(Math.max(0, Number(existing.min_point) || 0), maxPoints);
+
   return {
     ...slide,
     slide_type: 1,
     item_kind: "activity",
     activity_kind: "choice",
     schema_version: slide.schema_version ?? 1,
+    show_leaderboard_after:
+      scoringMode === "points" && slide.show_leaderboard_after === true,
     question: {
       ...existing,
       question_type: questionType,
+      evaluation_mode: evaluationMode,
+      scoring_mode: scoringMode,
+      min_point: minPoints,
+      max_point: maxPoints,
+      faster_answers_more_points:
+        scoringMode === "points" &&
+        existing.faster_answers_more_points === true,
       partial_scoring:
-        questionType === "multiple" && existing.partial_scoring === true,
+        scoringMode === "points" &&
+        questionType === "multiple" &&
+        existing.partial_scoring === true,
       options: normalizedOptions,
     },
   };
