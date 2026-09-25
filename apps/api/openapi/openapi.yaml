@@ -516,10 +516,13 @@ paths:
             Versioned text/event-stream. Each data field is a LiveEventEnvelope.
             Event names are session.created, presence.updated,
             session.state_changed, activity.result_updated, and ranking.updated.
-            activity.result_updated is emitted when an Activity closes and
-            ranking.updated is emitted when the overall ranking is shown;
-            individual responses and complete ranking rows are never
-            broadcast. Managers fetch rows from the paginated roster endpoint.
+            activity.result_updated is emitted when an Activity closes but is
+            delivered only to an authorized manager stream; participants learn
+            the result from the authoritative revealed snapshot after
+            session.state_changed. ranking.updated is emitted when the overall
+            ranking is shown; individual responses and complete ranking rows are
+            never broadcast. Managers fetch rows from the paginated roster
+            endpoint.
           content:
             text/event-stream:
               schema:
@@ -529,7 +532,7 @@ paths:
   /api/v1/live/sessions/{sessionId}/answers:
     post:
       operationId: submitLiveAnswer
-      summary: Submit one idempotent response while the active Choice Activity is accepting.
+      summary: Submit one idempotent response while the active Activity is accepting.
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -1520,7 +1523,7 @@ components:
         schema_version:
           type: integer
           enum: [1, 2]
-          description: Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
+          description: Version 2 is used by activity.result_updated generic result envelopes and aggregate-only ranking.updated payloads; other current events remain version 1.
         session_id: { type: string, format: uuid }
         state_version: { type: integer, format: int64 }
         name:

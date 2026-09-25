@@ -546,7 +546,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit one idempotent response while the active Choice Activity is accepting. */
+        /** Submit one idempotent response while the active Activity is accepting. */
         post: operations["submitLiveAnswer"];
         delete?: never;
         options?: never;
@@ -1288,7 +1288,7 @@ export interface components {
             /** Format: int64 */
             event_id: number;
             /**
-             * @description Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
+             * @description Version 2 is used by activity.result_updated generic result envelopes and aggregate-only ranking.updated payloads; other current events remain version 1.
              * @enum {integer}
              */
             schema_version: 1 | 2;
@@ -2404,7 +2404,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes and ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
+            /** @description Versioned text/event-stream. Each data field is a LiveEventEnvelope. Event names are session.created, presence.updated, session.state_changed, activity.result_updated, and ranking.updated. activity.result_updated is emitted when an Activity closes but is delivered only to an authorized manager stream; participants learn the result from the authoritative revealed snapshot after session.state_changed. ranking.updated is emitted when the overall ranking is shown; individual responses and complete ranking rows are never broadcast. Managers fetch rows from the paginated roster endpoint. */
             200: {
                 headers: {
                     [name: string]: unknown;

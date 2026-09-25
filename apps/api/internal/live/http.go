@@ -263,21 +263,67 @@ func (h *HTTP) roster(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, x)
 }
+type eventViewer struct {
+	role             string
+	rateLimitIdentity string
+	participantToken string
+}
+
+func (h *HTTP) eventViewer(r *http.Request) (eventViewer, error) {
+	sessionID := r.PathValue("sessionId")
+	if manager, err := h.manager(r, false); err == nil {
+		authErr := h.service.AuthorizeViewer(
+			r.Context(),
+			sessionID,
+			manager.ID,
+			"",
+		)
+		if authErr == nil {
+			return eventViewer{
+				role:             "manager",
+				rateLimitIdentity: "manager:" + manager.ID,
+			}, nil
+		}
+		if !errors.Is(authErr, ErrUnauthorized) {
+			return eventViewer{}, authErr
+		}
+	}
+
+	participant, err := r.Cookie("proslides_participant")
+	if err != nil {
+		return eventViewer{}, ErrUnauthorized
+	}
+	if err = h.service.AuthorizeViewer(
+		r.Context(),
+		sessionID,
+		"",
+		participant.Value,
+	); err != nil {
+		return eventViewer{}, err
+	}
+	return eventViewer{
+		role:             "participant",
+		rateLimitIdentity: "participant:" + participant.Value,
+		participantToken: participant.Value,
+	}, nil
+}
+
+func eventVisibleToViewer(role string, event Event) bool {
+	// Activity results are computed at close so managers can inspect them
+	// privately. Participants receive the authoritative result from the
+	// revealed snapshot after session.state_changed; broadcasting the close
+	// event would disclose results before the presenter reveals them.
+	return role != "participant" || event.Name != "activity.result_updated"
+}
+
 func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
-	if e := h.viewer(r); e != nil {
+	viewer, e := h.eventViewer(r)
+	if e != nil {
 		returnError(w, e)
 		return
 	}
-	viewerCredential := "manager"
-	participantToken := ""
-	if cookie, err := r.Cookie("proslides_participant"); err == nil {
-		viewerCredential = cookie.Value
-		participantToken = cookie.Value
-	} else if cookie, err = r.Cookie("proslides_session"); err == nil {
-		viewerCredential = cookie.Value
-	}
 	sessionID := r.PathValue("sessionId")
-	if !h.allow(w, r, "live_sse_reconnect", sessionID+":"+viewerCredential, 60, time.Minute) {
+	if !h.allow(w, r, "live_sse_reconnect", sessionID+":"+viewer.rateLimitIdentity, 60, time.Minute) {
 		return
 	}
 	f, ok := w.(http.Flusher)
@@ -287,8 +333,8 @@ func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
 	}
 	// A live participant stream announces connection and disconnection so a
 	// rejoin within the same session reclaims the existing record and score.
-	if participantToken != "" {
-		_ = h.service.SetParticipantPresence(r.Context(), sessionID, participantToken, false)
+	if viewer.participantToken != "" {
+		_ = h.service.SetParticipantPresence(r.Context(), sessionID, viewer.participantToken, false)
 	}
 	subscription, unsubscribe, e := h.broker.Subscribe(r.Context(), sessionID)
 	if e != nil {
@@ -297,12 +343,12 @@ func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
 	}
 	defer unsubscribe()
 	defer func() {
-		if participantToken == "" {
+		if viewer.participantToken == "" {
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		_ = h.service.SetParticipantPresence(ctx, sessionID, participantToken, true)
+		_ = h.service.SetParticipantPresence(ctx, sessionID, viewer.participantToken, true)
 	}()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-store")
@@ -315,7 +361,9 @@ func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, event := range compactEvents(events) {
-			writeEvent(w, event)
+			if eventVisibleToViewer(viewer.role, event) {
+				writeEvent(w, event)
+			}
 		}
 		if len(events) > 0 {
 			after = events[len(events)-1].EventID
@@ -341,8 +389,11 @@ func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
 			if event.EventID <= after {
 				continue
 			}
-			writeEvent(w, event)
 			after = event.EventID
+			if !eventVisibleToViewer(viewer.role, event) {
+				continue
+			}
+			writeEvent(w, event)
 			f.Flush()
 		}
 	}
@@ -366,17 +417,6 @@ func (h *HTTP) manager(r *http.Request, csrf bool) (identity.User, error) {
 	}
 	s, e := h.auth.Current(r.Context(), c.Value)
 	return s.User, e
-}
-func (h *HTTP) viewer(r *http.Request) error {
-	manager := ""
-	if u, e := h.manager(r, false); e == nil {
-		manager = u.ID
-	}
-	participant := ""
-	if c, e := r.Cookie("proslides_participant"); e == nil {
-		participant = c.Value
-	}
-	return h.service.AuthorizeViewer(r.Context(), r.PathValue("sessionId"), manager, participant)
 }
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

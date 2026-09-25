@@ -154,8 +154,17 @@ func (s *snapshotStore) ReconcileDeadline(context.Context, string) (bool, error)
 func (s *snapshotStore) SetParticipantPresence(context.Context, string, []byte, bool) error {
 	return nil
 }
-func (s *snapshotStore) AuthorizeViewer(context.Context, string, string, []byte) error {
-	return nil
+func (s *snapshotStore) AuthorizeViewer(_ context.Context, session, manager string, hash []byte) error {
+	if session != testSessionID && session != testPresentationID && session != testRevealSessionID {
+		return ErrUnauthorized
+	}
+	if manager == testManagerID {
+		return nil
+	}
+	if len(hash) > 0 && string(hash) == string(tokenHash(testParticipantToken)) {
+		return nil
+	}
+	return ErrUnauthorized
 }
 
 type snapshotAuth struct{}
@@ -314,6 +323,69 @@ func TestSnapshotUsesManagerRoleAndFallsBackToParticipantRole(t *testing.T) {
 	handler.ServeHTTP(participantResponse, participantRequest)
 	if participantResponse.Code != http.StatusOK || !jsonFieldEquals(participantResponse.Body.Bytes(), "role", "participant") {
 		t.Fatalf("participant fallback = %d %s", participantResponse.Code, participantResponse.Body.String())
+	}
+}
+
+func TestEventViewerPrefersOwningManagerAndFallsBackToParticipant(t *testing.T) {
+	store := &snapshotStore{}
+	service := NewService(store, DeductionPolicy{})
+	handler := NewHTTP(service, NewEventBroker(store, time.Hour, 1), snapshotAuth{}, false)
+
+	managerRequest := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/live/sessions/"+testSessionID+"/events",
+		nil,
+	)
+	managerRequest.SetPathValue("sessionId", testSessionID)
+	managerRequest.AddCookie(&http.Cookie{Name: "proslides_session", Value: "manager-token"})
+	managerRequest.AddCookie(&http.Cookie{Name: "proslides_participant", Value: testParticipantToken})
+	managerViewer, err := handler.eventViewer(managerRequest)
+	if err != nil || managerViewer.role != "manager" || managerViewer.participantToken != "" {
+		t.Fatalf("manager viewer = %#v, err = %v", managerViewer, err)
+	}
+
+	fallbackRequest := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/live/sessions/"+testSessionID+"/events",
+		nil,
+	)
+	fallbackRequest.SetPathValue("sessionId", testSessionID)
+	fallbackRequest.AddCookie(&http.Cookie{Name: "proslides_session", Value: "other-manager-token"})
+	fallbackRequest.AddCookie(&http.Cookie{Name: "proslides_participant", Value: testParticipantToken})
+	participantViewer, err := handler.eventViewer(fallbackRequest)
+	if err != nil ||
+		participantViewer.role != "participant" ||
+		participantViewer.participantToken != testParticipantToken {
+		t.Fatalf("participant fallback viewer = %#v, err = %v", participantViewer, err)
+	}
+}
+
+func TestParticipantEventStreamDoesNotExposeClosedActivityResults(t *testing.T) {
+	resultEvent := Event{
+		EventID:      12,
+		SchemaVersion: 2,
+		SessionID:    testSessionID,
+		StateVersion: 5,
+		Name:         "activity.result_updated",
+		Payload:      json.RawMessage(`{"activity_item_id":"activity-1","activity_kind":"text","schema_version":1,"response_count":2,"payload":{"terms":[{"text":"محرمانه","count":2}]}}`),
+	}
+	stateEvent := Event{
+		EventID:      11,
+		SchemaVersion: 1,
+		SessionID:    testSessionID,
+		StateVersion: 5,
+		Name:         "session.state_changed",
+		Payload:      json.RawMessage(`{"state":"presenting","activity_phase":"closed","stage_view":"item"}`),
+	}
+
+	if eventVisibleToViewer("participant", resultEvent) {
+		t.Fatal("participant stream exposed private closed Activity result")
+	}
+	if !eventVisibleToViewer("participant", stateEvent) {
+		t.Fatal("participant stream must still receive lifecycle events")
+	}
+	if !eventVisibleToViewer("manager", resultEvent) {
+		t.Fatal("manager stream lost private Activity result")
 	}
 }
 

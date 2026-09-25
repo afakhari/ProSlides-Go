@@ -145,6 +145,8 @@ For the initial Text primitive used by Word Cloud:
 - evaluation and scoring are both `none`;
 - result policy explicitly selects `word_frequency` aggregation;
 - accepted text is Unicode-normalized at the command boundary;
+- aggregation keys additionally canonicalize common Arabic/Persian yeh and kaf
+  glyph variants while the participant's accepted text remains preserved;
 - canonical terms are frozen with the accepted response so historical Word Cloud
   results do not change if tokenizer behavior evolves;
 - repeated occurrences of the same normalized term in one participant response

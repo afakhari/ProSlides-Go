@@ -151,17 +151,17 @@ function StageActivity({
   const closed = snapshot.session.activity_phase === "closed";
   const result = snapshot.activity_result;
   const isWordCloud = question.activity_kind === "text";
-  const choiceCounts =
-    result?.activity_kind === "choice" && "option_counts" in result.payload
-      ? result.payload.option_counts
-      : {};
   const counts = useMemo(() => {
     const map = new Map<number, number>();
+    const choiceCounts =
+      result?.activity_kind === "choice" && "option_counts" in result.payload
+        ? result.payload.option_counts
+        : {};
     for (const [index, count] of Object.entries(choiceCounts)) {
       map.set(Number(index), Number(count));
     }
     return map;
-  }, [choiceCounts]);
+  }, [result]);
   const wordTerms =
     result?.activity_kind === "text" && "terms" in result.payload
       ? result.payload.terms
