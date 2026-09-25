@@ -1,90 +1,169 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowRight, RefreshCw, Search, Trophy, Users } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  MessageSquareText,
+  RefreshCw,
+  Users,
+} from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { formatPersianNumber } from "../../../shared/forms/numbers.ts";
 import Notice from "../../../shared/ui/Notice.tsx";
 import { Button } from "../../../shared/ui/primitives/Button.tsx";
 import {
-  reportLatestSessionQuery,
-  reportPresentationQuery,
-  reportRosterQuery,
+  reportActivityQuery,
+  reportRankingQuery,
+  reportSessionQuery,
+  reportSessionsQuery,
 } from "../api/reportQueries.ts";
-
-const cleanDisplayValue = (value: string | undefined, fallback = "") =>
-  String(value || fallback).replace(/^"|"$/g, "");
+import {
+  activityTitle,
+  formatReportDateTime,
+  sessionStateLabel,
+} from "../model/reportView.ts";
+import { ActivityReportPanel } from "../ui/ActivityReportPanel.tsx";
+import { RankingPanel } from "../ui/RankingPanel.tsx";
+import { SessionHistory } from "../ui/SessionHistory.tsx";
 
 export default function ReportRoute() {
   const { presentationId = "" } = useParams();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedSessionParam = searchParams.get("session") || "";
+  const selectedActivityParam = searchParams.get("activity") || "";
 
-  const presentationQuery = useQuery({
-    ...reportPresentationQuery(presentationId),
+  const sessionsQuery = useInfiniteQuery({
+    ...reportSessionsQuery(presentationId),
     enabled: Boolean(presentationId),
   });
+
+  const sessions = useMemo(
+    () => sessionsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [sessionsQuery.data],
+  );
+
+  const selectedSessionId = sessions.some(
+    (session) => session.session_id === selectedSessionParam,
+  )
+    ? selectedSessionParam
+    : sessions[0]?.session_id || "";
+
   const sessionQuery = useQuery({
-    ...reportLatestSessionQuery(presentationId),
-    enabled: Boolean(presentationId),
+    ...reportSessionQuery(presentationId, selectedSessionId),
+    enabled: Boolean(presentationId && selectedSessionId),
   });
 
-  const sessionId = sessionQuery.data?.session_id || "";
-  const rosterQuery = useInfiniteQuery({
-    ...reportRosterQuery(presentationId, sessionId),
-    enabled: Boolean(presentationId && sessionId),
+  const activities = sessionQuery.data?.activities ?? [];
+  const selectedActivityId = activities.some(
+    (activity) => activity.activity_item_id === selectedActivityParam,
+  )
+    ? selectedActivityParam
+    : activities[0]?.activity_item_id || "";
+
+  const activityQuery = useInfiniteQuery({
+    ...reportActivityQuery(
+      presentationId,
+      selectedSessionId,
+      selectedActivityId,
+    ),
+    enabled: Boolean(
+      presentationId && selectedSessionId && selectedActivityId,
+    ),
   });
 
-  const participants = useMemo(
-    () => rosterQuery.data?.pages.flatMap((page) => page.items) || [],
-    [rosterQuery.data],
-  );
+  const rankingQuery = useInfiniteQuery({
+    ...reportRankingQuery(presentationId, selectedSessionId),
+    enabled: Boolean(presentationId && selectedSessionId),
+  });
 
-  const normalizedSearch = searchQuery.trim().toLocaleLowerCase("fa-IR");
-  const filteredParticipants = useMemo(
-    () =>
-      participants.filter((participant) =>
-        cleanDisplayValue(participant.display_name)
-          .toLocaleLowerCase("fa-IR")
-          .includes(normalizedSearch),
-      ),
-    [participants, normalizedSearch],
-  );
+  useEffect(() => {
+    if (!selectedSessionId || selectedSessionParam === selectedSessionId) return;
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("session", selectedSessionId);
+        next.delete("activity");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [
+    selectedSessionId,
+    selectedSessionParam,
+    setSearchParams,
+  ]);
 
-  const maxScore = useMemo(
-    () => Math.max(0, ...participants.map((participant) => participant.score)),
-    [participants],
-  );
+  useEffect(() => {
+    if (
+      !selectedActivityId ||
+      selectedActivityParam === selectedActivityId
+    ) {
+      return;
+    }
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("activity", selectedActivityId);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [
+    selectedActivityId,
+    selectedActivityParam,
+    setSearchParams,
+  ]);
 
-  const hasError =
-    presentationQuery.isError || sessionQuery.isError || rosterQuery.isError;
-  const isInitialLoading =
-    presentationQuery.isPending ||
-    sessionQuery.isPending ||
-    (Boolean(sessionId) && rosterQuery.isPending);
-  const isRefreshing =
-    presentationQuery.isFetching ||
-    sessionQuery.isFetching ||
-    rosterQuery.isFetching;
+  const selectSession = (sessionId: string) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("session", sessionId);
+      next.delete("activity");
+      return next;
+    });
+  };
 
-  const refreshedAt = Math.max(
-    presentationQuery.dataUpdatedAt,
-    sessionQuery.dataUpdatedAt,
-    rosterQuery.dataUpdatedAt,
-  );
+  const selectActivity = (activityItemId: string) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("activity", activityItemId);
+      return next;
+    });
+  };
 
   const refresh = async () => {
     await Promise.all([
-      presentationQuery.refetch(),
-      sessionQuery.refetch(),
-      sessionId ? rosterQuery.refetch() : Promise.resolve(),
+      sessionsQuery.refetch(),
+      selectedSessionId ? sessionQuery.refetch() : Promise.resolve(),
+      selectedActivityId ? activityQuery.refetch() : Promise.resolve(),
+      selectedSessionId ? rankingQuery.refetch() : Promise.resolve(),
     ]);
   };
 
-  const title = presentationQuery.data?.title?.trim() || "گزارش ارائه";
+  const selectedActivity = activities.find(
+    (activity) => activity.activity_item_id === selectedActivityId,
+  );
+  const summary = sessionQuery.data?.session;
+  const hasInitialError =
+    sessionsQuery.isError ||
+    (Boolean(selectedSessionId) && sessionQuery.isError);
+  const isInitialLoading =
+    sessionsQuery.isPending ||
+    (Boolean(selectedSessionId) && sessionQuery.isPending);
+  const isRefreshing =
+    sessionsQuery.isFetching ||
+    sessionQuery.isFetching ||
+    activityQuery.isFetching ||
+    rankingQuery.isFetching;
 
   return (
-    <main className="min-h-screen bg-canvas px-4 py-6 text-content sm:px-6 lg:px-8" dir="rtl">
-      <div className="mx-auto max-w-6xl">
+    <main
+      className="min-h-screen bg-canvas px-4 py-6 text-content sm:px-6 lg:px-8"
+      dir="rtl"
+    >
+      <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-col gap-4 rounded-panel border border-border-subtle bg-surface-raised p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <Link
@@ -95,15 +174,15 @@ export default function ReportRoute() {
               <ArrowRight className="size-4" aria-hidden="true" />
               بازگشت به پنل مدیریت
             </Link>
-            <p className="text-xs font-semibold text-content-muted">گزارش ارائه</p>
-            <h1 className="mt-1 truncate text-2xl font-black sm:text-3xl">{title}</h1>
+            <p className="text-xs font-semibold text-content-muted">
+              گزارش جلسه‌محور
+            </p>
+            <h1 className="mt-1 truncate text-2xl font-black sm:text-3xl">
+              {summary?.presentation_title || "گزارش ارائه"}
+            </h1>
             <p className="mt-2 text-sm text-content-muted">
-              {refreshedAt
-                ? `آخرین به‌روزرسانی: ${new Date(refreshedAt).toLocaleTimeString("fa-IR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : "داده‌های گزارش هر ۱۵ دقیقه به‌صورت خودکار به‌روزرسانی می‌شوند."}
+              هر اجرا مستقل نگه داشته می‌شود؛ نتایج تاریخی از تعریف ثابت‌شده
+              همان جلسه خوانده می‌شوند.
             </p>
           </div>
 
@@ -115,198 +194,188 @@ export default function ReportRoute() {
             className="self-start sm:self-auto"
           >
             <RefreshCw
-              className={isRefreshing ? "animate-spin motion-reduce:animate-none" : ""}
+              className={
+                isRefreshing
+                  ? "animate-spin motion-reduce:animate-none"
+                  : ""
+              }
               aria-hidden="true"
             />
             {isRefreshing ? "در حال به‌روزرسانی…" : "به‌روزرسانی"}
           </Button>
         </header>
 
-        {hasError && (
+        {hasInitialError && (
           <Notice tone="error" className="mb-5">
-            بارگذاری گزارش انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.
+            بارگذاری گزارش انجام نشد. اتصال خود را بررسی کنید و دوباره تلاش
+            کنید.
           </Notice>
         )}
 
-        {isInitialLoading && !hasError ? (
+        {isInitialLoading && !hasInitialError ? (
           <section
             className="rounded-panel border border-border-subtle bg-surface p-6 shadow-sm"
             aria-busy="true"
           >
-            <Notice pending>در حال بارگذاری گزارش…</Notice>
+            <Notice pending>در حال بارگذاری تاریخچه گزارش…</Notice>
             <div className="mt-5 h-56 animate-pulse rounded-panel bg-brand-soft motion-reduce:animate-none" />
           </section>
-        ) : !hasError && !sessionQuery.data ? (
+        ) : !hasInitialError && sessions.length === 0 ? (
           <section className="rounded-panel border border-border-subtle bg-surface p-8 text-center shadow-sm">
-            <Trophy className="mx-auto size-10 text-content-muted" aria-hidden="true" />
-            <h2 className="mt-4 text-lg font-bold">هنوز جلسه‌ای برای این ارائه ثبت نشده است</h2>
+            <BarChart3
+              className="mx-auto size-10 text-content-muted"
+              aria-hidden="true"
+            />
+            <h2 className="mt-4 text-lg font-bold">
+              هنوز جلسه‌ای برای این ارائه ثبت نشده است
+            </h2>
             <p className="mt-2 text-sm text-content-muted">
-              پس از اجرای ارائه و ورود شرکت‌کنندگان، نتایج اینجا نمایش داده می‌شوند.
+              با اجرای ارائه، هر جلسه به‌صورت مستقل در این تاریخچه قرار می‌گیرد.
             </p>
           </section>
-        ) : !hasError ? (
-          <section className="overflow-hidden rounded-panel border border-border-subtle bg-surface shadow-sm">
-            <div className="border-b border-border-subtle p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Users className="size-5 text-brand" aria-hidden="true" />
-                    <h2 className="text-lg font-bold">شرکت‌کنندگان</h2>
+        ) : !hasInitialError && summary ? (
+          <div className="grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
+            <SessionHistory
+              sessions={sessions}
+              selectedSessionId={selectedSessionId}
+              hasMore={Boolean(sessionsQuery.hasNextPage)}
+              loadingMore={sessionsQuery.isFetchingNextPage}
+              onSelect={selectSession}
+              onLoadMore={() => void sessionsQuery.fetchNextPage()}
+            />
+
+            <div className="min-w-0 space-y-5">
+              <section className="rounded-panel border border-border-subtle bg-surface p-5 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-content-muted">
+                      جلسه انتخاب‌شده
+                    </p>
+                    <h2 className="mt-1 text-xl font-black">
+                      {formatReportDateTime(summary.created_at)}
+                    </h2>
+                    <p className="mt-1 text-sm text-content-muted">
+                      {sessionStateLabel(summary.state)}
+                      {summary.ended_at
+                        ? ` · پایان ${formatReportDateTime(summary.ended_at)}`
+                        : ""}
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-content-muted">
-                    {normalizedSearch
-                      ? `${formatPersianNumber(filteredParticipants.length)} از ${formatPersianNumber(participants.length)} نفر`
-                      : `${formatPersianNumber(participants.length)} نفر`}
-                  </p>
+                  <span className="self-start rounded-full border border-border-subtle bg-surface-raised px-3 py-1 text-xs font-bold">
+                    {summary.has_scoring
+                      ? "دارای امتیازدهی"
+                      : "بدون امتیازدهی"}
+                  </span>
                 </div>
 
-                <label className="relative block w-full sm:max-w-sm">
-                  <span className="sr-only">جست‌وجوی شرکت‌کنندگان</span>
-                  <Search
-                    className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-content-muted"
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="جست‌وجوی نام شرکت‌کننده…"
-                    className="h-10 w-full rounded-control border border-border-subtle bg-surface ps-10 pe-3 text-sm text-content outline-none placeholder:text-content-muted focus:border-brand-border focus:ring-2 focus:ring-focus"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {filteredParticipants.length === 0 ? (
-              <div className="p-10 text-center">
-                <Trophy className="mx-auto size-9 text-content-muted" aria-hidden="true" />
-                <p className="mt-3 font-semibold">
-                  {normalizedSearch
-                    ? "شرکت‌کننده‌ای با این جست‌وجو پیدا نشد."
-                    : "هنوز شرکت‌کننده‌ای ثبت نشده است."}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[640px] text-sm">
-                    <thead className="bg-brand-soft text-content-muted">
-                      <tr>
-                        <th scope="col" className="px-5 py-3 text-start font-semibold">رتبه</th>
-                        <th scope="col" className="px-5 py-3 text-start font-semibold">شرکت‌کننده</th>
-                        <th scope="col" className="px-5 py-3 text-start font-semibold">امتیاز</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredParticipants.map((participant) => {
-                        const absoluteIndex = participants.findIndex(
-                          (item) => item.participant_id === participant.participant_id,
-                        );
-                        const rank = absoluteIndex + 1;
-                        const percentage =
-                          maxScore > 0 ? Math.max(0, Math.min(100, (participant.score / maxScore) * 100)) : 0;
-                        return (
-                          <tr
-                            key={participant.participant_id}
-                            className="border-t border-border-subtle first:border-t-0"
-                          >
-                            <td className="px-5 py-4">
-                              <span className="inline-flex size-8 items-center justify-center rounded-full border border-brand-border bg-brand-soft font-bold text-brand-ink">
-                                {formatPersianNumber(rank)}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-2">
-                                {participant.avatar && (
-                                  <span className="text-xl" aria-hidden="true">
-                                    {cleanDisplayValue(participant.avatar)}
-                                  </span>
-                                )}
-                                <span className="font-semibold">
-                                  {cleanDisplayValue(participant.display_name, "شرکت‌کننده")}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-3">
-                                <span className="w-14 shrink-0 font-bold">
-                                  {formatPersianNumber(participant.score)}
-                                </span>
-                                <div
-                                  className="h-2 flex-1 overflow-hidden rounded-full bg-brand-soft"
-                                  aria-label={`امتیاز نسبی ${Math.round(percentage)} درصد`}
-                                >
-                                  <div
-                                    className="h-full rounded-full bg-brand"
-                                    style={{ width: `${percentage}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-control bg-surface-raised p-4">
+                    <Users
+                      className="size-5 text-brand"
+                      aria-hidden="true"
+                    />
+                    <p className="mt-2 text-2xl font-black">
+                      {formatPersianNumber(summary.participant_count)}
+                    </p>
+                    <p className="text-sm text-content-muted">
+                      شرکت‌کننده
+                    </p>
+                  </div>
+                  <div className="rounded-control bg-surface-raised p-4">
+                    <Activity
+                      className="size-5 text-brand"
+                      aria-hidden="true"
+                    />
+                    <p className="mt-2 text-2xl font-black">
+                      {formatPersianNumber(summary.activity_count)}
+                    </p>
+                    <p className="text-sm text-content-muted">فعالیت</p>
+                  </div>
+                  <div className="rounded-control bg-surface-raised p-4">
+                    <MessageSquareText
+                      className="size-5 text-brand"
+                      aria-hidden="true"
+                    />
+                    <p className="mt-2 text-2xl font-black">
+                      {formatPersianNumber(summary.response_count)}
+                    </p>
+                    <p className="text-sm text-content-muted">
+                      پاسخ پذیرفته‌شده
+                    </p>
+                  </div>
                 </div>
+              </section>
 
-                <div className="space-y-3 p-4 md:hidden">
-                  {filteredParticipants.map((participant) => {
-                    const absoluteIndex = participants.findIndex(
-                      (item) => item.participant_id === participant.participant_id,
-                    );
-                    const rank = absoluteIndex + 1;
-                    const percentage =
-                      maxScore > 0 ? Math.max(0, Math.min(100, (participant.score / maxScore) * 100)) : 0;
-                    return (
-                      <article
-                        key={participant.participant_id}
-                        className="rounded-panel border border-border-subtle bg-surface-raised p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft font-bold text-brand-ink">
-                              {formatPersianNumber(rank)}
-                            </span>
-                            {participant.avatar && (
-                              <span aria-hidden="true">{cleanDisplayValue(participant.avatar)}</span>
-                            )}
-                            <span className="truncate font-semibold">
-                              {cleanDisplayValue(participant.display_name, "شرکت‌کننده")}
-                            </span>
-                          </div>
-                          <span className="shrink-0 font-black">
-                            {formatPersianNumber(participant.score)} امتیاز
+              {activities.length > 0 ? (
+                <section className="rounded-panel border border-border-subtle bg-surface p-4 shadow-sm">
+                  <h2 className="px-1 text-sm font-bold text-content-muted">
+                    فعالیت‌های جلسه
+                  </h2>
+                  <div
+                    className="mt-3 flex gap-2 overflow-x-auto pb-1"
+                    role="tablist"
+                    aria-label="انتخاب فعالیت گزارش"
+                  >
+                    {activities.map((activity) => {
+                      const selected =
+                        activity.activity_item_id === selectedActivityId;
+                      return (
+                        <button
+                          key={activity.activity_item_id}
+                          type="button"
+                          role="tab"
+                          aria-selected={selected}
+                          onClick={() =>
+                            selectActivity(activity.activity_item_id)
+                          }
+                          className={[
+                            "min-w-[12rem] rounded-control border px-4 py-3 text-start",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                            selected
+                              ? "border-brand-border bg-brand-soft"
+                              : "border-border-subtle bg-surface-raised hover:border-brand-border",
+                          ].join(" ")}
+                        >
+                          <span className="block truncate text-sm font-bold">
+                            {activityTitle(activity)}
                           </span>
-                        </div>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-soft">
-                          <div
-                            className="h-full rounded-full bg-brand"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+                          <span className="mt-1 block text-xs text-content-muted">
+                            {formatPersianNumber(activity.response_count)} پاسخ
+                            {activity.scored ? " · امتیازی" : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : (
+                <Notice>
+                  در تعریف ثابت‌شده این جلسه فعالیت تعاملی وجود ندارد.
+                </Notice>
+              )}
 
-            {rosterQuery.hasNextPage && (
-              <div className="border-t border-border-subtle p-5 text-center">
-                <Button
-                  variant="outline"
-                  onClick={() => void rosterQuery.fetchNextPage()}
-                  disabled={rosterQuery.isFetchingNextPage}
-                  aria-busy={rosterQuery.isFetchingNextPage || undefined}
-                >
-                  {rosterQuery.isFetchingNextPage
-                    ? "در حال بارگذاری…"
-                    : "بارگذاری شرکت‌کنندگان بیشتر"}
-                </Button>
-              </div>
-            )}
-          </section>
+              {selectedActivity && (
+                <ActivityReportPanel
+                  activity={selectedActivity}
+                  pages={activityQuery.data?.pages ?? []}
+                  isLoading={activityQuery.isPending}
+                  isError={activityQuery.isError}
+                  hasMore={Boolean(activityQuery.hasNextPage)}
+                  loadingMore={activityQuery.isFetchingNextPage}
+                  onLoadMore={() => void activityQuery.fetchNextPage()}
+                />
+              )}
+
+              <RankingPanel
+                pages={rankingQuery.data?.pages ?? []}
+                isLoading={rankingQuery.isPending}
+                isError={rankingQuery.isError}
+                hasMore={Boolean(rankingQuery.hasNextPage)}
+                loadingMore={rankingQuery.isFetchingNextPage}
+                onLoadMore={() => void rankingQuery.fetchNextPage()}
+              />
+            </div>
+          </div>
         ) : null}
       </div>
     </main>
