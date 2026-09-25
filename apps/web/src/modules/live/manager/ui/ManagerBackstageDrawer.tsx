@@ -1,3 +1,4 @@
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useMemo, useState } from "react";
 
 import { getColorForUser } from "../../../../shared/lib/playerColor.ts";
@@ -230,40 +231,46 @@ export function ManagerBackstageDrawer({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed end-4 top-20 z-40 min-h-11 rounded-2xl border border-white/15 bg-slate-950/90 px-4 text-sm font-black text-white shadow-xl backdrop-blur hover:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-        aria-haspopup="dialog"
-      >
-        پشت‌صحنه
-      </button>
+      <DialogPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
+        <DialogPrimitive.Trigger asChild>
+          <button
+            type="button"
+            className="fixed end-4 top-20 z-40 min-h-11 rounded-2xl border border-white/15 bg-slate-950/90 px-4 text-sm font-black text-white shadow-xl backdrop-blur hover:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            پشت‌صحنه
+          </button>
+        </DialogPrimitive.Trigger>
 
-      {isOpen ? (
-        <div className="fixed inset-0 z-[60] bg-black/55" role="presentation">
-          <aside
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-black/55" />
+          <DialogPrimitive.Content
             dir="rtl"
-            className="absolute inset-y-0 end-0 flex w-[min(36rem,94vw)] flex-col overflow-y-auto border-s border-white/10 bg-slate-950 p-5 text-white shadow-2xl"
-            role="dialog"
-            aria-modal="true"
+            className="fixed inset-y-0 end-0 z-[61] flex w-[min(36rem,94vw)] flex-col overflow-y-auto border-0 border-s border-white/10 bg-slate-950 p-5 text-white shadow-2xl outline-none"
             aria-labelledby="backstage-title"
+            onPointerDownOutside={(event) => event.preventDefault()}
             data-backstage-surface="presenter"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold text-white/55">کنترل خصوصی ارائه‌دهنده</p>
-                <h2 id="backstage-title" className="mt-1 text-2xl font-black">
-                  پشت‌صحنه
-                </h2>
+                <DialogPrimitive.Title asChild>
+                  <h2 id="backstage-title" className="mt-1 text-2xl font-black">
+                    پشت‌صحنه
+                  </h2>
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="sr-only">
+                  کنترل خصوصی ارائه، وضعیت اتصال، نتایج فعالیت و رتبه‌بندی جلسه.
+                </DialogPrimitive.Description>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="grid min-h-11 min-w-11 place-items-center rounded-full bg-white/10 text-2xl hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                aria-label="بستن پشت‌صحنه"
-              >
-                ×
-              </button>
+              <DialogPrimitive.Close asChild>
+                <button
+                  type="button"
+                  className="grid min-h-11 min-w-11 place-items-center rounded-full bg-white/10 text-2xl hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  aria-label="بستن پشت‌صحنه"
+                >
+                  ×
+                </button>
+              </DialogPrimitive.Close>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -506,9 +513,9 @@ export function ManagerBackstageDrawer({
                 پایان جلسه
               </button>
             ) : null}
-          </aside>
-        </div>
-      ) : null}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       <ManagerLeaderboardDialog
         isOpen={showRanking}

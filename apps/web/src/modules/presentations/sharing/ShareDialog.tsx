@@ -1,4 +1,5 @@
-import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import QRCode from "qrcode";
 import { X, Check, Loader2 } from "lucide-react";
 import { quizService } from "../api/presentationRepository.ts";
@@ -30,7 +31,6 @@ type InviteAudienceProps = {
   onSave: () => void | Promise<void>;
   onConfirmSave: () => void | Promise<void>;
   onCancelConfirm: () => void;
-  onClose: () => void;
   isSaving: boolean;
   saveError: string;
   saveSuccess: boolean;
@@ -56,6 +56,7 @@ export default function ShareMenu({
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [confirmingSave, setConfirmingSave] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const baseOrigin =
     typeof window !== "undefined" ? window.location.origin : "https://proslides.ir";
@@ -193,30 +194,47 @@ export default function ShareMenu({
   }, [BASE, code, inputError]);
 
 
-  if (!isOpen) return null;
-
-
   return (
-    <>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" dir="rtl">
-        <div
-          className="relative flex h-auto max-h-[90vh] w-[90vw] max-w-[900px] flex-col overflow-hidden rounded-panel bg-surface shadow-panel md:h-[500px] md:flex-row"
-          role="dialog"
-          aria-modal="true"
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/40" />
+        <DialogPrimitive.Content
+          ref={contentRef}
+          dir="rtl"
+          className="fixed left-1/2 top-1/2 z-[101] flex h-auto max-h-[90dvh] w-[min(900px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-panel bg-surface shadow-panel outline-none md:h-[500px] md:flex-row"
           aria-labelledby="share-dialog-title"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            contentRef.current
+              ?.querySelector<HTMLInputElement>("#share-access-code")
+              ?.focus();
+          }}
+          onPointerDownOutside={(event) => event.preventDefault()}
         >
-          <button
-            onClick={onClose}
-            className="absolute end-5 top-5 z-10 rounded-control p-1 text-content-muted hover:bg-brand-soft hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            aria-label={fa.share.close}
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <DialogPrimitive.Close asChild>
+            <button
+              type="button"
+              className="absolute end-5 top-5 z-10 rounded-control p-1 text-content-muted hover:bg-brand-soft hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              aria-label={fa.share.close}
+            >
+              <X className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </DialogPrimitive.Close>
 
           <div className="flex w-full flex-col gap-3 border-b border-brand-border bg-brand-soft p-5 md:w-1/3 md:border-b-0 md:border-e">
-            <h2 id="share-dialog-title" className="mb-2 text-lg font-semibold text-brand-strong">
-              {fa.share.title}
-            </h2>
+            <DialogPrimitive.Title asChild>
+              <h2 id="share-dialog-title" className="mb-2 text-lg font-semibold text-brand-strong">
+                {fa.share.title}
+              </h2>
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="sr-only">
+              کد ورود و کد QR ارائه را برای مخاطبان مدیریت کنید.
+            </DialogPrimitive.Description>
             <MenuItem
               label={fa.share.inviteAudience}
               active={section === "invite"}
@@ -224,7 +242,7 @@ export default function ShareMenu({
             />
           </div>
 
-          <div className="w-full md:w-2/3 p-6 overflow-y-auto">
+          <div className="w-full overflow-y-auto p-6 md:w-2/3">
             {section === "invite" && (
               <InviteAudienceUI
                 BASE={BASE}
@@ -235,7 +253,6 @@ export default function ShareMenu({
                 onSave={handleSave}
                 onConfirmSave={handleConfirmSave}
                 onCancelConfirm={handleCancelConfirm}
-                onClose={onClose}
                 isSaving={isSaving}
                 saveError={saveError}
                 saveSuccess={saveSuccess}
@@ -245,9 +262,9 @@ export default function ShareMenu({
               />
             )}
           </div>
-        </div>
-      </div>
-    </>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -255,6 +272,8 @@ export default function ShareMenu({
 function MenuItem({ label, active, onClick }: MenuItemProps) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       className={`w-full rounded-control px-3 py-2 text-start font-medium transition
         ${
           active
@@ -278,7 +297,6 @@ function InviteAudienceUI({
   onSave,
   onConfirmSave,
   onCancelConfirm,
-  onClose,
   isSaving,
   saveError,
   saveSuccess,
@@ -297,10 +315,6 @@ function InviteAudienceUI({
       event.preventDefault();
       onSave();
     }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-    }
   };
 
 
@@ -317,7 +331,11 @@ function InviteAudienceUI({
       <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
         <bdi className="text-content-muted" dir="ltr">{BASE}</bdi>
         <div className="flex flex-1 flex-wrap items-center gap-2">
+          <label htmlFor="share-access-code" className="sr-only">
+            کد ورود ارائه
+          </label>
           <input
+            id="share-access-code"
             className={`w-full sm:w-[16ch] md:w-[18ch] flex-none rounded-control border px-3 py-2 text-sm focus:ring-2 focus:ring-focus ${
               inputError ? "border-danger" : "border-border-subtle"
             }`}
@@ -326,11 +344,16 @@ function InviteAudienceUI({
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             maxLength={12}
-            aria-describedby="access-code-help access-code-error"
+            aria-describedby={
+              inputError
+                ? "access-code-help access-code-error"
+                : "access-code-help"
+            }
             aria-invalid={Boolean(inputError)}
             dir="ltr"
           />
           <button
+            type="button"
             onClick={onSave}
             disabled={!isCodeValid || !hasChanges || isSaving}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
@@ -341,12 +364,12 @@ function InviteAudienceUI({
           >
             {isSaving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 در حال ذخیره…
               </>
             ) : (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="h-4 w-4" aria-hidden="true" />
                 ذخیره
               </>
             )}

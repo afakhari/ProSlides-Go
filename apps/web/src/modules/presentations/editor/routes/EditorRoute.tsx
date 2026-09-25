@@ -1,3 +1,4 @@
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation, useNavigation } from "react-router-dom";
 import QuizHeader from "../toolbar/EditorHeader.tsx";
@@ -515,30 +516,32 @@ function QuestionEditor({
     </div>
   );
 
-  const typePicker = showTypeBox ? (
-    <>
-      <button
-        type="button"
-        aria-label="بستن انتخاب نوع آیتم"
-        className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm"
-        onClick={slideMutations.cancelTypeSelection}
-      />
-      <div
-        className="absolute inset-x-3 z-40 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl sm:inset-x-auto sm:w-[440px]"
-        role="dialog"
-        aria-modal="true"
+  const typePicker = (
+    <DialogPrimitive.Root
+      open={showTypeBox}
+      onOpenChange={(open) => {
+        if (!open) slideMutations.cancelTypeSelection();
+      }}
+    >
+      <DialogPrimitive.Overlay className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm" />
+      <DialogPrimitive.Content
+        className="absolute inset-x-3 z-40 mx-auto flex w-auto max-w-[440px] flex-col items-center space-y-4 rounded-3xl bg-white p-6 shadow-2xl outline-none sm:inset-x-auto sm:w-[440px]"
         aria-labelledby="item-type-title"
       >
-        <h2
-          id="item-type-title"
-          className="text-xl font-black text-brand-strong"
-        >
-          نوع آیتم را انتخاب کنید
-        </h2>
-        <p className="text-center text-sm text-slate-500">
-          نوع آیتم را بعداً هم می‌توانید تغییر دهید. تبدیل نوع ممکن است
-          محتوای مخصوص نوع قبلی را جایگزین کند.
-        </p>
+        <DialogPrimitive.Title asChild>
+          <h2
+            id="item-type-title"
+            className="text-xl font-black text-brand-strong"
+          >
+            نوع آیتم را انتخاب کنید
+          </h2>
+        </DialogPrimitive.Title>
+        <DialogPrimitive.Description asChild>
+          <p className="text-center text-sm text-slate-500">
+            نوع آیتم را بعداً هم می‌توانید تغییر دهید. تبدیل نوع ممکن است
+            محتوای مخصوص نوع قبلی را جایگزین کند.
+          </p>
+        </DialogPrimitive.Description>
 
         {typeSelectionError && (
           <Notice
@@ -572,16 +575,17 @@ function QuestionEditor({
           );
         })}
 
-        <button
-          type="button"
-          onClick={slideMutations.cancelTypeSelection}
-          className="min-h-10 rounded-lg px-3 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-        >
-          انصراف
-        </button>
-      </div>
-    </>
-  ) : null;
+        <DialogPrimitive.Close asChild>
+          <button
+            type="button"
+            className="min-h-10 rounded-lg px-3 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            انصراف
+          </button>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Root>
+  );
 
   const itemInspector =
     showSidebar && activeSlide ? (
