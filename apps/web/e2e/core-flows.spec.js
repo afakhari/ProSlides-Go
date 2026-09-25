@@ -678,10 +678,11 @@ test("question editor preserves typed draft semantics across save and edit confl
   const saveResponse = await saveResponsePromise;
   expect(saveResponse.status()).toBe(200);
   const savedSlide = await saveResponse.json();
-  expect(savedSlide.content.text).toBe("پایتخت ایران را انتخاب کنید");
-  expect(savedSlide.content.question_time).toBe(45);
-  expect(savedSlide.content.options[0].text).toBe("شیراز");
-  expect(savedSlide.content.options[0].order).toBe(1);
+  expect(savedSlide.kind).toBe("activity");
+  expect(savedSlide.content.prompt.text).toBe("پایتخت ایران را انتخاب کنید");
+  expect(savedSlide.content.timing.duration_seconds).toBe(45);
+  expect(savedSlide.content.response.options[0].text).toBe("شیراز");
+  expect(savedSlide.content.response.options[0].order).toBe(1);
   await expect(page.getByText("همه تغییرات ذخیره شده است.")).toBeVisible();
   await expect(
     preview.getByText("تغییرات ذخیره‌نشده", { exact: true }),
