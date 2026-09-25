@@ -560,6 +560,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/live/sessions/{sessionId}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the read-only audience Stage projection for a manager-owned Session.
+         * @description Returns only data intended for the public Stage surface. Manager identity, the full roster and participant identifiers are excluded. Activity correctness is omitted until reveal. Cumulative ranking is bounded to the top five and is present only when the Stage is showing overall ranking or the scored Session has ended.
+         */
+        get: operations["getLiveStageSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/live/sessions/{sessionId}/roster": {
         parameters: {
             query?: never;
@@ -928,6 +948,30 @@ export interface components {
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];
+        };
+        StageRankingEntry: {
+            display_name: string;
+            avatar?: string;
+            score: number;
+            /** @description Competition rank in the cumulative Session ranking. */
+            rank: number;
+        };
+        StageLiveSnapshot: {
+            /** @enum {string} */
+            role: "stage";
+            session: components["schemas"]["PublicLiveSession"];
+            join_code: string;
+            presentation: components["schemas"]["PublicLivePresentation"];
+            /** @description Active Item projected for the audience; correctness metadata is omitted until reveal. */
+            active_item?: {
+                [key: string]: unknown;
+            };
+            participant_count: number;
+            has_scoring: boolean;
+            /** Format: int64 */
+            last_event_id: number;
+            activity_result?: components["schemas"]["ActivityResultPayload"];
+            ranking: components["schemas"]["StageRankingEntry"][];
         };
         ManagerLiveSnapshot: {
             /** @enum {string} */
@@ -2231,6 +2275,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParticipantLiveSnapshot"] | components["schemas"]["ManagerLiveSnapshot"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getLiveStageSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authoritative Stage projection and SSE recovery cursor. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageLiveSnapshot"];
                 };
             };
             401: components["responses"]["Unauthorized"];
