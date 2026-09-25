@@ -1062,7 +1062,7 @@ components:
         active_item:
           type: object
           additionalProperties: true
-          description: Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted.
+          description: Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed.
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
         participant_count: { type: integer, minimum: 0 }
         last_event_id: { type: integer, format: int64, minimum: 0 }
