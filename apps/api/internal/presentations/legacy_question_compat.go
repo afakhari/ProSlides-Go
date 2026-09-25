@@ -28,7 +28,6 @@ type legacyQuestionOption struct {
 	Order     int    `json:"order"`
 }
 
-
 func validateLegacyQuestionDefinition(value legacyQuestionDefinition) error {
 	if strings.TrimSpace(value.Text) == "" ||
 		utf8.RuneCountInString(value.Text) > 10000 ||
@@ -81,7 +80,6 @@ func validateLegacyQuestionDefinition(value legacyQuestionDefinition) error {
 	return nil
 }
 
-
 func activityFromLegacyQuestion(value legacyQuestionDefinition) ActivityDefinition {
 	options := make([]ChoiceOptionDefinition, 0, len(value.Options))
 	correct := make([]string, 0, len(value.Options))
@@ -128,7 +126,6 @@ func activityFromLegacyQuestion(value legacyQuestionDefinition) ActivityDefiniti
 
 // LegacyLiveSlideDefinition projects one authored Item into the frozen shape
 // consumed by the pre-V2.2 live engine. It does not mutate authoring storage.
-
 func LegacyLiveSlideDefinition(kind string, raw json.RawMessage) (string, json.RawMessage, error) {
 	if kind != ItemKindActivity {
 		return kind, raw, nil
