@@ -39,7 +39,7 @@ import {
   PasswordSetupPrompt,
 } from "../../identity/public.ts";
 import { DashboardHeader } from "./ui/DashboardHeader.tsx";
-import { getPresentationValidationError } from "../model/editor.ts";
+import { getPresentationValidationError } from "../model/itemRegistry.ts";
 import { createPresentationOnce } from "../model/createPresentationFlow.ts";
 import Notice from "../../../shared/ui/Notice.tsx";
 import { fa } from "../../../shared/i18n/fa.ts";
