@@ -5,7 +5,7 @@ import {
   useState,
 } from "react";
 
-import type { LiveState } from "../api/types.ts";
+import type { LiveState, StageView } from "../api/types.ts";
 import { hasLeaderboardEntries } from "../model/leaderboard.ts";
 import type { LivePresentationModel } from "../model/presentation.ts";
 import {
@@ -30,6 +30,7 @@ type UseManagerPresentationControllerOptions = {
   leaderboardResults: unknown;
   isConnected: boolean;
   sessionState?: LiveState;
+  sessionStageView?: StageView;
 };
 
 export type ManagerPresentationController = {
@@ -50,6 +51,7 @@ export function useManagerPresentationController({
   leaderboardResults,
   isConnected,
   sessionState,
+  sessionStageView,
 }: UseManagerPresentationControllerOptions): ManagerPresentationController {
   const [fallbackView, setFallbackView] =
     useState<ManagerPresentationView>("ManagerJoinPage");
@@ -60,6 +62,7 @@ export function useManagerPresentationController({
 
   const totalSlides = quiz.slides.length;
   const hasLeaderboard = hasLeaderboardEntries(leaderboardResults);
+  const isOverallRanking = sessionStageView === "overall_ranking";
 
   useEffect(() => {
     if (!enabled) {
@@ -76,7 +79,7 @@ export function useManagerPresentationController({
   useEffect(() => {
     if (!enabled || isSynced) return;
 
-    if (currentQuestion || currentContent || hasLeaderboard) {
+    if (currentQuestion || currentContent || isOverallRanking) {
       setIsSynced(true);
       return;
     }
@@ -93,6 +96,7 @@ export function useManagerPresentationController({
     currentQuestion,
     currentContent,
     hasLeaderboard,
+    isOverallRanking,
     isConnected,
   ]);
 
@@ -124,7 +128,7 @@ export function useManagerPresentationController({
   }, [enabled, currentContent, quiz.slides]);
 
   useEffect(() => {
-    if (!enabled || !hasLeaderboard) return;
+    if (!enabled || !isOverallRanking) return;
 
     const index = findLeaderboardSlideIndex({
       slides: quiz.slides,
@@ -139,7 +143,7 @@ export function useManagerPresentationController({
     setFallbackView("ManagerLeaderBoard");
   }, [
     enabled,
-    hasLeaderboard,
+    isOverallRanking,
     quiz.slides,
     currentSlide,
     lastQuestionSlideIndex,
@@ -147,7 +151,7 @@ export function useManagerPresentationController({
 
   const handleNext = useCallback(() => {
     if (fallbackView === "ManagerJoinPage") {
-      if (hasLeaderboard) {
+      if (isOverallRanking) {
         setFallbackView("ManagerLeaderBoard");
         return;
       }
@@ -178,7 +182,7 @@ export function useManagerPresentationController({
     );
   }, [
     fallbackView,
-    hasLeaderboard,
+    isOverallRanking,
     currentContent,
     quiz.slides,
     currentSlide,
@@ -200,14 +204,14 @@ export function useManagerPresentationController({
     ) {
       return "ManagerFinalLeaderboard";
     }
-    if (hasLeaderboard) return "ManagerLeaderBoard";
+    if (isOverallRanking) return "ManagerLeaderBoard";
     if (currentContent) return "ManagerContentSlide";
     if (currentQuestion) return "ManagerPickAnswerQuestion";
     return fallbackView;
   }, [
     fallbackView,
     sessionState,
-    hasLeaderboard,
+    isOverallRanking,
     currentContent,
     currentQuestion,
   ]);
