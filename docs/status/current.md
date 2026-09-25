@@ -90,12 +90,20 @@ Push on main #399, both green. V2.6 / issue #88 is therefore closed.
 **Active implementation slice: V2.7 / issue #89 — remove verified legacy
 question/slide/leaderboard compatibility paths.**
 
-The first cleanup boundary removes `question_draft` from the authored-item
-contract and its backend/frontend/live compatibility adapters. Canonical Choice
-Activities already own creation, editing, live projection and reporting. Other
-legacy paths, including numeric `slide_type`, legacy Question transport and
-persisted leaderboard compatibility, remain until their replacements are
-verified independently.
+The first cleanup boundary, PR #114, removes `question_draft` from the
+authored-item contract and its backend/frontend/live compatibility adapters.
+
+PR #115 is the next verified authoring cleanup: migrations 0017 and 0018 already
+upgraded persisted authored Questions and frozen live-session Question snapshots
+to canonical Choice Activities, so the deprecated Question creation endpoint,
+generic `kind: question` translator, legacy Editor read adapter and their dead
+OpenAPI shapes are removed. Internal load/integration authoring fixtures now
+create the same versioned Choice Activity used by the product.
+
+Other legacy paths, including numeric `slide_type`, old live action/state
+vocabulary in verification tooling, Choice response compatibility, deprecated
+question-result reads and persisted leaderboard compatibility, remain until
+their replacements are verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
