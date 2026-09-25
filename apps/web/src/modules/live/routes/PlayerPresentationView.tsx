@@ -67,7 +67,8 @@ export function PlayerPresentationView({
   if (
     hasSeenActiveSlide &&
     lastActive?.kind === "question" &&
-    snapshot?.session?.state === "question_open"
+    snapshot?.session?.state === "presenting" &&
+    snapshot.session.activity_phase === "accepting"
   ) {
     const freshRemaining = snapshot.session.remaining_seconds;
     const fallbackQuestion =
