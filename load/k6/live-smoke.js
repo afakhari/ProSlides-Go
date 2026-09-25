@@ -82,17 +82,32 @@ export function setup() {
   const presentation = json(http.post(`${baseURL}/api/v1/presentations`, JSON.stringify({ title: `Load smoke ${suffix}` }), {
     headers: managerHeaders, jar, tags: { operation: "setup_presentation" },
   }), "create presentation");
-  const question = json(http.post(`${baseURL}/api/v1/presentations/${presentation.id}/questions`, JSON.stringify({
+  const question = json(http.post(`${baseURL}/api/v1/presentations/${presentation.id}/slides`, JSON.stringify({
     position: 0,
-    text: "Load smoke question",
-    question_type: "single",
-    question_time: 120,
-    max_point: 100,
-    min_point: 0,
-    faster_answers_more_points: false,
-    partial_scoring: false,
-    options: [{ text: "Correct", is_correct: true }, { text: "Wrong", is_correct: false }],
-  }), { headers: managerHeaders, jar, tags: { operation: "setup_question" } }), "create question");
+    kind: "activity",
+    content: {
+      schema_version: 1,
+      activity_kind: "choice",
+      prompt: { title: "", text: "Load smoke question", image_url: "" },
+      response: {
+        selection: "single",
+        options: [
+          { id: "option-1", text: "Correct", image_url: "", order: 1 },
+          { id: "option-2", text: "Wrong", image_url: "", order: 2 },
+        ],
+      },
+      evaluation: { mode: "correctness", correct_option_ids: ["option-1"] },
+      scoring: {
+        mode: "points",
+        min_points: 0,
+        max_points: 100,
+        speed_bonus: false,
+        partial_credit: false,
+      },
+      timing: { duration_seconds: 120 },
+      results: { show_overall_leaderboard_after: false },
+    },
+  }), { headers: managerHeaders, jar, tags: { operation: "setup_activity" } }), "create activity");
   const session = json(http.post(`${baseURL}/api/v1/live/sessions`, JSON.stringify({
     request_id: requestID(), presentation_id: presentation.id,
   }), { headers: managerHeaders, jar, tags: { operation: "setup_session" } }), "create session");
