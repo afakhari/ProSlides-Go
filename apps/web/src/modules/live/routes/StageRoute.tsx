@@ -381,7 +381,9 @@ export default function StageRoute() {
           ارتباط Stage در حال بازیابی است
         </div>
       ) : null}
-      <span className="sr-only" aria-live="polite">{statusText(snapshot)}</span>
+      <span className="sr-only" aria-live="polite">
+        {`وضعیت Stage: ${statusText(snapshot)}`}
+      </span>
       {body}
     </div>
   );
