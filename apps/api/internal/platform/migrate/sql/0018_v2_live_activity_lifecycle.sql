@@ -150,7 +150,11 @@ SET action = CASE action
 -- Normalize retained replay events so snapshot-first reconnect never observes
 -- two different lifecycle vocabularies for the same session.
 UPDATE live_events
-SET name = CASE name
+SET schema_version = CASE
+        WHEN name = 'leaderboard.updated' THEN 2
+        ELSE schema_version
+    END,
+    name = CASE name
         WHEN 'answer.stats' THEN 'activity.result_updated'
         WHEN 'leaderboard.updated' THEN 'ranking.updated'
         ELSE name
