@@ -3,8 +3,8 @@
 ## Status and intent
 
 This document owns current infrastructure/backend correctness invariants and the
-system architecture that v2 preserves. It is designed
-to scale to a measured 10,000 concurrent participants in one live session, but
+system architecture that v2 preserves. The system is designed to scale to a
+measured 10,000 concurrent participants in one live session, but
 that capacity is **not yet certified**. Certification requires the workload and
 gates in `docs/capacity-plan.md`; architecture alone is not proof.
 
