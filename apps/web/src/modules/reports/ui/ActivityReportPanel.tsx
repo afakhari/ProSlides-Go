@@ -11,9 +11,12 @@ import {
   activityPrompt,
   activityTitle,
   choiceOptions,
+  choiceResultCounts,
   formatReportDateTime,
   isPollActivity,
+  isWordCloudActivity,
   responseLabels,
+  wordCloudTerms,
 } from "../model/reportView.ts";
 
 interface ActivityReportPanelProps {
@@ -39,9 +42,14 @@ export function ActivityReportPanel({
   const responses = pages.flatMap((page) => page.responses);
   const options = choiceOptions(activity);
   const isPoll = isPollActivity(activity);
+  const isWordCloud = isWordCloudActivity(activity);
+  const counts = first ? choiceResultCounts(first) : {};
+  const terms = first ? wordCloudTerms(first) : [];
   const maxCount = Math.max(
     1,
-    ...options.map((option) => first?.result.payload.option_counts[option.id] ?? 0),
+    ...(isWordCloud
+      ? terms.map((term) => term.count)
+      : options.map((option) => counts[option.id] ?? 0)),
   );
 
   if (isLoading) {
@@ -65,7 +73,11 @@ export function ActivityReportPanel({
       <div className="border-b border-border-subtle p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-black" dir="auto">{activityTitle(activity)}</h2>
-          {isPoll ? (
+          {isWordCloud ? (
+            <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink">
+              ابر واژه
+            </span>
+          ) : isPoll ? (
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink">
               نظرسنجی
             </span>
@@ -93,38 +105,79 @@ export function ActivityReportPanel({
         }
       >
         <div>
-          <h3 className="font-bold">{isPoll ? "نتیجه نظرسنجی" : "نتیجه همین فعالیت"}</h3>
+          <h3 className="font-bold">
+            {isWordCloud
+              ? "نتیجه ابر واژه"
+              : isPoll
+                ? "نتیجه نظرسنجی"
+                : "نتیجه همین فعالیت"}
+          </h3>
           <p className="mt-1 text-xs text-content-muted">
-            توزیع پاسخ‌ها فقط برای این فعالیت است و با رتبه‌بندی کلی جلسه ترکیب
-            نمی‌شود.
+            {isWordCloud
+              ? "فراوانی واژه‌ها از پاسخ‌های ثبت‌شده همین فعالیت محاسبه شده است."
+              : "توزیع پاسخ‌ها فقط برای این فعالیت است و با رتبه‌بندی کلی جلسه ترکیب نمی‌شود."}
           </p>
-          <div className="mt-4 space-y-3">
-            {options.map((option) => {
-              const count = first.result.payload.option_counts[option.id] ?? 0;
-              const width = Math.round((count / maxCount) * 100);
-              return (
-                <div key={option.id}>
-                  <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate font-semibold" dir="auto">
-                      {option.text?.trim() || option.id}
+
+          {isWordCloud ? (
+            <div
+              className="mt-4 flex min-h-48 flex-wrap items-center justify-center gap-x-5 gap-y-3 rounded-panel border border-border-subtle bg-canvas p-5"
+              aria-label="ابر واژه گزارش"
+            >
+              {terms.length === 0 ? (
+                <p className="text-sm text-content-muted">
+                  هنوز واژه‌ای برای نمایش وجود ندارد.
+                </p>
+              ) : (
+                terms.map((term) => {
+                  const ratio = Math.max(0.35, term.count / maxCount);
+                  return (
+                    <span
+                      key={term.text}
+                      dir="auto"
+                      className="font-black leading-none"
+                      style={{ fontSize: 14 + Math.round(ratio * 26) }}
+                      aria-label={
+                        term.text +
+                        "، " +
+                        formatPersianNumber(term.count) +
+                        " بار"
+                      }
+                    >
+                      {term.text}
                     </span>
-                    <span className="shrink-0 text-content-muted">
-                      {formatPersianNumber(count)}
-                    </span>
-                  </div>
-                  <div
-                    className="h-2 overflow-hidden rounded-full bg-brand-soft"
-                    aria-label={`${formatPersianNumber(count)} پاسخ`}
-                  >
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {options.map((option) => {
+                const count = counts[option.id] ?? 0;
+                const width = Math.round((count / maxCount) * 100);
+                return (
+                  <div key={option.id}>
+                    <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate font-semibold" dir="auto">
+                        {option.text?.trim() || option.id}
+                      </span>
+                      <span className="shrink-0 text-content-muted">
+                        {formatPersianNumber(count)}
+                      </span>
+                    </div>
                     <div
-                      className="h-full rounded-full bg-brand"
-                      style={{ width: `${width}%` }}
-                    />
+                      className="h-2 overflow-hidden rounded-full bg-brand-soft"
+                      aria-label={formatPersianNumber(count) + " پاسخ"}
+                    >
+                      <div
+                        className="h-full rounded-full bg-brand"
+                        style={{ width: width + "%" }}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {activity.scored && (
@@ -163,7 +216,9 @@ export function ActivityReportPanel({
         <div className="flex items-center gap-2 px-5 pt-5">
           <UsersRound className="size-5 text-brand" aria-hidden="true" />
           <h3 className="font-bold">
-            {isPoll ? "پاسخ‌های شرکت‌کنندگان" : "پاسخ‌ها و ارزیابی شرکت‌کنندگان"}
+            {isWordCloud || isPoll
+              ? "پاسخ‌های شرکت‌کنندگان"
+              : "پاسخ‌ها و ارزیابی شرکت‌کنندگان"}
           </h3>
         </div>
 
@@ -191,7 +246,14 @@ export function ActivityReportPanel({
                       </h4>
                     </div>
                     <p className="mt-2 text-sm text-content-muted">
-                      پاسخ: <bdi dir="auto">{labels.length > 0 ? labels.join("، ") : "بدون انتخاب"}</bdi>
+                      پاسخ:{" "}
+                      <bdi dir="auto">
+                        {labels.length > 0
+                          ? labels.join("، ")
+                          : isWordCloud
+                            ? "بدون متن"
+                            : "بدون انتخاب"}
+                      </bdi>
                     </p>
                     <p className="mt-1 text-xs text-content-muted">
                       {formatReportDateTime(response.submitted_at)}
