@@ -143,6 +143,35 @@ func TestChoiceActivityModelSupportsUnscoredChoiceWithoutQuizFields(t *testing.T
 	}
 }
 
+func TestUnscoredChoiceCannotRequestOverallLeaderboard(t *testing.T) {
+	activity := ActivityDefinition{
+		SchemaVersion: 1,
+		ActivityKind:  ActivityKindChoice,
+		Prompt:        ActivityPrompt{Text: "Poll"},
+		Response: ChoiceResponsePolicy{
+			Selection: ChoiceSelectionSingle,
+			Options: []ChoiceOptionDefinition{
+				{ID: "a", Text: "A", Order: 1},
+				{ID: "b", Text: "B", Order: 2},
+			},
+		},
+		Evaluation: ChoiceEvaluationPolicy{
+			Mode:             EvaluationModeNone,
+			CorrectOptionIDs: []string{},
+		},
+		Scoring: ScoringModeNonePolicy(),
+		Timing:  ActivityTimingPolicy{DurationSeconds: 30},
+		Results: ActivityResultPolicy{ShowOverallLeaderboardAfter: true},
+	}
+	if err := validateActivityDefinition(activity); err == nil {
+		t.Fatal("unscored activity requested an overall leaderboard")
+	}
+}
+
+func ScoringModeNonePolicy() ChoiceScoringPolicy {
+	return ChoiceScoringPolicy{Mode: ScoringModeNone}
+}
+
 func TestChoiceActivityRejectsInvalidCrossPolicyCombinations(t *testing.T) {
 	base := ActivityDefinition{
 		SchemaVersion: 1,
