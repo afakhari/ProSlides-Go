@@ -34,10 +34,10 @@ export function ConfirmDialog({
       }}
     >
       <AlertDialogPrimitive.Portal>
-        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-content/35 backdrop-blur-[2px]" />
+        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-content/35 backdrop-blur-[2px]" />
         <AlertDialogPrimitive.Content
           dir="rtl"
-          className="fixed left-1/2 top-1/2 z-50 w-[min(calc(100vw-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-border-subtle bg-surface-raised p-6 text-content shadow-panel outline-none"
+          className="fixed left-1/2 top-1/2 z-[81] w-[min(calc(100vw-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 rounded-panel border border-border-subtle bg-surface-raised p-6 text-content shadow-panel outline-none"
           onEscapeKeyDown={(event) => {
             if (isLoading) event.preventDefault();
           }}
