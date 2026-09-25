@@ -82,11 +82,20 @@ removed the remaining Stage hook warning found during the same pass. The
 resulting dependency install reports zero known vulnerabilities on the CI
 Node/npm toolchain.
 
-PR #111 is merged into `main` and post-merge CI #555 is green, including the
-full browser E2E job. V2.6 / issue #88 is therefore closed.
+PR #111 is merged into `main`; its post-merge CI #555 was green, including the
+full browser E2E job. PR #113 subsequently removed a cache-sensitive Report E2E
+waiter exposed by CI #557. The final verified pre-V2.7 baseline is CI #560 plus
+Push on main #399, both green. V2.6 / issue #88 is therefore closed.
 
 **Active implementation slice: V2.7 / issue #89 — remove verified legacy
 question/slide/leaderboard compatibility paths.**
+
+The first cleanup boundary removes `question_draft` from the authored-item
+contract and its backend/frontend/live compatibility adapters. Canonical Choice
+Activities already own creation, editing, live projection and reporting. Other
+legacy paths, including numeric `slide_type`, legacy Question transport and
+persisted leaderboard compatibility, remain until their replacements are
+verified independently.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
