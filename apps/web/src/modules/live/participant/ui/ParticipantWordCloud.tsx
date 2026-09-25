@@ -46,14 +46,17 @@ export function ParticipantWordCloud({
   const [submitMessage, setSubmitMessage] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
+  const questionRef = useRef(question);
+  questionRef.current = question;
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
+  const remainingRef = useRef(0);
   const pendingRef = useRef<{ requestId: string; text: string } | null>(null);
   const inFlightRef = useRef(false);
   const wasConnectedRef = useRef(isConnected);
 
   useEffect(() => {
     const resolved = resolveQuestionTimer({
-      question,
+      question: questionRef.current,
       roomId,
       role: "player",
     });
@@ -61,6 +64,7 @@ export function ParticipantWordCloud({
       anchorStartMs: resolved.anchorStartMs,
       totalSeconds: resolved.totalSeconds,
     };
+    remainingRef.current = resolved.remainingSeconds;
     setTimeLeft(resolved.remainingSeconds);
     setTotalSeconds(resolved.totalSeconds);
     setValue("");
@@ -68,7 +72,7 @@ export function ParticipantWordCloud({
     setSubmitMessage("");
     pendingRef.current = null;
     inFlightRef.current = false;
-  }, [question, roomId, timerScope]);
+  }, [roomId, timerScope]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -81,6 +85,7 @@ export function ParticipantWordCloud({
         0,
         timerRef.current.totalSeconds - elapsed,
       );
+      remainingRef.current = remaining;
       setTimeLeft(remaining);
       if (remaining > 0) frame = window.requestAnimationFrame(tick);
     };
@@ -106,7 +111,7 @@ export function ParticipantWordCloud({
 
   const send = useCallback(
     async (attempt: { requestId: string; text: string }) => {
-      if (inFlightRef.current || timeLeft <= 0) return;
+      if (inFlightRef.current || remainingRef.current <= 0) return;
       inFlightRef.current = true;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
@@ -133,7 +138,7 @@ export function ParticipantWordCloud({
         inFlightRef.current = false;
       }
     },
-    [identity, submitAnswer, timeLeft],
+    [identity, submitAnswer],
   );
 
   const submit = async () => {
@@ -158,11 +163,11 @@ export function ParticipantWordCloud({
       reconnected &&
       submitState === "retryable" &&
       pendingRef.current &&
-      timeLeft > 0
+      remainingRef.current > 0
     ) {
       void send(pendingRef.current);
     }
-  }, [isConnected, send, submitState, timeLeft]);
+  }, [isConnected, send, submitState]);
 
   useEffect(() => {
     if (timeLeft > 0 || locked) return;
