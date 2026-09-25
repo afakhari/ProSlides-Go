@@ -443,9 +443,8 @@ function QuestionInspectorInner({
 
               {draft.scoringMode === "none" && (
                 <Notice tone="info" className="mt-3 items-start">
-                  این Activity بدون امتیاز ذخیره شده است. تنظیمات امتیازدهی برای
-                  حفظ قرارداد فعلی غیرفعال‌اند؛ presetهای بدون امتیاز در مرحله
-                  Activityهای جدید به‌صورت مستقل وارد انتخاب‌گر می‌شوند.
+                  این فعالیت بدون امتیاز تعریف شده است. برای حفظ رفتار فعلی، تنظیمات
+                  امتیازدهی در این حالت غیرفعال‌اند.
                 </Notice>
               )}
 
@@ -573,7 +572,7 @@ function QuestionInspectorInner({
                 {draft.evaluationMode === "correctness"
                   ? " و پاسخ صحیح"
                   : ""}
-                ، پس از بسته‌شدن Activity نمایش داده می‌شود. این مرحله از
+                ، پس از بسته‌شدن فعالیت نمایش داده می‌شود. این مرحله از
                 رتبه‌بندی کلی جلسه جداست.
               </Notice>
               <label className={`mt-3 flex min-h-12 items-start justify-between gap-4 rounded-panel border border-border-subtle bg-canvas p-3 ${
@@ -587,7 +586,7 @@ function QuestionInspectorInner({
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-content-muted">
                     {draft.scoringMode === "none"
-                      ? "رتبه‌بندی کلی فقط برای Activity امتیازی قابل نمایش است."
+                      ? "رتبه‌بندی کلی فقط برای فعالیت امتیازی قابل نمایش است."
                       : "پس از نمایش نتیجه این فعالیت، رتبه‌بندی تجمعی کل جلسه نیز روی Stage نمایش داده می‌شود."}
                   </span>
                 </span>
