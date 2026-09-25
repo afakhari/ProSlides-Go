@@ -139,6 +139,22 @@ For choice, distinguish:
 - no scoring vs fixed/speed-aware scoring;
 - optional partial-credit policy for multiple selection.
 
+For the initial Text primitive used by Word Cloud:
+
+- response policy bounds text length and submitted word count;
+- evaluation and scoring are both `none`;
+- result policy explicitly selects `word_frequency` aggregation;
+- accepted text is Unicode-normalized at the command boundary;
+- canonical terms are frozen with the accepted response so historical Word Cloud
+  results do not change if tokenizer behavior evolves;
+- repeated occurrences of the same normalized term in one participant response
+  count once toward aggregation, while all submitted tokens still count toward
+  the response word limit.
+
+Open Text may later reuse the same Text response primitive with a different
+result policy. Do not create a separate live Session state or response endpoint
+for each Text product preset.
+
 Do not persist a generic bag of speculative capability booleans. Capabilities
 should be derived by backend/frontend registries from the concrete definition
 until a real persistence need appears.
