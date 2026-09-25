@@ -39,7 +39,7 @@ func (s *snapshotStore) ResolveSession(_ context.Context, code string) (SessionL
 func (s *snapshotStore) Join(context.Context, string, string, string, string, []byte) (Participant, bool, error) {
 	return Participant{}, false, errors.New("unexpected Join")
 }
-func (s *snapshotStore) ApplyAction(context.Context, string, string, string, int64, string, string, int) (Session, bool, error) {
+func (s *snapshotStore) ApplyAction(context.Context, string, string, string, int64, string, string) (Session, bool, error) {
 	return Session{}, false, errors.New("unexpected ApplyAction")
 }
 func (s *snapshotStore) SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error) {
