@@ -43,7 +43,7 @@ type RankingQuery struct {
 type SessionSummary struct {
 	SessionID         string     `json:"session_id"`
 	PresentationID    string     `json:"presentation_id"`
-	PresentationTitle string     `json:"presentation_title"`
+	PresentationTitle *string    `json:"presentation_title"`
 	State             string     `json:"state"`
 	CreatedAt         time.Time  `json:"created_at"`
 	EndedAt           *time.Time `json:"ended_at,omitempty"`
