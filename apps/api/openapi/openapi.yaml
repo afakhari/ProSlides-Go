@@ -933,10 +933,10 @@ components:
         title: { type: string, maxLength: 500 }
     AnswerRequest:
       type: object
-      required: [request_id, question_slide_id, selected_option_indexes]
+      required: [request_id, activity_item_id, selected_option_indexes]
       properties:
         request_id: { type: string, format: uuid }
-        question_slide_id: { type: string, format: uuid }
+        activity_item_id: { type: string, format: uuid }
         selected_option_indexes:
           type: array
           items: { type: integer, minimum: 0 }
@@ -959,26 +959,332 @@ components:
       properties:
         request_id: { type: string, format: uuid }
         expected_state_version: { type: integer, minimum: 1 }
-        action: { type: string, enum: [start, open_content, open_question, close_question, show_leaderboard, end] }
-        slide_id: { type: string, format: uuid }
-        duration_seconds: { type: integer, minimum: 1, maximum: 86400 }
+        action: { type: string, enum: [start, present_item, close_activity, reveal_activity, show_overall_ranking, end] }
+        item_id: { type: string, format: uuid }
     LiveSession:
       type: object
-      required: [id, presentation_id, host_id, join_code, state, state_version]
+      required: [id, presentation_id, host_id, join_code, state, state_version, activity_phase, stage_view]
       properties:
         id: { type: string, format: uuid }
         presentation_id: { type: string, format: uuid }
         host_id: { type: string, format: uuid }
-        join_code: { type: string, pattern: '^[A-Z0-9]{5,12}$' }
-        state: { type: string, enum: [draft, lobby, content, question_open, question_closed, leaderboard, ended] }
-        state_version: { type: integer }
-        active_slide_id: { type: string, format: uuid, nullable: true }
+        join_code: { type: string, pattern: '^[A-Z0-9]{5,12}
+    Participant:
+      type: object
+      required: [id, display_name]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+    AnswerResult:
+      type: object
+      required: [answer_id, score_delta, duplicate]
+      properties:
+        answer_id: { type: string, format: uuid }
+        score_delta: { type: integer, minimum: 0 }
+        duplicate: { type: boolean }
+    PublicLiveSession:
+      type: object
+      required: [id, presentation_id, state, state_version, activity_phase, stage_view]
+      properties:
+        id: { type: string, format: uuid }
+        presentation_id: { type: string, format: uuid }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        state_version: { type: integer, format: int64 }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
         ends_at: { type: string, format: date-time, nullable: true }
         remaining_seconds:
           type: integer
           minimum: 0
           nullable: true
-          description: Authoritative whole seconds the open question has left, computed in the PostgreSQL clock domain (end_deadline minus clock_timestamp()). Present only while state is question_open; null otherwise.
+          description: Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise.
+    ParticipantWithScore:
+      type: object
+      required: [id, display_name, score]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, description: Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). }
+    LiveSessionLocator:
+      type: object
+      required: [session_id, presentation_id, presentation]
+      additionalProperties: false
+      properties:
+        session_id: { type: string, format: uuid }
+        presentation_id: { type: string, format: uuid }
+        presentation:
+          $ref: '#/components/schemas/PublicLivePresentation'
+    PublicLivePresentation:
+      type: object
+      required: [title, background_color, background_image_url, music_url, text_color]
+      additionalProperties: false
+      description: Public, display-only presentation metadata safe for participant theming and presentation audio.
+      properties:
+        title: { type: string }
+        background_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        background_image_url: { type: string }
+        music_url: { type: string, maxLength: 4096 }
+        text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+    ParticipantLiveSnapshot:
+      type: object
+      required: [role, session, participant, participant_count, last_event_id]
+      additionalProperties: false
+      properties:
+        role: { type: string, enum: [participant] }
+        session: { $ref: '#/components/schemas/PublicLiveSession' }
+        active_item:
+          type: object
+          additionalProperties: true
+          description: Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted.
+        participant: { $ref: '#/components/schemas/ParticipantWithScore' }
+        participant_count: { type: integer, minimum: 0 }
+        last_event_id: { type: integer, format: int64, minimum: 0 }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
+    ManagerLiveSnapshot:
+      type: object
+      required: [role, session, participant_count, last_event_id]
+      additionalProperties: false
+      properties:
+        role: { type: string, enum: [manager] }
+        session: { $ref: '#/components/schemas/LiveSession' }
+        active_item: { type: object, additionalProperties: true }
+        participant_count: { type: integer, minimum: 0 }
+        last_event_id: { type: integer, format: int64, minimum: 0 }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
+    RosterEntry:
+      type: object
+      required: [participant_id, display_name, score, joined_at]
+      additionalProperties: false
+      properties:
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, nullable: true, description: Competition rank when the roster is ordered by score. }
+        joined_at: { type: string, format: date-time }
+    RosterPage:
+      type: object
+      required: [items, order, limit, has_more]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RosterEntry' }
+        order: { type: string, enum: [joined, score] }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
+    QuestionOptionResult:
+      type: object
+      required: [option_index, option_id, option_text, is_correct, number_of_submits]
+      additionalProperties: false
+      properties:
+        option_index: { type: integer, minimum: 0 }
+        option_id: { type: string }
+        option_text: { type: string }
+        is_correct: { type: boolean }
+        number_of_submits: { type: integer, minimum: 0 }
+    QuestionLeaderboardEntry:
+      type: object
+      required: [participant_id, display_name, score, rank, submitted_at]
+      additionalProperties: false
+      properties:
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        avatar: { type: string }
+        score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1 }
+        time_taken_ms: { type: integer, minimum: 0, nullable: true }
+        submitted_at: { type: string, format: date-time }
+    QuestionResultsPage:
+      type: object
+      required: [session_id, question_slide_id, response_count, options, leaderboard, limit, has_more]
+      additionalProperties: false
+      properties:
+        session_id: { type: string, format: uuid }
+        question_slide_id: { type: string, format: uuid }
+        response_count: { type: integer, minimum: 0 }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/QuestionOptionResult' }
+        leaderboard:
+          type: array
+          items: { $ref: '#/components/schemas/QuestionLeaderboardEntry' }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
+    LiveEventEnvelope:
+      type: object
+      required: [event_id, schema_version, session_id, state_version, name, payload, occurred_at]
+      properties:
+        event_id: { type: integer, format: int64 }
+        schema_version:
+          type: integer
+          enum: [1, 2]
+          description: Version 2 is used by aggregate-only ranking.updated payloads; other current events remain version 1.
+        session_id: { type: string, format: uuid }
+        state_version: { type: integer, format: int64 }
+        name:
+          type: string
+          enum: [session.created, presence.updated, session.state_changed, activity.result_updated, ranking.updated]
+        payload:
+          oneOf:
+            - { $ref: '#/components/schemas/SessionEventPayload' }
+            - { $ref: '#/components/schemas/PresenceUpdatedPayload' }
+            - { $ref: '#/components/schemas/ActivityResultPayload' }
+            - { $ref: '#/components/schemas/RankingUpdatedPayload' }
+        occurred_at: { type: string, format: date-time }
+    SessionEventPayload:
+      type: object
+      required: [state, activity_phase, stage_view]
+      additionalProperties: false
+      properties:
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
+        ends_at: { type: string, format: date-time, nullable: true }
+        reason: { type: string, enum: [deadline_elapsed], description: Present only when the server closes an Activity at its authoritative deadline. }
+    PresenceUpdatedPayload:
+      type: object
+      required: [participant_delta]
+      additionalProperties: false
+      properties:
+        participant_delta: { type: integer, minimum: 1, description: Number of committed joins compacted into this event. Apply it to the authoritative participant_count from the latest snapshot. }
+    ActivityResultPayload:
+      type: object
+      required: [activity_item_id, response_count, option_counts]
+      additionalProperties: false
+      properties:
+        activity_item_id: { type: string, format: uuid }
+        response_count: { type: integer, minimum: 0 }
+        option_counts:
+          type: object
+          additionalProperties: { type: integer, minimum: 0 }
+    RankingUpdatedPayload:
+      type: object
+      required: [participant_count]
+      additionalProperties: false
+      properties:
+        participant_count: { type: integer, minimum: 0 }
+    Slide:
+      type: object
+      required: [id, revision, position, kind, content]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        revision: { type: integer, format: int64, minimum: 1 }
+        position: { type: integer, minimum: 0 }
+        kind: { type: string, enum: [question_draft, activity, content, leaderboard] }
+        content: { $ref: '#/components/schemas/EditableSlideContent' }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Stable machine-readable error code.
+        message:
+          type: string
+          description: Optional safe human-readable detail; clients should branch on error, not this text.
+        field_errors:
+          type: object
+          description: Optional field-scoped machine-readable validation codes.
+          additionalProperties:
+            type: array
+            items: { type: string }
+        retry_after_seconds:
+          type: integer
+          minimum: 0
+          description: Optional retry delay for bounded/rate-limited operations.
+        request_id:
+          type: string
+          description: Optional correlation identifier safe to expose to the client.
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+    Readiness:
+      type: object
+      required: [status, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        dependencies:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [ok, unavailable]
+    Version:
+      type: object
+      required: [service, environment, api_version]
+      properties:
+        service: { type: string }
+        environment: { type: string }
+        api_version: { type: string }
+  responses:
+    ValidationError:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: No valid current session exists.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    CSRFError:
+      description: The CSRF header and cookie do not match a valid current session.
+      content:
+        application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: The requested resource does not exist or is not visible to the current account.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: The bounded authentication request budget was exceeded.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    EditConflict:
+      description: The resource changed after the client loaded it; reload the latest representation before retrying.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+ }
+        state: { type: string, enum: [draft, lobby, presenting, ended] }
+        state_version: { type: integer }
+        active_item_id: { type: string, format: uuid, nullable: true }
+        activity_phase:
+          type: string
+          enum: [accepting, closed, revealed]
+          nullable: true
+        stage_view: { type: string, enum: [item, overall_ranking] }
+        ends_at: { type: string, format: date-time, nullable: true }
+        remaining_seconds:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Authoritative whole seconds the accepting Activity has left, computed in the PostgreSQL clock domain. Present only while activity_phase is accepting; null otherwise.
     Participant:
       type: object
       required: [id, display_name]
@@ -1045,14 +1351,14 @@ components:
       properties:
         role: { type: string, enum: [participant] }
         session: { $ref: '#/components/schemas/PublicLiveSession' }
-        active_slide:
+        active_item:
           type: object
           additionalProperties: true
           description: Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted.
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
         participant_count: { type: integer, minimum: 0 }
         last_event_id: { type: integer, format: int64, minimum: 0 }
-        question_stats: { $ref: '#/components/schemas/AnswerStatsPayload' }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     ManagerLiveSnapshot:
       type: object
       required: [role, session, participant_count, last_event_id]
@@ -1060,10 +1366,10 @@ components:
       properties:
         role: { type: string, enum: [manager] }
         session: { $ref: '#/components/schemas/LiveSession' }
-        active_slide: { type: object, additionalProperties: true }
+        active_item: { type: object, additionalProperties: true }
         participant_count: { type: integer, minimum: 0 }
         last_event_id: { type: integer, format: int64, minimum: 0 }
-        question_stats: { $ref: '#/components/schemas/AnswerStatsPayload' }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     RosterEntry:
       type: object
       required: [participant_id, display_name, score, joined_at]
@@ -1143,8 +1449,8 @@ components:
           oneOf:
             - { $ref: '#/components/schemas/SessionEventPayload' }
             - { $ref: '#/components/schemas/PresenceUpdatedPayload' }
-            - { $ref: '#/components/schemas/AnswerStatsPayload' }
-            - { $ref: '#/components/schemas/LeaderboardUpdatedPayload' }
+            - { $ref: '#/components/schemas/ActivityResultPayload' }
+            - { $ref: '#/components/schemas/RankingUpdatedPayload' }
         occurred_at: { type: string, format: date-time }
     SessionEventPayload:
       type: object
