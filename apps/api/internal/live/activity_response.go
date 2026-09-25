@@ -107,7 +107,8 @@ func wordCloudTokens(value string) []string {
 		}
 	}
 
-	for _, r := range normalized {
+	for _, rawRune := range normalized {
+		r := canonicalWordCloudRune(rawRune)
 		if unicode.IsLetter(r) ||
 			unicode.IsNumber(r) ||
 			unicode.IsMark(r) ||
@@ -121,6 +122,20 @@ func wordCloudTokens(value string) []string {
 	}
 	flush()
 	return tokens
+}
+
+func canonicalWordCloudRune(r rune) rune {
+	// Persian users frequently paste Arabic keyboard variants. These glyphs
+	// are visually equivalent in Persian Word Clouds but NFKC intentionally
+	// keeps them distinct, so canonicalize only the aggregation key.
+	switch r {
+	case 'ي':
+		return 'ی'
+	case 'ك':
+		return 'ک'
+	default:
+		return r
+	}
 }
 
 func uniqueWordCloudTerms(tokens []string) []string {
