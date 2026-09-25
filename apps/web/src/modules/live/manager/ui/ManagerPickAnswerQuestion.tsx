@@ -31,7 +31,16 @@ export function ManagerPickAnswerQuestion({
   isRemoteReady,
   onEndGame,
 }: ManagerQuestionProps) {
-  const { isConnected, sendNavigation, sendEnd, snapshot } = useLiveSession();
+  const {
+    isConnected,
+    sendNavigation,
+    sendEnd,
+    snapshot,
+    loadRoster,
+    loadMoreRoster,
+    hasMoreRoster,
+    isRosterLoading,
+  } = useLiveSession();
   const {
     questionResults,
     modalLeaderboardResults,
@@ -333,7 +342,10 @@ export function ManagerPickAnswerQuestion({
         totalSlides={totalSlides}
         onNext={currentQuestion ? handleNext : undefined}
         onEnd={handleEnd}
-        onShowLeaderboard={() => setShowLeaderboard(true)}
+        onShowLeaderboard={() => {
+          setShowLeaderboard(true);
+          void loadRoster("score", false);
+        }}
         endOnLastSlide={false}
       />
 
@@ -341,6 +353,9 @@ export function ManagerPickAnswerQuestion({
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
         players={modalLeaderboardResults ?? []}
+        hasMore={hasMoreRoster}
+        isLoading={isRosterLoading}
+        onLoadMore={() => void loadMoreRoster()}
       />
     </div>
   );
