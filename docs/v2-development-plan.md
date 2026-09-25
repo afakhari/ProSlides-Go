@@ -159,16 +159,19 @@ Exit criteria:
 
 Goal: prove the architecture with genuinely different interactions.
 
-Order:
+Proof order:
 
 1. Poll using the Choice primitive with no evaluation/scoring;
-2. Word Cloud using the Text primitive and word-frequency aggregation;
-3. Open Text;
-4. Rating/Scale.
+2. Word Cloud using the Text primitive and word-frequency aggregation.
 
-Do not add all four in one pull request.
+These two Activities are the V2.6 exit gate because together they prove both
+Choice-as-preset reuse and a genuinely different Text response/result path.
+Open Text and Rating/Scale are follow-up product additions after the proof; they
+are not blockers for V2.7 and must not be folded into the cleanup slice.
 
-Exit criteria for each Activity:
+Keep each new Activity in its own pull request.
+
+Exit criteria for each proof Activity:
 
 - editor definition;
 - backend validation;
