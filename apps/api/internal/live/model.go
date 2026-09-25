@@ -77,10 +77,9 @@ type AnswerResult struct {
 }
 
 type PersonalActivityResult struct {
-	ActivityItemID        string          `json:"activity_item_id"`
-	Response              json.RawMessage `json:"response"`
-	SelectedOptionIndexes []int           `json:"selected_option_indexes,omitempty"`
-	ScoreDelta            int             `json:"score_delta"`
+	ActivityItemID string          `json:"activity_item_id"`
+	Response       json.RawMessage `json:"response"`
+	ScoreDelta     int             `json:"score_delta"`
 }
 
 type Event struct {
@@ -150,7 +149,6 @@ type ActivityResult struct {
 	SchemaVersion  int             `json:"schema_version"`
 	ResponseCount  int             `json:"response_count"`
 	Payload        json.RawMessage `json:"payload"`
-	OptionCounts   map[string]int  `json:"option_counts,omitempty"`
 }
 
 type RosterEntry struct {
