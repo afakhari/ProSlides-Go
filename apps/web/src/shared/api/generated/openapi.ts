@@ -890,6 +890,13 @@ export interface components {
             /** @description Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). */
             rank?: number;
         };
+        /** @description The current participant's own accepted response outcome. Present only after the Activity is revealed. */
+        PersonalActivityResult: {
+            /** Format: uuid */
+            activity_item_id: string;
+            selected_option_indexes: number[];
+            score_delta: number;
+        };
         LiveSessionLocator: {
             /** Format: uuid */
             session_id: string;
@@ -914,7 +921,10 @@ export interface components {
                 [key: string]: unknown;
             };
             participant: components["schemas"]["ParticipantWithScore"];
+            personal_activity_result?: components["schemas"]["PersonalActivityResult"];
             participant_count: number;
+            /** @description True when the frozen Session contains at least one scored Activity. */
+            has_scoring: boolean;
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];
@@ -927,6 +937,8 @@ export interface components {
                 [key: string]: unknown;
             };
             participant_count: number;
+            /** @description True when the frozen Session contains at least one scored Activity. */
+            has_scoring: boolean;
             /** Format: int64 */
             last_event_id: number;
             activity_result?: components["schemas"]["ActivityResultPayload"];

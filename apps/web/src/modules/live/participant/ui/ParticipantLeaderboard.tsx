@@ -20,9 +20,9 @@ export function ParticipantLeaderboard({
       <section className="flex flex-1 flex-col justify-center py-5 text-center">
         <div className="rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
           <p className="text-sm font-bold text-[color:var(--live-muted)]">
-            نتیجهٔ این مرحله
+            رتبه‌بندی کلی
           </p>
-          <h1 className="mt-2 text-3xl font-black">جایگاه شما</h1>
+          <h1 className="mt-2 text-3xl font-black">جایگاه فعلی شما</h1>
 
           <div className="mx-auto my-7 grid h-36 w-36 place-items-center rounded-full border-4 border-white/25 bg-white/10 shadow-2xl">
             <div>

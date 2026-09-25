@@ -1032,6 +1032,17 @@ components:
           type: integer
           minimum: 1
           description: "Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3)."
+    PersonalActivityResult:
+      type: object
+      required: [activity_item_id, selected_option_indexes, score_delta]
+      additionalProperties: false
+      description: The current participant's own accepted response outcome. Present only after the Activity is revealed.
+      properties:
+        activity_item_id: { type: string, format: uuid }
+        selected_option_indexes:
+          type: array
+          items: { type: integer, minimum: 0 }
+        score_delta: { type: integer, minimum: 0 }
     LiveSessionLocator:
       type: object
       required: [session_id, presentation_id, presentation]
@@ -1054,7 +1065,7 @@ components:
         text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     ParticipantLiveSnapshot:
       type: object
-      required: [role, session, participant, participant_count, last_event_id]
+      required: [role, session, participant, participant_count, has_scoring, last_event_id]
       additionalProperties: false
       properties:
         role: { type: string, enum: [participant] }
@@ -1064,18 +1075,21 @@ components:
           additionalProperties: true
           description: Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed.
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
+        personal_activity_result: { $ref: '#/components/schemas/PersonalActivityResult' }
         participant_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     ManagerLiveSnapshot:
       type: object
-      required: [role, session, participant_count, last_event_id]
+      required: [role, session, participant_count, has_scoring, last_event_id]
       additionalProperties: false
       properties:
         role: { type: string, enum: [manager] }
         session: { $ref: '#/components/schemas/LiveSession' }
         active_item: { type: object, additionalProperties: true }
         participant_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
     RosterEntry:

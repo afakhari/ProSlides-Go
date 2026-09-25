@@ -74,6 +74,12 @@ type AnswerResult struct {
 	Duplicate  bool   `json:"duplicate"`
 }
 
+type PersonalActivityResult struct {
+	ActivityItemID        string `json:"activity_item_id"`
+	SelectedOptionIndexes []int  `json:"selected_option_indexes"`
+	ScoreDelta            int    `json:"score_delta"`
+}
+
 type Event struct {
 	EventID       int64           `json:"event_id"`
 	SchemaVersion int             `json:"schema_version"`
@@ -85,13 +91,15 @@ type Event struct {
 }
 
 type ParticipantSnapshot struct {
-	Role             string               `json:"role"`
-	Session          PublicSession        `json:"session"`
-	ActiveItem       json.RawMessage      `json:"active_item,omitempty"`
-	Participant      ParticipantWithScore `json:"participant"`
-	ParticipantCount int                  `json:"participant_count"`
-	LastEventID      int64                `json:"last_event_id"`
-	ActivityResult   *ActivityResult      `json:"activity_result,omitempty"`
+	Role                   string                  `json:"role"`
+	Session                PublicSession           `json:"session"`
+	ActiveItem             json.RawMessage         `json:"active_item,omitempty"`
+	Participant            ParticipantWithScore    `json:"participant"`
+	ParticipantCount       int                     `json:"participant_count"`
+	HasScoring             bool                    `json:"has_scoring"`
+	LastEventID            int64                   `json:"last_event_id"`
+	ActivityResult         *ActivityResult         `json:"activity_result,omitempty"`
+	PersonalActivityResult *PersonalActivityResult `json:"personal_activity_result,omitempty"`
 }
 
 type ManagerSnapshot struct {
@@ -99,6 +107,7 @@ type ManagerSnapshot struct {
 	Session          Session         `json:"session"`
 	ActiveItem       json.RawMessage `json:"active_item,omitempty"`
 	ParticipantCount int             `json:"participant_count"`
+	HasScoring       bool            `json:"has_scoring"`
 	LastEventID      int64           `json:"last_event_id"`
 	ActivityResult   *ActivityResult `json:"activity_result,omitempty"`
 }
