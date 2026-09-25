@@ -162,6 +162,50 @@ test("runtime accepts monotonic Activity results and ignores stale SSE events", 
   runtime.destroy();
 });
 
+test("runtime normalizes legacy Choice result events during V2.6 compatibility", async () => {
+  let onEvent = null;
+  const runtime = createLiveRuntime("manager", {
+    storage: null,
+    transport: {
+      createRequestId: () => "00000000-0000-4000-8000-000000000003",
+      createLiveSession: async () => managerSession("session"),
+      getLiveSnapshot: async () =>
+        managerSnapshot("session", { eventId: 20, stateVersion: 4 }),
+      getRosterPage: async (_id, order) => emptyRoster(order),
+      streamLiveEvents: async (_id, _lastEventId, options) => {
+        onEvent = options.onEvent;
+        return parkedStream(_id, _lastEventId, options);
+      },
+    },
+  });
+
+  assert.equal(await runtime.connect("presentation"), true);
+  onEvent({
+    event_id: 21,
+    schema_version: 1,
+    session_id: "session",
+    state_version: 4,
+    name: "activity.result_updated",
+    payload: {
+      activity_item_id: "legacy-choice",
+      response_count: 5,
+      option_counts: { 0: 2, 1: 3 },
+    },
+    occurred_at: new Date().toISOString(),
+  });
+
+  assert.deepEqual(runtime.getState().snapshot.activity_result, {
+    activity_item_id: "legacy-choice",
+    activity_kind: "choice",
+    schema_version: 1,
+    response_count: 5,
+    payload: { option_counts: { 0: 2, 1: 3 } },
+    option_counts: { 0: 2, 1: 3 },
+  });
+
+  runtime.destroy();
+});
+
 test("failed manager actions reuse the same request id on retry", async () => {
   let sequence = 0;
   let current = managerSnapshot("session", {
