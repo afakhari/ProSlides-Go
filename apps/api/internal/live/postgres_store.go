@@ -544,6 +544,7 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 	}
 
 	var full Session
+	var personalResultRaw []byte
 	e = tx.QueryRow(c, `SELECT l.id::text,l.presentation_id::text,l.host_id::text,l.join_code,l.state,l.state_version,l.active_item_id::text,l.activity_phase,l.stage_view,l.ends_at,
 		CASE WHEN l.activity_phase='accepting' AND l.ends_at IS NOT NULL THEN GREATEST(0,ROUND(EXTRACT(EPOCH FROM l.ends_at-clock_timestamp())))::int ELSE NULL END,
 		p.id::text,p.display_name,COALESCE(p.avatar,''),p.score,
@@ -553,12 +554,19 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 		(SELECT count(*)::int FROM participants counted WHERE counted.session_id=l.id),
 		COALESCE((SELECT max(event_id) FROM live_events WHERE session_id=l.id),0),
 		(SELECT jsonb_build_object('id',slide_id,'position',position,'kind',kind,'content',content)
-		 FROM live_session_slides WHERE session_id=l.id AND slide_id=l.active_item_id)
+		 FROM live_session_slides WHERE session_id=l.id AND slide_id=l.active_item_id),
+		(SELECT jsonb_build_object(
+			'activity_item_id',a.question_slide_id::text,
+			'selected_option_indexes',COALESCE(a.answer->'selected_option_indexes','[]'::jsonb),
+			'score_delta',a.score_delta)
+		 FROM answers a
+		 WHERE a.session_id=l.id AND a.participant_id=p.id AND a.question_slide_id=l.active_item_id
+		 LIMIT 1)
 		FROM live_sessions l JOIN participants p ON p.session_id=l.id
 		WHERE l.id=$1 AND p.token_hash=$2`, session, hash).Scan(
 		&full.ID, &full.PresentationID, &full.HostID, &full.JoinCode, &full.State, &full.StateVersion, &full.ActiveItemID, &full.ActivityPhase, &full.StageView, &full.EndsAt, &full.RemainingSeconds,
 		&x.Participant.ID, &x.Participant.DisplayName, &x.Participant.Avatar, &x.Participant.Score, &x.Participant.Rank,
-		&x.ParticipantCount, &x.LastEventID, &x.ActiveItem,
+		&x.ParticipantCount, &x.LastEventID, &x.ActiveItem, &personalResultRaw,
 	)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return x, ErrUnauthorized
@@ -569,6 +577,13 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 
 	x.Role = "participant"
 	x.Session = publicSession(full)
+	if full.ActiveItemID != nil && full.ActivityPhase != nil && *full.ActivityPhase == ActivityRevealed && len(personalResultRaw) > 0 {
+		var personalResult PersonalActivityResult
+		if unmarshalErr := json.Unmarshal(personalResultRaw, &personalResult); unmarshalErr != nil {
+			return x, unmarshalErr
+		}
+		x.PersonalActivityResult = &personalResult
+	}
 	if full.ActiveItemID != nil && full.ActivityPhase != nil && *full.ActivityPhase == ActivityRevealed {
 		result, resultErr := activityResult(c, tx, session, *full.ActiveItemID)
 		if resultErr != nil {

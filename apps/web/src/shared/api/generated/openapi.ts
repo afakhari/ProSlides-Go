@@ -890,6 +890,12 @@ export interface components {
             /** @description Competition rank by cumulative score. Present while overall ranking is shown or after the Session ends; equal scores share rank (1, 1, 3). */
             rank?: number;
         };
+        PersonalActivityResult: {
+            /** Format: uuid */
+            activity_item_id: string;
+            selected_option_indexes: number[];
+            score_delta: number;
+        };
         LiveSessionLocator: {
             /** Format: uuid */
             session_id: string;
@@ -914,6 +920,7 @@ export interface components {
                 [key: string]: unknown;
             };
             participant: components["schemas"]["ParticipantWithScore"];
+            personal_activity_result?: components["schemas"]["PersonalActivityResult"];
             participant_count: number;
             /** Format: int64 */
             last_event_id: number;

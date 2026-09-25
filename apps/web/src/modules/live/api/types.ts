@@ -35,11 +35,18 @@ export interface ActivityResult {
   option_counts: Record<string, number>;
 }
 
+export interface PersonalActivityResult {
+  activity_item_id: string;
+  selected_option_indexes: number[];
+  score_delta: number;
+}
+
 export interface ParticipantSnapshot {
   role: "participant";
   session: PublicLiveSession;
   active_item?: Record<string, unknown>;
   participant: ParticipantWithScore;
+  personal_activity_result?: PersonalActivityResult;
   participant_count: number;
   last_event_id: number;
   activity_result?: ActivityResult;

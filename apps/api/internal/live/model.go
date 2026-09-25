@@ -74,6 +74,12 @@ type AnswerResult struct {
 	Duplicate  bool   `json:"duplicate"`
 }
 
+type PersonalActivityResult struct {
+	ActivityItemID        string `json:"activity_item_id"`
+	SelectedOptionIndexes []int  `json:"selected_option_indexes"`
+	ScoreDelta            int    `json:"score_delta"`
+}
+
 type Event struct {
 	EventID       int64           `json:"event_id"`
 	SchemaVersion int             `json:"schema_version"`
@@ -91,7 +97,8 @@ type ParticipantSnapshot struct {
 	Participant      ParticipantWithScore `json:"participant"`
 	ParticipantCount int                  `json:"participant_count"`
 	LastEventID      int64                `json:"last_event_id"`
-	ActivityResult   *ActivityResult      `json:"activity_result,omitempty"`
+	ActivityResult         *ActivityResult         `json:"activity_result,omitempty"`
+	PersonalActivityResult *PersonalActivityResult `json:"personal_activity_result,omitempty"`
 }
 
 type ManagerSnapshot struct {
