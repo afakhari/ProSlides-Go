@@ -121,6 +121,23 @@ test("Choice transport round-trips unevaluated unscored policy without inventing
   );
 });
 
+test("unknown canonical Activity kinds fail closed instead of becoming legacy question drafts", () => {
+  assert.throws(
+    () => editorSlideToDefinition({
+      slide_id: "text-1",
+      revision: 1,
+      order: 0,
+      slide_type: 1,
+      item_kind: "activity",
+      activity_kind: "text",
+      schema_version: 1,
+      show_leaderboard_after: false,
+      question: null,
+    }),
+    /Unsupported editor item definition/,
+  );
+});
+
 test("access code update uses its dedicated CSRF-protected endpoint", async (t) => {
   const calls = [];
   const originalFetch = globalThis.fetch;
