@@ -62,7 +62,7 @@ export function ActivityReportPanel({
     <section className="overflow-hidden rounded-panel border border-border-subtle bg-surface shadow-sm">
       <div className="border-b border-border-subtle p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-black">{activityTitle(activity)}</h2>
+          <h2 className="text-lg font-black" dir="auto">{activityTitle(activity)}</h2>
           {activity.scored && (
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-ink">
               امتیازی
@@ -70,7 +70,7 @@ export function ActivityReportPanel({
           )}
         </div>
         {activityPrompt(activity) && (
-          <p className="mt-2 text-sm text-content-muted">
+          <p className="mt-2 text-sm text-content-muted" dir="auto">
             {activityPrompt(activity)}
           </p>
         )}
@@ -93,7 +93,7 @@ export function ActivityReportPanel({
               return (
                 <div key={option.id}>
                   <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate font-semibold">
+                    <span className="min-w-0 truncate font-semibold" dir="auto">
                       {option.text?.trim() || option.id}
                     </span>
                     <span className="shrink-0 text-content-muted">
@@ -137,7 +137,7 @@ export function ActivityReportPanel({
                 >
                   <span className="min-w-0 truncate font-semibold">
                     {formatPersianNumber(performer.rank)}.{" "}
-                    {performer.display_name}
+                    <bdi dir="auto">{performer.display_name}</bdi>
                   </span>
                   <span className="shrink-0 font-bold">
                     +{formatPersianNumber(performer.score_delta)}
@@ -174,12 +174,12 @@ export function ActivityReportPanel({
                       {response.avatar && (
                         <span aria-hidden="true">{response.avatar}</span>
                       )}
-                      <h4 className="truncate font-bold">
+                      <h4 className="truncate font-bold" dir="auto">
                         {response.display_name}
                       </h4>
                     </div>
                     <p className="mt-2 text-sm text-content-muted">
-                      پاسخ: {labels.length > 0 ? labels.join("، ") : "بدون انتخاب"}
+                      پاسخ: <bdi dir="auto">{labels.length > 0 ? labels.join("، ") : "بدون انتخاب"}</bdi>
                     </p>
                     <p className="mt-1 text-xs text-content-muted">
                       {formatReportDateTime(response.submitted_at)}
