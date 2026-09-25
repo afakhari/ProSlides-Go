@@ -327,6 +327,10 @@ test("manager and player routes are explicit and reports use the session-first t
   assert.match(report, /<SessionHistory/);
   assert.match(report, /<ActivityReportPanel/);
   assert.match(report, /<RankingPanel/);
+  assert.match(report, /role="group"[\s\S]*aria-label="انتخاب فعالیت گزارش"/);
+  assert.match(report, /aria-pressed=\{selected\}/);
+  assert.doesNotMatch(report, /role="tablist"|role="tab"|aria-selected/);
+  assert.match(report, /dir="auto"/);
   assert.doesNotMatch(report, /LatestSession|latest-session|getRosterPage/);
   assert.match(reportApi, /requestJson/);
   assert.match(reportApi, /\/sessions\?\$\{pageQuery/);
@@ -341,7 +345,10 @@ test("manager and player routes are explicit and reports use the session-first t
   assert.match(activity, /نتیجه همین فعالیت/);
   assert.match(activity, /برترین‌های همین فعالیت/);
   assert.match(activity, /پاسخ‌ها و ارزیابی شرکت‌کنندگان/);
+  assert.match(activity, /dir="auto"/);
+  assert.match(activity, /<bdi dir="auto">/);
   assert.match(ranking, /رتبه‌بندی کلی جلسه/);
+  assert.match(ranking, /dir="auto"/);
   assert.match(provider, /QueryClientProvider/);
   assert.match(queryClient, /mutations:\s*\{[\s\S]*retry:\s*false/);
 });
