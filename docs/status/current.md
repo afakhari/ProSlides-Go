@@ -87,9 +87,9 @@ Current strengths:
 
 Remaining work:
 
-- enforce cross-module public boundaries and introduce dead-code/dependency
-  analysis now that production source is TypeScript/TSX and legacy top-level
-  route/UI roots are gone;
+- cross-module public boundaries, runtime dependency cycles and unreachable
+  TypeScript source files are now intended to be CI-enforced; add export-level
+  dead-code analysis separately with an explicit false-positive policy;
 - continue semantic design-system/RTL convergence on mature surfaces as part of
   bounded product changes;
 - add focused component/API-state tests between domain unit tests and browser
@@ -100,8 +100,8 @@ Remaining work:
 ## Active priorities
 
 1. Keep frontend/backend contracts and verified editor/live correctness stable.
-2. Continue frontend modularization through small vertical slices, starting at
-   high-leverage application and domain boundaries rather than cosmetic leaves.
+2. Preserve the enforced module dependency graph while evolving features through
+   public module boundaries rather than deep cross-module imports.
 3. Remove duplicate ownership and compatibility adapters as soon as the
    migrated boundary has equivalent verification.
 4. Increase component/API-state verification before broad UI restructuring.
@@ -125,6 +125,7 @@ npm ci
 npm run api:types:check
 npm run lint
 npm run typecheck
+npm run architecture:check
 npm run test:unit
 npm run build
 npm run test:e2e
