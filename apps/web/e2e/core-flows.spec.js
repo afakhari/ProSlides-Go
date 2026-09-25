@@ -21,6 +21,27 @@ async function expectNoOverflow(page) {
   ).toBe(true);
 }
 
+async function expectResponsiveSurface(page, assertSurface) {
+  const previousViewport = page.viewportSize();
+  const viewports = [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1280, height: 800 },
+  ];
+
+  try {
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await assertSurface();
+      await expectNoOverflow(page);
+    }
+  } finally {
+    if (previousViewport) {
+      await page.setViewportSize(previousViewport);
+    }
+  }
+}
+
 function waitForReportSessions(page, presentationId) {
   return page.waitForResponse((response) => {
     const url = new URL(response.url());
@@ -140,7 +161,7 @@ function watchRuntime(page) {
   return failures;
 }
 
-test("landing, protected navigation, and responsive auth layout", async ({ page }) => {
+test("landing, protected navigation, and responsive auth layout @critical", async ({ page }) => {
   const failures = watchRuntime(page);
 
   await page.addInitScript(() => {
@@ -199,7 +220,7 @@ test("landing, protected navigation, and responsive auth layout", async ({ page 
   expect(failures).toEqual([]);
 });
 
-test("register, create a presentation, and open its report", async ({ page }) => {
+test("register, create a presentation, and open its report @critical", async ({ page }) => {
   const failures = watchRuntime(page);
   const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const email = `browser-${unique}@example.com`;
@@ -219,6 +240,9 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   await expect(page).toHaveURL(/\/manager\/panel$/);
   await expectAccessible(page, "dashboard");
   await expect(page.getByRole("heading", { name: "ارائه‌های من" })).toBeVisible();
+  await expectResponsiveSurface(page, async () => {
+    await expect(page.getByRole("heading", { name: "ارائه‌های من" })).toBeVisible();
+  });
 
   let createRequestCount = 0;
   page.on("request", (request) => {
@@ -241,6 +265,10 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   expect(createRequestCount).toBe(1);
   await expect(page.getByRole("heading", { name: "اولین آیتم را بسازید" })).toBeVisible();
   await expect(page.getByRole("button", { name: "اجرا", exact: true })).toBeVisible();
+  await expectResponsiveSurface(page, async () => {
+    await expect(page.getByRole("heading", { name: "اولین آیتم را بسازید" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "اجرا", exact: true })).toBeVisible();
+  });
 
   let createSlideRequestCount = 0;
   page.on("request", (request) => {
@@ -276,6 +304,9 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   );
   await expectReportRouteReady(page, failures);
   await expectAccessible(page, "report");
+  await expectResponsiveSurface(page, async () => {
+    await expect(page.getByLabel("بازگشت به پنل مدیریت")).toBeVisible();
+  });
 
   let holdNextPresentationRead = true;
   let releaseEditorRead;
@@ -393,7 +424,7 @@ test("mobile participant entry uses the public quiz theme", async ({ page }) => 
 });
 
 
-test("manager, audience Stage, and participant complete the live lifecycle with reconnect", async ({ browser }) => {
+test("manager, audience Stage, and participant complete the live lifecycle with reconnect @critical", async ({ browser }) => {
   test.setTimeout(150000);
 
   const managerContext = await browser.newContext();
@@ -401,6 +432,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
   const manager = await managerContext.newPage();
   const stage = await managerContext.newPage();
   const participant = await participantContext.newPage();
+  await manager.setViewportSize({ width: 1280, height: 800 });
+  await stage.setViewportSize({ width: 1440, height: 900 });
+  await participant.setViewportSize({ width: 390, height: 844 });
   manager.setDefaultTimeout(15000);
   stage.setDefaultTimeout(15000);
   participant.setDefaultTimeout(15000);
@@ -506,6 +540,7 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     const startButton = manager.getByRole("button", { name: /شروع/ });
     await expect(startButton).toBeEnabled({ timeout: 15000 });
     await expectAccessible(manager, "manager live lobby");
+    await expectNoOverflow(manager);
 
     await manager.getByRole("button", { name: "پشت‌صحنه" }).click();
     await expect(
@@ -521,9 +556,12 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
       stage.getByRole("main").getByText(fixture.accessCode, { exact: true }),
     ).toBeVisible();
     await expectAccessible(stage, "audience Stage lobby");
+    await expectNoOverflow(stage);
 
     await participant.goto(`/${fixture.accessCode}`);
     await expect(participant.getByRole("heading", { name: "به کوئیز بپیوندید" })).toBeVisible();
+    await expectAccessible(participant, "participant live join");
+    await expectNoOverflow(participant);
     await participant.getByLabel("نام نمایشی").fill("شرکت‌کننده تست");
     await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
     await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
@@ -543,6 +581,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
       stage.getByRole("heading", { name: "پایتخت ایران کدام شهر است؟" }),
     ).toBeVisible({ timeout: 15000 });
     await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeHidden();
+    await expectAccessible(participant, "participant live activity");
+    await expectNoOverflow(participant);
+    await expectNoOverflow(stage);
 
     const answerRequestIds = [];
     let failNextAnswer = true;
@@ -603,6 +644,7 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     ).toBeVisible();
     await expect(backstage.getByText("شرکت‌کننده تست")).toBeVisible();
     await expect(backstage.getByText("+۱۰۰", { exact: true })).toBeVisible();
+    await expectAccessible(manager, "manager backstage activity result");
     await expect(
       stage.getByRole("main").getByText("پاسخ صحیح", { exact: true }),
     ).toBeHidden();
@@ -694,6 +736,8 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
       stage.getByRole("heading", { name: "برترین‌های این رقابت" }),
     ).toBeVisible({ timeout: 15000 });
     await expect(stage.getByText("شرکت‌کننده تست")).toBeVisible();
+    await expectNoOverflow(participant);
+    await expectNoOverflow(stage);
 
     expect(forbiddenStageReads).toEqual([]);
     expect(managerFailures).toEqual([]);
