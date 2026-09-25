@@ -67,10 +67,6 @@ func (f *fakeStore) Duplicate(_ context.Context, _, owner, title string) (Presen
 	f.owner = owner
 	return Presentation{ID: "copy", Title: title, Slides: []Slide{}}, f.err
 }
-func (f *fakeStore) LatestSession(_ context.Context, _, owner string) (SessionLocator, error) {
-	f.owner = owner
-	return SessionLocator{SessionID: "session", PresentationID: "p"}, f.err
-}
 func (f *fakeStore) DeleteResults(_ context.Context, _, owner string) error {
 	f.owner = owner
 	return f.err
