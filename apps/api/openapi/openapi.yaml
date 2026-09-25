@@ -1069,9 +1069,6 @@ components:
         Submit exactly one Activity response representation. response is the
         canonical V2 field. selected_option_indexes is temporary Choice-only
         compatibility and is removed in V2.7.
-      oneOf:
-        - required: [response]
-        - required: [selected_option_indexes]
       properties:
         request_id: { type: string, format: uuid }
         activity_item_id: { type: string, format: uuid }
