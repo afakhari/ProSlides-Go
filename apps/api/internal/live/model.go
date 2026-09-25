@@ -112,6 +112,26 @@ type ManagerSnapshot struct {
 	ActivityResult   *ActivityResult `json:"activity_result,omitempty"`
 }
 
+type StageRankingEntry struct {
+	DisplayName string `json:"display_name"`
+	Avatar      string `json:"avatar,omitempty"`
+	Score       int    `json:"score"`
+	Rank        int    `json:"rank"`
+}
+
+type StageSnapshot struct {
+	Role             string                 `json:"role"`
+	Session          PublicSession          `json:"session"`
+	JoinCode         string                 `json:"join_code"`
+	Presentation     PublicLivePresentation `json:"presentation"`
+	ActiveItem       json.RawMessage        `json:"active_item,omitempty"`
+	ParticipantCount int                    `json:"participant_count"`
+	HasScoring       bool                   `json:"has_scoring"`
+	LastEventID      int64                  `json:"last_event_id"`
+	ActivityResult   *ActivityResult        `json:"activity_result,omitempty"`
+	Ranking          []StageRankingEntry    `json:"ranking"`
+}
+
 type ActivityResult struct {
 	ActivityItemID string         `json:"activity_item_id"`
 	ResponseCount  int            `json:"response_count"`
@@ -156,6 +176,7 @@ type Store interface {
 	SubmitAnswer(context.Context, string, []byte, string, string, []int, ScoringPolicy) (AnswerResult, error)
 	ParticipantSnapshot(context.Context, string, []byte) (ParticipantSnapshot, error)
 	ManagerSnapshot(context.Context, string, string) (ManagerSnapshot, error)
+	StageSnapshot(context.Context, string, string) (StageSnapshot, error)
 	Roster(context.Context, string, string, RosterQuery) (RosterPage, error)
 	Events(context.Context, string, int64, int) ([]Event, error)
 	LatestEventID(context.Context, string) (int64, error)

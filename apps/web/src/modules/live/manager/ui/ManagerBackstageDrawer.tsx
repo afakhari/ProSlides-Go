@@ -174,16 +174,27 @@ export function ManagerBackstageDrawer({
               </div>
             </section>
 
+            {snapshot?.session.id ? (
+              <a
+                href={`/manager/stage/${snapshot.session.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 grid min-h-12 place-items-center rounded-2xl border border-white/20 bg-white/10 px-4 text-center font-black text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
+              >
+                باز کردن Stage در پنجره جدید
+              </a>
+            ) : null}
+
             <button
               type="button"
               onClick={openPrivateRanking}
               disabled={snapshot?.has_scoring !== true}
-              className="mt-4 min-h-12 rounded-2xl bg-white px-4 font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+              className="mt-3 min-h-12 rounded-2xl bg-white px-4 font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
             >
               مشاهده خصوصی رتبه‌بندی کلی
             </button>
             <p className="mt-2 text-xs leading-6 text-white/50">
-              این نمایش فقط برای ارائه‌دهنده است و وضعیت Stage را تغییر نمی‌دهد.
+              رتبه‌بندی خصوصی Stage را تغییر نمی‌دهد؛ پنجره Stage فقط projection عمومی جلسه را دریافت می‌کند.
             </p>
           </aside>
         </div>

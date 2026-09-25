@@ -63,6 +63,26 @@ export interface ManagerSnapshot {
   activity_result?: ActivityResult;
 }
 
+export interface StageRankingEntry {
+  display_name: string;
+  avatar?: string;
+  score: number;
+  rank: number;
+}
+
+export interface StageSnapshot {
+  role: "stage";
+  session: PublicLiveSession;
+  join_code: string;
+  presentation: LiveSessionLocator["presentation"];
+  active_item?: Record<string, unknown>;
+  participant_count: number;
+  has_scoring: boolean;
+  last_event_id: number;
+  activity_result?: ActivityResult;
+  ranking: StageRankingEntry[];
+}
+
 export type LiveSnapshot = ParticipantSnapshot | ManagerSnapshot;
 
 export interface LiveEvent {

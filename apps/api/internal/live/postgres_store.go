@@ -657,6 +657,100 @@ func (s *PostgresStore) ManagerSnapshot(c context.Context, session, manager stri
 	return x, nil
 }
 
+func (s *PostgresStore) StageSnapshot(c context.Context, session, manager string) (StageSnapshot, error) {
+	var x StageSnapshot
+	tx, e := s.pool.BeginTx(c, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if e != nil {
+		return x, e
+	}
+	defer tx.Rollback(c)
+	if _, e = reconcileDeadlineTx(c, tx, session); e != nil {
+		return x, e
+	}
+
+	e = tx.QueryRow(c, `SELECT
+		l.id::text,l.presentation_id::text,l.state,l.state_version,l.active_item_id::text,l.activity_phase,l.stage_view,l.ends_at,
+		CASE WHEN l.activity_phase='accepting' AND l.ends_at IS NOT NULL THEN GREATEST(0,ROUND(EXTRACT(EPOCH FROM l.ends_at-clock_timestamp())))::int ELSE NULL END,
+		l.join_code,
+		p.title,
+		CASE WHEN p.settings->>'background_color' ~ '^#[0-9A-Fa-f]{6}$' THEN p.settings->>'background_color' ELSE '#1e1e2e' END,
+		COALESCE(p.settings->>'background_image_url',''),
+		COALESCE(p.settings->>'music_url',''),
+		CASE WHEN p.settings->>'text_color' ~ '^#[0-9A-Fa-f]{6}$' THEN p.settings->>'text_color' ELSE '#ffffff' END,
+		(SELECT count(*)::int FROM participants counted WHERE counted.session_id=l.id),
+		EXISTS(
+			SELECT 1 FROM live_session_slides scored
+			WHERE scored.session_id=l.id
+			  AND scored.kind='activity'
+			  AND scored.content->'scoring'->>'mode'='points'
+		),
+		COALESCE((SELECT max(event_id) FROM live_events WHERE session_id=l.id),0),
+		(SELECT jsonb_build_object('id',slide_id,'position',position,'kind',kind,'content',content)
+		 FROM live_session_slides WHERE session_id=l.id AND slide_id=l.active_item_id)
+		FROM live_sessions l
+		JOIN presentations p ON p.id=l.presentation_id
+		WHERE l.id=$1 AND l.host_id=$2`, session, manager).Scan(
+		&x.Session.ID, &x.Session.PresentationID, &x.Session.State, &x.Session.StateVersion,
+		&x.Session.ActiveItemID, &x.Session.ActivityPhase, &x.Session.StageView,
+		&x.Session.EndsAt, &x.Session.RemainingSeconds, &x.JoinCode,
+		&x.Presentation.Title, &x.Presentation.BackgroundColor,
+		&x.Presentation.BackgroundImageURL, &x.Presentation.MusicURL,
+		&x.Presentation.TextColor, &x.ParticipantCount, &x.HasScoring,
+		&x.LastEventID, &x.ActiveItem,
+	)
+	if errors.Is(e, pgx.ErrNoRows) {
+		return x, ErrNotFound
+	}
+	if e != nil {
+		return x, e
+	}
+
+	x.Role = "stage"
+	if x.Session.ActivityPhase != nil && *x.Session.ActivityPhase == ActivityRevealed && x.Session.ActiveItemID != nil {
+		result, resultErr := activityResult(c, tx, session, *x.Session.ActiveItemID)
+		if resultErr != nil {
+			return x, resultErr
+		}
+		x.ActivityResult = &result
+	} else if len(x.ActiveItem) > 0 {
+		if x.ActiveItem, e = sanitizeParticipantActiveItem(x.ActiveItem); e != nil {
+			return x, e
+		}
+	}
+
+	x.Ranking = []StageRankingEntry{}
+	if x.HasScoring && (x.Session.StageView == StageOverallRanking || x.Session.State == Ended) {
+		rows, rowsErr := tx.Query(c, `WITH ranked AS (
+			SELECT id,display_name,avatar,score,joined_at,
+				RANK() OVER (ORDER BY score DESC)::int AS rank
+			FROM participants WHERE session_id=$1
+		)
+		SELECT display_name,COALESCE(avatar,''),score,rank
+		FROM ranked
+		ORDER BY score DESC,joined_at,id
+		LIMIT 5`, session)
+		if rowsErr != nil {
+			return x, rowsErr
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var entry StageRankingEntry
+			if e = rows.Scan(&entry.DisplayName, &entry.Avatar, &entry.Score, &entry.Rank); e != nil {
+				return x, e
+			}
+			x.Ranking = append(x.Ranking, entry)
+		}
+		if e = rows.Err(); e != nil {
+			return x, e
+		}
+	}
+
+	if e = tx.Commit(c); e != nil {
+		return x, e
+	}
+	return x, nil
+}
+
 func (s *PostgresStore) Roster(c context.Context, session, manager string, query RosterQuery) (RosterPage, error) {
 	page := RosterPage{Items: []RosterEntry{}, Order: query.Order, Limit: query.Limit}
 	var owned bool

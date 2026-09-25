@@ -1,4 +1,4 @@
-import type { AnswerResult, LiveEvent, LiveSessionLocator, LiveSessionResult, LiveSnapshot, ParticipantResult, RosterPage } from "./types";
+import type { AnswerResult, LiveEvent, LiveSessionLocator, LiveSessionResult, LiveSnapshot, ParticipantResult, RosterPage, StageSnapshot } from "./types";
 import { createSecureUUID } from "./secureUuid.ts";
 
 const normalizeBase = (value: string) => value.trim().replace(/\/+$/, "");
@@ -48,6 +48,8 @@ export const createRequestId = createSecureUUID;
 export const createLiveSession = (presentationId: string, requestId: string) => requestJSON<LiveSessionResult>("live/sessions", { method: "POST", body: JSON.stringify({ request_id: requestId, presentation_id: presentationId }) }, true);
 export const resolveLiveSession = (joinCode: string) => requestJSON<LiveSessionLocator>(`live/sessions/resolve?join_code=${encodeURIComponent(joinCode)}`);
 export const getLiveSnapshot = (id: string) => requestJSON<LiveSnapshot>(`live/sessions/${encodeURIComponent(id)}/snapshot`);
+export const getLiveStageSnapshot = (id: string, signal?: AbortSignal) =>
+  requestJSON<StageSnapshot>(`live/sessions/${encodeURIComponent(id)}/stage`, { signal });
 export const joinLiveSession = (id: string, input: { request_id: string; display_name: string; avatar?: string }) => requestJSON<ParticipantResult>(`live/sessions/${encodeURIComponent(id)}/join`, { method: "POST", body: JSON.stringify(input) });
 export const submitLiveAnswer = (id: string, input: { request_id: string; activity_item_id: string; selected_option_indexes: number[] }) => requestJSON<AnswerResult>(`live/sessions/${encodeURIComponent(id)}/answers`, { method: "POST", body: JSON.stringify(input) });
 export const applyLiveAction = (id: string, input: { request_id: string; expected_state_version: number; action: string; item_id?: string }) => requestJSON<LiveSessionResult>(`live/sessions/${encodeURIComponent(id)}/actions`, { method: "POST", body: JSON.stringify(input) }, true);

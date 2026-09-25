@@ -580,6 +580,25 @@ paths:
                   - { $ref: '#/components/schemas/ManagerLiveSnapshot' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/live/sessions/{sessionId}/stage:
+    get:
+      operationId: getLiveStageSnapshot
+      summary: Get the read-only audience Stage projection for a manager-owned Session.
+      description: >-
+        Returns only data intended for the public Stage surface. Manager identity,
+        the full roster and participant identifiers are excluded. Activity
+        correctness is omitted until reveal. Cumulative ranking is bounded to the
+        top five and is present only when the Stage is showing overall ranking or
+        the scored Session has ended.
+      parameters: [{ $ref: '#/components/parameters/SessionId' }]
+      responses:
+        '200':
+          description: Authoritative Stage projection and SSE recovery cursor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StageLiveSnapshot' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/v1/live/sessions/{sessionId}/roster:
     get:
       operationId: listLiveRoster
@@ -1080,6 +1099,36 @@ components:
         has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }
         last_event_id: { type: integer, format: int64, minimum: 0 }
         activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
+    StageRankingEntry:
+      type: object
+      required: [display_name, score, rank]
+      additionalProperties: false
+      properties:
+        display_name: { type: string }
+        avatar: { type: string }
+        score: { type: integer, minimum: 0 }
+        rank: { type: integer, minimum: 1, description: Competition rank in the cumulative Session ranking. }
+    StageLiveSnapshot:
+      type: object
+      required: [role, session, join_code, presentation, participant_count, has_scoring, last_event_id, ranking]
+      additionalProperties: false
+      properties:
+        role: { type: string, enum: [stage] }
+        session: { $ref: '#/components/schemas/PublicLiveSession' }
+        join_code: { type: string }
+        presentation: { $ref: '#/components/schemas/PublicLivePresentation' }
+        active_item:
+          type: object
+          additionalProperties: true
+          description: Active Item projected for the audience; correctness metadata is omitted until reveal.
+        participant_count: { type: integer, minimum: 0 }
+        has_scoring: { type: boolean }
+        last_event_id: { type: integer, format: int64, minimum: 0 }
+        activity_result: { $ref: '#/components/schemas/ActivityResultPayload' }
+        ranking:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/StageRankingEntry' }
     ManagerLiveSnapshot:
       type: object
       required: [role, session, participant_count, has_scoring, last_event_id]

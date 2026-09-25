@@ -62,6 +62,9 @@ func (s *rejoinStore) ParticipantSnapshot(context.Context, string, []byte) (Part
 func (s *rejoinStore) ManagerSnapshot(context.Context, string, string) (ManagerSnapshot, error) {
 	return ManagerSnapshot{}, errors.New("unexpected ManagerSnapshot")
 }
+func (s *rejoinStore) StageSnapshot(context.Context, string, string) (StageSnapshot, error) {
+	return StageSnapshot{}, errors.New("unexpected StageSnapshot")
+}
 func (s *rejoinStore) Roster(context.Context, string, string, RosterQuery) (RosterPage, error) {
 	return RosterPage{}, errors.New("unexpected Roster")
 }

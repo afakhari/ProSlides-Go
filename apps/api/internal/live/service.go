@@ -109,6 +109,12 @@ func (s *Service) ManagerSnapshot(c context.Context, session, manager string) (M
 	}
 	return s.store.ManagerSnapshot(c, session, manager)
 }
+func (s *Service) StageSnapshot(c context.Context, session, manager string) (StageSnapshot, error) {
+	if !validUUID(session) || !validUUID(manager) {
+		return StageSnapshot{}, ErrUnauthorized
+	}
+	return s.store.StageSnapshot(c, session, manager)
+}
 func (s *Service) Roster(c context.Context, session, manager, order string, limit int, encodedCursor string) (RosterPage, error) {
 	if !validUUID(session) || !validUUID(manager) || limit < 1 || limit > 100 || (order != "joined" && order != "score") {
 		return RosterPage{}, ErrInvalid

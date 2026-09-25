@@ -50,6 +50,7 @@ func (h *HTTP) Register(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/live/sessions/{sessionId}/actions", h.action)
 	m.HandleFunc("POST /api/v1/live/sessions/{sessionId}/answers", h.answer)
 	m.HandleFunc("GET /api/v1/live/sessions/{sessionId}/snapshot", h.snapshot)
+	m.HandleFunc("GET /api/v1/live/sessions/{sessionId}/stage", h.stage)
 	m.HandleFunc("GET /api/v1/live/sessions/{sessionId}/roster", h.roster)
 	m.HandleFunc("GET /api/v1/live/sessions/{sessionId}/events", h.events)
 }
@@ -204,6 +205,22 @@ func (h *HTTP) snapshot(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, x)
 }
+func (h *HTTP) stage(w http.ResponseWriter, r *http.Request) {
+	r, cancel := h.bounded(r)
+	defer cancel()
+	u, e := h.manager(r, false)
+	if e != nil {
+		returnError(w, ErrUnauthorized)
+		return
+	}
+	x, e := h.service.StageSnapshot(r.Context(), r.PathValue("sessionId"), u.ID)
+	if e != nil {
+		returnError(w, e)
+		return
+	}
+	writeJSON(w, http.StatusOK, x)
+}
+
 func (h *HTTP) roster(w http.ResponseWriter, r *http.Request) {
 	r, cancel := h.bounded(r)
 	defer cancel()
