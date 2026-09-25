@@ -157,7 +157,7 @@ test("Poll stays a Choice preset while removing correctness, score, and ranking"
     "poll",
     createIdSequence(),
   );
-  assert.equal(converted.question.question_type, "single");
+  assert.equal(converted.question.question_type, "multiple");
   assert.equal(converted.question.evaluation_mode, "none");
   assert.equal(converted.question.scoring_mode, "none");
   assert.equal(converted.show_leaderboard_after, false);
@@ -165,6 +165,7 @@ test("Poll stays a Choice preset while removing correctness, score, and ranking"
     converted.question.options.map((option) => option.is_correct),
     [false, false],
   );
+  assert.equal(editorSlideMatchesTypeChoice(converted, "poll"), true);
   assert.match(
     getEditorConversionConfirmation(choiceSlide, "poll").description,
     /پاسخ صحیح.*امتیازدهی.*رتبه‌بندی/,
