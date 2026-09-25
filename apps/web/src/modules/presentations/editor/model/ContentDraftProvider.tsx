@@ -31,7 +31,7 @@ export default function ContentDraftProvider({
   active = true,
   children,
 }: ContentDraftProviderProps) {
-  if (!active || slide?.slide_type !== 2) {
+  if (!active || slide?.item_kind !== "content") {
     return (
       <ContentDraftContext.Provider value={null}>
         {children}
