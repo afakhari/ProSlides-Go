@@ -306,8 +306,92 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Resolve the newest live session for an owned presentation. */
+        /**
+         * Resolve the newest live session for an owned presentation.
+         * @deprecated
+         * @description Temporary migration convenience. Session-first report clients should list presentation Sessions instead.
+         */
         get: operations["getLatestPresentationSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{presentationId}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List bounded historical Sessions for an owned Presentation.
+         * @description Returns newest-first Session summaries. Report-facing metadata is read from frozen Session data rather than the mutable current Presentation definition.
+         */
+        get: operations["listPresentationReportSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{presentationId}/sessions/{sessionId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return the immutable report overview for one owned Session.
+         * @description Activity definitions come from the frozen Session snapshot. Later Presentation edits do not change this report.
+         */
+        get: operations["getPresentationSessionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{presentationId}/sessions/{sessionId}/activities/{activityItemId}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return one Activity result and bounded participant response history.
+         * @description Activity result, per-Activity top performers and participant evaluations are derived from durable answers plus the frozen Session Activity definition. Cumulative Session ranking is a separate resource.
+         */
+        get: operations["getPresentationSessionActivityReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{presentationId}/sessions/{sessionId}/ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return the bounded cumulative ranking for one scored Session.
+         * @description Equal cumulative scores use competition ranking semantics. Unscored Sessions return an empty ranking with has_scoring=false.
+         */
+        get: operations["getPresentationSessionRanking"];
         put?: never;
         post?: never;
         delete?: never;
@@ -325,6 +409,7 @@ export interface paths {
         };
         /**
          * Return persisted option counts and a stable bounded per-question leaderboard for an owned session.
+         * @deprecated
          * @description This is the Go-native replacement for Django's Rust result-ingestion endpoints. Results are derived from durable answers and never accept a second externally supplied score ledger.
          */
         get: operations["getQuestionResults"];
@@ -916,6 +1001,91 @@ export interface components {
             activity_item_id: string;
             selected_option_indexes: number[];
             score_delta: number;
+        };
+        ReportSessionSummary: {
+            /** Format: uuid */
+            session_id: string;
+            /** Format: uuid */
+            presentation_id: string;
+            presentation_title: string;
+            /** @enum {string} */
+            state: "draft" | "lobby" | "presenting" | "ended";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            ended_at?: string | null;
+            participant_count: number;
+            activity_count: number;
+            response_count: number;
+            has_scoring: boolean;
+        };
+        ReportSessionPage: {
+            items: components["schemas"]["ReportSessionSummary"][];
+            limit: number;
+            has_more: boolean;
+            next_cursor?: string | null;
+        };
+        ReportActivitySummary: {
+            /** Format: uuid */
+            activity_item_id: string;
+            position: number;
+            definition: components["schemas"]["ActivityItemDefinition"];
+            response_count: number;
+            scored: boolean;
+        };
+        SessionReport: {
+            session: components["schemas"]["ReportSessionSummary"];
+            activities: components["schemas"]["ReportActivitySummary"][];
+        };
+        ReportResponseEvaluation: {
+            /** @enum {string} */
+            mode: "none" | "correctness";
+            correct?: boolean | null;
+            score_delta: number;
+        };
+        ReportActivityResponse: {
+            /** Format: uuid */
+            answer_id: string;
+            /** Format: uuid */
+            participant_id: string;
+            display_name: string;
+            avatar?: string;
+            /** @description Persisted Activity response payload. Choice currently stores selected_option_indexes; future Activity kinds may use a different versioned response shape. */
+            response: {
+                [key: string]: unknown;
+            };
+            evaluation: components["schemas"]["ReportResponseEvaluation"];
+            /** Format: date-time */
+            submitted_at: string;
+        };
+        ReportActivityPage: {
+            activity: components["schemas"]["ReportActivitySummary"];
+            result: components["schemas"]["ActivityResultPayload"];
+            top_performers: components["schemas"]["ActivityTopPerformer"][];
+            responses: components["schemas"]["ReportActivityResponse"][];
+            limit: number;
+            has_more: boolean;
+            next_cursor?: string | null;
+        };
+        ReportRankingEntry: {
+            /** Format: uuid */
+            participant_id: string;
+            display_name: string;
+            avatar?: string;
+            score: number;
+            /** @description Competition rank in cumulative Session scoring. */
+            rank: number;
+            /** Format: date-time */
+            joined_at: string;
+        };
+        ReportRankingPage: {
+            has_scoring: boolean;
+            /** @description True only after the Session has ended. */
+            is_final: boolean;
+            items: components["schemas"]["ReportRankingEntry"][];
+            limit: number;
+            has_more: boolean;
+            next_cursor?: string | null;
         };
         LiveSessionLocator: {
             /** Format: uuid */
@@ -1781,6 +1951,121 @@ export interface operations {
                     "application/json": components["schemas"]["LiveSessionLocator"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPresentationReportSessions: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["RosterLimit"];
+                /** @description Opaque cursor returned by the preceding page. */
+                cursor?: components["parameters"]["RosterCursor"];
+            };
+            header?: never;
+            path: {
+                presentationId: components["parameters"]["PresentationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded Session history for the Presentation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSessionPage"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPresentationSessionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                presentationId: components["parameters"]["PresentationId"];
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session report overview and its frozen Activities. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPresentationSessionActivityReport: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["RosterLimit"];
+                /** @description Opaque cursor returned by the preceding page. */
+                cursor?: components["parameters"]["RosterCursor"];
+            };
+            header?: never;
+            path: {
+                presentationId: components["parameters"]["PresentationId"];
+                sessionId: components["parameters"]["SessionId"];
+                activityItemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Activity-scoped result and bounded response/evaluation history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportActivityPage"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPresentationSessionRanking: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["RosterLimit"];
+                /** @description Opaque cursor returned by the preceding page. */
+                cursor?: components["parameters"]["RosterCursor"];
+            };
+            header?: never;
+            path: {
+                presentationId: components["parameters"]["PresentationId"];
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cumulative Session ranking, final when the Session has ended. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRankingPage"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
