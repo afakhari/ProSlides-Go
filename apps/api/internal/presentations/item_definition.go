@@ -12,20 +12,6 @@ func normalizeSlideDefinition(kind string, raw json.RawMessage) (string, json.Ra
 	}
 
 	switch kind {
-	case "question":
-		var legacy legacyQuestionDefinition
-		if err := decodeStrictObject(raw, &legacy); err != nil {
-			return "", nil, err
-		}
-		if err := validateLegacyQuestionDefinition(legacy); err != nil {
-			return "", nil, err
-		}
-		activity := activityFromLegacyQuestion(legacy)
-		normalized, err := json.Marshal(activity)
-		if err != nil {
-			return "", nil, errInvalidSlideDefinition
-		}
-		return ItemKindActivity, normalized, nil
 	case ItemKindActivity:
 		var activity ActivityDefinition
 		if err := decodeStrictObject(raw, &activity); err != nil {

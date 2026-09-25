@@ -496,27 +496,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/presentations/{presentationId}/questions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Add a single- or multiple-choice question slide.
-         * @deprecated
-         * @description Legacy compatibility endpoint. New authoring clients use the generic slide endpoint with an Activity definition; the server persists this request as a v2 Choice Activity.
-         */
-        post: operations["createQuestionSlide"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/live/sessions/{sessionId}/events": {
         parameters: {
             query?: never;
@@ -813,36 +792,8 @@ export interface components {
         ReorderSlidesRequest: {
             slide_ids: string[];
         };
-        CreateQuestionRequest: {
-            position: number;
-            text: string;
-            /** @enum {string} */
-            question_type: "single" | "multiple";
-            /** @default 30 */
-            question_time: number;
-            /** @default 100 */
-            max_point: number;
-            /** @default 0 */
-            min_point: number;
-            /** @default false */
-            faster_answers_more_points: boolean;
-            /**
-             * @description When true, score is max(0, correct selections minus incorrect selections) divided by the number of correct options; the scoring policy is an implementation boundary and may be replaced later.
-             * @default false
-             */
-            partial_scoring: boolean;
-            options: {
-                text: string;
-                is_correct: boolean;
-            }[];
-        };
         /** @description Content is validated against the accompanying authoring item kind. Unknown fields are rejected by the API. */
-        EditableSlideContent: components["schemas"]["QuestionDraftContent"] | components["schemas"]["ActivityItemDefinition"] | components["schemas"]["ContentSlideContent"] | components["schemas"]["LeaderboardContent"];
-        /** @description Temporary pre-V2.3 editor compatibility shape for an untyped question placeholder. */
-        QuestionDraftContent: {
-            /** @default false */
-            show_leaderboard_after: boolean;
-        };
+        EditableSlideContent: components["schemas"]["ActivityItemDefinition"] | components["schemas"]["ContentSlideContent"] | components["schemas"]["LeaderboardContent"];
         /** @description Versioned audience Activity definition. Concrete response/evaluation/result policies are selected by activity_kind; no generic capability bag is persisted. */
         ActivityItemDefinition: components["schemas"]["ChoiceActivityDefinition"] | components["schemas"]["TextActivityDefinition"];
         ChoiceActivityDefinition: {
@@ -2359,36 +2310,6 @@ export interface operations {
                 };
                 content?: never;
             };
-        };
-    };
-    createQuestionSlide: {
-        parameters: {
-            query?: never;
-            header: {
-                "X-CSRF-Token": components["parameters"]["CSRFToken"];
-            };
-            path: {
-                presentationId: components["parameters"]["PresentationId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateQuestionRequest"];
-            };
-        };
-        responses: {
-            /** @description Question slide created. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["ValidationError"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["CSRFError"];
-            404: components["responses"]["NotFound"];
         };
     };
     subscribeLiveSession: {
