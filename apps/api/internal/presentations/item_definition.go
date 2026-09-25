@@ -39,14 +39,6 @@ func normalizeSlideDefinition(kind string, raw json.RawMessage) (string, json.Ra
 			return "", nil, errInvalidSlideDefinition
 		}
 		return ItemKindActivity, normalized, nil
-	case "question_draft":
-		var value struct {
-			ShowLeaderboardAfter bool `json:"show_leaderboard_after"`
-		}
-		if err := decodeStrictObject(raw, &value); err != nil {
-			return "", nil, err
-		}
-		return kind, raw, nil
 	case "content":
 		var value struct {
 			Title    string `json:"title"`

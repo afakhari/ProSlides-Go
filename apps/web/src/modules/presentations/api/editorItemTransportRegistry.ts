@@ -18,7 +18,7 @@ type TransportContext = {
 };
 
 type EditorTransportRegistration = {
-  key: EditorItemRegistryKey | "choice-draft" | "legacy-question";
+  key: EditorItemRegistryKey | "legacy-question";
   matchesTransport: (context: TransportContext) => boolean;
   fromTransport: (context: TransportContext) => EditorSlide;
 };
@@ -198,20 +198,6 @@ const contentTransport: EditorTransportRegistration = {
   }),
 };
 
-const choiceDraftTransport: EditorTransportRegistration = {
-  key: "choice-draft",
-  matchesTransport: ({ slide }) => slide.kind === "question_draft",
-  fromTransport: ({ slide, content }) => ({
-    ...commonEditorSlide(slide),
-    slide_type: 1,
-    item_kind: "question-draft",
-    show_leaderboard_after:
-      content.show_leaderboard_after === true,
-    question: null,
-    text_activity: null,
-  }),
-};
-
 // Temporary read compatibility for authored pre-v2 data. New writes never use
 // this shape; V2.7 removes the adapter after legacy data is no longer present.
 const legacyQuestionTransport: EditorTransportRegistration = {
@@ -276,7 +262,6 @@ const transportRegistry: readonly EditorTransportRegistration[] = [
   choiceTransport,
   textTransport,
   contentTransport,
-  choiceDraftTransport,
   legacyQuestionTransport,
   legacyLeaderboardTransport,
 ];
@@ -306,24 +291,6 @@ export const editorSlideToTransportDefinition = (
   fallbackPosition = 0,
 ): CreateSlideRequestDTO => {
   const position = numberValue(slide.order, fallbackPosition);
-
-  const isLegacyQuestionDraft =
-    slide.item_kind == null &&
-    slide.slide_type === 1 &&
-    !slide.question;
-  if (
-    slide.item_kind === "question-draft" ||
-    isLegacyQuestionDraft
-  ) {
-    return {
-      position,
-      kind: "question_draft",
-      content: {
-        show_leaderboard_after:
-          slide.show_leaderboard_after === true,
-      },
-    };
-  }
 
   const registration = resolveEditorItemRegistration(slide);
   if (!registration) {

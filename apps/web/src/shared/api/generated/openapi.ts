@@ -807,7 +807,7 @@ export interface components {
         CreateSlideRequest: {
             position: number;
             /** @enum {string} */
-            kind: "question_draft" | "activity" | "content" | "leaderboard";
+            kind: "activity" | "content" | "leaderboard";
             content: components["schemas"]["EditableSlideContent"];
         };
         ReorderSlidesRequest: {
@@ -1356,7 +1356,7 @@ export interface components {
             revision: number;
             position: number;
             /** @enum {string} */
-            kind: "question_draft" | "activity" | "content" | "leaderboard";
+            kind: "activity" | "content" | "leaderboard";
             content: components["schemas"]["EditableSlideContent"];
         };
         Error: {

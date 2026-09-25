@@ -56,6 +56,13 @@ func TestNormalizeLegacyQuestionToChoiceActivity(t *testing.T) {
 	}
 }
 
+func TestQuestionDraftDefinitionIsRejected(t *testing.T) {
+	raw := json.RawMessage(`{"show_leaderboard_after":false}`)
+	if _, _, err := normalizeSlideDefinition("question_draft", raw); err == nil {
+		t.Fatal("question_draft compatibility should be rejected")
+	}
+}
+
 func TestChoiceActivityRemainsCanonicalForLive(t *testing.T) {
 	activity := ActivityDefinition{
 		SchemaVersion: 1,

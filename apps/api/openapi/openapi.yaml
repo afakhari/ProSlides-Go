@@ -884,7 +884,7 @@ components:
       additionalProperties: false
       properties:
         position: { type: integer, minimum: 0 }
-        kind: { type: string, enum: [question_draft, activity, content, leaderboard] }
+        kind: { type: string, enum: [activity, content, leaderboard] }
         content: { $ref: '#/components/schemas/EditableSlideContent' }
     ReorderSlidesRequest:
       type: object
@@ -1604,7 +1604,7 @@ components:
         id: { type: string, format: uuid }
         revision: { type: integer, format: int64, minimum: 1 }
         position: { type: integer, minimum: 0 }
-        kind: { type: string, enum: [question_draft, activity, content, leaderboard] }
+        kind: { type: string, enum: [activity, content, leaderboard] }
         content: { $ref: '#/components/schemas/EditableSlideContent' }
     Error:
       type: object
