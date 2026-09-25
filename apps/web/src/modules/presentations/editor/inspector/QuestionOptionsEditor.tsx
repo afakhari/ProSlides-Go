@@ -156,31 +156,34 @@ export default function QuestionOptionsEditor({
                             <GripVertical aria-hidden="true" />
                           </Button>
 
-                          <Button
-                            variant={option.isCorrect ? "secondary" : "outline"}
-                            size="icon"
-                            disabled={correctnessDisabled}
-                            aria-pressed={
-                              evaluationMode === "none"
-                                ? undefined
-                                : option.isCorrect
-                            }
-                            aria-label={
-                              evaluationMode === "none"
-                                ? `گزینه ${formatPersianNumber(index + 1)}؛ این فعالیت پاسخ صحیح ندارد`
-                                : option.isCorrect
+                          {evaluationMode === "none" ? (
+                            <span
+                              className="grid size-9 shrink-0 place-items-center rounded-control bg-brand-soft text-xs font-black text-brand-ink"
+                              aria-hidden="true"
+                            >
+                              {formatPersianNumber(index + 1)}
+                            </span>
+                          ) : (
+                            <Button
+                              variant={option.isCorrect ? "secondary" : "outline"}
+                              size="icon"
+                              disabled={correctnessDisabled}
+                              aria-pressed={option.isCorrect}
+                              aria-label={
+                                option.isCorrect
                                   ? `گزینه ${formatPersianNumber(index + 1)} پاسخ صحیح است`
                                   : `انتخاب گزینه ${formatPersianNumber(index + 1)} به‌عنوان پاسخ صحیح`
-                            }
-                            className="size-9 shrink-0"
-                            onClick={() => onToggleCorrect(option.id)}
-                          >
-                            {option.isCorrect ? (
-                              <CheckCircle2 aria-hidden="true" />
-                            ) : (
-                              <Circle aria-hidden="true" />
-                            )}
-                          </Button>
+                              }
+                              className="size-9 shrink-0"
+                              onClick={() => onToggleCorrect(option.id)}
+                            >
+                              {option.isCorrect ? (
+                                <CheckCircle2 aria-hidden="true" />
+                              ) : (
+                                <Circle aria-hidden="true" />
+                              )}
+                            </Button>
+                          )}
 
                           <div className="min-w-0 flex-1">
                             <label htmlFor={textId} className="sr-only">
