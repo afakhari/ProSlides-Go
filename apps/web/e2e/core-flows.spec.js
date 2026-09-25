@@ -602,17 +602,24 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await expect(
       participant.getByText("امتیاز این فعالیت", { exact: true }),
     ).toBeVisible();
-    await expect(stage.getByText("نتیجه فعالیت", { exact: true })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(stage.getByText("۱ پاسخ ثبت‌شده", { exact: true })).toBeVisible();
-    await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeVisible();
+    const stageMain = stage.getByRole("main");
+    await expect(
+      stageMain.getByText("نتیجه فعالیت", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      stageMain.getByText("۱ پاسخ ثبت‌شده", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      stageMain.getByText("پاسخ صحیح", { exact: true }),
+    ).toBeVisible();
 
     await stage.reload();
-    await expect(stage.getByText("نتیجه فعالیت", { exact: true })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(stage.getByText("پاسخ صحیح", { exact: true })).toBeVisible();
+    await expect(
+      stage.getByRole("main").getByText("نتیجه فعالیت", { exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      stage.getByRole("main").getByText("پاسخ صحیح", { exact: true }),
+    ).toBeVisible();
 
     await participant.reload();
     await expect(
