@@ -66,15 +66,24 @@ Session participant counter. The legacy latest-session and question-results
 boundaries remain deprecated compatibility paths rather than the report UI
 source of truth.
 
-V2.6 / issue #88 is complete via PRs #109 and #110. Poll remains a
-product preset over canonical Choice with evaluation/scoring disabled. Word
-Cloud proves the canonical Text Activity primitive end to end: bounded text
-responses are normalized and frozen with canonical terms, the existing generic
-Activity lifecycle accepts them without a new Session state, and Stage,
-Backstage and Session-first reports render word-frequency aggregation without
-correctness, scoring or ranking semantics.
+V2.6 / issue #88 implementation is complete via PRs #109 and #110.
+Poll remains a product preset over canonical Choice with evaluation/scoring
+disabled. Word Cloud proves the canonical Text Activity primitive end to end:
+bounded text responses are normalized and frozen with canonical terms, the
+existing generic Activity lifecycle accepts them without a new Session state,
+and Stage, Backstage and Session-first reports render word-frequency
+aggregation without correctness, scoring or ranking semantics.
 
-**Active implementation slice: V2.7 / issue #89 — remove verified legacy
+A pre-V2.7 stabilization gate is active before legacy deletion begins. The
+audit found that `activity.result_updated` was broadcast on the shared SSE
+stream as soon as an Activity closed, which exposed unrevealed aggregate
+results to participant network clients even though participant snapshots
+correctly withheld them. The corrective slice makes Activity-result SSE
+manager-only until reveal, tightens Persian Word Cloud aggregation
+normalization, and reconciles the live-contract/version documentation.
+
+**Next implementation slice after the stabilization gate is green on
+`main`: V2.7 / issue #89 — remove verified legacy
 question/slide/leaderboard compatibility paths.**
 
 v2 is a staged migration of the existing system, not a rewrite.
