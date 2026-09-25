@@ -29,6 +29,51 @@ function waitForManagerSession(page) {
   );
 }
 
+function choiceActivityContent({
+  title = "",
+  text,
+  selection = "single",
+  durationSeconds = 30,
+  minPoints = 0,
+  maxPoints = 100,
+  speedBonus = false,
+  partialCredit = false,
+  showOverallLeaderboardAfter = false,
+  options,
+}) {
+  return {
+    schema_version: 1,
+    activity_kind: "choice",
+    prompt: { title, text, image_url: "" },
+    response: {
+      selection,
+      options: options.map((option, index) => ({
+        id: option.id,
+        text: option.text,
+        image_url: "",
+        order: index + 1,
+      })),
+    },
+    evaluation: {
+      mode: "correctness",
+      correct_option_ids: options
+        .filter((option) => option.isCorrect)
+        .map((option) => option.id),
+    },
+    scoring: {
+      mode: "points",
+      min_points: minPoints,
+      max_points: maxPoints,
+      speed_bonus: speedBonus,
+      partial_credit: partialCredit,
+    },
+    timing: { duration_seconds: durationSeconds },
+    results: {
+      show_overall_leaderboard_after: showOverallLeaderboardAfter,
+    },
+  };
+}
+
 async function expectReportRouteReady(page, failures) {
   const backLink = page.getByLabel("بازگشت به پنل مدیریت");
 
@@ -403,35 +448,17 @@ test("manager and participant complete a live question lifecycle with reconnect"
         headers: { "If-Match": String(presentation.revision) },
         body: {
           position: 0,
-          kind: "question",
-          content: {
+          kind: "activity",
+          content: choiceActivityContent({
             title: "پرسش تست",
             text: "پایتخت ایران کدام شهر است؟",
-            question_type: "single",
-            question_time: 60,
-            min_point: 0,
-            max_point: 100,
-            image_url: "",
-            faster_answers_more_points: false,
-            partial_scoring: false,
-            show_leaderboard_after: true,
+            durationSeconds: 60,
+            showOverallLeaderboardAfter: true,
             options: [
-              {
-                id: optionOneId,
-                text: "تهران",
-                is_correct: true,
-                image_url: "",
-                order: 1,
-              },
-              {
-                id: optionTwoId,
-                text: "شیراز",
-                is_correct: false,
-                image_url: "",
-                order: 2,
-              },
+              { id: optionOneId, text: "تهران", isCorrect: true },
+              { id: optionTwoId, text: "شیراز", isCorrect: false },
             ],
-          },
+          }),
         },
       });
 
@@ -593,23 +620,15 @@ test("question editor preserves typed draft semantics across save and edit confl
       headers: { "If-Match": String(presentation.revision) },
       body: {
         position: 0,
-        kind: "question",
-        content: {
-          title: "",
+        kind: "activity",
+        content: choiceActivityContent({
           text: "پایتخت ایران کدام است؟",
-          question_type: "single",
-          question_time: 30,
-          min_point: 0,
-          max_point: 100,
-          image_url: "",
-          faster_answers_more_points: false,
-          partial_scoring: false,
-          show_leaderboard_after: true,
+          showOverallLeaderboardAfter: true,
           options: [
-            { id: crypto.randomUUID(), text: "تهران", is_correct: true, image_url: "", order: 1 },
-            { id: crypto.randomUUID(), text: "شیراز", is_correct: false, image_url: "", order: 2 },
+            { id: crypto.randomUUID(), text: "تهران", isCorrect: true },
+            { id: crypto.randomUUID(), text: "شیراز", isCorrect: false },
           ],
-        },
+        }),
       },
     });
 
@@ -708,10 +727,13 @@ test("question editor preserves typed draft semantics across save and edit confl
           headers,
           body: JSON.stringify({
             position: 0,
-            kind: "question",
+            kind: "activity",
             content: {
               ...content,
-              text: "نسخه جدید سرور",
+              prompt: {
+                ...content.prompt,
+                text: "نسخه جدید سرور",
+              },
             },
           }),
         },
