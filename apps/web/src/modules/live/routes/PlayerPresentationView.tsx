@@ -12,6 +12,7 @@ import { ParticipantFinalResult } from "../participant/ui/ParticipantFinalResult
 import { ParticipantJoinPage } from "../participant/ui/ParticipantJoinPage.tsx";
 import { ParticipantLeaderboard } from "../participant/ui/ParticipantLeaderboard.tsx";
 import { ParticipantQuestion } from "../participant/ui/ParticipantQuestion.tsx";
+import { ParticipantWordCloud } from "../participant/ui/ParticipantWordCloud.tsx";
 import { ParticipantWaiting } from "../participant/ui/ParticipantWaiting.tsx";
 import type { LiveSnapshot } from "../api/types.ts";
 
@@ -62,7 +63,13 @@ export function PlayerPresentationView({
   }
 
   if (currentQuestion) {
-    return (
+    return currentQuestion.activity_kind === "text" ? (
+      <ParticipantWordCloud
+        roomId={roomId}
+        question={currentQuestion}
+        quiz={quiz}
+      />
+    ) : (
       <ParticipantQuestion
         roomId={roomId}
         question={currentQuestion}
@@ -106,7 +113,13 @@ export function PlayerPresentationView({
       fallbackTimer.totalSeconds > 0 &&
       fallbackTimer.remainingSeconds > 0
     ) {
-      return (
+      return fallbackQuestion.activity_kind === "text" ? (
+        <ParticipantWordCloud
+          roomId={roomId}
+          question={fallbackQuestion}
+          quiz={quiz}
+        />
+      ) : (
         <ParticipantQuestion
           roomId={roomId}
           question={fallbackQuestion}
