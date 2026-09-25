@@ -48,8 +48,12 @@ const contentRegistration: EditorItemRegistration = {
   key: "content",
   category: "content",
   label: "محتوا",
-  matches: (slide) => slide.slide_type === 2,
-  isConfigured: (slide) => slide.slide_type === 2,
+  matches: (slide) =>
+    slide.item_kind === "content" ||
+    (slide.item_kind == null && slide.slide_type === 2),
+  isConfigured: (slide) =>
+    slide.item_kind === "content" ||
+    (slide.item_kind == null && slide.slide_type === 2),
   getTitle: (slide) =>
     slide.title?.trim() ||
     slide.content_text?.trim() ||
@@ -63,9 +67,21 @@ const choiceRegistration: EditorItemRegistration = {
   key: "choice",
   category: "activity",
   label: "فعالیت انتخابی",
-  matches: (slide) => slide.slide_type === 1,
+  matches: (slide) =>
+    slide.item_kind === "question-draft" ||
+    (
+      slide.item_kind === "activity" &&
+      slide.activity_kind === "choice"
+    ) ||
+    (slide.item_kind == null && slide.slide_type === 1),
   isConfigured: (slide) =>
-    slide.slide_type === 1 &&
+    (
+      (
+        slide.item_kind === "activity" &&
+        slide.activity_kind === "choice"
+      ) ||
+      (slide.item_kind == null && slide.slide_type === 1)
+    ) &&
     Boolean(slide.question) &&
     (slide.question?.question_type === "single" ||
       slide.question?.question_type === "multiple"),
@@ -92,27 +108,34 @@ const choiceRegistration: EditorItemRegistration = {
 
     return null;
   },
-  getBehaviors: (slide) => [
-    {
-      id: "activity-result",
-      label: "نتیجه فعالیت",
-      tone: "info",
-    },
-    ...(slide.show_leaderboard_after
-      ? [{
-          id: "overall-ranking" as const,
-          label: "رتبه‌بندی کلی",
-          tone: "warning" as const,
-        }]
-      : []),
-  ],
+  getBehaviors: (slide) => {
+    if (!slide.question) return [];
+
+    return [
+      {
+        id: "activity-result",
+        label: "نتیجه فعالیت",
+        tone: "info",
+      },
+      ...(slide.show_leaderboard_after &&
+      slide.question.scoring_mode !== "none"
+        ? [{
+            id: "overall-ranking" as const,
+            label: "رتبه‌بندی کلی",
+            tone: "warning" as const,
+          }]
+        : []),
+    ];
+  },
 };
 
 const legacyLeaderboardRegistration: EditorItemRegistration = {
   key: "legacy-leaderboard",
   category: "legacy",
   label: "جدول امتیازات قدیمی",
-  matches: (slide) => slide.slide_type === 3,
+  matches: (slide) =>
+    slide.item_kind === "legacy-leaderboard" ||
+    (slide.item_kind == null && slide.slide_type === 3),
   isConfigured: () => true,
   getTitle: (slide) => slide.title?.trim() || "جدول امتیازات قدیمی",
   getTypeLabel: () => "قدیمی",
