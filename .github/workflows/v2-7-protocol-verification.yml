@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - test/v2.7-canonical-live-verification
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -92,7 +89,14 @@ jobs:
             -e ANSWER_WINDOW=5 \
             load/k6/live-smoke.js 2>&1 | tee /tmp/k6.log
 
-          session_id="$(grep -oE '"session_id":"[^"]+"' /tmp/k6.log | tail -1 | cut -d'"' -f4)"
+          session_id="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+matches = re.findall(r'session_id\\":\\"([0-9a-f-]+)', Path("/tmp/k6.log").read_text())
+print(matches[-1] if matches else "")
+PY
+)"
           if [ -z "$session_id" ]; then
             echo "::error::Could not recover live_smoke_setup session_id"
             exit 1
