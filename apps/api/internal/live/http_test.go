@@ -50,10 +50,11 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 		return ParticipantSnapshot{}, ErrUnauthorized
 	}
 	remaining := 42
+	accepting := ActivityAccepting
 	if session == testPresentationID {
 		return ParticipantSnapshot{
 			Role:             "participant",
-			Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: QuestionOpen, StateVersion: 5, RemainingSeconds: &remaining},
+			Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Presenting, StateVersion: 5, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
 			Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 70},
 			ParticipantCount: 10_000,
 			LastEventID:      42,
@@ -61,7 +62,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 	}
 	return ParticipantSnapshot{
 		Role:             "participant",
-		Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Lobby, StateVersion: 2},
+		Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Lobby, StateVersion: 2, StageView: StageItem},
 		Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 70},
 		ParticipantCount: 10_000,
 		LastEventID:      42,
@@ -75,14 +76,14 @@ func (s *snapshotStore) ManagerSnapshot(_ context.Context, session, manager stri
 	if session == testPresentationID {
 		return ManagerSnapshot{
 			Role:             "manager",
-			Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: QuestionOpen, StateVersion: 5, RemainingSeconds: &remaining},
+			Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: Presenting, StateVersion: 5, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
 			ParticipantCount: 10_000,
 			LastEventID:      42,
 		}, nil
 	}
 	return ManagerSnapshot{
 		Role:             "manager",
-		Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: Lobby, StateVersion: 2},
+		Session:          Session{ID: session, PresentationID: testPresentationID, HostID: manager, JoinCode: "JOIN1", State: Lobby, StateVersion: 2, StageView: StageItem},
 		ParticipantCount: 10_000,
 		LastEventID:      42,
 	}, nil
@@ -169,7 +170,7 @@ func TestParticipantSnapshotDoesNotDiscloseRosterScoresOrManagerFields(t *testin
 	}
 }
 
-func TestOpenQuestionSnapshotsExposeServerComputedRemainingSeconds(t *testing.T) {
+func TestAcceptingActivitySnapshotsExposeServerComputedRemainingSeconds(t *testing.T) {
 	store := &snapshotStore{}
 	for _, tc := range []struct {
 		name string
