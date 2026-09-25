@@ -68,7 +68,6 @@ export function AppPresentation({
     quiz,
     currentQuestion,
     currentContent,
-    leaderboardResults,
     isConnected,
     sessionState: snapshot?.session?.state,
     sessionStageView: snapshot?.session?.stage_view,
