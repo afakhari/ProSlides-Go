@@ -110,8 +110,8 @@ before implementation.
   editor changes;
 - PostgreSQL remains authoritative for accepted responses, scores and events;
 - live clients recover snapshot-first and resume SSE from `last_event_id`;
-- participant projections never retain manager-only roster, score-map or
-  unrevealed correctness data;
+- participant projections and event streams never retain or deliver
+  manager-only roster, score-map or unrevealed Activity-result/correctness data;
 - server deadline/closure remains authoritative for response acceptance.
 
 These are migration constraints, not reasons to keep legacy naming forever.
