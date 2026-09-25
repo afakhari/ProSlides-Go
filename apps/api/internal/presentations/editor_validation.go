@@ -25,3 +25,8 @@ func decodeStrictObject(raw json.RawMessage, target any) error {
 	}
 	return nil
 }
+
+func validJSONObject(raw json.RawMessage) bool {
+	var value map[string]any
+	return len(raw) > 0 && json.Unmarshal(raw, &value) == nil && value != nil
+}
