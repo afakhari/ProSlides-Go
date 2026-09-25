@@ -698,7 +698,7 @@ export interface components {
         CreateSlideRequest: {
             position: number;
             /** @enum {string} */
-            kind: "question_draft" | "question" | "content" | "leaderboard";
+            kind: "question_draft" | "activity" | "content" | "leaderboard";
             content: components["schemas"]["EditableSlideContent"];
         };
         ReorderSlidesRequest: {
@@ -727,32 +727,61 @@ export interface components {
                 is_correct: boolean;
             }[];
         };
-        /** @description Content is validated against the accompanying slide kind. Unknown fields are rejected by the API. */
-        EditableSlideContent: components["schemas"]["QuestionDraftContent"] | components["schemas"]["QuestionContent"] | components["schemas"]["ContentSlideContent"] | components["schemas"]["LeaderboardContent"];
+        /** @description Content is validated against the accompanying authoring item kind. Unknown fields are rejected by the API. */
+        EditableSlideContent: components["schemas"]["QuestionDraftContent"] | components["schemas"]["ActivityItemDefinition"] | components["schemas"]["ContentSlideContent"] | components["schemas"]["LeaderboardContent"];
+        /** @description Temporary pre-V2.3 editor compatibility shape for an untyped question placeholder. */
         QuestionDraftContent: {
             /** @default false */
             show_leaderboard_after: boolean;
         };
-        QuestionContent: {
-            title?: string;
-            text: string;
+        /** @description Versioned audience Activity definition. V2.1 supports the Choice primitive; future Activity kinds add new versioned definitions rather than extending this object with unrelated fields. */
+        ActivityItemDefinition: components["schemas"]["ChoiceActivityDefinition"];
+        ChoiceActivityDefinition: {
+            /** @enum {integer} */
+            schema_version: 1;
             /** @enum {string} */
-            question_type: "single" | "multiple";
-            question_time: number;
-            min_point: number;
-            max_point: number;
-            image_url?: string;
-            faster_answers_more_points: boolean;
-            partial_scoring: boolean;
-            show_leaderboard_after: boolean;
-            options: components["schemas"]["QuestionOptionDefinition"][];
+            activity_kind: "choice";
+            prompt: components["schemas"]["ActivityPrompt"];
+            response: components["schemas"]["ChoiceResponsePolicy"];
+            evaluation: components["schemas"]["ChoiceEvaluationPolicy"];
+            scoring: components["schemas"]["ChoiceScoringPolicy"];
+            timing: components["schemas"]["ActivityTimingPolicy"];
+            results: components["schemas"]["ActivityResultPolicy"];
         };
-        QuestionOptionDefinition: {
+        ActivityPrompt: {
+            title: string;
+            text: string;
+            image_url: string;
+        };
+        ChoiceResponsePolicy: {
+            /** @enum {string} */
+            selection: "single" | "multiple";
+            options: components["schemas"]["ChoiceOptionDefinition"][];
+        };
+        ChoiceOptionDefinition: {
             id: string;
             text: string;
-            is_correct: boolean;
             image_url: string;
             order: number;
+        };
+        ChoiceEvaluationPolicy: {
+            /** @enum {string} */
+            mode: "none" | "correctness";
+            correct_option_ids: string[];
+        };
+        ChoiceScoringPolicy: {
+            /** @enum {string} */
+            mode: "none" | "points";
+            min_points: number;
+            max_points: number;
+            speed_bonus: boolean;
+            partial_credit: boolean;
+        };
+        ActivityTimingPolicy: {
+            duration_seconds: number;
+        };
+        ActivityResultPolicy: {
+            show_overall_leaderboard_after: boolean;
         };
         /** @description At least one of title, text, or image_url must be non-empty. */
         ContentSlideContent: {
@@ -990,10 +1019,9 @@ export interface components {
             /** Format: int64 */
             revision: number;
             position: number;
-            kind: string;
-            content: {
-                [key: string]: unknown;
-            };
+            /** @enum {string} */
+            kind: "question_draft" | "activity" | "content" | "leaderboard";
+            content: components["schemas"]["EditableSlideContent"];
         };
         Error: {
             /** @description Stable machine-readable error code. */
