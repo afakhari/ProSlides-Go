@@ -44,7 +44,10 @@ ALTER TABLE live_sessions
     ADD CONSTRAINT live_sessions_activity_phase_state_check
         CHECK (activity_phase IS NULL OR state = 'presenting'),
     ADD CONSTRAINT live_sessions_stage_view_state_check
-        CHECK (stage_view <> 'overall_ranking' OR state = 'presenting'),
+        CHECK (
+            stage_view <> 'overall_ranking'
+            OR (state = 'presenting' AND activity_phase = 'revealed')
+        ),
     ADD CONSTRAINT live_sessions_deadline_phase_check
         CHECK (
             (activity_phase = 'accepting' AND ends_at IS NOT NULL)
