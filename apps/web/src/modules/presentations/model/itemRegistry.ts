@@ -79,7 +79,19 @@ const choiceRegistration: EditorItemRegistration = {
       : slide.question?.question_type === "single"
         ? "تک‌گزینه‌ای"
         : "انتخاب نوع فعالیت",
-  validate: (slide) => getQuestionValidationError(slide.question),
+  validate: (slide) => {
+    const questionError = getQuestionValidationError(slide.question);
+    if (questionError) return questionError;
+
+    if (
+      slide.show_leaderboard_after &&
+      slide.question?.scoring_mode === "none"
+    ) {
+      return "رتبه‌بندی کلی فقط پس از فعالیت امتیازی قابل نمایش است.";
+    }
+
+    return null;
+  },
   getBehaviors: (slide) => [
     {
       id: "activity-result",
