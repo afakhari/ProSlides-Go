@@ -71,6 +71,7 @@ export function AppPresentation({
     leaderboardResults,
     isConnected,
     sessionState: snapshot?.session?.state,
+    sessionStageView: snapshot?.session?.stage_view,
   });
 
   if (role === "manager") {
