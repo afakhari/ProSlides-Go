@@ -1176,6 +1176,29 @@ components:
         activities:
           type: array
           items: { $ref: '#/components/schemas/ReportActivitySummary' }
+    ReportChoiceResultPayload:
+      type: object
+      required: [option_counts]
+      additionalProperties: false
+      properties:
+        option_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+          description: Counts keyed by frozen option ID.
+    ReportActivityResult:
+      type: object
+      required: [activity_item_id, activity_kind, schema_version, response_count, payload]
+      additionalProperties: false
+      properties:
+        activity_item_id: { type: string, format: uuid }
+        activity_kind: { type: string, enum: [choice] }
+        schema_version: { type: integer, minimum: 1 }
+        response_count: { type: integer, minimum: 0 }
+        payload:
+          $ref: '#/components/schemas/ReportChoiceResultPayload'
+          description: Kind-specific, versioned result projection. V2.5 defines Choice; later Activity kinds extend the result union rather than creating parallel report endpoints.
     ReportResponseEvaluation:
       type: object
       required: [mode, score_delta]
@@ -1205,7 +1228,7 @@ components:
       additionalProperties: false
       properties:
         activity: { $ref: '#/components/schemas/ReportActivitySummary' }
-        result: { $ref: '#/components/schemas/ActivityResultPayload' }
+        result: { $ref: '#/components/schemas/ReportActivityResult' }
         top_performers:
           type: array
           maxItems: 10
