@@ -5,7 +5,6 @@ export type SlideType = 1 | 2 | 3;
 export type EditorItemKind =
   | "content"
   | "activity"
-  | "question-draft"
   | "legacy-leaderboard";
 
 export interface EditorOption {
