@@ -142,6 +142,59 @@ func TestChoiceActivityModelSupportsUnscoredChoiceWithoutQuizFields(t *testing.T
 	}
 }
 
+func TestPollNormalizesAsCanonicalUnscoredChoice(t *testing.T) {
+	activity := ActivityDefinition{
+		SchemaVersion: ActivitySchemaVersion1,
+		ActivityKind:  ActivityKindChoice,
+		Prompt:        ActivityPrompt{Text: "Which topic next?"},
+		Response: ChoiceResponsePolicy{
+			Selection: ChoiceSelectionSingle,
+			Options: []ChoiceOptionDefinition{
+				{ID: "architecture", Text: "Architecture", Order: 1},
+				{ID: "testing", Text: "Testing", Order: 2},
+			},
+		},
+		Evaluation: ChoiceEvaluationPolicy{
+			Mode:             EvaluationModeNone,
+			CorrectOptionIDs: []string{},
+		},
+		Scoring: ChoiceScoringPolicy{Mode: ScoringModeNone},
+		Timing:  ActivityTimingPolicy{DurationSeconds: 20},
+		Results: ActivityResultPolicy{ShowOverallLeaderboardAfter: false},
+	}
+	raw, err := json.Marshal(activity)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kind, normalized, err := normalizeSlideDefinition(ItemKindActivity, raw)
+	if err != nil {
+		t.Fatalf("normalize Poll: %v", err)
+	}
+	if kind != ItemKindActivity {
+		t.Fatalf("kind = %q, want %q", kind, ItemKindActivity)
+	}
+
+	decoded, err := DecodeActivityDefinition(normalized)
+	if err != nil {
+		t.Fatalf("decode normalized Poll: %v", err)
+	}
+	if decoded.ActivityKind != ActivityKindChoice ||
+		decoded.Response.Selection != ChoiceSelectionSingle ||
+		decoded.Evaluation.Mode != EvaluationModeNone ||
+		decoded.Scoring.Mode != ScoringModeNone ||
+		decoded.Results.ShowOverallLeaderboardAfter {
+		t.Fatalf("Poll policy changed during normalization: %#v", decoded)
+	}
+	for _, option := range decoded.Response.Options {
+		for _, correctID := range decoded.Evaluation.CorrectOptionIDs {
+			if option.ID == correctID {
+				t.Fatalf("Poll unexpectedly gained a correct option: %s", option.ID)
+			}
+		}
+	}
+}
+
 func TestUnscoredChoiceCannotRequestOverallLeaderboard(t *testing.T) {
 	activity := ActivityDefinition{
 		SchemaVersion: 1,
