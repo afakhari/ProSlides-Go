@@ -307,7 +307,6 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   });
   await editorReadHeld;
   const reportUrl = new RegExp(`/manager/panel/${presentationId}/report$`);
-  const resumedReportSessions = waitForReportSessions(page, presentationId);
   const reportNavigation = page.goto(
     `/manager/panel/${presentationId}/report`,
     { waitUntil: "domcontentloaded" },
@@ -323,7 +322,11 @@ test("register, create a presentation, and open its report", async ({ page }) =>
   }
   await reportNavigation;
   await page.unroute(`**/api/v1/presentations/${presentationId}`);
-  expect((await resumedReportSessions).status()).toBe(200);
+
+  // The first report navigation above already proves the Session-history API
+  // contract. This transition specifically protects the editor pagehide/abort
+  // boundary, so assert the user-visible report bootstrap instead of requiring
+  // a second uncached GET that the browser is free to satisfy from cache.
   await expect(page).toHaveURL(reportUrl);
   await expectReportRouteReady(page, failures);
 
