@@ -477,7 +477,8 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/AnswerResult' } } }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { description: Question is not open, has expired, or was already answered. }
+        '409':
+          description: The Activity is not accepting responses, has expired, the item changed, or the request conflicts with the current Session.
         '429': { description: Participant or session answer rate exceeded; Retry-After is returned. }
   /api/v1/live/sessions:
     post:
@@ -563,9 +564,10 @@ paths:
         Clients apply this snapshot first, then connect to events using
         last_event_id as Last-Event-ID. Participants receive only public
         session state, their own participant record and score, aggregate
-        participant count, and the active slide. Managers receive session
-        state and aggregate count; roster and leaderboard rows are available
-        only from the paginated manager endpoint.
+        participant count, and the active Item. Correctness metadata is hidden
+        until the Activity reaches the revealed phase. Managers receive Session
+        state and aggregate count; full ranking rows are available only from
+        the paginated manager endpoint.
       parameters: [{ $ref: '#/components/parameters/SessionId' }]
       responses:
         '200':
@@ -581,7 +583,7 @@ paths:
   /api/v1/live/sessions/{sessionId}/roster:
     get:
       operationId: listLiveRoster
-      summary: List a live session roster or leaderboard page as the manager.
+      summary: List a live session roster or cumulative ranking page as the manager.
       description: >-
         Manager-only keyset pagination. joined orders by joined_at ascending
         then participant id; score orders by score descending, joined_at
