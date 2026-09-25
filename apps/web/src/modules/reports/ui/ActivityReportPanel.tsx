@@ -85,7 +85,13 @@ export function ActivityReportPanel({
         </p>
       </div>
 
-      <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+      <div
+        className={
+          activity.scored
+            ? "grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]"
+            : "p-5"
+        }
+      >
         <div>
           <h3 className="font-bold">{isPoll ? "نتیجه نظرسنجی" : "نتیجه همین فعالیت"}</h3>
           <p className="mt-1 text-xs text-content-muted">
@@ -121,38 +127,36 @@ export function ActivityReportPanel({
           </div>
         </div>
 
-        <div>
-          <div className="flex items-center gap-2">
-            <Medal className="size-5 text-brand" aria-hidden="true" />
-            <h3 className="font-bold">برترین‌های همین فعالیت</h3>
-          </div>
-          {!activity.scored ? (
-            <p className="mt-3 text-sm text-content-muted">
-              این فعالیت امتیازی نیست و برترین عملکرد برای آن تعریف نمی‌شود.
-            </p>
-          ) : first.top_performers.length === 0 ? (
-            <p className="mt-3 text-sm text-content-muted">
-              هنوز پاسخ امتیازی ثبت نشده است.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {first.top_performers.map((performer) => (
-                <div
-                  key={performer.participant_id}
-                  className="flex items-center justify-between gap-3 rounded-control bg-surface-raised px-3 py-2 text-sm"
-                >
-                  <span className="min-w-0 truncate font-semibold">
-                    {formatPersianNumber(performer.rank)}.{" "}
-                    <bdi dir="auto">{performer.display_name}</bdi>
-                  </span>
-                  <span className="shrink-0 font-bold">
-                    +{formatPersianNumber(performer.score_delta)}
-                  </span>
-                </div>
-              ))}
+        {activity.scored && (
+          <div>
+            <div className="flex items-center gap-2">
+              <Medal className="size-5 text-brand" aria-hidden="true" />
+              <h3 className="font-bold">برترین‌های همین فعالیت</h3>
             </div>
-          )}
-        </div>
+            {first.top_performers.length === 0 ? (
+              <p className="mt-3 text-sm text-content-muted">
+                هنوز پاسخ امتیازی ثبت نشده است.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {first.top_performers.map((performer) => (
+                  <div
+                    key={performer.participant_id}
+                    className="flex items-center justify-between gap-3 rounded-control bg-surface-raised px-3 py-2 text-sm"
+                  >
+                    <span className="min-w-0 truncate font-semibold">
+                      {formatPersianNumber(performer.rank)}.{" "}
+                      <bdi dir="auto">{performer.display_name}</bdi>
+                    </span>
+                    <span className="shrink-0 font-bold">
+                      +{formatPersianNumber(performer.score_delta)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="border-t border-border-subtle">
