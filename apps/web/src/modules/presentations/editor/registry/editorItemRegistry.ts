@@ -55,8 +55,12 @@ export const editorSlideMatchesTypeChoice = (
     const question = slide.question;
     if (!question) return false;
 
+    const questionTypeMatches =
+      choiceId === "poll" ||
+      question.question_type === choice.questionType;
+
     return (
-      question.question_type === choice.questionType &&
+      questionTypeMatches &&
       (question.evaluation_mode ?? "correctness") ===
         (choice.evaluationMode ?? "correctness") &&
       (question.scoring_mode ?? "points") ===
@@ -77,9 +81,14 @@ export const convertEditorSlideToType = (
     return convertSlideToContent(slide);
   }
 
+  const targetQuestionType =
+    choiceId === "poll"
+      ? slide.question?.question_type ?? choice.questionType ?? "single"
+      : choice.questionType ?? "single";
+
   return convertSlideToQuestion(
     slide,
-    choice.questionType ?? "single",
+    targetQuestionType,
     createId,
     {
       evaluationMode: choice.evaluationMode ?? "correctness",
