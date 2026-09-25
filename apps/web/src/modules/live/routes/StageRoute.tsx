@@ -437,9 +437,9 @@ export default function StageRoute() {
     body = <StageFinal snapshot={snapshot} />;
   } else if (snapshot.session.stage_view === "overall_ranking") {
     body = <RankingList ranking={snapshot.ranking} title="جدول امتیازات" />;
-  } else if (item?.slide_type === 2) {
+  } else if (item?.item_kind === "content") {
     body = <StageContent content={item} />;
-  } else if (item?.slide_type === 1) {
+  } else if (item?.item_kind === "activity") {
     body = <StageActivity question={item} snapshot={snapshot} />;
   } else {
     body = <Waiting message="در حال همگام‌سازی محتوای Stage…" />;
