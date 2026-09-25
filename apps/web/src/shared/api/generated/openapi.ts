@@ -909,7 +909,7 @@ export interface components {
             /** @enum {string} */
             role: "participant";
             session: components["schemas"]["PublicLiveSession"];
-            /** @description Active slide projected for the participant; correctness metadata such as option is_correct flags is omitted. */
+            /** @description Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed. */
             active_item?: {
                 [key: string]: unknown;
             };
