@@ -174,6 +174,22 @@ test("Word Cloud round-trips through the canonical Text Activity transport", () 
   assert.equal(restored.text_activity.aggregation, "word_frequency");
 });
 
+test("persisted leaderboard transport fails closed after migration", () => {
+  assert.throws(
+    () => presentationToEditor({
+      ...presentationDTO,
+      slides: [{
+        id: "legacy-ranking",
+        revision: 1,
+        position: 1,
+        kind: "leaderboard",
+        content: { title: "Leaderboard" },
+      }],
+    }),
+    /Unsupported editor item transport kind/,
+  );
+});
+
 test("unknown canonical Activity kinds fail closed instead of becoming legacy question drafts", () => {
   assert.throws(
     () => editorSlideToDefinition({
