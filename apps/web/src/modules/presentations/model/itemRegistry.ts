@@ -71,14 +71,16 @@ const choiceRegistration: EditorItemRegistration = {
     slide.item_kind === "question-draft" ||
     (
       slide.item_kind === "activity" &&
-      slide.activity_kind === "choice"
+      slide.activity_kind === "choice" &&
+      slide.schema_version === 1
     ) ||
     (slide.item_kind == null && slide.slide_type === 1),
   isConfigured: (slide) =>
     (
       (
         slide.item_kind === "activity" &&
-        slide.activity_kind === "choice"
+        slide.activity_kind === "choice" &&
+        slide.schema_version === 1
       ) ||
       (slide.item_kind == null && slide.slide_type === 1)
     ) &&
