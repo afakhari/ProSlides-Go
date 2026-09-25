@@ -115,7 +115,6 @@ const choiceTransport: EditorTransportRegistration = {
       show_leaderboard_after:
         results.show_overall_leaderboard_after === true,
       text_activity: null,
-      text_activity: null,
       question: {
         question_id: slide.id,
         title: stringValue(prompt.title),
