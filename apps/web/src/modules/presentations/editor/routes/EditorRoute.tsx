@@ -1,25 +1,31 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation, useNavigation } from "react-router-dom";
-import QuestionCanvas from "../canvas/QuestionCanvas";
-import ContentCanvas from "../canvas/ContentCanvas";
-import LeaderboardPreview from "../canvas/LeaderboardCanvas";
 import QuizHeader from "../toolbar/EditorHeader.tsx";
-import Sidebar from "../inspector/QuestionInspector";
 import SlidesPanel from "../slide-list/SlideList.tsx";
 import RightToolbar from "../toolbar/EditorToolbar.tsx";
 import DesignPanel from "../inspector/DesignInspector";
 import AudioPanel from "../inspector/AudioInspector.tsx";
-import ContentSidebar from "../inspector/ContentInspector";
 import { quizService } from "../../api/presentationRepository.ts";
-import { getPresentationValidationError, type EditorPresentation } from "../../model/editor.ts";
+import type { EditorPresentation } from "../../model/editor.ts";
+import {
+  getPresentationValidationError,
+  resolveEditorItemRegistration,
+} from "../../model/itemRegistry.ts";
+import {
+  editorTypeChoices,
+} from "../registry/editorItemRegistry.ts";
+import {
+  EditorItemCanvas,
+  EditorItemDraftBoundary,
+  EditorItemInspector,
+} from "../registry/editorItemRenderRegistry.tsx";
+import EditorShell from "../shell/EditorShell.tsx";
 import { X, ArrowRight, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ConfirmDialog } from "../../../../shared/ui/primitives/ConfirmDialog.tsx";
 import EditorRouteSkeleton from "./EditorRouteSkeleton";
 import Notice from "../../../../shared/ui/Notice";
 import { fa } from "../../../../shared/i18n/fa";
 import { useEditorStatus } from "../model/useEditorStatus.ts";
-import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
-import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
 import DesignDraftProvider from "../model/DesignDraftProvider.tsx";
 import { useEditorNotice } from "../model/useEditorNotice.ts";
 import { useEditorPanelController } from "../model/useEditorPanelController.ts";
@@ -33,22 +39,12 @@ type EditorRouteLocationState = {
   createdPresentation?: boolean;
 };
 
-type LeaderboardEntry =
-  Awaited<ReturnType<typeof quizService.getQuestionLeaderboard>>[number];
-
 type QuestionEditorProps = {
   quiz: EditorPresentation;
   updateQuiz: (quiz: EditorPresentation) => void;
   refreshQuiz: () => Promise<void>;
   createdPresentation: boolean;
 };
-
-const SLIDE_TYPE_CHOICES = [
-  "Single Choice",
-  "Multiple Choice",
-  "Content Slide",
-] as const;
-
 
 export default function EditorPage() {
   const { roomId } = useParams();
