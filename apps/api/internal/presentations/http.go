@@ -43,7 +43,6 @@ func (h *HTTP) Register(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/presentations/{presentationId}/slides/reorder", h.reorderSlides)
 	m.HandleFunc("PUT /api/v1/presentations/{presentationId}/slides/{slideId}", h.replaceSlide)
 	m.HandleFunc("DELETE /api/v1/presentations/{presentationId}/slides/{slideId}", h.deleteSlide)
-	m.HandleFunc("POST /api/v1/presentations/{presentationId}/questions", h.createQuestion)
 }
 
 func (h *HTTP) current(r *http.Request) (identity.User, error) {
@@ -381,108 +380,6 @@ func (h *HTTP) reorderSlides(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *HTTP) createQuestion(w http.ResponseWriter, r *http.Request) {
-	user, ok := h.mutating(w, r)
-	if !ok {
-		return
-	}
-	var body struct {
-		Position     int    `json:"position"`
-		Text         string `json:"text"`
-		QuestionType string `json:"question_type"`
-		QuestionTime int    `json:"question_time"`
-		MaxPoint     int    `json:"max_point"`
-		MinPoint     int    `json:"min_point"`
-		Faster       bool   `json:"faster_answers_more_points"`
-		Partial      bool   `json:"partial_scoring"`
-		Options      []struct {
-			Text      string `json:"text"`
-			IsCorrect bool   `json:"is_correct"`
-		} `json:"options"`
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxContentBytes)
-	if json.NewDecoder(r.Body).Decode(&body) != nil {
-		errJSON(w, 400, "invalid_request")
-		return
-	}
-	if body.QuestionTime == 0 {
-		body.QuestionTime = 30
-	}
-	if body.MaxPoint == 0 {
-		body.MaxPoint = 100
-	}
-	if body.Position < 0 || strings.TrimSpace(body.Text) == "" || len(body.Options) < 2 || len(body.Options) > 100 ||
-		(body.QuestionType != ChoiceSelectionSingle && body.QuestionType != ChoiceSelectionMultiple) ||
-		body.QuestionTime < 1 || body.QuestionTime > 86400 || body.MinPoint < 0 || body.MaxPoint < body.MinPoint {
-		errJSON(w, 400, "invalid_request")
-		return
-	}
-
-	options := make([]ChoiceOptionDefinition, 0, len(body.Options))
-	correctOptionIDs := make([]string, 0, len(body.Options))
-	for index, option := range body.Options {
-		if strings.TrimSpace(option.Text) == "" {
-			errJSON(w, 400, "invalid_request")
-			return
-		}
-		id := "option-" + strconv.Itoa(index+1)
-		options = append(options, ChoiceOptionDefinition{
-			ID:    id,
-			Text:  strings.TrimSpace(option.Text),
-			Order: index + 1,
-		})
-		if option.IsCorrect {
-			correctOptionIDs = append(correctOptionIDs, id)
-		}
-	}
-	if len(correctOptionIDs) == 0 ||
-		(body.QuestionType == ChoiceSelectionSingle && (len(correctOptionIDs) != 1 || body.Partial)) {
-		errJSON(w, 400, "invalid_request")
-		return
-	}
-
-	activity := ActivityDefinition{
-		SchemaVersion: ActivitySchemaVersion1,
-		ActivityKind:  ActivityKindChoice,
-		Prompt: ActivityPrompt{
-			Text: strings.TrimSpace(body.Text),
-		},
-		Response: ChoiceResponsePolicy{
-			Selection: body.QuestionType,
-			Options:   options,
-		},
-		Evaluation: ChoiceEvaluationPolicy{
-			Mode:             EvaluationModeCorrectness,
-			CorrectOptionIDs: correctOptionIDs,
-		},
-		Scoring: ChoiceScoringPolicy{
-			Mode:          ScoringModePoints,
-			MinPoints:     body.MinPoint,
-			MaxPoints:     body.MaxPoint,
-			SpeedBonus:    body.Faster,
-			PartialCredit: body.Partial,
-		},
-		Timing: ActivityTimingPolicy{DurationSeconds: body.QuestionTime},
-		Results: ActivityResultPolicy{
-			ShowOverallLeaderboardAfter: false,
-		},
-	}
-	if err := validateActivityDefinition(activity); err != nil {
-		errJSON(w, 400, "invalid_request")
-		return
-	}
-	content, err := json.Marshal(activity)
-	if err != nil {
-		errJSON(w, 500, "internal_error")
-		return
-	}
-	slide, err := h.store.CreateSlide(r.Context(), r.PathValue("presentationId"), user.ID, body.Position, ItemKindActivity, content, nil)
-	if handleStoreError(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusCreated, slide)
 }
 
 func decodeExpectedRevision(w http.ResponseWriter, r *http.Request) (*int64, bool) {
