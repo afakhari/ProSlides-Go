@@ -143,30 +143,42 @@ export function useStageProjection(sessionId: string | undefined) {
     };
 
     void (async () => {
-      try {
-        await refresh();
-      } catch (error) {
-        if (!controller.signal.aborted) {
+      let retry = 500;
+
+      while (!controller.signal.aborted && !snapshotRef.current) {
+        try {
+          await refresh();
+          retry = 500;
+        } catch (error) {
+          if (controller.signal.aborted) return;
           setState({
             snapshot: null,
             isConnected: false,
             isLoading: false,
             error: errorText(error),
           });
+          await wait(retry, controller.signal);
+          retry = Math.min(retry * 2, 10_000);
         }
-        return;
       }
 
-      let retry = 500;
       while (!controller.signal.aborted) {
         try {
           setState((value) => ({
             ...value,
-            isConnected: true,
+            isConnected: false,
             error: null,
           }));
           await streamLiveEvents(sessionId, cursorRef.current.eventId, {
             signal: controller.signal,
+            onOpen: () => {
+              if (controller.signal.aborted) return;
+              setState((value) => ({
+                ...value,
+                isConnected: true,
+                error: null,
+              }));
+            },
             onEvent: handleEvent,
           });
           if (!controller.signal.aborted) {
