@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, LoaderCircle, X } from "lucide-react";
 
 import { Button } from "../../../../shared/ui/primitives/Button.tsx";
+import { useNativeDialogLifecycle } from "../../../../shared/ui/useNativeDialogLifecycle.ts";
 
 type ImageUrlDialogProps = {
   open: boolean;
@@ -42,7 +43,6 @@ export default function ImageUrlDialog({
   onClose,
   onConfirm,
 }: ImageUrlDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const previewSequence = useRef(0);
   const [url, setUrl] = useState(initialUrl);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -50,29 +50,31 @@ export default function ImageUrlDialog({
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open) {
-      setUrl(initialUrl);
-      setPreviewUrl("");
-      setError("");
-      setChecking(false);
-      if (!dialog.open) dialog.showModal();
-    } else if (dialog.open) {
-      dialog.close();
-    }
+    if (!open) return;
+    setUrl(initialUrl);
+    setPreviewUrl("");
+    setError("");
+    setChecking(false);
   }, [initialUrl, open]);
 
   useEffect(() => () => {
     previewSequence.current += 1;
   }, []);
 
-  const close = () => {
+  const close = useCallback(() => {
     previewSequence.current += 1;
     setChecking(false);
     onClose();
-  };
+  }, [onClose]);
+
+  const {
+    dialogRef,
+    handleCancel,
+    handleClose,
+  } = useNativeDialogLifecycle({
+    open,
+    onRequestClose: close,
+  });
 
   const checkPreview = () => {
     const trimmed = url.trim();
@@ -136,13 +138,8 @@ export default function ImageUrlDialog({
       ref={dialogRef}
       dir="rtl"
       aria-labelledby="editor-image-dialog-title"
-      onCancel={(event) => {
-        event.preventDefault();
-        close();
-      }}
-      onClose={() => {
-        if (open) onClose();
-      }}
+      onCancel={handleCancel}
+      onClose={handleClose}
       className="m-auto w-[min(calc(100vw-2rem),34rem)] rounded-panel border border-border-subtle bg-surface-raised p-0 text-content shadow-panel backdrop:bg-content/35 backdrop:backdrop-blur-[2px]"
     >
       <div className="p-5 sm:p-6">
@@ -172,6 +169,7 @@ export default function ImageUrlDialog({
           <input
             id="editor-image-url"
             type="url"
+            autoFocus
             dir="ltr"
             inputMode="url"
             autoComplete="url"
