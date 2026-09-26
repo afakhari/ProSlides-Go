@@ -296,6 +296,17 @@ jobs:
           after_dry_run="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT count(*) FROM live_events WHERE session_id='$session_id'::uuid")"
           test "$after_dry_run" = "$before"
 
+          if LIVE_EVENT_RETENTION_DRY_RUN=0 bash deploy/postgres-prune-live-events.sh; then
+            echo "::error::retention command accepted destructive mode without confirmation"
+            exit 1
+          fi
+
+          LIVE_EVENT_RETENTION_DRY_RUN=0 \
+          LIVE_EVENT_RETENTION_CONFIRMATION=PRUNE_ENDED_LIVE_EVENTS \
+            bash deploy/postgres-prune-live-events.sh
+          after_recent_prune="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT count(*) FROM live_events WHERE session_id='$session_id'::uuid")"
+          test "$after_recent_prune" = "$before"
+
           docker compose exec -T postgres psql -U proslides -d proslides -v ON_ERROR_STOP=1 -c "UPDATE live_sessions SET ended_at=clock_timestamp()-interval '31 days' WHERE id='$session_id'::uuid" >/dev/null
 
           LIVE_EVENT_RETENTION_DRY_RUN=0 \
