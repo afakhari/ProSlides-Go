@@ -199,7 +199,7 @@ export function ParticipantJoinPage({
             ورود به کوئیز
           </button>
           <p className="mt-4 text-center text-xs leading-6 text-[color:var(--live-muted)]">
-            نام و آواتار شما برای ورود دوباره به همین جلسه روی این دستگاه نگه داشته می‌شوند.
+            پاسخ‌ها فقط برای همین جلسه ثبت می‌شوند.
           </p>
         </form>
       </section>
