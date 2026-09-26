@@ -1,8 +1,6 @@
 import type {
   EditorPresentation,
-  EditorQuestion,
   EditorSlide,
-  QuestionType,
 } from "../model/editor.ts";
 import { requestJson, type ApiRequestOptions } from "../../../shared/api/http.ts";
 import type { components } from "../../../shared/api/generated/openapi.ts";
