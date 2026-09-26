@@ -126,7 +126,7 @@ export const streamLiveEvents = async (
     while (!options.signal.aborted) {
       let timeout = 0;
       const stalled = new Promise<never>((_, reject) => {
-        timeout = window.setTimeout(
+        timeout = globalThis.setTimeout(
           () => reject(new LiveAPIError(0, "event_stream_stalled")),
           silenceTimeoutMs,
         );
