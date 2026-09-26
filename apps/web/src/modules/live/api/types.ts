@@ -59,6 +59,7 @@ interface ParticipantSnapshot {
   session: PublicLiveSession;
   active_item?: Record<string, unknown>;
   participant: ParticipantWithScore;
+  has_responded: boolean;
   personal_activity_result?: PersonalActivityResult;
   participant_count: number;
   has_scoring: boolean;
