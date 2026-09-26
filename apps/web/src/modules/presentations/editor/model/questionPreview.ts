@@ -5,7 +5,7 @@ import {
   type QuestionDraft,
 } from "./questionDraft.ts";
 
-export type QuestionPreviewOption = {
+type QuestionPreviewOption = {
   id: string;
   text: string;
   imageUrl: string;
@@ -13,7 +13,7 @@ export type QuestionPreviewOption = {
   position: number;
 };
 
-export type QuestionPreviewModel = {
+type QuestionPreviewModel = {
   questionText: string;
   questionImageUrl: string;
   typeLabel: string;
