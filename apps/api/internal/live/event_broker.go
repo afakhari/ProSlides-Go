@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const eventPageSize = 200
+
+var eventLagBuckets = [...]float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10}
 
 // EventBroker collapses database polling from one query per SSE connection to
 // one query per active session per API process. PostgreSQL remains the replay
@@ -31,6 +34,7 @@ type EventBroker struct {
 	eventsPublished  atomic.Uint64
 	eventLagNanos    atomic.Uint64
 	eventLagCount    atomic.Uint64
+	eventLagBuckets  [len(eventLagBuckets) + 1]atomic.Uint64
 }
 
 type eventStream struct {
@@ -147,9 +151,17 @@ func (b *EventBroker) run(c context.Context, session string, stream *eventStream
 				stream.cursor = events[len(events)-1].EventID
 				for _, event := range compactEvents(events) {
 					b.eventsPublished.Add(1)
-					if lag := time.Since(event.OccurredAt); lag > 0 {
-						b.eventLagNanos.Add(uint64(lag))
+					lag := time.Since(event.OccurredAt)
+					if lag < 0 {
+						lag = 0
 					}
+					b.eventLagNanos.Add(uint64(lag))
+					for index, upper := range eventLagBuckets {
+						if lag.Seconds() <= upper {
+							b.eventLagBuckets[index].Add(1)
+						}
+					}
+					b.eventLagBuckets[len(eventLagBuckets)].Add(1)
 					b.eventLagCount.Add(1)
 					b.publish(session, stream, event)
 				}
@@ -258,9 +270,13 @@ func (b *EventBroker) WritePrometheus(w io.Writer) {
 	fmt.Fprintf(w, "proslides_live_broker_database_failures_total %d\n", b.databaseFailures.Load())
 	fmt.Fprintln(w, "# TYPE proslides_live_events_published_total counter")
 	fmt.Fprintf(w, "proslides_live_events_published_total %d\n", b.eventsPublished.Load())
-	fmt.Fprintln(w, "# TYPE proslides_live_event_lag_seconds_sum counter")
+	fmt.Fprintln(w, "# HELP proslides_live_event_lag_seconds Delay between durable event creation and broker publication.")
+	fmt.Fprintln(w, "# TYPE proslides_live_event_lag_seconds histogram")
+	for index, upper := range eventLagBuckets {
+		fmt.Fprintf(w, "proslides_live_event_lag_seconds_bucket{le=%q} %d\n", strconv.FormatFloat(upper, 'g', -1, 64), b.eventLagBuckets[index].Load())
+	}
+	fmt.Fprintf(w, "proslides_live_event_lag_seconds_bucket{le=\"+Inf\"} %d\n", b.eventLagBuckets[len(eventLagBuckets)].Load())
 	fmt.Fprintf(w, "proslides_live_event_lag_seconds_sum %.9f\n", float64(b.eventLagNanos.Load())/float64(time.Second))
-	fmt.Fprintln(w, "# TYPE proslides_live_event_lag_seconds_count counter")
 	fmt.Fprintf(w, "proslides_live_event_lag_seconds_count %d\n", b.eventLagCount.Load())
 }
 
