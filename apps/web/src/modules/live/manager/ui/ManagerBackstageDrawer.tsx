@@ -513,18 +513,18 @@ export function ManagerBackstageDrawer({
                 پایان جلسه
               </button>
             ) : null}
+
+            <ManagerLeaderboardDialog
+              isOpen={showRanking}
+              onClose={() => setShowRanking(false)}
+              players={modalLeaderboardResults ?? []}
+              hasMore={hasMoreRoster}
+              isLoading={isRosterLoading}
+              onLoadMore={() => void loadMoreRoster()}
+            />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-
-      <ManagerLeaderboardDialog
-        isOpen={showRanking}
-        onClose={() => setShowRanking(false)}
-        players={modalLeaderboardResults ?? []}
-        hasMore={hasMoreRoster}
-        isLoading={isRosterLoading}
-        onLoadMore={() => void loadMoreRoster()}
-      />
 
       <ConfirmDialog
         isOpen={confirmEnd}
