@@ -45,14 +45,35 @@ VU. Leave it unset for the simultaneous 100-user smoke. Use `USERS=1000` and
 `JOIN_RATE=500` for the documented 500 joins/second 1k workload; do not compare
 that result with an instantaneous 1k stress run as though they were identical.
 
-Capture the `session_id` printed by `live_smoke_setup`, then make correctness a
-hard gate (the command exits non-zero on any mismatch):
+When `JOIN_RATE` is set and `CONTROLLER_DELAY` is not, the harness delays
+Activity presentation until the calculated join window has elapsed plus a
+two-second margin. Set `CONTROLLER_DELAY` explicitly when the test plan calls
+for a different phase boundary. `PARTICIPANT_MAX_DURATION` defaults to `3m`
+so slower 5k/10k join windows do not terminate VUs before Activity closure.
+Participants submit from either an already-accepting snapshot or the canonical
+SSE transition, whichever they observe first; one local guard prevents duplicate
+submission attempts.
+
+Capture both `session_id` and `activity_item_id` printed by
+`live_smoke_setup`, then make correctness a hard gate (the command exits
+non-zero on any mismatch):
 
 ```powershell
 Get-Content load/k6/reconcile.sql | docker compose exec -T postgres `
   psql -U proslides -d proslides -v session_id=<session-id> `
+  -v activity_item_id=<activity-item-id> `
   -v expected_participants=100 -v expected_answers=100
 ```
+
+The reconciliation verifies the final Session state, durable participant and
+response counts, immutable score totals, one-response-per-Activity cardinality,
+request-id uniqueness, monotonic event versions, the canonical
+`presenting/closed` boundary, absence of legacy lifecycle payloads, no accepted
+response after closure, one canonical `activity.result_updated` event for the
+Activity, and at least one cumulative `ranking.updated` event. The database
+column that stores the Activity reference is still physically named
+`question_slide_id`; that internal storage name is not part of the public v2
+protocol.
 
 `k6/x/sse` is a community extension, not a Grafana-maintained module. The
 versions above match the extension's documented compatibility. The `|direct`

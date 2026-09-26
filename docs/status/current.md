@@ -129,15 +129,23 @@ small set of intentional non-static tooling dependencies. PR CI #667 passed all
 fast checks, the full browser suite and repeated critical flows; post-merge CI
 #668 and Push/CodeQL on main #529 are green.
 
-The active hardening boundary is now security/deployment/restore. The current
-slice makes production origin/proxy/provider configuration fail closed in the
-API process, requires encrypted PostgreSQL and Redis transport in production,
-and turns PostgreSQL backup/restore from runbook-only commands into checked-in
-guarded operations exercised against an isolated restored database in CI. The
-restore guard compares the resolved PostgreSQL server/port/database identity as
-well as the literal URL so aliases cannot silently target the active source. Provider-level snapshots/PITR, production-volume RPO/RTO, and external
-secret/network controls remain deployment-environment responsibilities and are
-not implied by the repository drill.
+PR #132 completed the repository security/deployment/restore boundary.
+Production startup now fails closed on unencrypted PostgreSQL/Redis transport
+and invalid public/proxy/provider configuration. Checked-in PostgreSQL 16
+backup/restore commands validate archives, require an explicit isolated-restore
+confirmation, reject literal and alias-equivalent source targets by connected
+database identity, and are exercised through a real isolated restore drill in
+CI. PR CI #672 passed that drill, the full browser suite and repeated critical
+flows; post-merge CI #673 and Push on main #534 are green. Provider-level
+snapshots/PITR, production-volume RPO/RTO, and external secret/network controls
+remain deployment-environment responsibilities.
+
+The active hardening boundary is now final-v2 load/capacity verification. The
+first step is to make the load evidence itself trustworthy: the k6 scenario
+already drives canonical Activity actions, while the durable reconciliation SQL
+still contained pre-v2 lifecycle vocabulary. This slice aligns the correctness
+audit with `presenting/closed`, canonical Activity result/ranking events and
+explicit Activity identity before any new capacity result is accepted.
 
 v2 is a staged migration of the existing system, not a rewrite.
 

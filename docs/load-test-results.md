@@ -1,9 +1,13 @@
 # Live load-test evidence
 
-This file records measured results, including failed experiments. The existing
-runs exercise the pre-v2 question-specific live protocol. They remain evidence
-for the underlying system but do not certify the final v2 Activity protocol or
-production capacity. Raw k6
+This file records measured results, including failed experiments. The measured
+runs below exercise the pre-v2 question-specific live protocol. They remain
+historical evidence for the underlying system but do not certify the final v2
+Activity protocol or production capacity.
+
+The checked-in load scenario and reconciliation harness have since been migrated
+to the canonical v2 Activity lifecycle. That makes the next run meaningful; it
+does not retroactively convert the measurements below into v2 evidence. Raw k6
 summaries and before/after Prometheus scrapes are kept under ignored
 `.tmp/load-results/` on the machine that ran the test.
 

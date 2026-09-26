@@ -7,7 +7,10 @@ import sse from "k6/x/sse";
 const baseURL = (__ENV.BASE_URL || "http://api:8080").replace(/\/+$/, "");
 const users = Number(__ENV.USERS || 100);
 const joinRate = Number(__ENV.JOIN_RATE || 0);
-const controllerDelay = __ENV.CONTROLLER_DELAY || "5s";
+const controllerDelay =
+  __ENV.CONTROLLER_DELAY ||
+  (joinRate > 0 ? `${Math.ceil(users / joinRate) + 2}s` : "5s");
+const participantMaxDuration = __ENV.PARTICIPANT_MAX_DURATION || "3m";
 const answerWindow = Number(__ENV.ANSWER_WINDOW || 10);
 
 if (!Number.isInteger(users) || users < 1 || !Number.isFinite(joinRate) || joinRate < 0 || !Number.isFinite(answerWindow) || answerWindow <= 0) {
@@ -27,7 +30,7 @@ export const options = {
       exec: "participant",
       vus: users,
       iterations: 1,
-      maxDuration: "45s",
+      maxDuration: participantMaxDuration,
     },
     controller: {
       executor: "shared-iterations",
@@ -118,12 +121,12 @@ export function setup() {
     event: "live_smoke_setup",
     session_id: session.id,
     expected_participants: users,
-    question_id: question.id,
+    activity_item_id: question.id,
   }));
   const managerCookies = jar.cookiesForURL(baseURL);
   return {
     sessionID: session.id,
-    questionID: question.id,
+    activityItemID: question.id,
     stateVersion: state.state_version,
     managerSession: managerCookies.proslides_session[0],
     managerCSRF: managerCookies.proslides_csrf[0],
@@ -149,6 +152,28 @@ export function participant(data) {
   let receivedClose = false;
   let answerAttempted = false;
   let answerSucceeded = false;
+
+  const attemptAnswer = () => {
+    if (answerAttempted) return;
+    answerAttempted = true;
+    const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
+      request_id: requestID(),
+      activity_item_id: data.activityItemID,
+      response: { selected_option_indexes: [0] },
+    }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
+    answerDuration.add(answered.timings.duration);
+    answerSucceeded = answered.status === 201;
+  };
+
+  if (
+    snapshotBody.session &&
+    snapshotBody.session.state === "presenting" &&
+    snapshotBody.session.activity_phase === "accepting" &&
+    snapshotBody.session.active_item_id === data.activityItemID
+  ) {
+    attemptAnswer();
+  }
+
   const response = sse.open(`${baseURL}/api/v1/live/sessions/${data.sessionID}/events`, {
     method: "GET",
     headers: { Accept: "text/event-stream", "Last-Event-ID": String(snapshotBody.last_event_id) },
@@ -162,16 +187,9 @@ export function participant(data) {
         envelope.payload &&
         envelope.payload.state === "presenting" &&
         envelope.payload.activity_phase === "accepting" &&
-        !answerAttempted
+        envelope.payload.active_item_id === data.activityItemID
       ) {
-        answerAttempted = true;
-        const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
-          request_id: requestID(),
-          activity_item_id: data.questionID,
-          response: { selected_option_indexes: [0] },
-        }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
-        answerDuration.add(answered.timings.duration);
-        answerSucceeded = answered.status === 201;
+        attemptAnswer();
       }
       if (
         envelope.payload &&
@@ -203,7 +221,7 @@ export function controller(data) {
     request_id: requestID(),
     expected_state_version: data.stateVersion,
     action: "present_item",
-    item_id: data.questionID,
+    item_id: data.activityItemID,
   }), { headers, tags: { operation: "controller_present" } }), "controller present Activity");
   sleep(answerWindow);
   const closed = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
