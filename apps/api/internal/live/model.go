@@ -97,6 +97,7 @@ type ParticipantSnapshot struct {
 	Session                PublicSession           `json:"session"`
 	ActiveItem             json.RawMessage         `json:"active_item,omitempty"`
 	Participant            ParticipantWithScore    `json:"participant"`
+	HasResponded           bool                    `json:"has_responded"`
 	ParticipantCount       int                     `json:"participant_count"`
 	HasScoring             bool                    `json:"has_scoring"`
 	LastEventID            int64                   `json:"last_event_id"`
