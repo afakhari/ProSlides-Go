@@ -258,6 +258,20 @@ jobs:
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
 
+      - name: Generate stable visual baselines
+        if: github.event_name == 'pull_request' && github.head_ref == 'test/v28-stable-visual-regression'
+        working-directory: apps/web
+        run: npx playwright test e2e/visual-regression.spec.js --update-snapshots
+
+      - name: Upload stable visual baselines
+        if: github.event_name == 'pull_request' && github.head_ref == 'test/v28-stable-visual-regression'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: visual-regression-baselines
+          path: apps/web/e2e/visual-regression.spec.js-snapshots/
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Run browser E2E
         working-directory: apps/web
         run: npm run test:e2e
