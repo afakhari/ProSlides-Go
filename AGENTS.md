@@ -8,10 +8,9 @@ historical work belongs in Git/evidence/archive documents.
 
 1. this file;
 2. `docs/status/current.md`;
-3. for v2 work, `docs/v2-product-architecture.md` and `docs/v2-development-plan.md`;
-4. architecture/ADR/OpenAPI for the scope;
-5. code and tests in scope;
-6. runbooks/evidence only when relevant.
+3. product/system/frontend architecture or ADR/OpenAPI for the scope;
+4. code and tests in scope;
+5. runbooks/configuration/debt/evidence only when relevant.
 
 ## Non-negotiable architecture
 
@@ -114,5 +113,6 @@ A passing local load run proves only the recorded topology.
 ## Documentation
 
 Use `docs/README.md` to find the authority for each question.
-`docs/status/current.md` is the only mutable project-status source. Do not
-create a second AI-only status or duplicate long change logs in this file.
+`docs/status/current.md` is the only mutable project-status source. Completed
+delivery plans and dated evidence belong under `docs/archive/`; do not recreate
+them as active roadmaps or duplicate long change logs in this file.
