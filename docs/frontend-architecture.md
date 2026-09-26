@@ -421,8 +421,10 @@ deferred verification deliberately. It should include:
 - conservative dead-file/export/dependency analysis with explicit exemptions.
 
 Architecture dependency rules remain enforced continuously because they are
-cheap and prevent expensive structural regressions. Export-level dead-code
-analysis may wait until the redesign surface has stabilized.
+cheap and prevent expensive structural regressions. V2.8 also enforces
+conservative unreachable-file, unused-export and direct-dependency analysis;
+intentional non-static tooling dependencies require an explicit reviewed
+exemption rather than being silently ignored.
 
 ## Performance and observability
 
