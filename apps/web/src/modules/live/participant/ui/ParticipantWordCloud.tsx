@@ -36,7 +36,7 @@ export function ParticipantWordCloud({
   question: LegacyQuestionSlide;
   quiz: LivePresentationModel;
 }) {
-  const { submitAnswer, isConnected, connectionError } = useLiveSession();
+  const { submitAnswer, isConnected, connectionError, snapshot } = useLiveSession();
   const identity = String(question.question_id ?? question.slide_id ?? "");
   const timerScope = String(roomId ?? "unknown") + ":" + identity + ":" + String(question.run_id ?? "na");
   const maxLength = Math.max(1, Number(question.response_max_length ?? 80));
@@ -73,6 +73,19 @@ export function ParticipantWordCloud({
     pendingRef.current = null;
     inFlightRef.current = false;
   }, [roomId, timerScope]);
+
+  useEffect(() => {
+    const alreadySubmitted =
+      snapshot?.role === "participant" &&
+      snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === identity;
+    if (!alreadySubmitted) return;
+
+    pendingRef.current = null;
+    inFlightRef.current = false;
+    setSubmitState("sent");
+    setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
+  }, [identity, snapshot]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
