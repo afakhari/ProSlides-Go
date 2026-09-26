@@ -75,3 +75,55 @@ func TestLoadRejectsInvalidTrustedProxyCIDR(t *testing.T) {
 		t.Fatal("invalid trusted proxy CIDR accepted")
 	}
 }
+
+func TestLoadProductionRequiresHTTPSPublicOrigin(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://localhost/proslides")
+	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
+	t.Setenv("PUBLIC_WEB_URL", "http://proslides.example.test")
+	t.Setenv("TRUSTED_PROXY_CIDRS", "172.30.0.0/24")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("production accepted a non-HTTPS PUBLIC_WEB_URL")
+	}
+}
+
+func TestLoadProductionRequiresTrustedProxyCIDRs(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://localhost/proslides")
+	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
+	t.Setenv("PUBLIC_WEB_URL", "https://proslides.example.test")
+	t.Setenv("TRUSTED_PROXY_CIDRS", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("production accepted an empty TRUSTED_PROXY_CIDRS")
+	}
+}
+
+func TestLoadProductionRejectsNonHTTPSGoogleJWKS(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://localhost/proslides")
+	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
+	t.Setenv("PUBLIC_WEB_URL", "https://proslides.example.test")
+	t.Setenv("TRUSTED_PROXY_CIDRS", "172.30.0.0/24")
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_JWKS_URL", "http://accounts.example.test/certs")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("production Google login accepted a non-HTTPS GOOGLE_JWKS_URL")
+	}
+}
+
+func TestLoadProductionAcceptsReferenceSecurityBoundary(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://localhost/proslides")
+	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
+	t.Setenv("PUBLIC_WEB_URL", "https://proslides.example.test")
+	t.Setenv("TRUSTED_PROXY_CIDRS", "172.30.0.0/24")
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_JWKS_URL", "https://www.googleapis.com/oauth2/v3/certs")
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load() error = %v, want valid production boundary", err)
+	}
+}
