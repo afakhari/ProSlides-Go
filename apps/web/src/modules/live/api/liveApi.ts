@@ -10,6 +10,8 @@ const getLiveApiBase = () => {
 };
 
 const liveURL = (path: string) => `${getLiveApiBase()}/${path.replace(/^\/+/, "")}`;
+const JSON_REQUEST_TIMEOUT_MS = 15_000;
+const SSE_SILENCE_TIMEOUT_MS = 45_000;
 
 const cookieValue = (name: string) => {
   if (typeof document === "undefined") return "";
@@ -37,10 +39,33 @@ const requestJSON = async <T>(path: string, init: RequestInit = {}, csrf = false
     const token = cookieValue("proslides_csrf");
     if (token) headers.set("X-CSRF-Token", token);
   }
-  const response = await fetch(liveURL(path), { ...init, headers, credentials: "include" });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) throw new LiveAPIError(response.status, payload?.error || "live_api_error");
-  return payload as T;
+
+  const timeoutController = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    timeoutController.abort();
+  }, JSON_REQUEST_TIMEOUT_MS);
+  const forwardAbort = () => timeoutController.abort();
+  init.signal?.addEventListener("abort", forwardAbort, { once: true });
+
+  try {
+    const response = await fetch(liveURL(path), {
+      ...init,
+      headers,
+      credentials: "include",
+      signal: timeoutController.signal,
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new LiveAPIError(response.status, payload?.error || "live_api_error");
+    return payload as T;
+  } catch (error) {
+    if (timedOut) throw new LiveAPIError(0, "network_timeout");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    init.signal?.removeEventListener("abort", forwardAbort);
+  }
 };
 
 export const createRequestId = createSecureUUID;
@@ -73,7 +98,16 @@ export const getRosterPage = (id: string, order: "joined" | "score", cursor = ""
   return requestJSON<RosterPage>(`live/sessions/${encodeURIComponent(id)}/roster?${query}`, { signal });
 };
 
-export const streamLiveEvents = async (id: string, lastEventId: number, options: { signal: AbortSignal; onEvent: (event: LiveEvent) => void }) => {
+export const streamLiveEvents = async (
+  id: string,
+  lastEventId: number,
+  options: {
+    signal: AbortSignal;
+    onOpen?: () => void;
+    onEvent: (event: LiveEvent) => void;
+    silenceTimeoutMs?: number;
+  },
+) => {
   const response = await fetch(liveURL(`live/sessions/${encodeURIComponent(id)}/events`), {
     headers: { Accept: "text/event-stream", "Last-Event-ID": String(lastEventId) },
     credentials: "include",
@@ -81,20 +115,38 @@ export const streamLiveEvents = async (id: string, lastEventId: number, options:
     signal: options.signal,
   });
   if (!response.ok || !response.body) throw new LiveAPIError(response.status, "event_stream_unavailable");
+  options.onOpen?.();
+
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
+  const silenceTimeoutMs = options.silenceTimeoutMs ?? SSE_SILENCE_TIMEOUT_MS;
   let buffer = "";
-  while (!options.signal.aborted) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, "\n");
-    let boundary = buffer.indexOf("\n\n");
-    while (boundary >= 0) {
-      const block = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 2);
-      const data = block.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
-      if (data) options.onEvent(JSON.parse(data) as LiveEvent);
-      boundary = buffer.indexOf("\n\n");
+
+  try {
+    while (!options.signal.aborted) {
+      let timeout = 0;
+      const stalled = new Promise<never>((_, reject) => {
+        timeout = window.setTimeout(
+          () => reject(new LiveAPIError(0, "event_stream_stalled")),
+          silenceTimeoutMs,
+        );
+      });
+      const chunk = await Promise.race([reader.read(), stalled]);
+      window.clearTimeout(timeout);
+
+      const { value, done } = chunk;
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, "\n");
+      let boundary = buffer.indexOf("\n\n");
+      while (boundary >= 0) {
+        const block = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        const data = block.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
+        if (data) options.onEvent(JSON.parse(data) as LiveEvent);
+        boundary = buffer.indexOf("\n\n");
+      }
+      if (done) return;
     }
-    if (done) return;
+  } finally {
+    void reader.cancel().catch(() => undefined);
   }
 };
