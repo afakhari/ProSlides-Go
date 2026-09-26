@@ -113,6 +113,23 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("SMTP_HOST and SMTP_FROM_ADDRESS must be configured together")
 	}
 	if cfg.Environment == "production" {
+		databaseURL, parseErr := url.Parse(cfg.DatabaseURL)
+		if parseErr != nil ||
+			(databaseURL.Scheme != "postgres" && databaseURL.Scheme != "postgresql") ||
+			databaseURL.Host == "" {
+			return Config{}, fmt.Errorf("DATABASE_URL must be a PostgreSQL URL in production")
+		}
+		switch databaseURL.Query().Get("sslmode") {
+		case "require", "verify-ca", "verify-full":
+		default:
+			return Config{}, fmt.Errorf("DATABASE_URL must require PostgreSQL TLS in production")
+		}
+
+		redisURL, redisErr := url.Parse(cfg.RedisURL)
+		if redisErr != nil || redisURL.Scheme != "rediss" || redisURL.Host == "" {
+			return Config{}, fmt.Errorf("REDIS_URL must use rediss:// in production")
+		}
+
 		publicURL, parseErr := url.Parse(cfg.PasswordResetBaseURL)
 		if parseErr != nil ||
 			publicURL.Scheme != "https" ||
