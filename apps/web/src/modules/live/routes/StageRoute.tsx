@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import QRCode from "qrcode";
 
 import { getColorForUser } from "../../../shared/lib/playerColor.ts";
 import { presentationTheme } from "../../../shared/styles/presentationTheme.ts";
@@ -60,6 +61,29 @@ function StageHeader({
 }
 
 function StageLobby({ snapshot }: { snapshot: StageSnapshot }) {
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const joinUrl = useMemo(() => {
+    const origin =
+      typeof window === "undefined"
+        ? "https://proslides.ir"
+        : window.location.origin;
+    return `${origin}/${snapshot.join_code}`;
+  }, [snapshot.join_code]);
+
+  useEffect(() => {
+    let active = true;
+    void QRCode.toDataURL(joinUrl, {
+      margin: 2,
+      width: 320,
+      errorCorrectionLevel: "M",
+    }).then((value) => {
+      if (active) setQrDataUrl(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [joinUrl]);
+
   return (
     <main className="grid min-h-screen place-items-center px-5 pb-10 pt-24 text-center">
       <section className="w-full max-w-5xl rounded-[2.5rem] border border-white/10 bg-[color:var(--live-surface)] p-8 shadow-2xl backdrop-blur sm:p-12">
@@ -67,11 +91,37 @@ function StageLobby({ snapshot }: { snapshot: StageSnapshot }) {
         <h1 className="mt-3 text-4xl font-black sm:text-6xl" dir="auto">
           {snapshot.presentation.title}
         </h1>
-        <div className="mx-auto mt-9 max-w-2xl rounded-3xl border border-white/15 bg-black/20 px-6 py-8">
-          <p className="text-sm text-[color:var(--live-muted)]">کد ورود</p>
-          <p className="mt-2 font-outfit text-5xl font-black tracking-[0.18em] sm:text-7xl" dir="ltr">
-            {snapshot.join_code}
-          </p>
+        <div className="mx-auto mt-9 grid max-w-3xl items-center gap-6 rounded-3xl border border-white/15 bg-black/20 px-6 py-7 sm:grid-cols-[1fr_auto] sm:text-start">
+          <div>
+            <p className="text-sm text-[color:var(--live-muted)]">
+              کد ورود
+            </p>
+            <p
+              className="mt-2 font-outfit text-5xl font-black tracking-[0.18em] sm:text-7xl"
+              dir="ltr"
+            >
+              {snapshot.join_code}
+            </p>
+            <p
+              className="mt-4 truncate text-sm text-[color:var(--live-muted)]"
+              dir="ltr"
+            >
+              {joinUrl.replace(/^https?:\/\//, "")}
+            </p>
+          </div>
+          <div className="mx-auto grid h-48 w-48 place-items-center rounded-3xl bg-white p-3 shadow-xl sm:mx-0">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="کد QR ورود به جلسه"
+                className="h-full w-full"
+              />
+            ) : (
+              <span className="text-xs text-slate-500" role="status">
+                در حال ساخت QR…
+              </span>
+            )}
+          </div>
         </div>
         <p className="mt-7 text-xl font-bold">
           {snapshot.participant_count.toLocaleString("fa-IR")} نفر آماده‌اند
