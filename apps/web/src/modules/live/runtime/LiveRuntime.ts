@@ -45,6 +45,7 @@ interface LiveJoinResult {
 
 export interface LiveRuntimeState {
   isConnected: boolean;
+  isStreamConnected: boolean;
   connectionError: string | null;
   sessionId: string | null;
   snapshot: LiveSnapshot | null;
@@ -93,6 +94,7 @@ const INITIAL_CURSOR: LiveCursor = { eventId: 0, stateVersion: 0 };
 
 const initialState = (): LiveRuntimeState => ({
   isConnected: false,
+  isStreamConnected: false,
   connectionError: null,
   sessionId: null,
   snapshot: null,
@@ -294,6 +296,7 @@ export class LiveRuntime {
     this.publish({
       sessionId,
       snapshot: null,
+      isStreamConnected: false,
       roster: [],
       rosterOrder: "joined",
       hasMoreRoster: false,
@@ -515,9 +518,17 @@ export class LiveRuntime {
       try {
         while (!controller.signal.aborted && id === this.selectedSessionId) {
           try {
-            this.publish({ isConnected: true, connectionError: null });
+            this.publish({ connectionError: null });
             await this.transport.streamLiveEvents(id, this.cursor.eventId, {
               signal: controller.signal,
+              onOpen: () => {
+                if (id !== this.selectedSessionId) return;
+                this.publish({
+                  isConnected: true,
+                  isStreamConnected: true,
+                  connectionError: null,
+                });
+              },
               onEvent: (event) => {
                 if (id !== this.selectedSessionId) return;
                 retry = 500;
@@ -534,6 +545,7 @@ export class LiveRuntime {
 
             this.publish({
               isConnected: false,
+              isStreamConnected: false,
               connectionError: errorMessage(error),
             });
             if (
@@ -576,7 +588,7 @@ export class LiveRuntime {
 
     try {
       if (this.role === "player") {
-        this.publish({ isConnected: true });
+        this.publish({ isConnected: true, isStreamConnected: false });
         return true;
       }
 
@@ -645,7 +657,7 @@ export class LiveRuntime {
         );
       }
       if (!isCurrent()) return false;
-      this.publish({ isConnected: true });
+      this.publish({ isConnected: true, isStreamConnected: false });
       this.startStream();
       return true;
     } catch (error) {
@@ -819,7 +831,7 @@ export class LiveRuntime {
       });
 
       await this.refreshAuthoritative();
-      this.publish({ isConnected: true });
+      this.publish({ isConnected: true, isStreamConnected: false });
       this.startStream();
       return true;
     } catch (error) {
