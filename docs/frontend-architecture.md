@@ -126,7 +126,7 @@ being misclassified as logout.
 Keep the Vite SPA and Nginx fallback; SSR/framework migration requires a
 separate measured need.
 
-Target route ownership:
+Current route ownership:
 
 ```text
 /
@@ -243,7 +243,7 @@ gap.
 
 ## REST server state
 
-TanStack Query is the target cache for ordinary REST server state.
+TanStack Query is the shared cache for ordinary REST server state.
 
 - Query functions consume the provided `AbortSignal`.
 - Router loaders may prefetch the same query client; they do not maintain a
@@ -356,21 +356,19 @@ not hand-roll focus trapping/restoration when a proven primitive exists.
 
 Target WCAG 2.2 AA for product flows.
 
-New or materially changed controls should keep semantic HTML, accessible names,
-keyboard reachability and obvious focus behavior intact while they are being
-built. Exhaustive keyboard/screen-reader sweeps, viewport matrices and contrast
-audits may be consolidated into the pre-production hardening phase while the UI
-is still undergoing broad redesign.
+New or materially changed controls preserve semantic HTML, accessible names,
+keyboard reachability and obvious focus behavior. Critical flows have automated
+axe/focus/overflow coverage; final manual device/screen-reader/contrast review
+remains release evidence where automation cannot prove the experience.
 
-Retain 390x844 and 1440x900 as production-readiness regression anchors. During
-active redesign, check the viewport(s) materially affected by the current slice
-instead of running the full matrix after every iteration. Use container queries
-where component behavior depends on available component space rather than the
-global viewport.
+Retain 390x844 and 1440x900 as primary regression anchors and check relevant
+intermediate/container states when layout changes. Use container queries where
+component behavior depends on available component space rather than the global
+viewport.
 
 ## Testing
 
-Target test stack:
+Test stack:
 
 - existing Node protocol/domain tests for stable domain invariants;
 - Vitest for fast TS domain/component tests;
