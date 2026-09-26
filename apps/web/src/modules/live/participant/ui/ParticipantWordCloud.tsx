@@ -7,8 +7,11 @@ import { resolveQuestionTimer } from "../../model/questionTimer.ts";
 import { useLiveSession } from "../../react/useLiveSession.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
 import {
+  clearAnswerDraft,
   clearPendingAnswer,
+  readAnswerDraft,
   readPendingAnswer,
+  saveAnswerDraft,
   savePendingAnswer,
 } from "../pendingAnswerStorage.ts";
 
@@ -78,8 +81,13 @@ export function ParticipantWordCloud({
     setTimeLeft(resolved.remainingSeconds);
     setTotalSeconds(resolved.totalSeconds);
     const restored = readPendingAnswer(roomId, timerScope);
+    const draft = readAnswerDraft(roomId, timerScope);
     const restoredText =
-      restored && "text" in restored.response ? restored.response.text : "";
+      restored && "text" in restored.response
+        ? restored.response.text
+        : draft && "text" in draft
+          ? draft.text
+          : "";
     setValue(restoredText);
     setSubmitState(restored ? "retryable" : "idle");
     setSubmitMessage(
@@ -103,6 +111,7 @@ export function ParticipantWordCloud({
 
     pendingRef.current = null;
     clearPendingAnswer(roomId, timerScope);
+    clearAnswerDraft(roomId, timerScope);
     inFlightRef.current = false;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
@@ -158,11 +167,13 @@ export function ParticipantWordCloud({
         if (outcome === true) {
           pendingRef.current = null;
           clearPendingAnswer(roomId, timerScope);
+          clearAnswerDraft(roomId, timerScope);
           setSubmitState("sent");
           setSubmitMessage("پاسخ شما ثبت شد.");
         } else if (outcome === "rejected") {
           pendingRef.current = null;
           clearPendingAnswer(roomId, timerScope);
+          clearAnswerDraft(roomId, timerScope);
           setSubmitState("rejected");
           setSubmitMessage("پاسخ پذیرفته نشد؛ محدودیت پاسخ یا زمان را بررسی کنید.");
         } else {
@@ -216,6 +227,7 @@ export function ParticipantWordCloud({
     if (timeLeft > 0 || locked) return;
     pendingRef.current = null;
     clearPendingAnswer(roomId, timerScope);
+    clearAnswerDraft(roomId, timerScope);
     setSubmitState("expired");
     setSubmitMessage(
       normalized
@@ -284,7 +296,13 @@ export function ParticipantWordCloud({
               value={value}
               disabled={locked || timeLeft <= 0}
               onChange={(event) => {
-                setValue(event.target.value);
+                const nextValue = event.target.value;
+                setValue(nextValue);
+                if (nextValue) {
+                  saveAnswerDraft(roomId, timerScope, { text: nextValue });
+                } else {
+                  clearAnswerDraft(roomId, timerScope);
+                }
                 if (submitState === "retryable") {
                   pendingRef.current = null;
                   clearPendingAnswer(roomId, timerScope);
