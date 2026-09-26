@@ -172,10 +172,12 @@ post-merge CI #681 and Push on main #542 are green.
 
 The remaining V2.8 release gates are now environment/evidence-heavy:
 production-like capacity runs on named infrastructure, deployment dashboard and
-alert wiring, provider snapshot/PITR plus measured RPO/RTO evidence,
-stable-surface visual regression where maintainable baselines add signal, and
-the final release-readiness review. No known repository migration boundary is
-currently open.
+alert wiring, provider snapshot/PITR plus measured RPO/RTO evidence, and the
+final release-readiness review. Stable-surface visual regression is now
+implemented selectively for deterministic public surfaces; broader screenshots
+remain intentionally excluded unless a surface is stable enough that the
+maintenance cost produces useful regression signal. No known repository
+migration boundary is currently open.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
