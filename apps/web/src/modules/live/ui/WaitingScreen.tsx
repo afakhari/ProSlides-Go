@@ -2,14 +2,22 @@ import infiniteMark from "../../../assets/infinite.svg";
 
 type WaitingScreenProps = {
   message?: string | null;
+  actionLabel?: string;
+  onAction?: () => void;
+  busy?: boolean;
 };
 
-export default function WaitingScreen({ message }: WaitingScreenProps) {
+export default function WaitingScreen({
+  message,
+  actionLabel,
+  onAction,
+  busy = true,
+}: WaitingScreenProps) {
   return (
     <main
       className="flex min-h-screen flex-col bg-content text-content-inverse"
       dir="rtl"
-      aria-busy="true"
+      aria-busy={busy}
     >
       <header className="flex min-h-16 items-center justify-center px-6 py-4">
         <span
@@ -39,6 +47,15 @@ export default function WaitingScreen({ message }: WaitingScreenProps) {
         ) : (
           <span className="sr-only">در حال آماده‌سازی جلسه…</span>
         )}
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="min-h-12 rounded-xl bg-white px-6 font-bold text-slate-950 shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+          >
+            {actionLabel}
+          </button>
+        ) : null}
       </section>
     </main>
   );
