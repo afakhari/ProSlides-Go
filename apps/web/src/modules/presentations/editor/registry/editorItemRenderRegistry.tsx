@@ -18,7 +18,7 @@ import ContentDraftProvider from "../model/ContentDraftProvider.tsx";
 import QuestionDraftProvider from "../model/QuestionDraftProvider.tsx";
 import WordCloudDraftProvider from "../model/WordCloudDraftProvider.tsx";
 
-export type EditorCanvasProps = {
+type EditorCanvasProps = {
   slide: EditorSlide;
   quizBackground?: string;
   quizBackgroundImage?: string;
@@ -26,7 +26,7 @@ export type EditorCanvasProps = {
   isFullSize?: boolean;
 };
 
-export type EditorInspectorProps = {
+type EditorInspectorProps = {
   quizId: string;
   slide: EditorSlide;
   onClose: (forceClose?: boolean) => void;
