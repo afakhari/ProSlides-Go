@@ -7,7 +7,10 @@ import sse from "k6/x/sse";
 const baseURL = (__ENV.BASE_URL || "http://api:8080").replace(/\/+$/, "");
 const users = Number(__ENV.USERS || 100);
 const joinRate = Number(__ENV.JOIN_RATE || 0);
-const controllerDelay = __ENV.CONTROLLER_DELAY || "5s";
+const controllerDelay =
+  __ENV.CONTROLLER_DELAY ||
+  (joinRate > 0 ? `${Math.ceil(users / joinRate) + 2}s` : "5s");
+const participantMaxDuration = __ENV.PARTICIPANT_MAX_DURATION || "3m";
 const answerWindow = Number(__ENV.ANSWER_WINDOW || 10);
 
 if (!Number.isInteger(users) || users < 1 || !Number.isFinite(joinRate) || joinRate < 0 || !Number.isFinite(answerWindow) || answerWindow <= 0) {
@@ -27,7 +30,7 @@ export const options = {
       exec: "participant",
       vus: users,
       iterations: 1,
-      maxDuration: "45s",
+      maxDuration: participantMaxDuration,
     },
     controller: {
       executor: "shared-iterations",
