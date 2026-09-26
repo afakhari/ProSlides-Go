@@ -109,6 +109,9 @@ jobs:
           SMTP_FROM_ADDRESS: no-reply@example.com
         run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
 
+      - name: Validate operational shell commands
+        run: bash -n deploy/postgres-backup.sh deploy/postgres-restore.sh
+
   browser-e2e:
     needs: containers
     runs-on: ubuntu-latest
@@ -211,6 +214,12 @@ jobs:
 
           docker compose exec -T postgres createdb -U proslides proslides_restore
           bash deploy/postgres-backup.sh "$backup_path"
+
+          if RESTORE_DATABASE_URL="$DATABASE_URL" bash deploy/postgres-restore.sh "$backup_path"; then
+            echo "::error::restore guard accepted the active source database as its target"
+            exit 1
+          fi
+
           bash deploy/postgres-restore.sh "$backup_path"
 
           source_migrations="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc 'SELECT count(*) FROM schema_migrations')"
