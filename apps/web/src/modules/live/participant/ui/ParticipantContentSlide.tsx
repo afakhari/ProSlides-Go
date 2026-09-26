@@ -52,7 +52,7 @@ export function ParticipantContentSlide({
             className="mx-auto mt-7 inline-flex rounded-full border border-[color:var(--live-border)] bg-white/10 px-4 py-2 text-sm font-bold"
             role="status"
           >
-            برای ادامه، نمایشگر ارائه‌دهنده را دنبال کنید
+            منتظر مرحله بعدی ارائه‌دهنده بمانید
           </div>
         </div>
       </article>
