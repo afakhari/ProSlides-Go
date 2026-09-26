@@ -1,9 +1,9 @@
 import { requestJson } from "../../../shared/api/http.ts";
 import type { components } from "../../../shared/api/generated/openapi.ts";
 
-export type ReportSessionPage = components["schemas"]["ReportSessionPage"];
+type ReportSessionPage = components["schemas"]["ReportSessionPage"];
 export type ReportSessionSummary = components["schemas"]["ReportSessionSummary"];
-export type ReportSession = components["schemas"]["SessionReport"];
+type ReportSession = components["schemas"]["SessionReport"];
 export type ReportActivityPage = components["schemas"]["ReportActivityPage"];
 export type ReportActivitySummary = components["schemas"]["ReportActivitySummary"];
 export type ReportRankingPage = components["schemas"]["ReportRankingPage"];
