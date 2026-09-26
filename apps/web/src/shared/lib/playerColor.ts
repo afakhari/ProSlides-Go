@@ -39,7 +39,7 @@ export function getColorForUser(
   return PLAYER_COLORS[simpleHash(userId) % PLAYER_COLORS.length];
 }
 
-export function getPlayerColor(
+function getPlayerColor(
   userId: string | number | null | undefined,
   serverColor?: string | null,
 ): string {
@@ -64,7 +64,7 @@ const normalizeHex = (input: unknown): string | null => {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : null;
 };
 
-export function isLightColor(hex: unknown): boolean {
+function isLightColor(hex: unknown): boolean {
   const normalized = normalizeHex(hex);
   if (!normalized) return false;
 
