@@ -3,7 +3,7 @@ import { createSecureUUID } from "./secureUuid.ts";
 
 const normalizeBase = (value: string) => value.trim().replace(/\/+$/, "");
 
-export const getLiveApiBase = () => {
+const getLiveApiBase = () => {
   const configured = import.meta.env?.VITE_LIVE_API_BASE_URL;
   if (configured?.trim()) return normalizeBase(configured);
   return "/api/v1";
