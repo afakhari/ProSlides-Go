@@ -70,11 +70,14 @@ where the distinction matters.
 ### Activity item
 
 The mechanism of input is separate from whether the input is evaluated or
-scored. The initial target primitives are:
+scored. The implemented foundation primitives are:
 
 - choice;
-- text;
-- scale.
+- text.
+
+Scale remains a compatible next primitive for Rating/Scale when that product
+capability is implemented; it is not part of the current shipped repository
+baseline.
 
 Product presets may present friendlier concepts on top:
 
@@ -120,7 +123,7 @@ no team ranking in v2.0.
 
 ## Activity definition model
 
-The target is a small compositional model, not a giant list of special cases.
+The canonical model is compositional rather than a giant list of special cases.
 
 Conceptually an Activity definition contains:
 
@@ -213,15 +216,11 @@ Cumulative Session ranking across all scored activities completed so far.
 
 This is what legacy show_leaderboard_after means in v2.
 
-Target persisted/API name:
+Current persisted/API name:
 
     show_overall_leaderboard_after
 
-Migration rule:
-
-- legacy show_leaderboard_after=true maps to
-  show_overall_leaderboard_after=true;
-- it never means "top performers for this question."
+It never means "top performers for this Activity."
 
 The boolean is deliberately retained instead of adding a general post-activity
 flow DSL. v2.0 does not need that abstraction.
@@ -366,7 +365,7 @@ participant snapshots.
 
 ## Q&A and reactions
 
-Q&A is not a slide/activity response type in the target model. If implemented,
+Q&A is not an Item/Activity response type in the current model. If implemented,
 it is a Session channel with its own questions, moderation and votes. A
 Presentation item may later display that channel on Stage, but it does not own
 the channel data.
