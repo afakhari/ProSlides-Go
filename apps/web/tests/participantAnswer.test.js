@@ -7,6 +7,11 @@ import {
   questionRunIdentity,
   toggleParticipantOption,
 } from "../src/modules/live/participant/answerAttempt.ts";
+import {
+  clearPendingAnswer,
+  readPendingAnswer,
+  savePendingAnswer,
+} from "../src/modules/live/participant/pendingAnswerStorage.ts";
 
 test("participant option selection stays index-based across object recreation", () => {
   assert.deepEqual(toggleParticipantOption([], 1, false), [1]);
@@ -111,4 +116,47 @@ test("participant answer builder rejects indexes outside the projected options",
     }),
     null,
   );
+});
+
+
+test("pending live answers preserve the same request id across a refresh boundary", () => {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "sessionStorage",
+  );
+  const values = new Map();
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, String(value)),
+      removeItem: (key) => values.delete(key),
+    },
+  });
+
+  try {
+    const answer = {
+      request_id: "11111111-1111-4111-8111-111111111111",
+      activity_item_id: "activity-1",
+      response: { selected_option_indexes: [0, 2] },
+    };
+
+    savePendingAnswer("room-1", "activity-1:run-7", answer);
+    assert.deepEqual(
+      readPendingAnswer("room-1", "activity-1:run-7"),
+      answer,
+    );
+
+    clearPendingAnswer("room-1", "activity-1:run-7");
+    assert.equal(
+      readPendingAnswer("room-1", "activity-1:run-7"),
+      null,
+    );
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(globalThis, "sessionStorage", originalDescriptor);
+    } else {
+      delete globalThis.sessionStorage;
+    }
+  }
 });
