@@ -109,6 +109,9 @@ jobs:
           SMTP_FROM_ADDRESS: no-reply@example.com
         run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
 
+      - name: Validate operational shell commands
+        run: bash -n deploy/postgres-backup.sh deploy/postgres-restore.sh
+
   browser-e2e:
     needs: containers
     runs-on: ubuntu-latest
@@ -197,6 +200,47 @@ jobs:
           docker compose ps
           docker compose logs --no-color --tail=200 api postgres redis
           exit 1
+
+      - name: Verify PostgreSQL backup and isolated restore
+        shell: bash
+        env:
+          DATABASE_URL: postgres://proslides:proslides@postgres:5432/proslides?sslmode=disable
+          RESTORE_DATABASE_URL: postgres://proslides:proslides@postgres:5432/proslides_restore?sslmode=disable
+          RESTORE_CONFIRMATION: RESTORE_ISOLATED_DATABASE
+          POSTGRES_CLIENT_IMAGE: ${{ steps.registry.outputs.registry }}/postgres:16.15-alpine
+        run: |
+          set -euo pipefail
+          backup_path="$RUNNER_TEMP/proslides-restore-drill.dump"
+          POSTGRES_CLIENT_NETWORK="$(docker inspect "$(docker compose ps -q postgres)" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+          if [[ -z "$POSTGRES_CLIENT_NETWORK" ]]; then
+            echo "::error::unable to resolve the Compose PostgreSQL network"
+            exit 1
+          fi
+          export POSTGRES_CLIENT_NETWORK
+
+          docker compose exec -T postgres createdb -U proslides proslides_restore
+          bash deploy/postgres-backup.sh "$backup_path"
+
+          if RESTORE_DATABASE_URL="$DATABASE_URL" bash deploy/postgres-restore.sh "$backup_path"; then
+            echo "::error::restore guard accepted the active source database as its target"
+            exit 1
+          fi
+
+          equivalent_source_url="${DATABASE_URL}&application_name=restore-guard-check"
+          if RESTORE_DATABASE_URL="$equivalent_source_url" bash deploy/postgres-restore.sh "$backup_path"; then
+            echo "::error::restore guard accepted an equivalent source database URL"
+            exit 1
+          fi
+
+          bash deploy/postgres-restore.sh "$backup_path"
+
+          source_migrations="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc 'SELECT count(*) FROM schema_migrations')"
+          restored_migrations="$(docker compose exec -T postgres psql -U proslides -d proslides_restore -Atqc 'SELECT count(*) FROM schema_migrations')"
+          test "$source_migrations" = "$restored_migrations"
+          test "$source_migrations" -gt 0
+
+          docker compose exec -T postgres dropdb -U proslides proslides_restore
+          rm -f "$backup_path"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

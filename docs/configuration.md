@@ -12,8 +12,8 @@ cookies, participant credentials, or provider tokens.
 | `APP_ENV` | `development` | Set to `production` to emit Secure cookies. |
 | `HTTP_ADDR` | `:8080` | Go HTTP listen address. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARN`/`WARNING`, or `ERROR`. |
-| `DATABASE_URL` | required | PostgreSQL connection URL; required in every environment. |
-| `REDIS_URL` | required | Redis connection URL; required for readiness and distributed identity limits. |
+| `DATABASE_URL` | required | PostgreSQL connection URL; required in every environment. Production requires `sslmode=require`, `verify-ca`, or `verify-full`. |
+| `REDIS_URL` | required | Redis connection URL; required for readiness and distributed identity limits. Production requires `rediss://`. |
 | `DEPENDENCY_CHECK_TIMEOUT` | `2s` | Positive Go duration bounding each readiness ping. |
 | `MIGRATION_TIMEOUT` | `2m` | Positive duration bounding advisory-lock wait and startup migrations. |
 | `LIVE_REQUEST_TIMEOUT` | `10s` | Positive deadline for non-streaming live requests; SSE is exempt. |
@@ -28,7 +28,7 @@ cookies, participant credentials, or provider tokens.
 | `EMAIL_VERIFICATION_MAX_ATTEMPTS` | `5` | Positive maximum checks for one verification challenge. |
 | `EMAIL_VERIFICATION_PEPPER` | empty | Secret server-side OTP pepper; at least 32 characters when verification is required. |
 | `PASSWORD_RESET_TTL` | `15m` | Positive reset-token lifetime. |
-| `PUBLIC_WEB_URL` | local example `http://localhost:5173` | Browser origin used to build reset links; omit a trailing slash. |
+| `PUBLIC_WEB_URL` | local example `http://localhost:5173` | Browser origin used to build reset links. In production it must be an HTTPS origin with no path, query, credentials, or fragment. |
 | `SMTP_HOST` | empty | SMTP server. Must be configured together with `SMTP_FROM_ADDRESS`. |
 | `SMTP_PORT` | `25` | Positive SMTP port. |
 | `SMTP_USERNAME` | empty | Optional SMTP authentication username. |
@@ -38,8 +38,8 @@ cookies, participant credentials, or provider tokens.
 | `SMTP_USE_TLS` | `false` | STARTTLS mode; mutually exclusive with `SMTP_USE_SSL`. |
 | `SMTP_USE_SSL` | `false` | Implicit TLS mode; mutually exclusive with `SMTP_USE_TLS`. |
 | `GOOGLE_CLIENT_ID` | empty | Enables Google login verification when set. Must match the web client ID. |
-| `GOOGLE_JWKS_URL` | Google certificates URL | Override only for a controlled provider/test endpoint. |
-| `TRUSTED_PROXY_CIDRS` | empty | Comma-separated direct proxy networks allowed to supply forwarded client IPs. |
+| `GOOGLE_JWKS_URL` | Google certificates URL | Override only for a controlled provider/test endpoint. When Google login is enabled in production, this URL must use HTTPS. |
+| `TRUSTED_PROXY_CIDRS` | empty | Comma-separated direct proxy networks allowed to supply forwarded client IPs. Production startup requires at least one trusted proxy range for the supported proxy topology. |
 
 `AUTH_REQUIRE_EMAIL_VERIFICATION=true` requires configured SMTP and a strong
 `EMAIL_VERIFICATION_PEPPER`. An SMTP username must be used over TLS or SSL; the
@@ -53,10 +53,18 @@ the API can construct the link. When `GOOGLE_CLIENT_ID` is absent, Google login
 is disabled with a safe service-unavailable response. Provider secrets are
 never returned to the browser or health endpoints.
 
-Keep `TRUSTED_PROXY_CIDRS` empty when clients reach Go directly. Behind a
-proxy, use its exact network ranges. The API ignores forwarded addresses from
-untrusted peers and selects the right-most untrusted address from a trusted
-chain so a client-supplied prefix cannot bypass identity rate limits.
+Keep `TRUSTED_PROXY_CIDRS` empty when clients reach Go directly in local/test
+topologies. The supported production topology always places the web proxy in
+front of Go, so production startup rejects an empty trusted-proxy set. Use the
+proxy's exact network ranges. The API ignores forwarded addresses from untrusted
+peers and selects the right-most untrusted address from a trusted chain so a
+client-supplied prefix cannot bypass identity rate limits.
+
+Production startup also rejects unencrypted PostgreSQL/Redis URLs, a non-HTTPS
+or non-origin `PUBLIC_WEB_URL`, and non-HTTPS `GOOGLE_JWKS_URL` when Google
+login is enabled. These checks live in the API process as well as the deployment
+examples so an alternate launcher cannot silently bypass the reference
+configuration boundary.
 
 ## Web variables
 

@@ -38,11 +38,13 @@ build value and must equal the runtime API `GOOGLE_CLIENT_ID`.
 ## Provision dependencies
 
 1. Provision PostgreSQL 16 with TLS, backups, point-in-time recovery where
-   available, and enough connections for the tested API replica count.
+   available, and enough connections for the tested API replica count. The API
+   refuses production startup unless `DATABASE_URL` explicitly requires TLS.
 2. Ensure the deployment role can create/use `pgcrypto`; pre-create the
    extension with an administrator if the managed service restricts extensions.
 3. Provision Redis 7 with TLS/authentication and network access restricted to
-   API instances. Redis is not a backup source for product data.
+   API instances. Production requires a `rediss://` URL. Redis is not a backup
+   source for product data.
 4. Restrict PostgreSQL and Redis ingress to the application network.
 5. Record owner-approved RPO, RTO, retention, and restore-test cadence before
    accepting production traffic.
@@ -82,7 +84,18 @@ a cloud load balancer.
 
 ## First deployment and upgrade
 
-Take and verify a PostgreSQL backup first, then:
+Take and verify a PostgreSQL backup first. On a trusted Linux/WSL operator host
+with Docker available:
+
+```bash
+export DATABASE_URL='postgres://...'
+export POSTGRES_CLIENT_IMAGE='postgres:16.15-alpine'
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+bash deploy/postgres-backup.sh "proslides-$stamp.dump"
+```
+
+Move the verified artifact to approved encrypted storage before applying
+migrations. Then deploy:
 
 ```powershell
 docker compose --env-file deploy/.env.production -f deploy/compose.production.yaml pull

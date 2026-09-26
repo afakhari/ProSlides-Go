@@ -10,28 +10,46 @@ verification result. Never record secret values.
 
 Use the managed service's encrypted snapshot and point-in-time recovery when
 available. Before every schema/application release, also create a portable
-custom-format backup from a trusted operator host:
+custom-format backup from a trusted Linux/WSL operator host. The checked-in
+command runs the PostgreSQL 16 client in an isolated container, writes through a
+temporary file, validates the archive with `pg_restore --list`, refuses to
+overwrite an existing artifact, and only then publishes the final filename:
 
-```powershell
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-pg_dump --dbname $env:DATABASE_URL --format=custom --no-owner --no-acl --file "proslides-$stamp.dump"
-pg_restore --list "proslides-$stamp.dump" | Select-Object -First 20
+```bash
+export DATABASE_URL='postgres://...'
+export POSTGRES_CLIENT_IMAGE='postgres:16.15-alpine'
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+bash deploy/postgres-backup.sh "proslides-$stamp.dump"
 ```
 
-Encrypt the artifact, store it outside the application host, apply the approved
-retention policy, and restrict access. A successful `pg_dump` is not restore
-proof.
+The database URL is passed as container environment rather than a command-line
+argument. Encrypt the finished artifact, store it outside the application host,
+apply the approved retention policy, and restrict access. A verified archive is
+still not restore proof; the restore path must also be exercised.
 
 ## Restore exercise
 
 Never restore over the active production database. Provision an isolated empty
-PostgreSQL 16 database, restrict its network, and restore there:
+PostgreSQL 16 database, restrict its network, and restore there. The restore
+command requires an explicit destructive-operation acknowledgement, rejects both an
+exact `DATABASE_URL` match and a differently written URL that resolves to the
+same PostgreSQL server/port/database identity, validates the archive before
+modifying the target, restores in one transaction with errors fatal, and checks
+that the migration ledger is present afterward:
 
-```powershell
-createdb --maintenance-db $env:RESTORE_ADMIN_URL proslides_restore
-pg_restore --dbname $env:RESTORE_DATABASE_URL --no-owner --no-acl "proslides-backup.dump"
-psql $env:RESTORE_DATABASE_URL -c "SELECT version, applied_at FROM schema_migrations ORDER BY version;"
+```bash
+export DATABASE_URL='postgres://production-source/...'
+export RESTORE_DATABASE_URL='postgres://isolated-restore-target/...'
+export RESTORE_CONFIRMATION='RESTORE_ISOLATED_DATABASE'
+export POSTGRES_CLIENT_IMAGE='postgres:16.15-alpine'
+bash deploy/postgres-restore.sh proslides-backup.dump
 ```
+
+CI performs this backup/restore path against a migrated PostgreSQL 16 source and
+a separate temporary database, and compares source/restored migration-ledger
+counts. That proves the repository restore mechanism remains executable; it does
+not prove a provider snapshot, network path, encryption key, production data
+volume, RPO, or RTO.
 
 Start one API instance against the restored database and a non-production
 Redis, verify readiness and critical product flows, then record achieved RPO and
