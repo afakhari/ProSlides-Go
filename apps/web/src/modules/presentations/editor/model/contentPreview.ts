@@ -3,7 +3,7 @@ import {
   type ContentDraft,
 } from "./contentDraft.ts";
 
-export type ContentPreviewModel = {
+type ContentPreviewModel = {
   title: string;
   text: string;
   imageUrl: string;
