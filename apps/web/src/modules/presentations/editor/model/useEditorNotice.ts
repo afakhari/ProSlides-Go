@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NoticeTone } from "../../../../shared/ui/Notice.tsx";
 
-export type EditorNotice = {
+type EditorNotice = {
   message: string;
   tone: NoticeTone;
   pending: boolean;
