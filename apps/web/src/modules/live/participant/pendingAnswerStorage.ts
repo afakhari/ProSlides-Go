@@ -8,10 +8,18 @@ type StoredPendingAnswer = {
   answer: LiveAnswerInput;
 };
 
+export type ParticipantAnswerDraft =
+  | { selectedIndexes: number[] }
+  | { text: string };
+
 const KEY_PREFIX = "proslides_live_pending_answer_v1:";
+const DRAFT_KEY_PREFIX = "proslides_live_answer_draft_v1:";
 
 const storageKey = (roomId: RoomId, identity: string) =>
   KEY_PREFIX + String(roomId ?? "unknown") + ":" + identity;
+
+const draftStorageKey = (roomId: RoomId, identity: string) =>
+  DRAFT_KEY_PREFIX + String(roomId ?? "unknown") + ":" + identity;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -98,6 +106,66 @@ export const clearPendingAnswer = (
 ): void => {
   try {
     sessionStorage.removeItem(storageKey(roomId, identity));
+  } catch {
+    // Best-effort cleanup only.
+  }
+};
+
+
+export const readAnswerDraft = (
+  roomId: RoomId,
+  identity: string,
+): ParticipantAnswerDraft | null => {
+  try {
+    const raw = sessionStorage.getItem(draftStorageKey(roomId, identity));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return null;
+
+    if (Array.isArray(parsed.selectedIndexes)) {
+      const indexes = parsed.selectedIndexes;
+      if (
+        indexes.length > 0 &&
+        indexes.every(
+          (index) => Number.isInteger(index) && Number(index) >= 0,
+        )
+      ) {
+        return { selectedIndexes: indexes.map(Number) };
+      }
+      return null;
+    }
+
+    if (typeof parsed.text === "string") {
+      return { text: parsed.text };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+export const saveAnswerDraft = (
+  roomId: RoomId,
+  identity: string,
+  draft: ParticipantAnswerDraft,
+): void => {
+  try {
+    sessionStorage.setItem(
+      draftStorageKey(roomId, identity),
+      JSON.stringify(draft),
+    );
+  } catch {
+    // Draft preservation is best-effort when browser storage is unavailable.
+  }
+};
+
+export const clearAnswerDraft = (
+  roomId: RoomId,
+  identity: string,
+): void => {
+  try {
+    sessionStorage.removeItem(draftStorageKey(roomId, identity));
   } catch {
     // Best-effort cleanup only.
   }
