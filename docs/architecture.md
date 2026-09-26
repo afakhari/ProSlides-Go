@@ -172,10 +172,14 @@ host+presentation lookup), so the run resumes at the exact live point.
 
 Snapshots are role-scoped and read from a single PostgreSQL `REPEATABLE READ`
 view. Participants receive public Session state, the active Item, their own
-participant/score, aggregate count, and the event cursor. Managers receive a
-bounded snapshot and fetch roster/leaderboard rows separately with `limit <=
-100` and stable keyset cursors. Joined order uses `(joined_at, id)`; score order
-uses `(score DESC, joined_at, id)`.
+participant/score, aggregate count, and the event cursor. While an Activity is
+not yet revealed, the participant snapshot may expose only the boolean
+`has_responded` acknowledgement for the active Activity. This lets a refreshed
+client recover from a lost HTTP acknowledgement without exposing the submitted
+response, correctness, or score delta. Managers receive a bounded snapshot and
+fetch roster/leaderboard rows separately with `limit <= 100` and stable keyset
+cursors. Joined order uses `(joined_at, id)`; score order uses
+`(score DESC, joined_at, id)`.
 
 The React live runtime mirrors this boundary with narrow TypeScript types. A
 public join code resolves directly to the active Go live-session ID; the client
@@ -183,9 +187,13 @@ also receives only display-safe presentation title/background/image/text
 settings for participant theming—never slides, correctness, owner, or roster
 data. The client
 then joins over HTTP, applies the authoritative role-scoped snapshot, opens SSE
-with `Last-Event-ID`, and refreshes snapshot state before reconnecting. Manager
-roster pages are loaded in batches of at most 100; participant projections
-discard roster input and never hold a complete score map.
+with `Last-Event-ID`, and refreshes snapshot state before reconnecting. JSON
+live requests are bounded so a broken network cannot leave the UI waiting
+forever. The SSE client treats receipt of response headers as the connection
+boundary and uses the server heartbeat as a liveness signal; prolonged stream
+silence forces the normal snapshot-plus-replay recovery path. Manager roster
+pages are loaded in batches of at most 100; participant projections discard
+roster input and never hold a complete score map.
 
 Per-Activity reports are owner-only and bounded. They derive option counts and
 `(score_delta DESC, submitted_at, answer_id)` keyset-ranked rows directly from
@@ -203,6 +211,8 @@ Redis loss must degrade latency/presence, never lose a durable event or answer.
 | stale manager version | `409 Conflict`, snapshot then retry with a new request ID |
 | answer after deadline/closure | `409 Conflict`, never scored |
 | SSE disconnect | exponential reconnect, snapshot, resume from `last_event_id` |
+| half-open/stalled SSE | heartbeat silence watchdog closes the client stream; snapshot then replay |
+| lost answer HTTP acknowledgement | snapshot `has_responded` confirms the durable response without pre-reveal disclosure |
 | slow SSE client | disconnect; bounded server memory; client recovers |
 | API process loss | committed PostgreSQL state survives; client reconnects elsewhere |
 | API container address change | web Nginx re-resolves Docker DNS; transient commands retry with the same request ID |
