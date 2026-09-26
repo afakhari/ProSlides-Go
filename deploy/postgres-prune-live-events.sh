@@ -61,25 +61,24 @@ fi
 total_deleted=0
 while true; do
   deleted="$(
-    psql_client -At <<SQL
-WITH doomed AS (
-    SELECT le.event_id
-    FROM live_sessions ls
-    JOIN live_events le ON le.session_id = ls.id
-    WHERE ls.state = 'ended'
-      AND ls.ended_at IS NOT NULL
-      AND ls.ended_at < clock_timestamp() - make_interval(days => $retention_days)
-    ORDER BY ls.ended_at, le.event_id
-    LIMIT $batch_size
-    FOR UPDATE OF le SKIP LOCKED
-), deleted AS (
-    DELETE FROM live_events le
-    USING doomed
-    WHERE le.event_id = doomed.event_id
-    RETURNING le.event_id
-)
-SELECT count(*) FROM deleted;
-SQL
+    psql_client -At \
+      -c "WITH doomed AS (
+            SELECT le.event_id
+            FROM live_sessions ls
+            JOIN live_events le ON le.session_id = ls.id
+            WHERE ls.state = 'ended'
+              AND ls.ended_at IS NOT NULL
+              AND ls.ended_at < clock_timestamp() - make_interval(days => $retention_days)
+            ORDER BY ls.ended_at, le.event_id
+            LIMIT $batch_size
+            FOR UPDATE OF le SKIP LOCKED
+          ), deleted AS (
+            DELETE FROM live_events le
+            USING doomed
+            WHERE le.event_id = doomed.event_id
+            RETURNING le.event_id
+          )
+          SELECT count(*) FROM deleted;"
   )"
 
   if [[ ! "$deleted" =~ ^[0-9]+$ ]]; then
