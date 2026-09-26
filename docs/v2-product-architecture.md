@@ -1,11 +1,10 @@
 # ProSlides v2 product architecture
 
-Status: **target architecture for the active pre-production v2 program**.
+Status: **current product/domain architecture for ProSlides v2**.
 
-This document defines the product/domain model that v2 work converges toward.
-It is not a claim that the model is already implemented. Current implementation
-state remains authoritative in status/current.md; durable rationale is recorded
-in ADR 0004.
+This document defines the product/domain model implemented by the current v2
+generation. Current release readiness remains authoritative in
+`status/current.md`; durable rationale is recorded in ADR 0004.
 
 ## Product position
 
@@ -163,10 +162,7 @@ until a real persistence need appears.
 
 ## Live lifecycle
 
-The current question-specific session state machine is a migration source, not
-the v2 target.
-
-Target session state:
+The canonical Session state is:
 
     draft -> lobby -> presenting -> ended
 
@@ -184,8 +180,8 @@ Rules:
 - Manager commands remain idempotent and version-checked.
 - Snapshot-first SSE, durable replay and role-scoped projection remain
   non-negotiable.
-- Migration may temporarily translate legacy question_open/question_closed/
-  leaderboard states into the v2 model. Do not keep two independent truths.
+- Legacy question/leaderboard Session states are not part of the current
+  external/domain model.
 
 ## Results and leaderboard semantics
 
@@ -314,8 +310,8 @@ Session report hierarchy:
         personal responses/evaluations
       Final ranking when scoring exists
 
-Reports are session-first. "Latest session" may remain a convenience endpoint
-during migration but is not the target reporting model.
+Reports are Session-first. The removed latest-session compatibility path is not
+part of the current reporting model.
 
 ### Ranking ties
 
@@ -403,9 +399,9 @@ Therefore:
   compatibility.
 - Existing session snapshots and durable event invariants remain protected.
 
-## Frontend target
+## Frontend model
 
-The v2 editor converges on:
+The v2 editor uses:
 
     Editor shell
       item rail
@@ -428,26 +424,26 @@ A registry entry owns the UI/behavior needed for that item type, such as:
 
 The registry must not become a service locator for unrelated application state.
 
-The live UI converges on explicit Stage, Backstage and Participant shells rather
-than type-specific top-level pages.
+The live UI uses explicit Stage, Backstage and Participant shells rather than
+type-specific top-level pages.
 
-## Migration compatibility
+## Durable compatibility invariants
 
-Keep and migrate these existing invariants rather than rewriting them:
+The current model preserves these correctness contracts across future
+evolution:
 
-- presentation revisions and If-Match;
-- frozen live-session slide definitions;
+- presentation revisions and `If-Match`;
+- frozen live-Session Item definitions;
 - HTTP command idempotency;
 - manager state-version checks;
 - durable events and replay;
 - role-scoped snapshots;
-- bounded roster/leaderboard reads;
+- bounded roster/ranking reads;
 - PostgreSQL score authority.
 
-Legacy question_draft, numeric slide_type, question_open/question_closed/
-leaderboard state, synthetic leaderboard slides and show_leaderboard_after are
-migration surfaces. Remove each only when its v2 replacement has equivalent
-behavior and verification.
+Internal storage or frontend implementation names may remain historical where a
+rename has no product/correctness value. They are not alternate public
+contracts.
 
 ## Foundation non-goals
 
