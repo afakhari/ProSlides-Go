@@ -179,6 +179,10 @@ export function ParticipantActivityResult({
                 const count = counts.get(String(option.option_id)) ?? 0;
                 const correct = hasCorrectAnswer && option.answer === true;
                 const selected = selectedIndexes.has(index);
+                const percentage =
+                  totalResponses > 0
+                    ? Math.round((count / totalResponses) * 100)
+                    : 0;
 
                 return (
                   <article
@@ -210,15 +214,27 @@ export function ParticipantActivityResult({
                         {count.toLocaleString("fa-IR")}
                       </strong>
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold">
-                      {selected ? (
-                        <span className="rounded-full bg-white/10 px-2 py-1">
-                          انتخاب شما
-                        </span>
-                      ) : null}
-                      {correct ? (
-                        <span className="text-success">پاسخ صحیح</span>
-                      ) : null}
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/20">
+                      <div
+                        className="h-full rounded-full bg-white/70"
+                        style={{ width: percentage + "%" }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selected ? (
+                          <span className="rounded-full bg-white/10 px-2 py-1">
+                            انتخاب شما
+                          </span>
+                        ) : null}
+                        {correct ? (
+                          <span className="text-success">پاسخ صحیح</span>
+                        ) : null}
+                      </div>
+                      <span className="text-[color:var(--live-muted)]">
+                        {percentage.toLocaleString("fa-IR")}٪
+                      </span>
                     </div>
                   </article>
                 );
@@ -230,7 +246,7 @@ export function ParticipantActivityResult({
             className="mt-auto pt-6 text-center text-sm text-[color:var(--live-muted)]"
             role="status"
           >
-            در انتظار ادامه ارائه‌دهنده…
+            نتیجه را دیدید؛ منتظر مرحله بعدی ارائه‌دهنده بمانید.
           </p>
         </div>
       </section>

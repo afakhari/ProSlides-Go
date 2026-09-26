@@ -19,6 +19,8 @@ export function ParticipantQuestion({
   const options = question.options ?? [];
   const multiple = isMultipleChoiceQuestion(question);
   const timedOut = controller.timeLeft <= 0;
+  const urgent = controller.timeLeft > 0 && controller.timeLeft <= 10;
+  const selectedCount = controller.selectedIndexes.length;
 
   return (
     <ParticipantShell
@@ -32,7 +34,7 @@ export function ParticipantQuestion({
             role="alert"
             className="mb-3 rounded-xl border border-amber-300/30 bg-amber-950/25 px-4 py-3 text-center text-sm"
           >
-            ارتباط زنده با جلسه ناپایدار است؛ ارسال پاسخ همچنان از مسیر HTTP تلاش می‌شود.
+            ارتباط زنده ناپایدار است؛ انتخاب شما روی این دستگاه حفظ می‌شود و ارسال پاسخ همچنان قابل تلاش است.
           </p>
         ) : null}
 
@@ -40,12 +42,22 @@ export function ParticipantQuestion({
           <div className="flex items-center justify-between gap-3 text-sm font-bold text-[color:var(--live-muted)]">
             <span>
               {multiple
-                ? "می‌توانید چند گزینه انتخاب کنید"
-                : "یک گزینه را انتخاب کنید"}
+                ? selectedCount > 0
+                  ? selectedCount.toLocaleString("fa-IR") + " گزینه انتخاب شده"
+                  : "می‌توانید چند گزینه انتخاب کنید"
+                : selectedCount > 0
+                  ? "گزینه شما انتخاب شده است"
+                  : "یک گزینه را انتخاب کنید"}
             </span>
             <span
-              className="shrink-0 rounded-full bg-white/10 px-3 py-1"
+              className={
+                "shrink-0 rounded-full border px-3 py-1 " +
+                (urgent
+                  ? "border-warning/50 bg-warning/15 text-white"
+                  : "border-transparent bg-white/10")
+              }
               role="timer"
+              aria-live="off"
               aria-label={
                 Math.ceil(controller.timeLeft).toLocaleString("fa-IR") +
                 " ثانیه باقی مانده"
@@ -118,33 +130,42 @@ export function ParticipantQuestion({
           </div>
 
           <div className="mt-auto pt-5">
-            {controller.submitState === "retryable" &&
-            controller.timeLeft > 0 ? (
+            {controller.submitState === "sent" ? (
+              <div
+                className="rounded-2xl border border-success/40 bg-success/15 px-5 py-4 text-center"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="text-lg font-black">پاسخ ثبت شد ✓</p>
+                <p className="mt-1 text-sm text-[color:var(--live-muted)]">
+                  انتخاب شما ذخیره شده است. منتظر نمایش نتیجه بمانید.
+                </p>
+              </div>
+            ) : controller.submitState === "retryable" &&
+              controller.timeLeft > 0 ? (
               <button
                 type="button"
                 onClick={() => void controller.retry()}
-                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl"
+                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 motion-reduce:transform-none"
               >
                 تلاش دوباره برای ارسال
               </button>
             ) : (
               <button
                 type="button"
-                className="min-h-14 w-full rounded-2xl bg-white px-5 text-lg font-black text-slate-950 shadow-xl transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none"
+                className="min-h-14 w-full rounded-2xl bg-white px-5 text-lg font-black text-slate-950 shadow-xl transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 motion-reduce:transform-none"
                 onClick={() => void controller.submit()}
                 disabled={!controller.canSubmit}
               >
                 {controller.submitState === "sending"
                   ? "در حال ارسال…"
-                  : controller.submitState === "sent"
-                    ? "پاسخ ثبت شد"
-                    : timedOut
-                      ? "زمان پایان یافت"
-                      : "ثبت پاسخ"}
+                  : timedOut
+                    ? "زمان پایان یافت"
+                    : "ثبت پاسخ"}
               </button>
             )}
 
-            {controller.submitMessage ? (
+            {controller.submitMessage && controller.submitState !== "sent" ? (
               <p
                 role={
                   controller.submitState === "rejected" ? "alert" : "status"

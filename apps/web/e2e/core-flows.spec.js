@@ -701,8 +701,13 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
       .getByRole("button", { name: "تلاش دوباره برای ارسال" })
       .click();
     await expect(
-      participant.getByText("پاسخ شما ثبت شد.", { exact: true }),
+      participant.getByText("پاسخ ثبت شد ✓", { exact: true }),
     ).toBeVisible({ timeout: 15000 });
+    await expect(
+      participant.getByText("انتخاب شما ذخیره شده است. منتظر نمایش نتیجه بمانید.", {
+        exact: true,
+      }),
+    ).toBeVisible();
     expect([200, 201]).toContain(acceptedAnswerStatus);
     expect(answerRequestIds).toHaveLength(2);
     expect(answerRequestIds[0]).toBe(answerRequestIds[1]);
@@ -755,6 +760,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     ).toBeVisible();
     await expect(
       participant.getByText("انتخاب شما", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      participant.getByText("۱۰۰٪", { exact: true }),
     ).toBeVisible();
     await expect(
       participant.getByText("امتیاز این فعالیت", { exact: true }),

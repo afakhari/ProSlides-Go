@@ -16,6 +16,7 @@ export function ParticipantFinalResult({
     snapshot?.role === "participant" ? snapshot.has_scoring : false;
   const rank = participant?.rank ?? null;
   const score = Number(participant?.score ?? 0);
+  const totalParticipants = Number(participantCount || 0);
 
   return (
     <ParticipantShell quiz={quiz}>
@@ -27,6 +28,11 @@ export function ParticipantFinalResult({
           <h1 className="mt-2 text-3xl font-black sm:text-4xl">
             {hasScoring ? "نتیجه نهایی شما" : "ممنون از مشارکت شما"}
           </h1>
+          {hasScoring && rank != null && totalParticipants > 0 ? (
+            <p className="mt-2 text-sm text-[color:var(--live-muted)]">
+              رتبه {Number(rank).toLocaleString("fa-IR")} از {totalParticipants.toLocaleString("fa-IR")} شرکت‌کننده
+            </p>
+          ) : null}
 
           {hasScoring ? (
             <>
@@ -55,7 +61,7 @@ export function ParticipantFinalResult({
                     شرکت‌کنندگان
                   </p>
                   <p className="mt-1 text-2xl font-black">
-                    {Number(participantCount || 0).toLocaleString("fa-IR")}
+                    {totalParticipants.toLocaleString("fa-IR")}
                   </p>
                 </div>
               </div>
@@ -66,7 +72,7 @@ export function ParticipantFinalResult({
                 شرکت‌کنندگان
               </p>
               <p className="mt-2 text-4xl font-black">
-                {Number(participantCount || 0).toLocaleString("fa-IR")}
+                {totalParticipants.toLocaleString("fa-IR")}
               </p>
               <p className="mt-4 text-sm leading-7 text-[color:var(--live-muted)]">
                 این جلسه فعالیت امتیازی نداشت؛ پاسخ‌های شما با موفقیت ثبت شدند.
@@ -76,7 +82,7 @@ export function ParticipantFinalResult({
 
           {hasScoring ? (
             <p className="mt-7 text-sm leading-7 text-[color:var(--live-muted)]">
-              پاسخ‌ها و امتیاز شما برای این جلسه ثبت شده‌اند.
+              پاسخ‌ها و امتیاز شما ثبت شده‌اند و جلسه به پایان رسیده است.
             </p>
           ) : null}
         </div>

@@ -22,6 +22,7 @@ type ParticipantJoinController = {
   setName: (value: string) => void;
   setAvatar: (value: string) => void;
   submitProfile: () => void;
+  retryNow: () => void;
   editProfile: () => void;
 };
 
@@ -210,6 +211,16 @@ export function useParticipantJoinController(
     setIsJoining(true);
   };
 
+  const retryNow = () => {
+    joinSentRef.current = false;
+    clearRetry();
+    setJoinError("");
+    setValidation("");
+    setIsEditing(false);
+    setIsJoining(true);
+    setAttempt((value) => value + 1);
+  };
+
   const editProfile = () => {
     joinSentRef.current = false;
     clearRetry();
@@ -231,6 +242,7 @@ export function useParticipantJoinController(
     setName,
     setAvatar,
     submitProfile,
+    retryNow,
     editProfile,
   };
 }
