@@ -8,15 +8,15 @@ import type {
   ScoringMode,
 } from "../../model/editor.ts";
 
-export type SlideTypeChoice =
+type SlideTypeChoice =
   | "Single Choice"
   | "Multiple Choice"
   | "Content Slide";
 
-export type TypeSelectionMode = QuestionType | "content";
+type TypeSelectionMode = QuestionType | "content";
 export type IdFactory = () => string;
 
-export type ChoicePolicy = {
+type ChoicePolicy = {
   evaluationMode: EvaluationMode;
   scoringMode: ScoringMode;
 };
@@ -26,7 +26,7 @@ const defaultChoicePolicy: ChoicePolicy = {
   scoringMode: "points",
 };
 
-export const slideChoiceToMode = (
+const slideChoiceToMode = (
   choice: SlideTypeChoice,
 ): TypeSelectionMode =>
   choice === "Content Slide"
@@ -35,7 +35,7 @@ export const slideChoiceToMode = (
       ? "single"
       : "multiple";
 
-export const createDefaultQuestion = (
+const createDefaultQuestion = (
   slideId: string,
   questionType: QuestionType,
   createId: IdFactory,
@@ -81,7 +81,7 @@ export const createDefaultQuestion = (
   };
 };
 
-export const createDefaultTextActivity = (): EditorTextActivity => ({
+const createDefaultTextActivity = (): EditorTextActivity => ({
   title: "",
   text: "این موضوع را با چه واژه‌هایی توصیف می‌کنید؟",
   image_url: "",
