@@ -12,8 +12,8 @@ cookies, participant credentials, or provider tokens.
 | `APP_ENV` | `development` | Set to `production` to emit Secure cookies. |
 | `HTTP_ADDR` | `:8080` | Go HTTP listen address. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARN`/`WARNING`, or `ERROR`. |
-| `DATABASE_URL` | required | PostgreSQL connection URL; required in every environment. |
-| `REDIS_URL` | required | Redis connection URL; required for readiness and distributed identity limits. |
+| `DATABASE_URL` | required | PostgreSQL connection URL; required in every environment. Production requires `sslmode=require`, `verify-ca`, or `verify-full`. |
+| `REDIS_URL` | required | Redis connection URL; required for readiness and distributed identity limits. Production requires `rediss://`. |
 | `DEPENDENCY_CHECK_TIMEOUT` | `2s` | Positive Go duration bounding each readiness ping. |
 | `MIGRATION_TIMEOUT` | `2m` | Positive duration bounding advisory-lock wait and startup migrations. |
 | `LIVE_REQUEST_TIMEOUT` | `10s` | Positive deadline for non-streaming live requests; SSE is exempt. |
@@ -60,9 +60,9 @@ proxy's exact network ranges. The API ignores forwarded addresses from untrusted
 peers and selects the right-most untrusted address from a trusted chain so a
 client-supplied prefix cannot bypass identity rate limits.
 
-Production startup also rejects a non-HTTPS or non-origin
-`PUBLIC_WEB_URL`. If Google login is enabled, `GOOGLE_JWKS_URL` must be an
-HTTPS endpoint. These checks live in the API process as well as the deployment
+Production startup also rejects unencrypted PostgreSQL/Redis URLs, a non-HTTPS
+or non-origin `PUBLIC_WEB_URL`, and non-HTTPS `GOOGLE_JWKS_URL` when Google
+login is enabled. These checks live in the API process as well as the deployment
 examples so an alternate launcher cannot silently bypass the reference
 configuration boundary.
 
