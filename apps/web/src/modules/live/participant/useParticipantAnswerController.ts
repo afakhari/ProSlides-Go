@@ -60,6 +60,8 @@ export function useParticipantAnswerController({
     snapshot,
   } = useLiveSession();
   const identity = questionRunIdentity(question);
+  const activityItemId =
+    question.question_id == null ? "" : String(question.question_id);
   const timerScope = `${String(roomId ?? "unknown")}:${identity}`;
   const questionRef = useRef(question);
   questionRef.current = question;
@@ -115,7 +117,7 @@ export function useParticipantAnswerController({
     const alreadySubmitted =
       snapshot?.role === "participant" &&
       snapshot.has_responded &&
-      String(snapshot.session.active_item_id ?? "") === identity;
+      String(snapshot.session.active_item_id ?? "") === activityItemId;
     if (!alreadySubmitted) return;
 
     pendingRef.current = null;
@@ -123,7 +125,7 @@ export function useParticipantAnswerController({
     inFlightAttemptRef.current = null;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
-  }, [identity, roomId, snapshot]);
+  }, [activityItemId, identity, roomId, snapshot]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -277,7 +279,7 @@ export function useParticipantAnswerController({
       submitState !== "retryable" ||
       snapshot?.role !== "participant" ||
       snapshot.has_responded ||
-      String(snapshot.session.active_item_id ?? "") !== identity
+      String(snapshot.session.active_item_id ?? "") !== activityItemId
     ) {
       return;
     }
@@ -287,7 +289,14 @@ export function useParticipantAnswerController({
       return;
     }
     void sendAttempt(attempt);
-  }, [identity, isConnected, sendAttempt, snapshot, submitState]);
+  }, [
+    activityItemId,
+    identity,
+    isConnected,
+    sendAttempt,
+    snapshot,
+    submitState,
+  ]);
 
   const multiple = isMultipleChoiceQuestion(question);
   const isLocked = ["sending", "sent", "rejected", "expired"].includes(
