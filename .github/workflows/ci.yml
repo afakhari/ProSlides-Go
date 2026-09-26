@@ -220,6 +220,12 @@ jobs:
             exit 1
           fi
 
+          equivalent_source_url="${DATABASE_URL}&application_name=restore-guard-check"
+          if RESTORE_DATABASE_URL="$equivalent_source_url" bash deploy/postgres-restore.sh "$backup_path"; then
+            echo "::error::restore guard accepted an equivalent source database URL"
+            exit 1
+          fi
+
           bash deploy/postgres-restore.sh "$backup_path"
 
           source_migrations="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc 'SELECT count(*) FROM schema_migrations')"
