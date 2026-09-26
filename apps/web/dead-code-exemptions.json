@@ -3,6 +3,7 @@
   "dependencies": {
     "baseline-browser-mapping": "Pinned browser-baseline data consumed transitively by the Vite/Browserslist toolchain rather than imported by application source.",
     "postcss": "Build-tool engine used by Vite/Tailwind through postcss.config.cjs rather than imported directly.",
-    "shadcn": "Manual component-scaffolding CLI configured by components.json; it is intentionally not part of runtime imports or package scripts."
+    "shadcn": "Manual component-scaffolding CLI configured by components.json; it is intentionally not part of runtime imports or package scripts.",
+    "@testing-library/dom": "Required peer dependency of @testing-library/react; consumed through the React Testing Library adapter rather than imported directly."
   }
 }
