@@ -61,13 +61,6 @@ type ActivityScoringPolicy struct {
 	PartialCredit bool   `json:"partial_credit,omitempty"`
 }
 
-// Compatibility aliases keep the existing Choice construction sites local while
-// ActivityDefinition becomes kind-aware. V2.7 can remove the aliases with the
-// remaining legacy question adapters.
-type ChoiceResponsePolicy = ActivityResponsePolicy
-type ChoiceEvaluationPolicy = ActivityEvaluationPolicy
-type ChoiceScoringPolicy = ActivityScoringPolicy
-
 type ActivityTimingPolicy struct {
 	DurationSeconds int `json:"duration_seconds"`
 }
