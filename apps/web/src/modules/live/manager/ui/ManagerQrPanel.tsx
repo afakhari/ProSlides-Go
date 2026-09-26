@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
+
+import { useNativeDialogLifecycle } from "../../../../shared/ui/useNativeDialogLifecycle.ts";
 
 type ManagerQrPanelProps = {
   accessCode: string;
@@ -40,19 +42,14 @@ export function ManagerQrPanel({
     };
   }, [isOpen, joinUrl]);
 
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen && !dialog.open) {
-      dialog.showModal();
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-  }, [isOpen]);
-
+  const {
+    dialogRef,
+    handleCancel,
+    handleClose,
+  } = useNativeDialogLifecycle({
+    open: isOpen,
+    onRequestClose: onClose,
+  });
 
   const copyJoinUrl = async () => {
     try {
@@ -70,13 +67,8 @@ export function ManagerQrPanel({
       id="manager-live-qr-panel"
       dir="rtl"
       aria-labelledby="manager-live-qr-title"
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClose={() => {
-        if (isOpen) onClose();
-      }}
+      onCancel={handleCancel}
+      onClose={handleClose}
       className="fixed inset-y-0 start-0 m-0 h-dvh w-full max-w-sm border-0 border-e border-white/10 bg-slate-950/95 p-0 text-white shadow-2xl backdrop:bg-black/45 backdrop:backdrop-blur-[2px] sm:inset-y-14 sm:h-[calc(100dvh-3.5rem)] sm:w-80 sm:backdrop:bg-black/25"
     >
       <div className="relative flex min-h-full flex-col items-center justify-center gap-5 p-6">

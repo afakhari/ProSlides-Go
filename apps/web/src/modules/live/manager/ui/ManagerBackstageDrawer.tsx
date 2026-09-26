@@ -247,6 +247,12 @@ export function ManagerBackstageDrawer({
             dir="rtl"
             className="fixed inset-y-0 end-0 z-[61] flex w-[min(36rem,94vw)] flex-col overflow-y-auto border-0 border-s border-white/10 bg-slate-950 p-5 text-white shadow-2xl outline-none"
             aria-labelledby="backstage-title"
+            onEscapeKeyDown={(event) => {
+              if (showRanking) {
+                event.preventDefault();
+                setShowRanking(false);
+              }
+            }}
             onPointerDownOutside={(event) => event.preventDefault()}
             data-backstage-surface="presenter"
           >
@@ -513,18 +519,18 @@ export function ManagerBackstageDrawer({
                 پایان جلسه
               </button>
             ) : null}
+
+            <ManagerLeaderboardDialog
+              isOpen={showRanking}
+              onClose={() => setShowRanking(false)}
+              players={modalLeaderboardResults ?? []}
+              hasMore={hasMoreRoster}
+              isLoading={isRosterLoading}
+              onLoadMore={() => void loadMoreRoster()}
+            />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-
-      <ManagerLeaderboardDialog
-        isOpen={showRanking}
-        onClose={() => setShowRanking(false)}
-        players={modalLeaderboardResults ?? []}
-        hasMore={hasMoreRoster}
-        isLoading={isRosterLoading}
-        onLoadMore={() => void loadMoreRoster()}
-      />
 
       <ConfirmDialog
         isOpen={confirmEnd}
