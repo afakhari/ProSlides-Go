@@ -46,7 +46,9 @@ export function ManagerLeaderboardDialog({
       className="m-auto w-[min(54rem,calc(100vw-2rem))] max-h-[80dvh] overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-0 text-white shadow-2xl backdrop:bg-black/65"
       aria-labelledby="manager-leaderboard-dialog-title"
     >
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur">
+      {isOpen ? (
+        <>
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur">
         <div>
           <h2 id="manager-leaderboard-dialog-title" className="text-2xl font-black">
             جدول امتیازات
@@ -114,17 +116,19 @@ export function ManagerLeaderboardDialog({
         )}
       </ol>
 
-      {hasMore && onLoadMore ? (
-        <div className="sticky bottom-0 flex justify-center border-t border-white/10 bg-slate-950/95 p-4 backdrop-blur">
-          <button
-            type="button"
-            onClick={onLoadMore}
-            disabled={isLoading}
-            className="min-h-11 rounded-xl border border-white/20 bg-white/5 px-5 text-sm font-bold hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-          >
-            {isLoading ? "در حال بارگذاری…" : "نمایش رتبه‌های بیشتر"}
-          </button>
-        </div>
+          {hasMore && onLoadMore ? (
+            <div className="sticky bottom-0 flex justify-center border-t border-white/10 bg-slate-950/95 p-4 backdrop-blur">
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={isLoading}
+                className="min-h-11 rounded-xl border border-white/20 bg-white/5 px-5 text-sm font-bold hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                {isLoading ? "در حال بارگذاری…" : "نمایش رتبه‌های بیشتر"}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </dialog>
   );
