@@ -9,6 +9,10 @@ fi
 : "${DATABASE_URL:?DATABASE_URL is required}"
 
 client_image="${POSTGRES_CLIENT_IMAGE:-postgres:16.15-alpine}"
+network_args=()
+if [[ -n "${POSTGRES_CLIENT_NETWORK:-}" ]]; then
+  network_args+=(--network "$POSTGRES_CLIENT_NETWORK")
+fi
 output="$1"
 output_dir="$(dirname "$output")"
 output_name="$(basename "$output")"
@@ -31,6 +35,7 @@ cleanup() {
 trap cleanup EXIT
 
 docker run --rm \
+  "${network_args[@]}" \
   --add-host host.docker.internal:host-gateway \
   --user "$(id -u):$(id -g)" \
   -e DATABASE_URL \
