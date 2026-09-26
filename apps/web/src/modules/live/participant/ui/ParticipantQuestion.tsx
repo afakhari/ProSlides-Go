@@ -165,7 +165,7 @@ export function ParticipantQuestion({
               </button>
             )}
 
-            {controller.submitMessage ? (
+            {controller.submitMessage && controller.submitState !== "sent" ? (
               <p
                 role={
                   controller.submitState === "rejected" ? "alert" : "status"
