@@ -82,7 +82,18 @@ a cloud load balancer.
 
 ## First deployment and upgrade
 
-Take and verify a PostgreSQL backup first, then:
+Take and verify a PostgreSQL backup first. On a trusted Linux/WSL operator host
+with Docker available:
+
+```bash
+export DATABASE_URL='postgres://...'
+export POSTGRES_CLIENT_IMAGE='postgres:16.15-alpine'
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+bash deploy/postgres-backup.sh "proslides-$stamp.dump"
+```
+
+Move the verified artifact to approved encrypted storage before applying
+migrations. Then deploy:
 
 ```powershell
 docker compose --env-file deploy/.env.production -f deploy/compose.production.yaml pull
