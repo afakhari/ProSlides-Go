@@ -32,6 +32,7 @@ type ParticipantAnswerController = {
   submitMessage: string;
   connectionError: string | null;
   isConnected: boolean;
+  isStreamConnected: boolean;
   canSubmit: boolean;
   isLocked: boolean;
   toggleOption: (index: number) => void;
@@ -46,7 +47,13 @@ export function useParticipantAnswerController({
   roomId?: string;
   question: LegacyQuestionSlide;
 }): ParticipantAnswerController {
-  const { submitAnswer, isConnected, connectionError, snapshot } = useLiveSession();
+  const {
+    submitAnswer,
+    isConnected,
+    isStreamConnected,
+    connectionError,
+    snapshot,
+  } = useLiveSession();
   const identity = questionRunIdentity(question);
   const timerScope = `${String(roomId ?? "unknown")}:${identity}`;
   const questionRef = useRef(question);
@@ -289,6 +296,7 @@ export function useParticipantAnswerController({
     submitMessage,
     connectionError,
     isConnected,
+    isStreamConnected,
     canSubmit:
       selectedIndexes.length > 0 &&
       timeLeft > 0 &&
