@@ -8,7 +8,7 @@ type StoredPendingAnswer = {
   answer: LiveAnswerInput;
 };
 
-export type ParticipantAnswerDraft =
+type ParticipantAnswerDraft =
   | { selectedIndexes: number[] }
   | { text: string };
 
