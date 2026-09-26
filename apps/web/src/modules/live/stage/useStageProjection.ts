@@ -48,6 +48,9 @@ const wait = (milliseconds: number, signal: AbortSignal) =>
     );
   });
 
+const isFatalStageError = (error: unknown) =>
+  error instanceof LiveAPIError && [401, 404].includes(error.status);
+
 const errorText = (error: unknown) => {
   if (error instanceof LiveAPIError) {
     if (error.status === 401) return "دسترسی Stage معتبر نیست.";
@@ -160,6 +163,7 @@ export function useStageProjection(sessionId: string | undefined) {
             isLoading: false,
             error: errorText(error),
           });
+          if (isFatalStageError(error)) return;
           await wait(retry, controller.signal);
           retry = Math.min(retry * 2, 10_000);
         }
@@ -194,6 +198,7 @@ export function useStageProjection(sessionId: string | undefined) {
             isConnected: false,
             error: errorText(error),
           }));
+          if (isFatalStageError(error)) return;
 
           await wait(retry, controller.signal);
           retry = Math.min(retry * 2, 10_000);
