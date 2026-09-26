@@ -1,5 +1,3 @@
-import type { LiveSnapshot } from "../api/types.ts";
-
 export interface LegacyLiveUser {
   user_id: string;
   name: string;
@@ -94,7 +92,3 @@ export interface ServerDataValue extends ServerDataFields {
   serverData: ServerDataFields;
 }
 
-const isManagerSnapshot = (
-  snapshot: LiveSnapshot | null | undefined,
-): snapshot is Extract<LiveSnapshot, { role: "manager" }> =>
-  snapshot?.role === "manager";
