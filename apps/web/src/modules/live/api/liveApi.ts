@@ -132,7 +132,7 @@ export const streamLiveEvents = async (
         );
       });
       const chunk = await Promise.race([reader.read(), stalled]);
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
 
       const { value, done } = chunk;
       buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, "\n");
