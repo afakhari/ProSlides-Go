@@ -59,6 +59,68 @@ destructive-data procedure.
 Redis contains readiness/rate-limit state only and is not restored as product
 truth. Losing Redis must not lose users, content, answers, scores, or events.
 
+## Live replay-event retention
+
+`live_events` is a reconnect/replay ledger, not the report or scoring source of
+truth. Active and non-ended Sessions are never eligible for pruning. The
+repository default operational policy retains replay events for **30 days after
+a Session ends**; reports, participant responses, immutable score deltas and
+frozen Session Items remain in their own durable tables.
+
+Run retention from a trusted operator host/container network. The command is
+dry-run by default and reports the eligible Session/event count without deleting
+anything:
+
+```bash
+export DATABASE_URL='postgres://...'
+export POSTGRES_CLIENT_IMAGE='postgres:16.15-alpine'
+export LIVE_EVENT_RETENTION_DAYS=30
+bash deploy/postgres-prune-live-events.sh
+```
+
+After reviewing the dry-run and confirming the backup/incident-retention
+requirements for that environment, enable deletion explicitly:
+
+```bash
+export LIVE_EVENT_RETENTION_DRY_RUN=0
+export LIVE_EVENT_RETENTION_CONFIRMATION=PRUNE_ENDED_LIVE_EVENTS
+export LIVE_EVENT_RETENTION_BATCH_SIZE=5000
+bash deploy/postgres-prune-live-events.sh
+```
+
+Deletion is batched and uses row locking with `SKIP LOCKED`; a concurrent
+maintenance run therefore cannot turn one cleanup into an unbounded transaction.
+Changing the 30-day window is an operational/compliance decision and must be
+recorded with the release/environment. Never shorten it during an unresolved
+incident or before preserving required forensic data.
+
+## Production observability gate
+
+The private API `/metrics` endpoint owns bounded application metrics. The
+deployment platform/database exporter owns machine and database-host telemetry;
+do not add participant/session/request IDs as Prometheus labels merely because a
+dashboard looks lonely without them.
+
+Before public production, dashboards and alerts must cover at least:
+
+| Signal | Release/incident expectation |
+|---|---|
+| readiness | external/private probe alerts on sustained failure |
+| HTTP 5xx | sustained non-zero error rate is investigated; release rollback/stop criteria follow the deployment observation window |
+| HTTP latency | histogram p95/p99 tracked by route against the SLOs in `capacity-plan.md` |
+| live event lag | histogram p95 <= 1s and p99 <= 2s during the tested workload |
+| SSE slow-client drops | any sustained increase is investigated with reconnect/event lag |
+| broker DB failures | any increase is actionable; PostgreSQL is the replay source of truth |
+| PostgreSQL pool | acquired/max headroom, acquire duration, empty/canceled acquires |
+| PostgreSQL query latency/errors | bounded operation/outcome histograms/counters plus provider CPU/IO/locks/deadlocks |
+| runtime saturation | API CPU/RSS/network/file descriptors from platform telemetry; heap/goroutines from application metrics |
+| live answers | accepted/duplicate/conflict/internal outcomes and answer-duration rate |
+| event retention | scheduled dry-run count reviewed; destructive pruning records timestamp, window and deleted row count |
+
+Do not expose `/metrics` through the public web ingress. Alerts must reference
+bounded labels and the tested infrastructure shape; thresholds derived from the
+1k/5k/10k capacity runs supersede provisional defaults when evidence exists.
+
 ## Application rollback
 
 1. Stop rollout and preserve logs, metrics, release metadata, and the current

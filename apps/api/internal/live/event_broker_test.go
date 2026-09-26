@@ -201,3 +201,40 @@ func TestSanitizeReplayedEventRemovesHistoricalRankingRows(t *testing.T) {
 		t.Fatalf("unexpected sanitized payload: %s", event.Payload)
 	}
 }
+
+
+func TestEventBrokerExportsLagHistogram(t *testing.T) {
+	store := &brokerStore{}
+	broker := NewEventBroker(store, 5*time.Millisecond, 4)
+	subscriber, cancel, err := broker.Subscribe(context.Background(), "session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cancel()
+
+	store.append(Event{
+		EventID:    1,
+		SessionID:  "session",
+		Name:       "session.state_changed",
+		OccurredAt: time.Now().Add(-200 * time.Millisecond),
+	})
+	select {
+	case <-subscriber:
+	case <-time.After(time.Second):
+		t.Fatal("event timed out")
+	}
+
+	var metrics strings.Builder
+	broker.WritePrometheus(&metrics)
+	output := metrics.String()
+	for _, want := range []string{
+		"# TYPE proslides_live_event_lag_seconds histogram",
+		"proslides_live_event_lag_seconds_bucket{le=\"10\"} 1",
+		"proslides_live_event_lag_seconds_bucket{le=\"+Inf\"} 1",
+		"proslides_live_event_lag_seconds_count 1",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("metrics missing %q:\n%s", want, output)
+		}
+	}
+}
