@@ -151,15 +151,14 @@ The current single/multi-instance-safe delivery path is:
    bound for a slow client.
 
 Presence bursts are compacted so only the newest consecutive
- `presence.updated` event in a fetched batch is fanned out, with its
- `participant_delta` equal to the number of committed joins in that compacted
- burst. The exact count always comes from the snapshot. Answers never produce
- one SSE event per participant; `answer.stats` is emitted after closure and
- `leaderboard.updated` carries only an aggregate participant count when the
- leaderboard is shown. Complete rows are never broadcast. Newly written
- leaderboard notifications use event schema version 2; retained version-1 array
- payloads are reduced to their count by the PostgreSQL adapter before replay,
- without rewriting the durable ledger.
+`presence.updated` event in a fetched batch is fanned out, with its
+`participant_delta` equal to the number of committed joins in that compacted
+burst. The exact count always comes from the snapshot. Answers never produce one
+SSE event per participant; canonical `activity.result_updated` is emitted only
+after Activity closure and `ranking.updated` carries only an aggregate
+participant count when cumulative ranking is shown. Complete rows are never
+broadcast. Both result/ranking event families use schema version 2; migrations
+normalize retained pre-v2 payloads before replay.
 
 Participant SSE streams announce connection and disconnection in PostgreSQL
 (a nullable `participants.disconnected_at`), so a participant who loses the
@@ -217,7 +216,10 @@ Redis loss must degrade latency/presence, never lose a durable event or answer.
 - Foreign keys and unique constraints enforce ownership and idempotency.
 - Hot reads use `participants(session_id, score ...)` and event-ledger indexes.
 - Large unbounded lists require pagination or role-scoped projections.
-- The event ledger needs a measured retention/archive policy before production.
+- Replay events for active/non-ended Sessions are never pruned. Ended-Session
+  replay events have a 30-day default operational retention window and are
+  deleted only by the guarded, batched maintenance command after dry-run review.
+  Reports/answers/scores remain durable independently of this replay ledger.
 - Pool sizes, statement timeouts, autovacuum, and connection limits are tuned
   from load-test evidence rather than copied from arbitrary defaults.
 
@@ -238,9 +240,14 @@ Redis loss must degrade latency/presence, never lose a durable event or answer.
 ## Observability and operations required before production
 
 At minimum expose RED/USE metrics for HTTP, SSE, PostgreSQL, broker subscribers,
-dropped slow subscribers, answer acceptance/conflicts, replay size, event lag,
-and active sessions. Structured logs need request/session IDs; traces must sample
-hot paths rather than recording every answer at full rate.
+dropped slow subscribers, answer acceptance/conflicts and event lag. Event lag
+is exported as a bounded histogram so p95/p99 can be alerted rather than inferred
+from an average. Host/container CPU, RSS, file descriptors/network and
+PostgreSQL CPU/IO/locks come from the deployment platform/database exporter, not
+from high-cardinality application labels. Structured logs must not contain
+credentials or unrevealed answers; sampled cross-component traces remain a
+deployment-level enhancement rather than a release prerequisite for the current
+modular monolith.
 
 Deployments require graceful draining: stop accepting new connections, allow
 in-flight HTTP transactions to finish, close SSE so clients reconnect, and keep
@@ -256,11 +263,12 @@ addresses only from the explicitly configured application subnet.
 
 1. Ephemeral presence TTLs and Redis wake-up fan-out are not implemented;
    bounded identity/live rate limiting is implemented.
-2. Bounded HTTP/runtime/pool/query/SSE/broker/answer/event-lag metrics exist;
-   continuous lock sampling and sampled cross-component traces remain. Real
-   ingress validation is pending.
-3. Event retention/compaction and measured PostgreSQL tuning are undefined;
-   pool size/lifetime controls now exist.
+2. Bounded HTTP/runtime/pool/query/SSE/broker/answer/event-lag metrics exist,
+   including an event-lag histogram; production dashboards/alerts still need to
+   be wired to the deployment telemetry backend and real ingress.
+3. Ended-Session replay retention is defined and guarded in-repository; measured
+   PostgreSQL autovacuum/lock/storage tuning still depends on production-like
+   load evidence.
 4. Local 100 and repeatable 1k protocol evidence exists, but no production-like
    1k or any 5k/10k gate exists; therefore 10k is a target, not a claim.
 
