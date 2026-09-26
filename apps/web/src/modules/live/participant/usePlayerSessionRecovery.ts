@@ -30,7 +30,7 @@ type UsePlayerSessionRecoveryOptions = {
   joinParticipant: LiveSessionContextValue["joinParticipant"];
 };
 
-export type PlayerSessionRecovery = {
+type PlayerSessionRecovery = {
   hasSeenActiveSlide: boolean;
   lastActive: PlayerLastActive | null;
   profile: StoredPlayerProfile | null;
