@@ -45,6 +45,15 @@ VU. Leave it unset for the simultaneous 100-user smoke. Use `USERS=1000` and
 `JOIN_RATE=500` for the documented 500 joins/second 1k workload; do not compare
 that result with an instantaneous 1k stress run as though they were identical.
 
+When `JOIN_RATE` is set and `CONTROLLER_DELAY` is not, the harness delays
+Activity presentation until the calculated join window has elapsed plus a
+two-second margin. Set `CONTROLLER_DELAY` explicitly when the test plan calls
+for a different phase boundary. `PARTICIPANT_MAX_DURATION` defaults to `3m`
+so slower 5k/10k join windows do not terminate VUs before Activity closure.
+Participants submit from either an already-accepting snapshot or the canonical
+SSE transition, whichever they observe first; one local guard prevents duplicate
+submission attempts.
+
 Capture both `session_id` and `activity_item_id` printed by
 `live_smoke_setup`, then make correctness a hard gate (the command exits
 non-zero on any mismatch):
