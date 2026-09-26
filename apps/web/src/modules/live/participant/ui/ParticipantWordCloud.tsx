@@ -257,6 +257,7 @@ export function ParticipantWordCloud({
     totalSeconds > 0
       ? Math.max(0, Math.min(100, (timeLeft / totalSeconds) * 100))
       : 0;
+  const urgent = timeLeft > 0 && timeLeft <= 10;
 
   return (
     <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
@@ -276,8 +277,14 @@ export function ParticipantWordCloud({
               تا {maxWords.toLocaleString("fa-IR")} واژه بنویسید
             </span>
             <span
-              className="shrink-0 rounded-full bg-white/10 px-3 py-1"
+              className={
+                "shrink-0 rounded-full border px-3 py-1 " +
+                (urgent
+                  ? "border-warning/50 bg-warning/15 text-white"
+                  : "border-transparent bg-white/10")
+              }
               role="timer"
+              aria-live={urgent ? "polite" : "off"}
               aria-label={Math.ceil(timeLeft).toLocaleString("fa-IR") + " ثانیه باقی مانده"}
             >
               {Math.ceil(timeLeft).toLocaleString("fa-IR")} ثانیه
@@ -351,28 +358,37 @@ export function ParticipantWordCloud({
           )}
 
           <div className="mt-auto pt-5">
-            {submitState === "retryable" && timeLeft > 0 ? (
+            {submitState === "sent" ? (
+              <div
+                className="rounded-2xl border border-success/40 bg-success/15 px-5 py-4 text-center"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="text-lg font-black">پاسخ ثبت شد ✓</p>
+                <p className="mt-1 text-sm text-[color:var(--live-muted)]">
+                  متن شما ذخیره شده است. منتظر نمایش نتیجه بمانید.
+                </p>
+              </div>
+            ) : submitState === "retryable" && timeLeft > 0 ? (
               <button
                 type="button"
                 onClick={() => void retry()}
-                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl"
+                className="min-h-14 w-full rounded-2xl bg-white px-5 text-base font-black text-slate-950 shadow-xl transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 motion-reduce:transform-none"
               >
                 تلاش دوباره برای ارسال
               </button>
             ) : (
               <button
                 type="button"
-                className="min-h-14 w-full rounded-2xl bg-white px-5 text-lg font-black text-slate-950 shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-14 w-full rounded-2xl bg-white px-5 text-lg font-black text-slate-950 shadow-xl transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 motion-reduce:transform-none"
                 onClick={() => void submit()}
                 disabled={!canSubmit}
               >
                 {submitState === "sending"
                   ? "در حال ارسال…"
-                  : submitState === "sent"
-                    ? "پاسخ ثبت شد"
-                    : submitState === "expired"
-                      ? "زمان پایان یافت"
-                      : "ثبت پاسخ"}
+                  : submitState === "expired"
+                    ? "زمان پایان یافت"
+                    : "ثبت پاسخ"}
               </button>
             )}
             {submitMessage ? (
