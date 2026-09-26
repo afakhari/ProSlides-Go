@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -110,6 +111,27 @@ func Load() (Config, error) {
 	}
 	if (cfg.SMTPHost == "") != (cfg.SMTPFromAddress == "") {
 		return Config{}, fmt.Errorf("SMTP_HOST and SMTP_FROM_ADDRESS must be configured together")
+	}
+	if cfg.Environment == "production" {
+		publicURL, parseErr := url.Parse(cfg.PasswordResetBaseURL)
+		if parseErr != nil ||
+			publicURL.Scheme != "https" ||
+			publicURL.Host == "" ||
+			publicURL.User != nil ||
+			(publicURL.Path != "" && publicURL.Path != "/") ||
+			publicURL.RawQuery != "" ||
+			publicURL.Fragment != "" {
+			return Config{}, fmt.Errorf("PUBLIC_WEB_URL must be an HTTPS origin in production")
+		}
+		if len(cfg.TrustedProxyCIDRs) == 0 {
+			return Config{}, fmt.Errorf("TRUSTED_PROXY_CIDRS must be configured in production")
+		}
+		if cfg.GoogleClientID != "" {
+			jwksURL, jwksErr := url.Parse(cfg.GoogleJWKSURL)
+			if jwksErr != nil || jwksURL.Scheme != "https" || jwksURL.Host == "" {
+				return Config{}, fmt.Errorf("GOOGLE_JWKS_URL must use HTTPS when Google login is enabled in production")
+			}
+		}
 	}
 	if cfg.AuthRequireVerification && cfg.SMTPHost == "" {
 		return Config{}, fmt.Errorf("SMTP is required when AUTH_REQUIRE_EMAIL_VERIFICATION is true")
