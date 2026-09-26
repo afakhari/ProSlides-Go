@@ -96,7 +96,7 @@ export function ParticipantWordCloud({
         : "",
     );
     pendingRef.current =
-      restored && "text" in restored.response
+      restored?.request_id && "text" in restored.response
         ? { requestId: restored.request_id, text: restored.response.text }
         : null;
     inFlightRef.current = false;
