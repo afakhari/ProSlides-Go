@@ -30,13 +30,13 @@ import {
 } from "./protocol.ts";
 
 export type LiveClientRole = "manager" | "player";
-export type RosterOrder = "joined" | "score";
-export type LiveManagerControlAction =
+type RosterOrder = "joined" | "score";
+type LiveManagerControlAction =
   | "close_activity"
   | "reveal_activity"
   | "show_overall_ranking";
 
-export interface LiveJoinResult {
+interface LiveJoinResult {
   clientUserId: string;
   participantId: string;
   displayName: string;
@@ -55,7 +55,7 @@ export interface LiveRuntimeState {
   isRosterLoading: boolean;
 }
 
-export type LiveCommandSlide = LiveNavigationSlide;
+type LiveCommandSlide = LiveNavigationSlide;
 
 export interface LiveAnswerInput {
   request_id?: string;
@@ -81,7 +81,7 @@ interface LiveRuntimeTransport {
   createRequestId: typeof createRequestId;
 }
 
-export interface LiveRuntimeDependencies {
+interface LiveRuntimeDependencies {
   transport?: Partial<LiveRuntimeTransport>;
   storage?: RuntimeStorage | null;
   sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
