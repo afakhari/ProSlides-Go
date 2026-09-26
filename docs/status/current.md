@@ -140,12 +140,23 @@ flows; post-merge CI #673 and Push on main #534 are green. Provider-level
 snapshots/PITR, production-volume RPO/RTO, and external secret/network controls
 remain deployment-environment responsibilities.
 
-The active hardening boundary is now final-v2 load/capacity verification. The
-first step is to make the load evidence itself trustworthy: the k6 scenario
-already drives canonical Activity actions, while the durable reconciliation SQL
-still contained pre-v2 lifecycle vocabulary. This slice aligns the correctness
-audit with `presenting/closed`, canonical Activity result/ranking events and
-explicit Activity identity before any new capacity result is accepted.
+PR #133 completed the in-repository final-v2 load-harness boundary. Durable
+reconciliation now validates explicit Activity identity, canonical
+`presenting/closed` closure, canonical result/ranking events, score/cardinality
+and idempotency invariants, and no post-close responses. Participant load VUs
+handle both an already-accepting snapshot and the accepting SSE transition, and
+phase timing scales with the configured join window. PR CI #674 passed the
+harness guard, restore drill, full browser suite and repeated critical flows;
+post-merge CI #675 and Push on main #536 are green. Production-like 1k/5k/10k
+capacity measurements remain pending named infrastructure and telemetry.
+
+The active repository hardening boundary is now production observability and
+event retention. Replay pruning is restricted to ended Sessions beyond the
+approved retention window and must be dry-run/confirmed/batched. Application
+event lag needs a histogram suitable for p95/p99 alerts, while host/container and
+database-host resource telemetry remains the deployment platform's
+responsibility. Visual-regression coverage and production-like capacity evidence
+remain separate release gates after this boundary.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
