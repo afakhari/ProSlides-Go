@@ -310,6 +310,20 @@ test("register, create a presentation, and open its report @critical", async ({ 
   expect(createSlideRequestCount).toBe(1);
   await expect(itemTypeDialog).toBeHidden();
 
+  const questionImageTrigger = page.getByRole("button", {
+    name: "افزودن یا تغییر تصویر سؤال",
+  });
+  await questionImageTrigger.click();
+  const imageDialog = page.getByRole("dialog", { name: "تصویر سؤال" });
+  const imageUrlInput = imageDialog.getByRole("textbox", {
+    name: "آدرس تصویر",
+  });
+  await expect(imageDialog).toBeVisible();
+  await expect(imageUrlInput).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(imageDialog).toBeHidden();
+  await expect(questionImageTrigger).toBeFocused();
+
   const changeTypeButton = page.getByRole("button", { name: "تغییر نوع آیتم" });
   await changeTypeButton.click();
   await expect(itemTypeDialog).toBeVisible();
@@ -579,6 +593,20 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await expectAccessible(manager, "manager live lobby");
     await expectNoOverflow(manager);
 
+    const qrTrigger = manager.getByRole("button", { name: "نمایش QR" });
+    await qrTrigger.click();
+    const qrDialog = manager.getByRole("dialog", {
+      name: "اسکن کنید و وارد شوید",
+    });
+    const closeQrButton = qrDialog.getByRole("button", {
+      name: "بستن کد QR",
+    });
+    await expect(qrDialog).toBeVisible();
+    await expect(closeQrButton).toBeFocused();
+    await manager.keyboard.press("Escape");
+    await expect(qrDialog).toBeHidden();
+    await expect(qrTrigger).toBeFocused();
+
     const backstageTrigger = manager.getByRole("button", { name: "پشت‌صحنه" });
     await backstageTrigger.click();
     const backstageDialog = manager.getByRole("dialog", { name: "پشت‌صحنه" });
@@ -691,6 +719,24 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await expect(backstage.getByText("شرکت‌کننده تست")).toBeVisible();
     await expect(backstage.getByText("+۱۰۰", { exact: true })).toBeVisible();
     await expectAccessible(manager, "manager backstage activity result");
+
+    const privateRankingTrigger = backstage.getByRole("button", {
+      name: "مشاهده خصوصی رتبه‌بندی کلی",
+    });
+    await expect(privateRankingTrigger).toBeEnabled();
+    await privateRankingTrigger.click();
+    const privateRankingDialog = manager.getByRole("dialog", {
+      name: "جدول امتیازات",
+    });
+    const closePrivateRanking = privateRankingDialog.getByRole("button", {
+      name: "بستن جدول امتیازات",
+    });
+    await expect(privateRankingDialog).toBeVisible();
+    await expect(closePrivateRanking).toBeFocused();
+    await manager.keyboard.press("Escape");
+    await expect(privateRankingDialog).toBeHidden();
+    await expect(privateRankingTrigger).toBeFocused();
+
     await expect(
       stage.getByRole("main").getByText("پاسخ صحیح", { exact: true }),
     ).toBeHidden();
