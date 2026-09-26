@@ -33,9 +33,6 @@ const CODE_MESSAGES: Record<string, string> = {
   internal_error: "خطایی در سرور رخ داد. کمی بعد دوباره تلاش کنید.",
 };
 
-const isApiError = (error: unknown): error is ApiError =>
-  error instanceof ApiError;
-
 export const identityErrorMessage = (
   error: unknown,
   fallback = "خطایی رخ داد. لطفاً دوباره تلاش کنید.",
