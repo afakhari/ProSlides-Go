@@ -68,7 +68,4 @@ export const verificationFormSchema = verificationSchema.extend({
   fullName: inactiveAuthField,
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
-type VerificationFormValues = z.infer<typeof verificationSchema>;
 export type AuthFormValues = z.infer<typeof registerFormSchema>;
