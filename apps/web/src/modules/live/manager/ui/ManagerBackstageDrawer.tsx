@@ -247,6 +247,11 @@ export function ManagerBackstageDrawer({
             dir="rtl"
             className="fixed inset-y-0 end-0 z-[61] flex w-[min(36rem,94vw)] flex-col overflow-y-auto border-0 border-s border-white/10 bg-slate-950 p-5 text-white shadow-2xl outline-none"
             aria-labelledby="backstage-title"
+            onEscapeKeyDown={(event) => {
+              if (showRanking || confirmEnd) {
+                event.preventDefault();
+              }
+            }}
             onPointerDownOutside={(event) => event.preventDefault()}
             data-backstage-surface="presenter"
           >
