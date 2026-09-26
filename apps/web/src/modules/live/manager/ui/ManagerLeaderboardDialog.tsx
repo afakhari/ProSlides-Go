@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import type { LegacyLiveUser } from "../../model/serverData.ts";
 import { getColorForUser } from "../../../../shared/lib/playerColor.ts";
+import { useNativeDialogLifecycle } from "../../../../shared/ui/useNativeDialogLifecycle.ts";
 
 type ManagerLeaderboardDialogProps = {
   isOpen: boolean;
@@ -20,7 +21,14 @@ export function ManagerLeaderboardDialog({
   isLoading = false,
   onLoadMore,
 }: ManagerLeaderboardDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const {
+    dialogRef,
+    handleCancel,
+    handleClose,
+  } = useNativeDialogLifecycle({
+    open: isOpen,
+    onRequestClose: onClose,
+  });
   const maxScore = useMemo(
     () =>
       players.length > 0
@@ -29,28 +37,12 @@ export function ManagerLeaderboardDialog({
     [players],
   );
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen && !dialog.open) {
-      dialog.showModal();
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   return (
     <dialog
       ref={dialogRef}
       dir="rtl"
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClose={onClose}
+      onCancel={handleCancel}
+      onClose={handleClose}
       className="m-auto w-[min(54rem,calc(100vw-2rem))] max-h-[80dvh] overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-0 text-white shadow-2xl backdrop:bg-black/65"
       aria-labelledby="manager-leaderboard-dialog-title"
     >
@@ -65,6 +57,7 @@ export function ManagerLeaderboardDialog({
         </div>
         <button
           type="button"
+          autoFocus
           onClick={onClose}
           className="grid min-h-11 min-w-11 place-items-center rounded-full bg-white/10 text-2xl hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="بستن جدول امتیازات"
