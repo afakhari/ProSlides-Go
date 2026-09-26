@@ -639,7 +639,9 @@ test("manager, audience Stage, and participant complete the live lifecycle with 
     await participant.getByLabel("نام نمایشی").fill("شرکت‌کننده تست");
     await participant.getByRole("button", { name: "ورود به کوئیز" }).click();
     await expect(participant.getByRole("heading", { name: "شرکت‌کننده تست" })).toBeVisible();
-    await expect(manager.getByText("شرکت‌کننده تست")).toBeVisible({ timeout: 15000 });
+    await expect(
+      manager.getByRole("button", { name: "پنهان کردن نام شرکت‌کننده تست" }),
+    ).toBeVisible({ timeout: 15000 });
     await expect(stage.getByText("۱ شرکت‌کننده", { exact: true })).toBeVisible({
       timeout: 15000,
     });
