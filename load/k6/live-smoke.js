@@ -118,12 +118,12 @@ export function setup() {
     event: "live_smoke_setup",
     session_id: session.id,
     expected_participants: users,
-    question_id: question.id,
+    activity_item_id: question.id,
   }));
   const managerCookies = jar.cookiesForURL(baseURL);
   return {
     sessionID: session.id,
-    questionID: question.id,
+    activityItemID: question.id,
     stateVersion: state.state_version,
     managerSession: managerCookies.proslides_session[0],
     managerCSRF: managerCookies.proslides_csrf[0],
@@ -167,7 +167,7 @@ export function participant(data) {
         answerAttempted = true;
         const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
           request_id: requestID(),
-          activity_item_id: data.questionID,
+          activity_item_id: data.activityItemID,
           response: { selected_option_indexes: [0] },
         }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
         answerDuration.add(answered.timings.duration);
@@ -203,7 +203,7 @@ export function controller(data) {
     request_id: requestID(),
     expected_state_version: data.stateVersion,
     action: "present_item",
-    item_id: data.questionID,
+    item_id: data.activityItemID,
   }), { headers, tags: { operation: "controller_present" } }), "controller present Activity");
   sleep(answerWindow);
   const closed = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/actions`, JSON.stringify({
