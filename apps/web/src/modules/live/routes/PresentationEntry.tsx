@@ -21,7 +21,7 @@ type PresentationEntryProps = {
   role?: LiveClientRole;
 };
 
-type ResolveStatus = "loading" | "error" | "success";
+type ResolveStatus = "loading" | "invalid" | "unavailable" | "success";
 
 export default function PresentationEntry({
   mode,
@@ -37,6 +37,7 @@ export default function PresentationEntry({
 function AccessCodeResolver() {
   const { accessCode } = useParams<{ accessCode: string }>();
   const [status, setStatus] = useState<ResolveStatus>("loading");
+  const [attempt, setAttempt] = useState(0);
   const [resolvedData, setResolvedData] =
     useState<LiveSessionLocator | null>(null);
   const [resolvedMeta, setResolvedMeta] =
@@ -46,8 +47,9 @@ function AccessCodeResolver() {
     let active = true;
 
     const resolveCode = async () => {
+      setStatus("loading");
       if (!accessCode) {
-        if (active) setStatus("error");
+        if (active) setStatus("invalid");
         return;
       }
 
@@ -76,13 +78,13 @@ function AccessCodeResolver() {
         });
         setStatus("success");
       } catch (error) {
-        if (
-          active &&
-          !(error instanceof LiveAPIError && error.status === 404)
-        ) {
-          console.error("[AccessCodeResolver] Error:", error);
+        if (!active) return;
+        if (error instanceof LiveAPIError && error.status === 404) {
+          setStatus("invalid");
+          return;
         }
-        if (active) setStatus("error");
+        console.error("[AccessCodeResolver] Error:", error);
+        setStatus("unavailable");
       }
     };
 
@@ -90,14 +92,32 @@ function AccessCodeResolver() {
     return () => {
       active = false;
     };
-  }, [accessCode]);
+  }, [accessCode, attempt]);
+
+  useEffect(() => {
+    if (status !== "unavailable") return;
+    const retryWhenOnline = () => setAttempt((value) => value + 1);
+    window.addEventListener("online", retryWhenOnline);
+    return () => window.removeEventListener("online", retryWhenOnline);
+  }, [status]);
 
   if (status === "loading") {
     return <Waiting message="در حال ورود به کوئیز…" />;
   }
 
-  if (status === "error") {
-    return <Waiting message="کد ورود معتبر نیست" />;
+  if (status === "invalid") {
+    return <Waiting message="کد ورود معتبر نیست" busy={false} />;
+  }
+
+  if (status === "unavailable") {
+    return (
+      <Waiting
+        message="ارتباط با سرور برقرار نشد. اینترنت را بررسی کنید و دوباره تلاش کنید."
+        actionLabel="تلاش دوباره"
+        onAction={() => setAttempt((value) => value + 1)}
+        busy={false}
+      />
+    );
   }
 
   if (resolvedData && resolvedMeta) {
