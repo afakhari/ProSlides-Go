@@ -161,12 +161,21 @@ age threshold and destructive guard on real Session/event data. PR CI #678
 passed after the maintenance path was corrected; post-merge CI #679 and Push on
 main #540 are green.
 
-The remaining V2.8 release gates are now narrower: production-like capacity
-evidence on named infrastructure, deployment-environment dashboard/alert wiring
-and provider/RPO/RTO evidence, stable-surface visual regression where it adds
-signal, and the final release-readiness review. Repository migration residue is
-being audited separately without turning internal naming cleanup into risky
-product rewrites.
+PR #135 completed the final repository migration-residue audit. Obsolete Go
+Choice-policy compatibility aliases were removed in favor of canonical
+Activity-policy types, stale migration claims were removed from current
+documentation, and the still-active question-shaped frontend projection was
+classified explicitly as non-blocking internal refactor debt rather than a
+second protocol. PR CI #680 passed API/race, generated-type/dead-code/build,
+full browser E2E, repeated critical flows, restore and retention drills;
+post-merge CI #681 and Push on main #542 are green.
+
+The remaining V2.8 release gates are now environment/evidence-heavy:
+production-like capacity runs on named infrastructure, deployment dashboard and
+alert wiring, provider snapshot/PITR plus measured RPO/RTO evidence,
+stable-surface visual regression where maintainable baselines add signal, and
+the final release-readiness review. No known repository migration boundary is
+currently open.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
