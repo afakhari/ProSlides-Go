@@ -14,20 +14,19 @@ Ordinary REST state uses the shared HTTP/error boundary and TanStack Query where
 migrated. Live state remains a dedicated typed snapshot + HTTP command + SSE
 runtime because ordering, replay and reconnect are domain behavior.
 
-The v2 redesign keeps this foundation and moves product rendering toward:
+The current v2 product generation uses this foundation with:
 
 - a stable Editor shell with Content and Activity registries;
 - an audience Stage;
 - presenter-only Backstage;
 - a mobile-first Participant projection.
 
-Do not add team/self-paced UI during v2.0.
+Team/self-paced UI remains outside the current v2.0 scope.
 
 Read:
 
 - `../../docs/status/current.md` for current state;
-- `../../docs/v2-product-architecture.md` for v2 product/domain rules;
-- `../../docs/v2-development-plan.md` for implementation order;
+- `../../docs/v2-product-architecture.md` for current product/domain rules;
 - `../../docs/frontend-architecture.md` for technical boundaries;
 - `../../docs/frontend-professionalization.md` for Persian UX/design rules;
 - `../../docs/frontend-debt.md` for intentionally deferred debt;
