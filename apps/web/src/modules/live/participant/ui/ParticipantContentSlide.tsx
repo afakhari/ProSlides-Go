@@ -12,13 +12,13 @@ export function ParticipantContentSlide({
   quiz,
   content,
 }: ParticipantContentSlideProps) {
-  const { isConnected } = useLiveSession();
+  const { isStreamConnected } = useLiveSession();
   const title = content.title || "مطلب بعدی";
   const text = content.content_text || "";
   const image = content.content_image_url || "";
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
       <article className="flex flex-1 flex-col justify-center py-5 text-center">
         <div className="rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-5 shadow-2xl backdrop-blur-xl sm:p-9">
           <p className="mb-3 text-sm font-bold text-[color:var(--live-muted)]">
