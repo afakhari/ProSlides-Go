@@ -131,9 +131,11 @@ fast checks, the full browser suite and repeated critical flows; post-merge CI
 
 The active hardening boundary is now security/deployment/restore. The current
 slice makes production origin/proxy/provider configuration fail closed in the
-API process and turns PostgreSQL backup/restore from runbook-only commands into
-checked-in guarded operations exercised against an isolated restored database
-in CI. Provider-level snapshots/PITR, production-volume RPO/RTO, and external
+API process, requires encrypted PostgreSQL and Redis transport in production,
+and turns PostgreSQL backup/restore from runbook-only commands into checked-in
+guarded operations exercised against an isolated restored database in CI. The
+restore guard compares the resolved PostgreSQL server/port/database identity as
+well as the literal URL so aliases cannot silently target the active source. Provider-level snapshots/PITR, production-volume RPO/RTO, and external
 secret/network controls remain deployment-environment responsibilities and are
 not implied by the repository drill.
 
