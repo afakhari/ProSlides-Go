@@ -5,7 +5,7 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn.ts";
 import { buttonVariants } from "./button.variants.ts";
 
-export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
   };
