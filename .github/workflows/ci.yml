@@ -80,6 +80,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run architecture:check
+      - run: npm run dead-code:check
       - run: npm run test:unit
       - run: npm run test:component:typecheck
       - run: npm run test:component
