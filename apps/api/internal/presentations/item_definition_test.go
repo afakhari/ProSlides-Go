@@ -27,7 +27,7 @@ func TestChoiceActivityRemainsCanonicalForLive(t *testing.T) {
 			Title: "Quiz",
 			Text:  "Pick two",
 		},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionMultiple,
 			Options: []ChoiceOptionDefinition{
 				{ID: "a", Text: "A", Order: 1},
@@ -35,11 +35,11 @@ func TestChoiceActivityRemainsCanonicalForLive(t *testing.T) {
 				{ID: "c", Text: "C", Order: 3},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeCorrectness,
 			CorrectOptionIDs: []string{"a", "c"},
 		},
-		Scoring: ChoiceScoringPolicy{
+		Scoring: ActivityScoringPolicy{
 			Mode:          ScoringModePoints,
 			MinPoints:     10,
 			MaxPoints:     100,
@@ -81,18 +81,18 @@ func TestChoiceActivityModelSupportsUnscoredChoiceWithoutQuizFields(t *testing.T
 		SchemaVersion: 1,
 		ActivityKind:  ActivityKindChoice,
 		Prompt:        ActivityPrompt{Text: "Which direction?"},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionSingle,
 			Options: []ChoiceOptionDefinition{
 				{ID: "a", Text: "North", Order: 1},
 				{ID: "b", Text: "South", Order: 2},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeNone,
 			CorrectOptionIDs: []string{},
 		},
-		Scoring: ChoiceScoringPolicy{
+		Scoring: ActivityScoringPolicy{
 			Mode: ScoringModeNone,
 		},
 		Timing: ActivityTimingPolicy{DurationSeconds: 30},
@@ -110,18 +110,18 @@ func TestPollNormalizesAsCanonicalUnscoredChoice(t *testing.T) {
 		SchemaVersion: ActivitySchemaVersion1,
 		ActivityKind:  ActivityKindChoice,
 		Prompt:        ActivityPrompt{Text: "Which topic next?"},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionSingle,
 			Options: []ChoiceOptionDefinition{
 				{ID: "architecture", Text: "Architecture", Order: 1},
 				{ID: "testing", Text: "Testing", Order: 2},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeNone,
 			CorrectOptionIDs: []string{},
 		},
-		Scoring: ChoiceScoringPolicy{Mode: ScoringModeNone},
+		Scoring: ActivityScoringPolicy{Mode: ScoringModeNone},
 		Timing:  ActivityTimingPolicy{DurationSeconds: 20},
 		Results: ActivityResultPolicy{ShowOverallLeaderboardAfter: false},
 	}
@@ -267,18 +267,18 @@ func TestUnscoredChoiceCannotRequestOverallLeaderboard(t *testing.T) {
 		SchemaVersion: 1,
 		ActivityKind:  ActivityKindChoice,
 		Prompt:        ActivityPrompt{Text: "Poll"},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionSingle,
 			Options: []ChoiceOptionDefinition{
 				{ID: "a", Text: "A", Order: 1},
 				{ID: "b", Text: "B", Order: 2},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeNone,
 			CorrectOptionIDs: []string{},
 		},
-		Scoring: ChoiceScoringPolicy{Mode: ScoringModeNone},
+		Scoring: ActivityScoringPolicy{Mode: ScoringModeNone},
 		Timing:  ActivityTimingPolicy{DurationSeconds: 30},
 		Results: ActivityResultPolicy{ShowOverallLeaderboardAfter: true},
 	}
@@ -292,18 +292,18 @@ func TestChoiceActivityRejectsInvalidCrossPolicyCombinations(t *testing.T) {
 		SchemaVersion: 1,
 		ActivityKind:  ActivityKindChoice,
 		Prompt:        ActivityPrompt{Text: "Question"},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionSingle,
 			Options: []ChoiceOptionDefinition{
 				{ID: "a", Text: "A", Order: 1},
 				{ID: "b", Text: "B", Order: 2},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeCorrectness,
 			CorrectOptionIDs: []string{"a"},
 		},
-		Scoring: ChoiceScoringPolicy{
+		Scoring: ActivityScoringPolicy{
 			Mode:      ScoringModePoints,
 			MaxPoints: 100,
 		},
