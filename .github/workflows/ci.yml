@@ -57,9 +57,11 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
 
-      - name: Parse k6 live scenario
+      - name: Validate canonical v2 load harness
         shell: bash
-        run: node --input-type=module --check < ../../load/k6/live-smoke.js
+        run: |
+          node --input-type=module --check < ../../load/k6/live-smoke.js
+          node ../../load/k6/check-harness.mjs
 
       - name: Parse PowerShell integration matrix
         shell: pwsh
