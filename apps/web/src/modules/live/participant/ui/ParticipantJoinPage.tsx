@@ -49,11 +49,12 @@ export function ParticipantJoinPage({
             <p className="text-xl font-bold">
               {controller.isJoining
                 ? "در حال ورود به جلسه…"
-                : "برای شروع کوئیز آماده باشید"}
+                : "وارد جلسه شدید"}
             </p>
             <p className="mt-2 text-sm leading-7 text-[color:var(--live-muted)]">
-              به‌محض شروع سؤال یا اسلاید بعدی، همین صفحه به‌صورت خودکار به‌روز
-              می‌شود.
+              {controller.isJoining
+                ? "هویت شما حفظ شده است؛ پس از برقراری ارتباط وارد جلسه می‌شوید."
+                : "منتظر ارائه‌دهنده بمانید؛ مرحله بعدی همین‌جا نمایش داده می‌شود."}
             </p>
 
             {controller.connectionError ? (
@@ -75,13 +76,22 @@ export function ParticipantJoinPage({
             ) : null}
 
             {controller.connectionError || controller.joinError ? (
-              <button
-                type="button"
-                onClick={controller.editProfile}
-                className="mt-4 min-h-11 rounded-xl border border-[color:var(--live-border)] bg-white/5 px-5 text-sm font-bold hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
-              >
-                ویرایش نام و آواتار
-              </button>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={controller.retryNow}
+                  className="min-h-12 rounded-xl bg-white px-5 text-sm font-black text-slate-950 shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 motion-reduce:transform-none"
+                >
+                  تلاش دوباره
+                </button>
+                <button
+                  type="button"
+                  onClick={controller.editProfile}
+                  className="min-h-12 rounded-xl border border-[color:var(--live-border)] bg-white/5 px-5 text-sm font-bold hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                >
+                  ویرایش نام و آواتار
+                </button>
+              </div>
             ) : null}
           </div>
         </section>
@@ -189,7 +199,7 @@ export function ParticipantJoinPage({
             ورود به کوئیز
           </button>
           <p className="mt-4 text-center text-xs leading-6 text-[color:var(--live-muted)]">
-            پاسخ‌ها فقط برای همین جلسه ثبت می‌شوند.
+            نام و آواتار شما برای ورود دوباره به همین جلسه روی این دستگاه نگه داشته می‌شوند.
           </p>
         </form>
       </section>
