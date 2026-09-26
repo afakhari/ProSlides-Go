@@ -1,7 +1,7 @@
 import type { LiveClientRole } from "../runtime/LiveRuntime.ts";
 import type { LegacyLiveSlide } from "./serverData.ts";
 
-export interface LivePresentationBackground {
+interface LivePresentationBackground {
   color: string;
   image: string;
   text_color?: string;
