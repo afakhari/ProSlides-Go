@@ -14,6 +14,7 @@ export function ParticipantLeaderboard({
     snapshot?.role === "participant" ? snapshot.participant : null;
   const rank = participant?.rank;
   const score = Number(participant?.score ?? 0);
+  const totalParticipants = Number(participantCount || 0);
 
   return (
     <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
@@ -23,6 +24,11 @@ export function ParticipantLeaderboard({
             رتبه‌بندی کلی
           </p>
           <h1 className="mt-2 text-3xl font-black">جایگاه فعلی شما</h1>
+          {rank != null && totalParticipants > 0 ? (
+            <p className="mt-2 text-sm text-[color:var(--live-muted)]">
+              رتبه {Number(rank).toLocaleString("fa-IR")} از {totalParticipants.toLocaleString("fa-IR")} شرکت‌کننده
+            </p>
+          ) : null}
 
           <div className="mx-auto my-7 grid h-36 w-36 place-items-center rounded-full border-4 border-white/25 bg-white/10 shadow-2xl">
             <div>
@@ -47,14 +53,13 @@ export function ParticipantLeaderboard({
                 شرکت‌کنندگان
               </p>
               <p className="mt-1 text-2xl font-black">
-                {Number(participantCount || 0).toLocaleString("fa-IR")}
+                {totalParticipants.toLocaleString("fa-IR")}
               </p>
             </div>
           </div>
 
           <p className="mt-7 text-sm leading-7 text-[color:var(--live-muted)]">
-            مرحلهٔ بعدی به‌صورت خودکار نمایش داده می‌شود. این صفحه را باز نگه
-            دارید.
+            مرحله بعدی خودکار نمایش داده می‌شود. نیازی به تازه‌سازی صفحه نیست.
           </p>
         </div>
       </section>
