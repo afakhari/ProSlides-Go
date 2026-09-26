@@ -30,11 +30,10 @@ The completed execution plan is archived in
 
 ## Verified repository baseline
 
-The latest verified repository baseline after PR #137 is commit
-`3c1466c7`.
+The accepted repository baseline is the current `main` only when its required
+checks are green. GitHub Actions/check history is authoritative for moving
+commit/run identifiers; this document intentionally does not copy them.
 
-- CI #690: green;
-- Push/CodeQL on main #552: green;
 - required `api` and fail-closed aggregate `web` checks are active;
 - browser E2E runs on pull requests and pushes to `main`;
 - three stable deterministic public surfaces have versioned Playwright visual
