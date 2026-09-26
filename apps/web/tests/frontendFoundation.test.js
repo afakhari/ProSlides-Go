@@ -816,6 +816,7 @@ test("manager live UI is module-owned, typed, Persian and contract-driven", () =
   const join = source("src/modules/live/manager/ui/ManagerJoinPage.tsx");
   const dialog = source("src/modules/live/manager/ui/ManagerLeaderboardDialog.tsx");
   const qr = source("src/modules/live/manager/ui/ManagerQrPanel.tsx");
+  const nativeDialogLifecycle = source("src/shared/ui/useNativeDialogLifecycle.ts");
   const controls = source("src/modules/live/manager/ui/ManagerControls.tsx");
   const combined = [leaderboard, question, join, dialog, qr, controls].join("\n");
 
@@ -830,10 +831,14 @@ test("manager live UI is module-owned, typed, Persian and contract-driven", () =
   );
   assert.match(join, /در انتظار ورود شرکت‌کنندگان/);
   assert.match(dialog, /aria-label="بستن جدول امتیازات"/);
+  assert.match(dialog, /useNativeDialogLifecycle/);
   assert.match(qr, /QRCode\.toDataURL/);
   assert.match(qr, /<dialog/);
-  assert.match(qr, /showModal\(\)/);
+  assert.match(qr, /useNativeDialogLifecycle/);
   assert.match(qr, /onCancel=/);
+  assert.match(nativeDialogLifecycle, /showModal\(\)/);
+  assert.match(nativeDialogLifecycle, /returnFocusRef/);
+  assert.match(nativeDialogLifecycle, /isConnected/);
   assert.doesNotMatch(qr, /qrserver\.com/);
   assert.match(controls, /ConfirmDialog/);
   assert.doesNotMatch(controls, /FOOTER_CHAT_MESSAGES|FOOTER_MENU_ITEMS|FOOTER_REACTIONS/);
