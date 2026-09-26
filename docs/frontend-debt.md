@@ -14,7 +14,7 @@ v2 sequencing lives in `v2-development-plan.md`.
 |---:|---|---|
 | P2 | Some mature surfaces still use older utility-color styling and inconsistent logical-direction details. | Fix when the v2 slice redesigns that surface; do not run a standalone cosmetic rewrite. |
 | P2 | Component/API-state coverage is intentionally selective outside the existing representative dashboard coverage. | Add tests only for high-risk behavior touched by a v2 slice; broaden state matrices in V2.8 hardening. |
-| P3 | Stable-surface visual regression and broader non-critical browser-state matrices remain intentionally selective. | Add them only where the surface is stable and the failure signal justifies snapshot/state maintenance. |
+| P3 | Visual regression is intentionally selective: stable desktop landing, mobile authentication and deterministic mobile participant-join baselines are protected; broader non-critical/stateful surfaces are not snapshotted by default. | Extend only when a surface is stable and the failure signal justifies baseline maintenance; keep behavioral E2E authoritative for dynamic editor/live/report flows. |
 | P3 | The live frontend still projects canonical v2 snapshots/Items into a historical question-shaped internal view model used by mature presenter/participant components. | Treat it as internal refactor debt, not a protocol compatibility surface. Replace it only as those components are materially redesigned; do not destabilize the production-readiness gate for naming cleanup. |
 | P3 | Major framework/toolchain upgrades remain isolated from the product redesign. | Upgrade only when required or after v2 surfaces stabilize, with dedicated compatibility verification. |
 
