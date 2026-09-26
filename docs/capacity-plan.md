@@ -43,13 +43,17 @@ These are acceptance thresholds to validate or revise with product evidence:
 - HTTP request count, duration, response status, and in-flight requests by route.
 - PostgreSQL pool acquired/idle/max, acquire duration, query latency, errors,
   transaction duration, lock waits, deadlocks, and database CPU/IO.
-- Active SSE connections, connection lifetime, reconnect count, bytes/events
-  sent, broker sessions/subscribers, buffer drops, and ledger-to-client lag.
+- Active SSE connections, reconnect behavior, broker sessions/subscribers,
+  buffer drops, events published, and ledger-to-client lag. Application event
+  lag is a Prometheus histogram so p95/p99 can be evaluated directly.
 - Accepted/duplicate/rejected responses and score-update duration.
 - Process CPU, RSS, goroutines, GC pauses, file descriptors, and network throughput.
 
 Metrics must use bounded labels. Never label by participant, request, session,
-email, or raw error text in a way that creates unbounded cardinality.
+email, or raw error text in a way that creates unbounded cardinality. Process
+CPU/RSS/network/file-descriptor metrics and PostgreSQL host CPU/IO/lock/deadlock
+metrics are deployment/exporter responsibilities; application `/metrics`
+provides request, runtime heap/goroutine, pool/query and live-protocol signals.
 
 ## Test topology
 
