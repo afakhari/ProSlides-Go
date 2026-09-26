@@ -31,10 +31,11 @@ still not restore proof; the restore path must also be exercised.
 
 Never restore over the active production database. Provision an isolated empty
 PostgreSQL 16 database, restrict its network, and restore there. The restore
-command requires an explicit destructive-operation acknowledgement, rejects the
-active `DATABASE_URL` when it exactly matches the target, validates the archive
-before modifying the target, restores in one transaction with errors fatal, and
-checks that the migration ledger is present afterward:
+command requires an explicit destructive-operation acknowledgement, rejects both an
+exact `DATABASE_URL` match and a differently written URL that resolves to the
+same PostgreSQL server/port/database identity, validates the archive before
+modifying the target, restores in one transaction with errors fatal, and checks
+that the migration ledger is present afterward:
 
 ```bash
 export DATABASE_URL='postgres://production-source/...'
