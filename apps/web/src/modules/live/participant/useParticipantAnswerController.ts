@@ -73,6 +73,8 @@ export function useParticipantAnswerController({
 
   const pendingRef = useRef<PendingAttempt | null>(null);
   const inFlightAttemptRef = useRef<string | null>(null);
+  const restoredPendingRef = useRef(false);
+  const wasConnectedRef = useRef(isConnected);
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
@@ -113,6 +115,7 @@ export function useParticipantAnswerController({
       identity && restoredAnswer
         ? { identity, answer: restoredAnswer }
         : null;
+    restoredPendingRef.current = Boolean(restoredAnswer);
     setSubmitState(restoredAnswer ? "retryable" : "idle");
     setSubmitMessage(
       restoredAnswer
@@ -135,6 +138,7 @@ export function useParticipantAnswerController({
       clearPendingAnswer(roomId, identity);
       clearAnswerDraft(roomId, identity);
     }
+    restoredPendingRef.current = false;
     inFlightAttemptRef.current = null;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
@@ -212,6 +216,7 @@ export function useParticipantAnswerController({
       if (inFlightAttemptRef.current === attemptKey) return;
       if (inFlightAttemptRef.current !== null) return;
 
+      restoredPendingRef.current = false;
       inFlightAttemptRef.current = attemptKey;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
@@ -293,8 +298,18 @@ export function useParticipantAnswerController({
   }, [sendAttempt]);
 
   useEffect(() => {
+    const reconnected = !wasConnectedRef.current && isConnected;
+    wasConnectedRef.current = isConnected;
+
+    const restoredPending =
+      restoredPendingRef.current &&
+      isConnected &&
+      snapshot?.role === "participant" &&
+      !snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === activityItemId;
+
+    if (!reconnected && !restoredPending) return;
     if (
-      !isConnected ||
       submitState !== "retryable" ||
       snapshot?.role !== "participant" ||
       snapshot.has_responded ||
@@ -307,6 +322,8 @@ export function useParticipantAnswerController({
     if (!attempt || attempt.identity !== identity || remainingRef.current <= 0) {
       return;
     }
+
+    restoredPendingRef.current = false;
     void sendAttempt(attempt);
   }, [
     activityItemId,
@@ -338,6 +355,7 @@ export function useParticipantAnswerController({
       });
       if (submitState === "retryable") {
         pendingRef.current = null;
+        restoredPendingRef.current = false;
         if (identity) clearPendingAnswer(roomId, identity);
         setSubmitState("idle");
         setSubmitMessage("");
