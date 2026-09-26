@@ -1,6 +1,6 @@
 # Current project status
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-09-26
 
 This is the only mutable current-state document for ProSlides. Durable product
 rules live in architecture documents/ADRs; execution order lives in the v2 plan;
@@ -116,8 +116,17 @@ critical flows plus responsive/accessibility coverage. PR #128 moved the
 remaining hand-rolled modal semantics to focus-managed dialogs. Its browser run
 then exposed both an item-picker focus defect and a fail-open aggregate-check
 edge case. PR #129 corrected the focus contract and changed the required
-aggregate `web` job to run with fail-closed semantics. CI #620 and Push on main
-#460 are the verified post-recovery baseline.
+aggregate `web` job to run with fail-closed semantics. PR #130 unified the
+remaining native-dialog focus lifecycle for manager QR, private ranking and the
+Editor image URL flow, including nested Backstage modal behavior. PR CI #628
+passed the full browser suite plus repeated critical flows; post-merge CI #629
+and Push on main #471 are green.
+
+The active hardening boundary is conservative frontend export/dependency
+analysis. Existing architecture tooling already rejects unreachable TypeScript
+source files, so this slice focuses on unused exports plus unexplained missing or
+unused direct packages, with explicit reviewed exemptions for intentional
+non-static tool usage.
 
 v2 is a staged migration of the existing system, not a rewrite.
 

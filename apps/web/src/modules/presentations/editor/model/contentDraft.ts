@@ -13,12 +13,12 @@ export type ContentDraft = {
   imageUrl: string;
 };
 
-export type ContentDraftState = {
+type ContentDraftState = {
   baseline: ContentDraft;
   draft: ContentDraft;
 };
 
-export type ContentDraftAction =
+type ContentDraftAction =
   | { type: "reset"; draft: ContentDraft }
   | { type: "saved"; draft: ContentDraft }
   | { type: "title"; value: string }

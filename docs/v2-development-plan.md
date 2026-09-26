@@ -238,9 +238,11 @@ Fast checks remain continuous because they are cheap:
 - frontend lint/typecheck/architecture check;
 - focused domain/component tests for the changed behavior.
 
-Browser/container checks are valuable integration evidence but remain
-non-required during the current single-developer pre-production phase. A
-failure related to the changed boundary must still be investigated.
+During V2.8, browser/container verification is part of the required pull-request
+safety net. The required `web` check is an aggregate gate and must fail unless
+both the fast frontend job and the real Compose/API/Playwright browser job
+succeed. Critical browser flows are additionally repeated on pull requests and
+manual hardening runs to expose instability before merge.
 
 Before merging a high-risk live/domain slice, explicitly verify the affected
 invariant, especially:

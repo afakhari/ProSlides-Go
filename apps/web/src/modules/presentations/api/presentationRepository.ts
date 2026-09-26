@@ -1,8 +1,6 @@
 import type {
   EditorPresentation,
-  EditorQuestion,
   EditorSlide,
-  QuestionType,
 } from "../model/editor.ts";
 import { requestJson, type ApiRequestOptions } from "../../../shared/api/http.ts";
 import type { components } from "../../../shared/api/generated/openapi.ts";
@@ -12,7 +10,6 @@ import {
 } from "./editorItemTransportRegistry.ts";
 
 export {
-  editorSlideFromTransport as slideToEditor,
   editorSlideToTransportDefinition as editorSlideToDefinition,
 } from "./editorItemTransportRegistry.ts";
 
@@ -21,7 +18,6 @@ type PresentationDTO = components["schemas"]["Presentation"];
 type PresentationSummaryDTO = components["schemas"]["PresentationSummary"];
 type AccessCodeResultDTO = components["schemas"]["AccessCodeResult"];
 
-export { ApiError as QuizServiceError } from "../../../shared/api/http.ts";
 
 type RequestOptions = ApiRequestOptions;
 const request = requestJson;
@@ -160,4 +156,3 @@ export const quizService = {
   getSlidesFromAPI: (quizID: string) => quizService.getQuiz(quizID),
 };
 
-export type { EditorPresentation, EditorQuestion, EditorSlide, QuestionType };

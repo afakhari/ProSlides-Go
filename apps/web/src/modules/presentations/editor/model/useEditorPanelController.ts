@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 export type EditorPanelTab = "slides" | "content" | "design" | "audio";
 type DirtyPanel = Exclude<EditorPanelTab, "slides">;
 
-export type EditorConfirmDialog = {
+type EditorConfirmDialog = {
   isOpen: boolean;
   title: string;
   description: string;

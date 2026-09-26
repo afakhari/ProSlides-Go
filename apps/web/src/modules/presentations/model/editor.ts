@@ -1,7 +1,7 @@
 export type QuestionType = "single" | "multiple";
 export type EvaluationMode = "none" | "correctness";
 export type ScoringMode = "none" | "points";
-export type EditorItemKind = "content" | "activity";
+type EditorItemKind = "content" | "activity";
 
 export interface EditorOption {
   option_id: string;
@@ -71,7 +71,7 @@ export interface EditorPresentation {
   last_update: string;
 }
 
-export type QuestionLike = Omit<Partial<EditorQuestion>, "options"> & {
+type QuestionLike = Omit<Partial<EditorQuestion>, "options"> & {
   options?: Array<Partial<EditorOption> & { option_text?: string }>;
 };
 
@@ -99,7 +99,7 @@ export const TEXT_ACTIVITY_LIMITS = {
   maxDurationSeconds: 86_400,
 } as const;
 
-export type TextActivityValidationField =
+type TextActivityValidationField =
   | "text_activity"
   | "prompt_text"
   | "prompt_image"
@@ -213,13 +213,13 @@ export const CONTENT_LIMITS = {
   imageUrl: 4_096,
 } as const;
 
-export type ContentLike = {
+type ContentLike = {
   title?: string | null;
   content_text?: string | null;
   content_image_url?: string | null;
 };
 
-export type ContentValidationField =
+type ContentValidationField =
   | "content"
   | "title"
   | "content_text"
@@ -231,7 +231,7 @@ export type ContentValidationIssue = {
   message: string;
 };
 
-export type QuestionValidationField =
+type QuestionValidationField =
   | "question"
   | "question_text"
   | "question_image"

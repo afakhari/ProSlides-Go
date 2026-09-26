@@ -45,7 +45,7 @@ type ChoiceResultPayload = {
   option_counts?: Record<string, number>;
 };
 
-export type WordFrequencyTermView = {
+type WordFrequencyTermView = {
   text: string;
   count: number;
 };
@@ -170,7 +170,3 @@ export const sessionStateLabel = (
     ended: "پایان‌یافته",
   })[state];
 
-export const sessionTimeLabel = (session: ReportSessionSummary): string =>
-  session.ended_at
-    ? `پایان: ${formatReportDateTime(session.ended_at)}`
-    : `شروع: ${formatReportDateTime(session.created_at)}`;

@@ -2,7 +2,7 @@ import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 
 import { reportApi } from "./reportApi.ts";
 
-export const reportKeys = {
+const reportKeys = {
   root: ["reports"] as const,
   sessions: (presentationId: string) =>
     [...reportKeys.root, "sessions", presentationId] as const,

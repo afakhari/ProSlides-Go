@@ -18,6 +18,11 @@ export function useNativeDialogLifecycle({
 }: NativeDialogLifecycleOptions) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const initialFocusRef = useRef(initialFocus);
+
+  useEffect(() => {
+    initialFocusRef.current = initialFocus;
+  }, [initialFocus]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -29,7 +34,7 @@ export function useNativeDialogLifecycle({
         returnFocusRef.current =
           activeElement instanceof HTMLElement ? activeElement : null;
         dialog.showModal();
-        initialFocus?.()?.focus();
+        initialFocusRef.current?.()?.focus();
       }
       return;
     }

@@ -14,7 +14,7 @@ export type EditorItemRegistryKey =
   | "choice"
   | "text";
 
-export type EditorItemCategory = "content" | "activity";
+type EditorItemCategory = "content" | "activity";
 
 export type EditorTypeChoiceId =
   | "content"
@@ -23,7 +23,7 @@ export type EditorTypeChoiceId =
   | "choice-single"
   | "choice-multiple";
 
-export type EditorTypeChoice = {
+type EditorTypeChoice = {
   id: EditorTypeChoiceId;
   registrationKey: EditorItemRegistryKey;
   label: string;
@@ -33,13 +33,13 @@ export type EditorTypeChoice = {
   scoringMode?: ScoringMode;
 };
 
-export type EditorItemBehavior = {
+type EditorItemBehavior = {
   id: "activity-result" | "overall-ranking";
   label: string;
   tone: "info" | "warning";
 };
 
-export type EditorItemRegistration = {
+type EditorItemRegistration = {
   key: EditorItemRegistryKey;
   category: EditorItemCategory;
   label: string;

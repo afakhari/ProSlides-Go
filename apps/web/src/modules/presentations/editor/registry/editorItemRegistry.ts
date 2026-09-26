@@ -17,7 +17,7 @@ import {
 export { editorTypeChoices };
 export type { EditorTypeChoiceId };
 
-export type EditorConversionConfirmation = {
+type EditorConversionConfirmation = {
   title: string;
   description: string;
   confirmText: string;

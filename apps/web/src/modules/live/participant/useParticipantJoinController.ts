@@ -9,7 +9,7 @@ import {
 } from "../model/playerProfileStorage.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 
-export type ParticipantJoinController = {
+type ParticipantJoinController = {
   name: string;
   avatar: string;
   isEditing: boolean;

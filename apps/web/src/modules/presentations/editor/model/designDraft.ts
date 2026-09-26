@@ -16,19 +16,19 @@ export type DesignDraft = {
   textColor: string;
 };
 
-export type DesignDraftState = {
+type DesignDraftState = {
   baseline: DesignDraft;
   draft: DesignDraft;
 };
 
-export type DesignDraftAction =
+type DesignDraftAction =
   | { type: "reset"; draft: DesignDraft }
   | { type: "saved"; draft: DesignDraft }
   | { type: "background-color"; value: string }
   | { type: "background-image"; value: string }
   | { type: "text-color"; value: string };
 
-export type DesignValidationIssue = {
+type DesignValidationIssue = {
   code: string;
   field: "background_color" | "background_image" | "text_color";
   message: string;

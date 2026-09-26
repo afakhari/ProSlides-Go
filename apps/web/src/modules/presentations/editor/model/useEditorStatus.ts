@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useReducer } from "react";
 
-export type EditorDirtyArea = "content" | "design" | "audio";
+type EditorDirtyArea = "content" | "design" | "audio";
 export type EditorSaveState = "saved" | "dirty" | "conflict";
 
 interface EditorStatusState {

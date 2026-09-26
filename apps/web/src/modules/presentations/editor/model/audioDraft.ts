@@ -4,24 +4,24 @@ export const AUDIO_LIMITS = {
   url: 4_096,
 } as const;
 
-export type AudioDraft = {
+type AudioDraft = {
   presentationId: string;
   revision: number;
   musicUrl: string;
 };
 
-export type AudioDraftState = {
+type AudioDraftState = {
   baseline: AudioDraft;
   draft: AudioDraft;
 };
 
-export type AudioDraftAction =
+type AudioDraftAction =
   | { type: "reset"; draft: AudioDraft }
   | { type: "saved"; draft: AudioDraft }
   | { type: "sync"; draft: AudioDraft }
   | { type: "music-url"; value: string };
 
-export type AudioValidationIssue = {
+type AudioValidationIssue = {
   code: "music_url_too_long" | "music_url_invalid";
   field: "music_url";
   message: string;
@@ -47,7 +47,7 @@ export const createAudioDraft = (
   musicUrl: String(presentation.music_url || "").trim(),
 });
 
-export const reconcileAudioDraftState = (
+const reconcileAudioDraftState = (
   state: AudioDraftState,
   incoming: AudioDraft,
 ): AudioDraftState => {

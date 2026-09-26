@@ -13,7 +13,7 @@ export interface StoredPlayerProfile {
   user_id: string | null;
 }
 
-export interface SavePlayerProfileInput {
+interface SavePlayerProfileInput {
   room_id: RoomId;
   name?: string | null;
   avatar?: string | null;

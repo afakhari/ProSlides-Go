@@ -30,7 +30,7 @@ export const newPasswordSchema = z
   .refine(passwordFitsBcrypt, "رمز عبور بیش از حد طولانی است.")
   .refine((value) => !isOnlyDecimalDigits(value), "رمز عبور نمی‌تواند فقط شامل اعداد باشد.");
 
-export const registerPasswordSchema = newPasswordSchema;
+const registerPasswordSchema = newPasswordSchema;
 
 export const registerSchema = z.object({
   email: emailSchema,
@@ -68,7 +68,4 @@ export const verificationFormSchema = verificationSchema.extend({
   fullName: inactiveAuthField,
 });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
-export type RegisterFormValues = z.infer<typeof registerSchema>;
-export type VerificationFormValues = z.infer<typeof verificationSchema>;
 export type AuthFormValues = z.infer<typeof registerFormSchema>;

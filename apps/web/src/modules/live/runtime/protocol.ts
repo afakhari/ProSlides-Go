@@ -336,7 +336,7 @@ export const normalizeLiveSlide = (
   return contentSlide;
 };
 
-export const rosterEntryToLegacy = (
+const rosterEntryToLegacy = (
   entry: RosterEntry,
   index = 0,
 ): LegacyLiveUser => ({
@@ -351,7 +351,7 @@ export const rosterEntryToLegacy = (
   new_points: null,
 });
 
-export const participantToLegacy = (
+const participantToLegacy = (
   participant: ParticipantWithScore,
 ): LegacyLiveUser => ({
   user_id: participant.id,

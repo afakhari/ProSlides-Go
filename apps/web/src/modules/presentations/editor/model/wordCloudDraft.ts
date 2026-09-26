@@ -16,12 +16,12 @@ export type WordCloudDraft = {
   durationSeconds: number;
 };
 
-export type WordCloudDraftState = {
+type WordCloudDraftState = {
   baseline: WordCloudDraft;
   draft: WordCloudDraft;
 };
 
-export type WordCloudDraftAction =
+type WordCloudDraftAction =
   | { type: "reset"; draft: WordCloudDraft }
   | { type: "saved"; draft: WordCloudDraft }
   | { type: "title"; value: string }

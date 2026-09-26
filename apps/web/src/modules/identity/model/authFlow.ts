@@ -3,7 +3,7 @@ export const PASSWORD_PROMPT_FLAG = "auth.promptSetPassword";
 
 export type AuthMode = "login" | "signup" | "verify";
 
-export type AuthStatusType =
+type AuthStatusType =
   | "error"
   | "info"
   | "network"

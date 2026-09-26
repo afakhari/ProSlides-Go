@@ -16,7 +16,7 @@ export interface PublicLiveSession {
   remaining_seconds?: number | null;
 }
 
-export interface ManagerLiveSession extends PublicLiveSession {
+interface ManagerLiveSession extends PublicLiveSession {
   host_id: string;
   join_code: string;
 }
@@ -29,7 +29,7 @@ export interface ParticipantWithScore {
   rank?: number;
 }
 
-export interface WordFrequencyTerm {
+interface WordFrequencyTerm {
   text: string;
   count: number;
 }
@@ -44,17 +44,17 @@ export interface ActivityResult {
     | { terms: WordFrequencyTerm[] };
 }
 
-export type ActivityResponse =
+type ActivityResponse =
   | { selected_option_indexes: number[] }
   | { text: string; terms?: string[] };
 
-export interface PersonalActivityResult {
+interface PersonalActivityResult {
   activity_item_id: string;
   response: ActivityResponse;
   score_delta: number;
 }
 
-export interface ParticipantSnapshot {
+interface ParticipantSnapshot {
   role: "participant";
   session: PublicLiveSession;
   active_item?: Record<string, unknown>;
@@ -66,7 +66,7 @@ export interface ParticipantSnapshot {
   activity_result?: ActivityResult;
 }
 
-export interface ActivityTopPerformer {
+interface ActivityTopPerformer {
   participant_id: string;
   display_name: string;
   avatar?: string;
@@ -74,7 +74,7 @@ export interface ActivityTopPerformer {
   rank: number;
 }
 
-export interface ManagerSnapshot {
+interface ManagerSnapshot {
   role: "manager";
   session: ManagerLiveSession;
   active_item?: Record<string, unknown>;

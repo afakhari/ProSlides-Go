@@ -21,7 +21,7 @@ export interface DashboardQuiz {
   createdAt: number;
 }
 
-export interface VersionInfo {
+interface VersionInfo {
   baseName: string;
   version: number;
 }
@@ -44,7 +44,7 @@ export const safeTimestamp = (value: unknown): number => {
   return Number.isNaN(time) ? 0 : time;
 };
 
-export const formatDate = (timestamp: unknown): string => {
+const formatDate = (timestamp: unknown): string => {
   const time = safeTimestamp(timestamp);
   return time
     ? new Date(time).toLocaleDateString("fa-IR", {
@@ -89,7 +89,7 @@ export const getVersionInfo = (title: unknown): VersionInfo => {
   return { baseName, version };
 };
 
-export const formatVersionTitle = (baseName: unknown, version: unknown): string =>
+const formatVersionTitle = (baseName: unknown, version: unknown): string =>
   `${String(baseName ?? "").trim() || "ارائه بدون عنوان"} - نسخه ${formatNumber(version)}`;
 
 export const localizeSystemTitle = (title: unknown): string => {

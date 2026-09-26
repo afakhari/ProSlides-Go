@@ -1,6 +1,6 @@
 import { ApiError } from "../../../shared/api/http.ts";
 
-export type IdentityFieldErrors = Partial<
+type IdentityFieldErrors = Partial<
   Record<"email" | "password" | "full_name" | "code" | "form", string>
 >;
 
@@ -32,9 +32,6 @@ const CODE_MESSAGES: Record<string, string> = {
   csrf_failed: "اعتبار امنیتی درخواست منقضی شده است. صفحه را تازه‌سازی کنید.",
   internal_error: "خطایی در سرور رخ داد. کمی بعد دوباره تلاش کنید.",
 };
-
-export const isApiError = (error: unknown): error is ApiError =>
-  error instanceof ApiError;
 
 export const identityErrorMessage = (
   error: unknown,

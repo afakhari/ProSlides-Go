@@ -149,7 +149,7 @@ export const isQuestionSlide = (
   isRecord(slide) &&
   slide.item_kind === "activity";
 
-export const hasContentPayload = (slide: unknown): boolean =>
+const hasContentPayload = (slide: unknown): boolean =>
   isRecord(slide) &&
   (
     String(slide.title ?? "").trim().length > 0 ||
@@ -164,7 +164,7 @@ export const isContentSlide = (
   slide.item_kind === "content" &&
   hasContentPayload(slide);
 
-export type PresentationSlide = LegacyLiveSlide | null;
+type PresentationSlide = LegacyLiveSlide | null;
 
 export type ManagerPresentationView =
   | "ManagerJoinPage"

@@ -1,7 +1,7 @@
 type TimerRole = "manager" | "player" | string;
 type RoomId = string | number | null | undefined;
 
-export interface TimerQuestion {
+interface TimerQuestion {
   question_id?: string | number | null;
   run_id?: string | number | null;
   question_time?: unknown;
@@ -32,14 +32,14 @@ interface TimerBucket {
   updatedAt?: number;
 }
 
-export interface ResolveQuestionTimerInput {
+interface ResolveQuestionTimerInput {
   question?: TimerQuestion | null;
   roomId?: RoomId;
   role?: TimerRole;
   nowMs?: number;
 }
 
-export interface ResolvedQuestionTimer {
+interface ResolvedQuestionTimer {
   identity: string;
   totalSeconds: number;
   anchorStartMs: number;

@@ -1,4 +1,4 @@
-export interface CreationGate {
+interface CreationGate {
   current: boolean;
 }
 

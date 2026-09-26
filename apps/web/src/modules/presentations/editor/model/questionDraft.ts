@@ -37,12 +37,12 @@ export type QuestionDraft = {
   options: QuestionDraftOption[];
 };
 
-export type QuestionDraftState = {
+type QuestionDraftState = {
   baseline: QuestionDraft;
   draft: QuestionDraft;
 };
 
-export type QuestionDraftAction =
+type QuestionDraftAction =
   | { type: "reset"; draft: QuestionDraft }
   | { type: "saved"; draft: QuestionDraft }
   | { type: "question-text"; value: string }
@@ -63,7 +63,7 @@ export type QuestionDraftAction =
 const formatInteger = (value: number): string =>
   new Intl.NumberFormat("fa-IR", { useGrouping: false }).format(value);
 
-export const normalizeIntegerInput = (value: string): string =>
+const normalizeIntegerInput = (value: string): string =>
   normalizeDigits(value).replace(/[٬،,\s]/g, "");
 
 export const parseDraftInteger = (value: string): number => {

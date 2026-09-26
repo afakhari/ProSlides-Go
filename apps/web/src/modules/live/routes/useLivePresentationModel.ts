@@ -16,7 +16,7 @@ type UseLivePresentationModelOptions = {
   snapshot: LiveSnapshot | null;
 };
 
-export type LivePresentationModelState = {
+type LivePresentationModelState = {
   remoteQuiz: LivePresentationModel | null;
   quiz: LivePresentationModel;
   isRemoteReady: boolean;
