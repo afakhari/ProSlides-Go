@@ -2,9 +2,9 @@
 
 Last reviewed: 2026-09-26
 
-This is the only mutable current-state document for ProSlides. Durable product
-rules live in architecture documents/ADRs; execution order lives in the v2 plan;
-historical work lives under `archive/`.
+This is the only mutable project-status document. Durable architecture belongs
+in architecture/ADR documents; operational procedures belong in runbooks;
+completed delivery history belongs in `archive/`.
 
 ## Current product foundation
 
@@ -13,256 +13,115 @@ ProSlides is a pre-production interactive-presentation platform.
 The current implementation uses:
 
 - React/Vite with application source in TypeScript/TSX;
-- modular frontend ownership following `app -> modules -> shared`;
-- a Go modular-monolith backend;
+- frontend ownership following `app -> modules -> shared`;
+- a Go modular monolith;
 - PostgreSQL as durable product truth;
-- Redis for operational/ephemeral concerns, never the answer/score/event ledger;
+- Redis only for operational/ephemeral coordination;
 - HTTP for commands/queries and SSE for server-to-client live delivery.
 
-The public/backend product model is now on the canonical v2
-Content/Activity/Session vocabulary. A small frontend live projection layer
-still uses historical question-shaped view-model field/type names internally;
-it is not a second protocol or compatibility API and is tracked as non-blocking
-frontend debt rather than preserved product behavior.
+The current product/domain model is the ProSlides v2 model documented in
+`../v2-product-architecture.md` and ADR 0004: authored Content and Activity
+Items, presenter-paced Sessions, separate Activity results and cumulative
+ranking, Stage/Backstage/Participant projections, and Session-first reports.
 
-## Active program: ProSlides v2
+The V2.1-V2.8 repository delivery program is complete through PR #137.
+The completed execution plan is archived in
+`../archive/v2-delivery-plan-2026-09.md`.
 
-The v2 architecture baseline from PR #81 is merged.
+## Verified repository baseline
 
-Authoritative sources:
+The latest verified repository baseline after PR #137 is commit
+`3c1466c7`.
 
-- target product/domain model: `../v2-product-architecture.md`;
-- implementation sequence: `../v2-development-plan.md`;
-- durable decision: ADR 0004;
-- GitHub umbrella: issue #82.
+- CI #690: green;
+- Push/CodeQL on main #552: green;
+- required `api` and fail-closed aggregate `web` checks are active;
+- browser E2E runs on pull requests and pushes to `main`;
+- three stable deterministic public surfaces have versioned Playwright visual
+  baselines;
+- dependency/export/dead-code checks are enforced;
+- production configuration fails closed on unsafe datastore/public-origin
+  settings;
+- PostgreSQL backup/restore and ended-Session replay-retention drills run in CI;
+- the final-v2 k6 scenario and SQL reconciliation harness use canonical Activity
+  lifecycle/result/ranking semantics.
 
-V2.1 / issue #83 is complete via PR #92. Authored Choice Activities use
-one canonical versioned Activity definition.
+Repository-level migration/hardening boundaries are not currently blocking
+release readiness.
 
-V2.2 / issue #84 is complete via PR #95. Live Sessions now use the generic
-`draft | lobby | presenting | ended` lifecycle, Activity response phases are
-separate from Session state, Activity results are distinct from cumulative
-overall ranking, canonical Activity definitions are frozen into each Session,
-and cumulative score ties use competition ranking semantics.
+## Release boundary
 
-V2.3 / issue #85 is complete via PR #97, with the post-merge browser
-expectation aligned by PR #98. Content and Choice authoring now use bounded
-registries, the Editor has stable item-rail/canvas/inspector/top-actions
-regions, and synthetic leaderboard selection has been removed.
+The project is **not production-certified**.
 
-V2.4 / issue #86 is complete via PRs #99, #101 and #104, with post-merge
-browser/accessibility corrections in #100, #102 and #103. Participant feedback
-is reconnect-safe and personal, the audience Stage is an isolated read-only
-projection with bounded ranking, and Backstage owns explicit presenter controls,
-private Activity results/top performers, cumulative ranking inspection and
-connection/recovery insight. Stage, Backstage and Participant therefore expose
-intentionally different capabilities over the same Session.
+The remaining V2.8 / GitHub issue #90 gates require named-environment evidence
+and must not be replaced by local Docker or shared GitHub-runner claims:
 
-V2.5 / issue #87 is complete via PR #107, with post-merge correctness and
-accessibility corrections in PR #108. Reports are now Session-first:
-Presentation history lists distinct live Sessions, each report reads frozen
-Session Activity definitions, Activity result/top-performer views remain
-separate from cumulative Session ranking, participant response/evaluation
-history is bounded, and report reads no longer depend on the removed hot
-Session participant counter. The temporary latest-session and question-results
-compatibility boundaries were subsequently removed during V2.7 cleanup.
+1. record the production-like topology and immutable commit/image pair;
+2. pass the final-v2 1k workload twice consecutively through TLS ingress with
+   hard SQL reconciliation and continuous application/database telemetry;
+3. fix measured bottlenecks and repeat the 1k gate before increasing scale;
+4. pass the applicable 5k and 10k gates on the intended multi-API topology,
+   including reconnect and response bursts without sticky-session assumptions;
+5. wire deployment dashboards/alerts and verify at least one alert path end to
+   end;
+6. verify provider snapshot/PITR and perform a production-volume restore drill,
+   recording measured RPO/RTO;
+7. verify public TLS ingress, private-only API metrics exposure, rollout/drain,
+   immutable-image rollback and functional smoke on the intended platform;
+8. perform the final release-readiness review against one immutable
+   commit/image pair and record the evidence references.
 
-V2.6 / issue #88 implementation is complete via PRs #109 and #110.
-Poll remains a product preset over canonical Choice with evaluation/scoring
-disabled. Word Cloud proves the canonical Text Activity primitive end to end:
-bounded text responses are normalized and frozen with canonical terms, the
-existing generic Activity lifecycle accepts them without a new Session state,
-and Stage, Backstage and Session-first reports render word-frequency
-aggregation without correctness, scoring or ranking semantics.
+Only after those environment gates pass should issue #90 and the v2 umbrella
+issue #82 be closed.
 
-The pre-V2.7 stabilization gate is complete via PR #111. The audit closed
-a participant SSE non-disclosure gap for unrevealed Activity results, tightened
-Persian Word Cloud aggregation normalization, reconciled live-contract/version
-documentation, refreshed vulnerable transitive web-tooling lock entries, and
-removed the remaining Stage hook warning found during the same pass. The
-resulting dependency install reports zero known vulnerabilities on the CI
-Node/npm toolchain.
+## Pull-request verification
 
-PR #111 is merged into `main`; its post-merge CI #555 was green, including the
-full browser E2E job. PR #113 subsequently removed a cache-sensitive Report E2E
-waiter exposed by CI #557. The final verified pre-V2.7 baseline is CI #560 plus
-Push on main #399, both green. V2.6 / issue #88 is therefore closed.
+The main ruleset requires `api` and `web`.
 
-**V2.7 / issue #89 is complete.** The cleanup program removed the verified legacy
-question/slide/leaderboard compatibility boundaries through PRs #114-#122.
-Persisted legacy leaderboard Items were removed as a migration-backed boundary
-in PR #122. Its post-merge Compose startup exposed a malformed PostgreSQL
-dollar-quote delimiter; PR #124 corrected the migration and added an embedded
-migration regression guard so the same delimiter defect is rejected by
-`go test ./...`.
+- `api`: Go tests/vet/race and backend contract/configuration checks.
+- `web-fast`: dependency review, generated API types, lint, TypeScript,
+  architecture checks, unit/component tests, dead-code/export/dependency checks
+  and production build.
+- `browser-e2e`: real Compose/API/Playwright critical flows, restore and
+  retention drills.
+- required `web`: runs with `if: always()` and fails unless both
+  `web-fast` and `browser-e2e` report success.
 
-The final V2.7 baseline is commit
-`7b6cf714b94823c6b77bd0f5c92771f0ca511de6`. Post-merge CI #608 is green,
-including API readiness on a real PostgreSQL migration path and the full browser
-E2E job. Push on main #448 is also green. Issue #89 is closed.
+A failed/skipped browser job therefore cannot satisfy the required web gate.
 
-**Active implementation slice: V2.8 / issue #90 — production-readiness
-hardening.**
+High-risk live/domain changes additionally protect idempotency, state-version
+conflicts, frozen Session definitions, deadline authority, reconnect recovery
+and participant non-disclosure at the smallest useful test layer.
 
-V2.8 now owns the final quality gates: critical browser E2E expansion and
-repeatability, accessibility/keyboard/screen-reader review, responsive coverage,
-stable-surface visual regression, export/dependency analysis,
-security/deployment/restore hardening, load/capacity verification against the
-final v2 live protocol, observability/event-retention decisions, and release
-readiness.
+## Current non-blocking debt
 
-The first V2.8 hardening boundaries are merged. PR #126 restored browser E2E to
-pull requests behind a fast frontend job; PR #127 added bounded repeatability for
-critical flows plus responsive/accessibility coverage. PR #128 moved the
-remaining hand-rolled modal semantics to focus-managed dialogs. Its browser run
-then exposed both an item-picker focus defect and a fail-open aggregate-check
-edge case. PR #129 corrected the focus contract and changed the required
-aggregate `web` job to run with fail-closed semantics. PR #130 unified the
-remaining native-dialog focus lifecycle for manager QR, private ranking and the
-Editor image URL flow, including nested Backstage modal behavior. PR CI #628
-passed the full browser suite plus repeated critical flows; post-merge CI #629
-and Push on main #471 are green.
+The authoritative frontend debt register is `../frontend-debt.md`.
 
-PR #131 completed the conservative frontend export/dependency boundary. It
-added the required `dead-code:check`, removed the surfaced unused-export/dead
-symbol baseline rather than normalizing it as exemptions, and documents the
-small set of intentional non-static tooling dependencies. PR CI #667 passed all
-fast checks, the full browser suite and repeated critical flows; post-merge CI
-#668 and Push/CodeQL on main #529 are green.
+Important remaining items are non-blocking for the repository baseline:
 
-PR #132 completed the repository security/deployment/restore boundary.
-Production startup now fails closed on unencrypted PostgreSQL/Redis transport
-and invalid public/proxy/provider configuration. Checked-in PostgreSQL 16
-backup/restore commands validate archives, require an explicit isolated-restore
-confirmation, reject literal and alias-equivalent source targets by connected
-database identity, and are exercised through a real isolated restore drill in
-CI. PR CI #672 passed that drill, the full browser suite and repeated critical
-flows; post-merge CI #673 and Push on main #534 are green. Provider-level
-snapshots/PITR, production-volume RPO/RTO, and external secret/network controls
-remain deployment-environment responsibilities.
+- some mature UI surfaces still carry older styling/direction details;
+- component/API-state matrices remain selective outside high-risk behavior;
+- the live frontend still has a historical question-shaped internal projection
+  over the canonical v2 protocol; it is an implementation refactor debt, not a
+  second public/live protocol;
+- visual regression remains intentionally selective for deterministic stable
+  surfaces;
+- major framework/toolchain upgrades remain separate from release hardening.
 
-PR #133 completed the in-repository final-v2 load-harness boundary. Durable
-reconciliation now validates explicit Activity identity, canonical
-`presenting/closed` closure, canonical result/ranking events, score/cardinality
-and idempotency invariants, and no post-close responses. Participant load VUs
-handle both an already-accepting snapshot and the accepting SSE transition, and
-phase timing scales with the configured join window. PR CI #674 passed the
-harness guard, restore drill, full browser suite and repeated critical flows;
-post-merge CI #675 and Push on main #536 are green. Production-like 1k/5k/10k
-capacity measurements remain pending named infrastructure and telemetry.
+Do not turn these items into broad cleanup programs unless they solve a measured
+product, correctness, accessibility or maintenance problem.
 
-PR #134 completed the repository observability/event-retention boundary. Live
-event lag is now exported as a bounded histogram suitable for p95/p99 alerting,
-and the operations/architecture documents define application-versus-platform
-telemetry ownership. Ended-Session replay events have a 30-day default
-operational retention window with dry-run-by-default, explicit-confirmation,
-batched pruning; active/non-ended Sessions are never eligible. CI verifies the
-age threshold and destructive guard on real Session/event data. PR CI #678
-passed after the maintenance path was corrected; post-merge CI #679 and Push on
-main #540 are green.
+## Scope locks
 
-PR #135 completed the final repository migration-residue audit. Obsolete Go
-Choice-policy compatibility aliases were removed in favor of canonical
-Activity-policy types, stale migration claims were removed from current
-documentation, and the still-active question-shaped frontend projection was
-classified explicitly as non-blocking internal refactor debt rather than a
-second protocol. PR CI #680 passed API/race, generated-type/dead-code/build,
-full browser E2E, repeated critical flows, restore and retention drills;
-post-merge CI #681 and Push on main #542 are green.
-
-The remaining V2.8 release gates are now environment/evidence-heavy:
-production-like capacity runs on named infrastructure, deployment dashboard and
-alert wiring, provider snapshot/PITR plus measured RPO/RTO evidence, and the
-final release-readiness review. Stable-surface visual regression is now
-implemented selectively for deterministic public surfaces; broader screenshots
-remain intentionally excluded unless a surface is stable enough that the
-maintenance cost produces useful regression signal. No known repository
-migration boundary is currently open.
-
-v2 is a staged migration of the existing system, not a rewrite.
-
-### v2.0 scope locks
+For the current v2.0 product generation:
 
 - presenter-paced live only;
 - individual participation only;
 - no team mode;
 - no self-paced/assignment mode;
 - no parallel internal `/api/v2`;
-- no generic flow/workflow DSL;
-- no framework/toolchain upgrade mixed into a domain redesign unless required.
+- no generic workflow DSL;
+- no microservice/broker/new-datastore rewrite without measured need.
 
-Changing one of these locks requires updating the v2 architecture decision
-before implementation.
-
-## Correctness that must survive every v2 slice
-
-- presentation edits preserve `If-Match` revision conflict behavior;
-- live command retries reuse stable `request_id`;
-- manager commands preserve `expected_state_version`;
-- live Sessions use frozen authored definitions and are not mutated by later
-  editor changes;
-- PostgreSQL remains authoritative for accepted responses, scores and events;
-- live clients recover snapshot-first and resume SSE from `last_event_id`;
-- participant projections and event streams never retain or deliver
-  manager-only roster, score-map or unrevealed Activity-result/correctness data;
-- server deadline/closure remains authoritative for response acceptance.
-
-These are migration constraints, not reasons to keep legacy naming forever.
-
-## Development mode
-
-Speed of pre-production product redesign is the current priority.
-
-Keep cheap/high-signal guardrails continuously:
-
-- OpenAPI/generated type consistency when contracts change;
-- Go tests/vet for affected backend packages;
-- frontend lint, TypeScript and architecture checks;
-- stable domain/protocol tests;
-- focused component/API-state tests for behavior that is expensive to rediscover.
-
-Do not freeze temporary UI with broad snapshot/state-matrix coverage solely to
-increase a coverage number.
-
-Deferred frontend debt is tracked in `../frontend-debt.md`.
-
-## Pull-request safety net
-
-The main ruleset still requires the `api` and `web` checks. In V2.8, `web`
-is an aggregate release gate rather than the fast frontend job itself:
-`web-fast` runs dependency review, generated-type checks, lint, typecheck,
-architecture checks, unit/component tests and the production build, while
-`browser-e2e` runs the real Compose/API/Playwright stack on pull requests,
-pushes to `main` and manual workflow runs. The required `web` job uses
-`if: always()` and explicitly fails unless both dependencies report
-`success`; a failed or skipped browser job therefore cannot satisfy the
-required check.
-
-This keeps fast frontend feedback visible without allowing a pull request to
-merge before the stable browser flows have passed. The existing `api` required
-check remains unchanged, and `containers` remains the browser stack
-prerequisite. CodeQL is still a useful non-required security signal.
-
-High-risk live/domain changes continue to verify focused API/domain/protocol
-invariants, including idempotency, stale-version conflict, frozen Session
-definitions, deadline rejection, reconnect recovery and participant
-non-disclosure. Browser E2E is now part of the pull-request path again rather
-than a post-merge discovery mechanism.
-
-## Production-readiness boundary
-
-The project is not production-certified.
-
-V2.8 / issue #90 owns final hardening after the v2 product surfaces and live
-protocol stabilize. That phase includes:
-
-- expanded/repeated critical browser E2E;
-- accessibility and responsive audits;
-- visual regression for stable UI;
-- enforced export/dependency analysis;
-- security/deployment/restore verification;
-- production-like load/capacity gates against the **final v2 live protocol**;
-- observability and event-retention decisions.
-
-Existing local load and frontend-quality measurements are historical evidence,
-not proof of v2 production readiness.
+Changing one of these requires a deliberate product/architecture decision, not
+an incidental implementation change.

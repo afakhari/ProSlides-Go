@@ -40,10 +40,9 @@ each readiness check. Never place real credentials in `.env.example` or Git.
 migration sequence. All identity, SMTP, Google, proxy, and runtime variables are documented in
 [`docs/configuration.md`](../../docs/configuration.md).
 
-API contract changes begin in `openapi/openapi.yaml`. Before v2 work, read the
-repository root `AGENTS.md`, `../../docs/status/current.md`,
-`../../docs/v2-product-architecture.md` and the active slice in
-`../../docs/v2-development-plan.md`.
+API contract changes begin in `openapi/openapi.yaml`. Before backend/domain
+work, read the repository root `AGENTS.md`, `../../docs/status/current.md`,
+the relevant system/product architecture or ADR, and the OpenAPI contract.
 
 ## Current implementation baseline
 

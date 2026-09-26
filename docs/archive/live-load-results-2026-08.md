@@ -1,6 +1,6 @@
-# Live load-test evidence
+# Historical live load-test evidence
 
-This file records measured results, including failed experiments. The measured
+Status: **dated local evidence from 2026-08**. This file records measured results, including failed experiments. The measured
 runs below exercise the pre-v2 question-specific live protocol. They remain
 historical evidence for the underlying system but do not certify the final v2
 Activity protocol or production capacity.

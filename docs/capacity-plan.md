@@ -84,7 +84,7 @@ answer, and event-lag metrics are also present. The real protocol scenario and
 hard SQL reconciliation passed locally at 100 users and twice at 1k with 500
 joins/second, both directly and in two consecutive follow-up runs through the
 same-origin Nginx ingress. These Docker Desktop runs are recorded in
-`docs/load-test-results.md`; they do not include TLS or remote hosts and are not
+`docs/archive/live-load-results-2026-08.md`; they do not include TLS or remote hosts and are not
 the production-like 1k gate. Continuous lock sampling and sampled
 cross-component traces remain.
 

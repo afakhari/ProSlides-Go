@@ -13,10 +13,9 @@ system of record, Redis for optional ephemeral coordination, HTTP for commands,
 and SSE for server-to-client delivery. It deliberately avoids the operational
 cost of microservices and a message broker until measurements justify them.
 
-The active ProSlides v2 product-model target is defined separately in
-`docs/v2-product-architecture.md` and ADR 0004. v2 changes the domain vocabulary
-and live/product projections while preserving these infrastructure and
-correctness invariants.
+The current ProSlides v2 product/domain model is defined separately in
+`docs/v2-product-architecture.md` and ADR 0004. This document owns the
+infrastructure and correctness invariants that model relies on.
 
 ## System context
 
@@ -62,10 +61,10 @@ a measured need.
 
 Frontend technical boundaries, state ownership, forms/API rules, styling and
 testing live in `docs/frontend-architecture.md`; ADR 0003 records the decision
-rationale. Active v2 sequencing lives in `docs/v2-development-plan.md`.
-Persian product/UX rules live in
-`docs/frontend-professionalization.md`. Current implementation status is kept only in `docs/status/current.md`;
-intentionally deferred frontend debt is in `docs/frontend-debt.md`.
+rationale. Persian product/UX rules live in
+`docs/frontend-professionalization.md`. Current implementation/release status
+is kept only in `docs/status/current.md`; intentionally deferred frontend debt
+is in `docs/frontend-debt.md`. The completed v2 delivery plan is archived.
 
 ## Module boundaries
 
@@ -230,8 +229,8 @@ Redis loss must degrade latency/presence, never lose a durable event or answer.
 - Participant credentials are high-entropy values stored only as SHA-256 hashes
   and sent in scoped HttpOnly cookies, never SSE query strings.
 - Production cookies are Secure; CORS and origins must be explicitly restricted.
-- Logs must not contain passwords, cookies, credentials, or answers before a
-  question closes.
+- Logs must not contain passwords, cookies, credentials, or participant
+  responses/correctness before disclosure is allowed.
 - Redis coordinates fixed-window limits for register, login, verification,
   Google login, and password reset while hashing the client identifier in keys.
   Identity and live limits fail open during Redis failure so durable commands

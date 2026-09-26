@@ -113,9 +113,9 @@ Required behavior includes:
 - readable contrast across allowed runtime themes.
 
 Automated axe checks are useful smoke coverage, not a substitute for
-keyboard/manual review. During active pre-production redesign, run focused
-checks on changed critical flows and consolidate the full manual audit before
-the production-readiness milestone.
+keyboard/manual review. Critical flows have automated accessibility/focus
+coverage; final environment/device/manual review remains part of release
+evidence where automation cannot prove the experience.
 
 ## Motion
 
@@ -128,31 +128,17 @@ boundary. All effects require reduced-motion behavior.
 
 ## Browser acceptance
 
-The project is currently pre-production and broad frontend redesign is active.
-Browser verification is therefore staged to preserve iteration speed.
+Critical browser flows are part of the required pull-request gate and are
+repeated on pull requests/manual runs. Stable public surfaces may use versioned
+visual baselines; dynamic Editor/Live/Report behavior remains primarily
+behavioral E2E.
 
-For ordinary redesign slices, perform a focused real-browser smoke check of the
-changed flow, including the most relevant viewport, basic RTL behavior,
-interaction/focus sanity and obvious console/network failures. Do not require
-the full device/state matrix or new E2E scenarios merely because markup,
-spacing, composition or visual hierarchy changed.
+For ordinary UI changes, verify the affected flow, relevant viewport, RTL/mixed
+direction, focus/keyboard behavior and obvious console/network failures. Extend
+automation when a change touches costly behavior such as authentication,
+revision/conflict handling, live manager/participant coordination, cancellation,
+reconnect/recovery or destructive operations.
 
-Use broader browser automation immediately when a change touches a costly
-behavioral invariant such as authentication, editor revision/conflict handling,
-full-document navigation, live manager/participant coordination, cancellation
-or mutation recovery.
-
-Before production, complete the full acceptance matrix for:
-
-- desktop and mobile anchor sizes plus relevant intermediate/container states;
-- RTL and mixed LTR content;
-- keyboard focus/order and manual accessibility review;
-- reduced motion;
-- horizontal overflow;
-- console/network errors;
-- pending/error/recovery/conflict/cancellation paths;
-- critical end-to-end manager and participant journeys.
-
-Static screenshots alone do not prove interaction quality, but visual-regression
-coverage should wait until a surface is stable enough that snapshots protect a
-design rather than obstruct its redesign.
+Static screenshots do not prove interaction quality. Add visual baselines only
+when the surface is deterministic and stable enough that snapshot maintenance
+has clear regression value.

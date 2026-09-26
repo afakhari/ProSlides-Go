@@ -18,15 +18,15 @@ ephemeral concerns and is never the durable response, score or event ledger.
 
 ## ProSlides v2
 
-The active product generation is ProSlides v2. It is an incremental redesign of
-the existing system, not a rewrite.
+The current product generation is ProSlides v2. It was delivered incrementally
+from the existing system rather than through a rewrite.
 
 Read:
 
 - [current status](docs/status/current.md);
-- [v2 product architecture](docs/v2-product-architecture.md);
-- [v2 development plan](docs/v2-development-plan.md);
-- [ADR 0004](docs/decisions/0004-v2-activity-session-model.md).
+- [current product architecture](docs/v2-product-architecture.md);
+- [ADR 0004](docs/decisions/0004-v2-activity-session-model.md);
+- [documentation map](docs/README.md).
 
 v2.0 is intentionally scoped to presenter-paced individual participation. Team
 mode and self-paced/assignment delivery are not part of the current program.
@@ -36,7 +36,7 @@ mode and self-paced/assignment delivery are not part of the current program.
 - `apps/api` — Go API, migrations and OpenAPI contract.
 - `apps/web` — React/Vite TypeScript client.
 - `load/k6` — live-protocol load/reconciliation tooling.
-- `docs` — architecture, current state, plans, runbooks and evidence.
+- `docs` — architecture, current state, runbooks, debt and archived evidence.
 - `AGENTS.md` — repository-wide engineering rules.
 
 Use [docs/README.md](docs/README.md) as the documentation authority map.
