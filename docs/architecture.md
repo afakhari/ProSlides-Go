@@ -189,9 +189,13 @@ data. The client
 then joins over HTTP, applies the authoritative role-scoped snapshot, opens SSE
 with `Last-Event-ID`, and refreshes snapshot state before reconnecting. JSON
 live requests are bounded so a broken network cannot leave the UI waiting
-forever. The SSE client treats receipt of response headers as the connection
-boundary and uses the server heartbeat as a liveness signal; prolonged stream
-silence forces the normal snapshot-plus-replay recovery path. Manager roster
+forever. Participant answer drafts and in-flight submissions are retained only
+in same-tab `sessionStorage`; refresh restores the draft, while an in-flight
+submission retains its original idempotency key until the authoritative
+participant snapshot confirms whether it was committed. The SSE client treats
+receipt of response headers as the connection boundary and uses the server
+heartbeat as a liveness signal; prolonged stream silence forces the normal
+snapshot-plus-replay recovery path. Manager roster
 pages are loaded in batches of at most 100; participant projections discard
 roster input and never hold a complete score map.
 
