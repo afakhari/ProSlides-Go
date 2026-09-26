@@ -391,7 +391,7 @@ export function ParticipantWordCloud({
                     : "ثبت پاسخ"}
               </button>
             )}
-            {submitMessage ? (
+            {submitMessage && submitState !== "sent" ? (
               <p
                 role={submitState === "rejected" ? "alert" : "status"}
                 className="mt-3 text-center text-sm text-[color:var(--live-muted)]"
