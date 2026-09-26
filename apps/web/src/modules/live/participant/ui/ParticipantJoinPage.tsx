@@ -30,7 +30,7 @@ export function ParticipantJoinPage({
     return (
       <ParticipantShell
         quiz={quiz}
-        connected={controller.isConnected}
+        connected={controller.isStreamConnected}
         showConnection={!controller.isJoining}
       >
         <section className="flex flex-1 flex-col items-center justify-center py-5 text-center">
