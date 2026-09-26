@@ -149,6 +149,28 @@ export function participant(data) {
   let receivedClose = false;
   let answerAttempted = false;
   let answerSucceeded = false;
+
+  const attemptAnswer = () => {
+    if (answerAttempted) return;
+    answerAttempted = true;
+    const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
+      request_id: requestID(),
+      activity_item_id: data.activityItemID,
+      response: { selected_option_indexes: [0] },
+    }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
+    answerDuration.add(answered.timings.duration);
+    answerSucceeded = answered.status === 201;
+  };
+
+  if (
+    snapshotBody.session &&
+    snapshotBody.session.state === "presenting" &&
+    snapshotBody.session.activity_phase === "accepting" &&
+    snapshotBody.session.active_item_id === data.activityItemID
+  ) {
+    attemptAnswer();
+  }
+
   const response = sse.open(`${baseURL}/api/v1/live/sessions/${data.sessionID}/events`, {
     method: "GET",
     headers: { Accept: "text/event-stream", "Last-Event-ID": String(snapshotBody.last_event_id) },
@@ -162,16 +184,9 @@ export function participant(data) {
         envelope.payload &&
         envelope.payload.state === "presenting" &&
         envelope.payload.activity_phase === "accepting" &&
-        !answerAttempted
+        envelope.payload.active_item_id === data.activityItemID
       ) {
-        answerAttempted = true;
-        const answered = http.post(`${baseURL}/api/v1/live/sessions/${data.sessionID}/answers`, JSON.stringify({
-          request_id: requestID(),
-          activity_item_id: data.activityItemID,
-          response: { selected_option_indexes: [0] },
-        }), { headers: jsonHeaders, jar, tags: { operation: "answer" } });
-        answerDuration.add(answered.timings.duration);
-        answerSucceeded = answered.status === 201;
+        attemptAnswer();
       }
       if (
         envelope.payload &&
