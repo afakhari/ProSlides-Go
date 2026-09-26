@@ -42,7 +42,6 @@ psql_client() {
 
 echo "live-event retention policy: ended Sessions older than ${retention_days} day(s)"
 psql_client -At \
-  -v retention_days="$retention_days" \
   -c "SELECT json_build_object(
         'eligible_sessions', count(DISTINCT ls.id),
         'eligible_events', count(le.event_id),
@@ -52,7 +51,7 @@ psql_client -At \
       LEFT JOIN live_events le ON le.session_id = ls.id
       WHERE ls.state = 'ended'
         AND ls.ended_at IS NOT NULL
-        AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
+        AND ls.ended_at < clock_timestamp() - make_interval(days => $retention_days);"
 
 if [[ "$dry_run" == "1" ]]; then
   echo "dry-run only; no live events were deleted"
@@ -62,18 +61,16 @@ fi
 total_deleted=0
 while true; do
   deleted="$(
-    psql_client -At \
-      -v retention_days="$retention_days" \
-      -v batch_size="$batch_size" <<'SQL'
+    psql_client -At <<SQL
 WITH doomed AS (
     SELECT le.event_id
     FROM live_sessions ls
     JOIN live_events le ON le.session_id = ls.id
     WHERE ls.state = 'ended'
       AND ls.ended_at IS NOT NULL
-      AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int)
+      AND ls.ended_at < clock_timestamp() - make_interval(days => $retention_days)
     ORDER BY ls.ended_at, le.event_id
-    LIMIT :'batch_size'::int
+    LIMIT $batch_size
     FOR UPDATE OF le SKIP LOCKED
 ), deleted AS (
     DELETE FROM live_events le
@@ -97,13 +94,12 @@ done
 
 remaining="$(
   psql_client -At \
-    -v retention_days="$retention_days" \
     -c "SELECT count(*)
         FROM live_events le
         JOIN live_sessions ls ON ls.id = le.session_id
         WHERE ls.state = 'ended'
           AND ls.ended_at IS NOT NULL
-          AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
+          AND ls.ended_at < clock_timestamp() - make_interval(days => $retention_days);"
 )"
 if [[ "$remaining" != "0" ]]; then
   echo "retention run left $remaining eligible event(s); retry after concurrent maintenance completes" >&2
