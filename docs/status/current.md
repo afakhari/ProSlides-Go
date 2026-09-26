@@ -122,11 +122,20 @@ Editor image URL flow, including nested Backstage modal behavior. PR CI #628
 passed the full browser suite plus repeated critical flows; post-merge CI #629
 and Push on main #471 are green.
 
-The active hardening boundary is conservative frontend export/dependency
-analysis. Existing architecture tooling already rejects unreachable TypeScript
-source files, so this slice focuses on unused exports plus unexplained missing or
-unused direct packages, with explicit reviewed exemptions for intentional
-non-static tool usage.
+PR #131 completed the conservative frontend export/dependency boundary. It
+added the required `dead-code:check`, removed the surfaced unused-export/dead
+symbol baseline rather than normalizing it as exemptions, and documents the
+small set of intentional non-static tooling dependencies. PR CI #667 passed all
+fast checks, the full browser suite and repeated critical flows; post-merge CI
+#668 and Push/CodeQL on main #529 are green.
+
+The active hardening boundary is now security/deployment/restore. The current
+slice makes production origin/proxy/provider configuration fail closed in the
+API process and turns PostgreSQL backup/restore from runbook-only commands into
+checked-in guarded operations exercised against an isolated restored database
+in CI. Provider-level snapshots/PITR, production-volume RPO/RTO, and external
+secret/network controls remain deployment-environment responsibilities and are
+not implied by the repository drill.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
@@ -208,7 +217,7 @@ protocol stabilize. That phase includes:
 - expanded/repeated critical browser E2E;
 - accessibility and responsive audits;
 - visual regression for stable UI;
-- deferred export/dependency analysis;
+- enforced export/dependency analysis;
 - security/deployment/restore verification;
 - production-like load/capacity gates against the **final v2 live protocol**;
 - observability and event-retention decisions.
