@@ -94,7 +94,7 @@ export interface ServerDataValue extends ServerDataFields {
   serverData: ServerDataFields;
 }
 
-export const isManagerSnapshot = (
+const isManagerSnapshot = (
   snapshot: LiveSnapshot | null | undefined,
 ): snapshot is Extract<LiveSnapshot, { role: "manager" }> =>
   snapshot?.role === "manager";
