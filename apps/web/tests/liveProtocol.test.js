@@ -519,6 +519,61 @@ test("SSE starts after the snapshot cursor and parses event envelopes", async ()
   assert.deepEqual(received.map((event) => event.event_id), [43]);
 });
 
+test("SSE reports open only after response headers are available", async () => {
+  const originalFetch = globalThis.fetch;
+  let opened = 0;
+  globalThis.fetch = async () =>
+    new Response(": heartbeat\n\n", {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+
+  try {
+    await streamLiveEvents("session", 0, {
+      signal: new AbortController().signal,
+      onOpen: () => {
+        opened += 1;
+      },
+      onEvent: () => {},
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(opened, 1);
+});
+
+test("SSE silence watchdog rejects a stalled open stream", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      new ReadableStream({
+        start() {
+          // Deliberately leave the stream open without events or heartbeats.
+        },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      },
+    );
+
+  try {
+    await assert.rejects(
+      streamLiveEvents("session", 0, {
+        signal: new AbortController().signal,
+        silenceTimeoutMs: 5,
+        onEvent: () => {},
+      }),
+      (error) =>
+        error instanceof Error &&
+        error.message === "event_stream_stalled",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("access codes resolve through the Go live API", async () => {
   const originalFetch = globalThis.fetch;
   let requestedURL = "";

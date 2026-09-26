@@ -23,13 +23,42 @@ export function AppPresentation({
     connect,
     joinParticipant,
     snapshot,
-    sessionId: liveSessionId,
+    connectionError,
   } = useLiveSession();
 
   useEffect(() => {
-    if (role !== "manager" || !roomId || liveSessionId) return;
-    void connect(roomId);
-  }, [role, roomId, liveSessionId, connect]);
+    if (role !== "manager" || !roomId || snapshot?.role === "manager") return;
+
+    let cancelled = false;
+    let retry = 750;
+    let timer = 0;
+    let wake: (() => void) | null = null;
+
+    const wait = (milliseconds: number) =>
+      new Promise<void>((resolve) => {
+        wake = resolve;
+        timer = window.setTimeout(() => {
+          timer = 0;
+          wake = null;
+          resolve();
+        }, milliseconds);
+      });
+
+    void (async () => {
+      while (!cancelled) {
+        const connected = await connect(roomId);
+        if (cancelled || connected) return;
+        await wait(retry);
+        retry = Math.min(retry * 2, 10_000);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      wake?.();
+    };
+  }, [role, roomId, snapshot?.role, connect]);
 
   const { remoteQuiz, quiz, isRemoteReady } = useLivePresentationModel({
     roomId,
@@ -75,6 +104,18 @@ export function AppPresentation({
   });
 
   if (role === "manager") {
+    if (snapshot?.role !== "manager") {
+      return (
+        <Waiting
+          message={
+            connectionError
+              ? "ارتباط با جلسه برقرار نشد؛ در حال تلاش دوباره…"
+              : "در حال آماده‌سازی جلسه…"
+          }
+        />
+      );
+    }
+
     return (
       <PresentationErrorBoundary key={`manager-${roomId ?? "unknown"}`}>
         <ManagerPresentationView

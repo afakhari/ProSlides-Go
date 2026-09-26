@@ -23,7 +23,7 @@ export function ParticipantQuestion({
   return (
     <ParticipantShell
       quiz={quiz}
-      connected={controller.isConnected}
+      connected={controller.isStreamConnected}
       showConnection
     >
       <section className="flex flex-1 flex-col py-3">

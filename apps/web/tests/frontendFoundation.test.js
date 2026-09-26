@@ -573,7 +573,7 @@ test("live presentation route owns a typed role composition without a legacy bri
   assert.doesNotMatch(entry, /\bany\b/);
 });
 
-test("live presentation loading uses the shared REST boundary and a typed route model loader", () => {
+test("live presentation loading uses the shared REST boundary with bounded retry recovery", () => {
   const flow = source("src/modules/live/routes/PresentationFlow.tsx");
   const loader = source("src/modules/live/routes/useLivePresentationModel.ts");
   const presentationApi = source("src/modules/live/api/presentationApi.ts");
@@ -582,9 +582,11 @@ test("live presentation loading uses the shared REST boundary and a typed route 
   assert.match(flow, /useLivePresentationModel/);
   assert.doesNotMatch(flow, /getPresentation|presentationSlideToLegacy|setRemoteQuiz/);
   assert.match(loader, /new AbortController\(\)/);
-  assert.match(loader, /getPresentationForLive\(roomId, controller\.signal\)/);
+  assert.match(loader, /getPresentationForLive\([\s\S]*roomId,[\s\S]*controller\.signal/);
   assert.match(loader, /presentationSlideToLegacy/);
-  assert.match(loader, /return \(\) => controller\.abort\(\)/);
+  assert.match(loader, /window\.setTimeout\(\(\) => controller\.abort\(\), 15_000\)/);
+  assert.match(loader, /retry = Math\.min\(retry \* 2, 10_000\)/);
+  assert.match(loader, /activeController\?\.abort\(\)/);
   assert.match(presentationApi, /requestJson<Presentation>/);
   assert.match(presentationApi, /\{ signal \}/);
   assert.doesNotMatch(liveApi, /presentations\//);

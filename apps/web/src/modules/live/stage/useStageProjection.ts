@@ -48,12 +48,18 @@ const wait = (milliseconds: number, signal: AbortSignal) =>
     );
   });
 
+const isFatalStageError = (error: unknown) =>
+  error instanceof LiveAPIError && [401, 404].includes(error.status);
+
 const errorText = (error: unknown) => {
   if (error instanceof LiveAPIError) {
     if (error.status === 401) return "دسترسی Stage معتبر نیست.";
     if (error.status === 404) return "جلسه زنده پیدا نشد.";
+    return "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…";
   }
-  return error instanceof Error ? error.message : "ارتباط Stage برقرار نشد.";
+  return error instanceof Error
+    ? "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…"
+    : "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…";
 };
 
 export function useStageProjection(sessionId: string | undefined) {
@@ -143,30 +149,43 @@ export function useStageProjection(sessionId: string | undefined) {
     };
 
     void (async () => {
-      try {
-        await refresh();
-      } catch (error) {
-        if (!controller.signal.aborted) {
+      let retry = 500;
+
+      while (!controller.signal.aborted && !snapshotRef.current) {
+        try {
+          await refresh();
+          retry = 500;
+        } catch (error) {
+          if (controller.signal.aborted) return;
           setState({
             snapshot: null,
             isConnected: false,
             isLoading: false,
             error: errorText(error),
           });
+          if (isFatalStageError(error)) return;
+          await wait(retry, controller.signal);
+          retry = Math.min(retry * 2, 10_000);
         }
-        return;
       }
 
-      let retry = 500;
       while (!controller.signal.aborted) {
         try {
           setState((value) => ({
             ...value,
-            isConnected: true,
+            isConnected: false,
             error: null,
           }));
           await streamLiveEvents(sessionId, cursorRef.current.eventId, {
             signal: controller.signal,
+            onOpen: () => {
+              if (controller.signal.aborted) return;
+              setState((value) => ({
+                ...value,
+                isConnected: true,
+                error: null,
+              }));
+            },
             onEvent: handleEvent,
           });
           if (!controller.signal.aborted) {
@@ -179,6 +198,7 @@ export function useStageProjection(sessionId: string | undefined) {
             isConnected: false,
             error: errorText(error),
           }));
+          if (isFatalStageError(error)) return;
 
           await wait(retry, controller.signal);
           retry = Math.min(retry * 2, 10_000);

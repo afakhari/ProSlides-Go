@@ -1277,7 +1277,7 @@ components:
         text_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
     ParticipantLiveSnapshot:
       type: object
-      required: [role, session, participant, participant_count, has_scoring, last_event_id]
+      required: [role, session, participant, has_responded, participant_count, has_scoring, last_event_id]
       additionalProperties: false
       properties:
         role: { type: string, enum: [participant] }
@@ -1287,6 +1287,9 @@ components:
           additionalProperties: true
           description: Active Item projected for the participant; correctness metadata is omitted until the Activity is revealed.
         participant: { $ref: '#/components/schemas/ParticipantWithScore' }
+        has_responded:
+          type: boolean
+          description: True when this participant already has a durable Response for the active Activity; does not disclose correctness or score delta before reveal.
         personal_activity_result: { $ref: '#/components/schemas/PersonalActivityResult' }
         participant_count: { type: integer, minimum: 0 }
         has_scoring: { type: boolean, description: True when the frozen Session contains at least one scored Activity. }

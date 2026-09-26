@@ -57,10 +57,12 @@ const emptyRoster = (order = "joined") => ({
   next_cursor: "",
 });
 
-const parkedStream = async (_id, _lastEventId, { signal }) =>
-  new Promise((resolve) => {
+const parkedStream = async (_id, _lastEventId, { signal, onOpen }) => {
+  onOpen?.();
+  return new Promise((resolve) => {
     signal.addEventListener("abort", resolve, { once: true });
   });
+};
 
 test("disconnect resets the authoritative cursor before selecting another session", async () => {
   let requestedPresentation = "";

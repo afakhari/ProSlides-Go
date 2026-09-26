@@ -6,6 +6,14 @@ import type { LegacyQuestionSlide } from "../../model/serverData.ts";
 import { resolveQuestionTimer } from "../../model/questionTimer.ts";
 import { useLiveSession } from "../../react/useLiveSession.ts";
 import { ParticipantShell } from "../ParticipantShell.tsx";
+import {
+  clearAnswerDraft,
+  clearPendingAnswer,
+  readAnswerDraft,
+  readPendingAnswer,
+  saveAnswerDraft,
+  savePendingAnswer,
+} from "../pendingAnswerStorage.ts";
 
 type SubmitState =
   | "idle"
@@ -36,7 +44,13 @@ export function ParticipantWordCloud({
   question: LegacyQuestionSlide;
   quiz: LivePresentationModel;
 }) {
-  const { submitAnswer, isConnected, connectionError } = useLiveSession();
+  const {
+    submitAnswer,
+    isConnected,
+    isStreamConnected,
+    connectionError,
+    snapshot,
+  } = useLiveSession();
   const identity = String(question.question_id ?? question.slide_id ?? "");
   const timerScope = String(roomId ?? "unknown") + ":" + identity + ":" + String(question.run_id ?? "na");
   const maxLength = Math.max(1, Number(question.response_max_length ?? 80));
@@ -52,6 +66,7 @@ export function ParticipantWordCloud({
   const remainingRef = useRef(0);
   const pendingRef = useRef<{ requestId: string; text: string } | null>(null);
   const inFlightRef = useRef(false);
+  const restoredPendingRef = useRef(false);
   const wasConnectedRef = useRef(isConnected);
 
   useEffect(() => {
@@ -67,12 +82,44 @@ export function ParticipantWordCloud({
     remainingRef.current = resolved.remainingSeconds;
     setTimeLeft(resolved.remainingSeconds);
     setTotalSeconds(resolved.totalSeconds);
-    setValue("");
-    setSubmitState("idle");
-    setSubmitMessage("");
-    pendingRef.current = null;
+    const restored = readPendingAnswer(roomId, timerScope);
+    const draft = readAnswerDraft(roomId, timerScope);
+    const restoredText =
+      restored && "text" in restored.response
+        ? restored.response.text
+        : draft && "text" in draft
+          ? draft.text
+          : "";
+    setValue(restoredText);
+    setSubmitState(restored ? "retryable" : "idle");
+    setSubmitMessage(
+      restored
+        ? "ارسال قبلی پس از تازه‌سازی در حال بازیابی است."
+        : "",
+    );
+    pendingRef.current =
+      restored?.request_id && "text" in restored.response
+        ? { requestId: restored.request_id, text: restored.response.text }
+        : null;
+    restoredPendingRef.current = Boolean(restored);
     inFlightRef.current = false;
   }, [roomId, timerScope]);
+
+  useEffect(() => {
+    const alreadySubmitted =
+      snapshot?.role === "participant" &&
+      snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === identity;
+    if (!alreadySubmitted) return;
+
+    pendingRef.current = null;
+    clearPendingAnswer(roomId, timerScope);
+    clearAnswerDraft(roomId, timerScope);
+    restoredPendingRef.current = false;
+    inFlightRef.current = false;
+    setSubmitState("sent");
+    setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
+  }, [identity, roomId, snapshot, timerScope]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -112,6 +159,7 @@ export function ParticipantWordCloud({
   const send = useCallback(
     async (attempt: { requestId: string; text: string }) => {
       if (inFlightRef.current || remainingRef.current <= 0) return;
+      restoredPendingRef.current = false;
       inFlightRef.current = true;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
@@ -123,10 +171,14 @@ export function ParticipantWordCloud({
         });
         if (outcome === true) {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, timerScope);
+          clearAnswerDraft(roomId, timerScope);
           setSubmitState("sent");
           setSubmitMessage("پاسخ شما ثبت شد.");
         } else if (outcome === "rejected") {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, timerScope);
+          clearAnswerDraft(roomId, timerScope);
           setSubmitState("rejected");
           setSubmitMessage("پاسخ پذیرفته نشد؛ محدودیت پاسخ یا زمان را بررسی کنید.");
         } else {
@@ -138,7 +190,7 @@ export function ParticipantWordCloud({
         inFlightRef.current = false;
       }
     },
-    [identity, submitAnswer],
+    [identity, roomId, submitAnswer, timerScope],
   );
 
   const submit = async () => {
@@ -148,6 +200,11 @@ export function ParticipantWordCloud({
       text: normalized,
     };
     pendingRef.current = attempt;
+    savePendingAnswer(roomId, timerScope, {
+      request_id: attempt.requestId,
+      activity_item_id: identity,
+      response: { text: attempt.text },
+    });
     await send(attempt);
   };
 
@@ -159,26 +216,42 @@ export function ParticipantWordCloud({
   useEffect(() => {
     const reconnected = !wasConnectedRef.current && isConnected;
     wasConnectedRef.current = isConnected;
+
+    const restoredPending =
+      restoredPendingRef.current &&
+      isConnected &&
+      snapshot?.role === "participant" &&
+      !snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === identity;
+
+    if (!reconnected && !restoredPending) return;
     if (
-      reconnected &&
-      submitState === "retryable" &&
-      pendingRef.current &&
-      remainingRef.current > 0
+      submitState !== "retryable" ||
+      !pendingRef.current ||
+      remainingRef.current <= 0 ||
+      snapshot?.role !== "participant" ||
+      snapshot.has_responded ||
+      String(snapshot.session.active_item_id ?? "") !== identity
     ) {
-      void send(pendingRef.current);
+      return;
     }
-  }, [isConnected, send, submitState]);
+
+    restoredPendingRef.current = false;
+    void send(pendingRef.current);
+  }, [identity, isConnected, send, snapshot, submitState]);
 
   useEffect(() => {
     if (timeLeft > 0 || locked) return;
     pendingRef.current = null;
+    clearPendingAnswer(roomId, timerScope);
+    clearAnswerDraft(roomId, timerScope);
     setSubmitState("expired");
     setSubmitMessage(
       normalized
         ? "زمان پاسخ‌گویی پایان یافت و پاسخ ارسال نشد."
         : "زمان پاسخ‌گویی پایان یافت.",
     );
-  }, [locked, normalized, timeLeft]);
+  }, [locked, normalized, roomId, timeLeft, timerScope]);
 
   const progressPercent =
     totalSeconds > 0
@@ -186,7 +259,7 @@ export function ParticipantWordCloud({
       : 0;
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
       <section className="flex flex-1 flex-col py-3">
         {connectionError ? (
           <p
@@ -240,9 +313,17 @@ export function ParticipantWordCloud({
               value={value}
               disabled={locked || timeLeft <= 0}
               onChange={(event) => {
-                setValue(event.target.value);
+                const nextValue = event.target.value;
+                setValue(nextValue);
+                if (nextValue) {
+                  saveAnswerDraft(roomId, timerScope, { text: nextValue });
+                } else {
+                  clearAnswerDraft(roomId, timerScope);
+                }
                 if (submitState === "retryable") {
                   pendingRef.current = null;
+                  restoredPendingRef.current = false;
+                  clearPendingAnswer(roomId, timerScope);
                   setSubmitState("idle");
                   setSubmitMessage("");
                 }

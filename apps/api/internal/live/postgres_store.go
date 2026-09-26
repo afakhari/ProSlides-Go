@@ -577,6 +577,7 @@ func (s *PostgresStore) ParticipantSnapshot(c context.Context, session string, h
 
 	x.Role = "participant"
 	x.Session = publicSession(full)
+	x.HasResponded = len(personalResultRaw) > 0
 	if full.ActiveItemID != nil && full.ActivityPhase != nil && *full.ActivityPhase == ActivityRevealed && len(personalResultRaw) > 0 {
 		var personalResult PersonalActivityResult
 		if unmarshalErr := json.Unmarshal(personalResultRaw, &personalResult); unmarshalErr != nil {

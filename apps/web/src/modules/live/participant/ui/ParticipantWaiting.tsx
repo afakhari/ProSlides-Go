@@ -9,10 +9,10 @@ export function ParticipantWaiting({
   quiz: LivePresentationModel;
   message?: string;
 }) {
-  const { isConnected } = useLiveSession();
+  const { isStreamConnected } = useLiveSession();
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
       <section className="flex flex-1 items-center justify-center py-8 text-center">
         <div className="w-full rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] px-6 py-10 shadow-2xl backdrop-blur-xl">
           <div

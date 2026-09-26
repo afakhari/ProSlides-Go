@@ -19,7 +19,7 @@ export function ParticipantActivityResult({
   question,
   result,
 }: ParticipantActivityResultProps) {
-  const { isConnected, snapshot } = useLiveSession();
+  const { isStreamConnected, snapshot } = useLiveSession();
   const participant =
     snapshot?.role === "participant" ? snapshot.participant : null;
   const personalResult =
@@ -72,7 +72,7 @@ export function ParticipantActivityResult({
   const totalScore = Number(participant?.score ?? 0);
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
       <section className="flex flex-1 flex-col py-3">
         <div className="flex flex-1 flex-col rounded-[2rem] border border-[color:var(--live-border)] bg-[color:var(--live-surface)] p-4 shadow-2xl backdrop-blur-xl sm:p-7">
           <div className="text-center">

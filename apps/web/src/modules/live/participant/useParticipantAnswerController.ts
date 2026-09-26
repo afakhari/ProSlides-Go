@@ -11,6 +11,14 @@ import type { LegacyQuestionSlide } from "../model/serverData.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 import {
+  clearAnswerDraft,
+  clearPendingAnswer,
+  readAnswerDraft,
+  readPendingAnswer,
+  saveAnswerDraft,
+  savePendingAnswer,
+} from "./pendingAnswerStorage.ts";
+import {
   buildParticipantAnswer,
   isMultipleChoiceQuestion,
   questionRunIdentity,
@@ -32,6 +40,7 @@ type ParticipantAnswerController = {
   submitMessage: string;
   connectionError: string | null;
   isConnected: boolean;
+  isStreamConnected: boolean;
   canSubmit: boolean;
   isLocked: boolean;
   toggleOption: (index: number) => void;
@@ -46,8 +55,16 @@ export function useParticipantAnswerController({
   roomId?: string;
   question: LegacyQuestionSlide;
 }): ParticipantAnswerController {
-  const { submitAnswer, isConnected, connectionError } = useLiveSession();
+  const {
+    submitAnswer,
+    isConnected,
+    isStreamConnected,
+    connectionError,
+    snapshot,
+  } = useLiveSession();
   const identity = questionRunIdentity(question);
+  const activityItemId =
+    question.question_id == null ? "" : String(question.question_id);
   const timerScope = `${String(roomId ?? "unknown")}:${identity}`;
   const questionRef = useRef(question);
   questionRef.current = question;
@@ -56,6 +73,7 @@ export function useParticipantAnswerController({
 
   const pendingRef = useRef<PendingAttempt | null>(null);
   const inFlightAttemptRef = useRef<string | null>(null);
+  const restoredPendingRef = useRef(false);
   const wasConnectedRef = useRef(isConnected);
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
@@ -82,13 +100,49 @@ export function useParticipantAnswerController({
     remainingRef.current = resolved.remainingSeconds;
     setTimeLeft(resolved.remainingSeconds);
     setTotalSeconds(resolved.totalSeconds);
-    setSelectedIndexes([]);
-    setSubmitState("idle");
-    setSubmitMessage("");
-    pendingRef.current = null;
+    const restoredDraft = identity
+      ? readAnswerDraft(roomId, identity)
+      : null;
+    setSelectedIndexes(
+      restoredDraft && "selectedIndexes" in restoredDraft
+        ? restoredDraft.selectedIndexes
+        : [],
+    );
+    const restoredAnswer = identity
+      ? readPendingAnswer(roomId, identity)
+      : null;
+    pendingRef.current =
+      identity && restoredAnswer
+        ? { identity, answer: restoredAnswer }
+        : null;
+    restoredPendingRef.current = Boolean(restoredAnswer);
+    setSubmitState(restoredAnswer ? "retryable" : "idle");
+    setSubmitMessage(
+      restoredAnswer
+        ? "ارسال قبلی پس از تازه‌سازی در حال بازیابی است."
+        : "",
+    );
     inFlightAttemptRef.current = null;
     setInitializedTimerScope(timerScope);
   }, [identity, roomId, timerScope]);
+
+  useEffect(() => {
+    const alreadySubmitted =
+      snapshot?.role === "participant" &&
+      snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === activityItemId;
+    if (!alreadySubmitted) return;
+
+    pendingRef.current = null;
+    if (identity) {
+      clearPendingAnswer(roomId, identity);
+      clearAnswerDraft(roomId, identity);
+    }
+    restoredPendingRef.current = false;
+    inFlightAttemptRef.current = null;
+    setSubmitState("sent");
+    setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
+  }, [activityItemId, identity, roomId, snapshot]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -121,6 +175,10 @@ export function useParticipantAnswerController({
       submitState === "retryable"
     ) {
       pendingRef.current = null;
+      if (identity) {
+        clearPendingAnswer(roomId, identity);
+        clearAnswerDraft(roomId, identity);
+      }
       setSubmitState("expired");
       setSubmitMessage(
         selectedIndexes.length > 0
@@ -134,6 +192,8 @@ export function useParticipantAnswerController({
     submitState,
     timeLeft,
     timerScope,
+    identity,
+    roomId,
   ]);
 
   const sendAttempt = useCallback(
@@ -145,6 +205,8 @@ export function useParticipantAnswerController({
         remainingRef.current <= 0
       ) {
         pendingRef.current = null;
+        clearPendingAnswer(roomId, attempt.identity);
+        clearAnswerDraft(roomId, attempt.identity);
         setSubmitState("expired");
         setSubmitMessage("زمان پاسخ‌گویی پایان یافت.");
         return;
@@ -154,6 +216,7 @@ export function useParticipantAnswerController({
       if (inFlightAttemptRef.current === attemptKey) return;
       if (inFlightAttemptRef.current !== null) return;
 
+      restoredPendingRef.current = false;
       inFlightAttemptRef.current = attemptKey;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
@@ -173,6 +236,8 @@ export function useParticipantAnswerController({
 
         if (outcome === true) {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, attempt.identity);
+          clearAnswerDraft(roomId, attempt.identity);
           setSubmitState("sent");
           setSubmitMessage("پاسخ شما ثبت شد.");
           return;
@@ -180,6 +245,8 @@ export function useParticipantAnswerController({
 
         if (outcome === "rejected") {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, attempt.identity);
+          clearAnswerDraft(roomId, attempt.identity);
           setSubmitState("rejected");
           setSubmitMessage(
             "پاسخ پذیرفته نشد؛ احتمالاً زمان سؤال پایان یافته است.",
@@ -198,7 +265,7 @@ export function useParticipantAnswerController({
         }
       }
     },
-    [identity, submitAnswer],
+    [identity, roomId, submitAnswer],
   );
 
   const submit = useCallback(async () => {
@@ -220,8 +287,9 @@ export function useParticipantAnswerController({
 
     const attempt = { identity, answer };
     pendingRef.current = attempt;
+    savePendingAnswer(roomId, identity, answer);
     await sendAttempt(attempt);
-  }, [identity, selectedIndexes, sendAttempt, submitState]);
+  }, [identity, roomId, selectedIndexes, sendAttempt, submitState]);
 
   const retry = useCallback(async () => {
     const attempt = pendingRef.current;
@@ -232,12 +300,39 @@ export function useParticipantAnswerController({
   useEffect(() => {
     const reconnected = !wasConnectedRef.current && isConnected;
     wasConnectedRef.current = isConnected;
-    if (!reconnected || submitState !== "retryable") return;
+
+    const restoredPending =
+      restoredPendingRef.current &&
+      isConnected &&
+      snapshot?.role === "participant" &&
+      !snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === activityItemId;
+
+    if (!reconnected && !restoredPending) return;
+    if (
+      submitState !== "retryable" ||
+      snapshot?.role !== "participant" ||
+      snapshot.has_responded ||
+      String(snapshot.session.active_item_id ?? "") !== activityItemId
+    ) {
+      return;
+    }
 
     const attempt = pendingRef.current;
-    if (!attempt || attempt.identity !== identity) return;
+    if (!attempt || attempt.identity !== identity || remainingRef.current <= 0) {
+      return;
+    }
+
+    restoredPendingRef.current = false;
     void sendAttempt(attempt);
-  }, [identity, isConnected, sendAttempt, submitState]);
+  }, [
+    activityItemId,
+    identity,
+    isConnected,
+    sendAttempt,
+    snapshot,
+    submitState,
+  ]);
 
   const multiple = isMultipleChoiceQuestion(question);
   const isLocked = ["sending", "sent", "rejected", "expired"].includes(
@@ -247,16 +342,26 @@ export function useParticipantAnswerController({
   const toggleOption = useCallback(
     (index: number) => {
       if (isLocked || remainingRef.current <= 0) return;
-      setSelectedIndexes((current) =>
-        toggleParticipantOption(current, index, multiple),
-      );
+      setSelectedIndexes((current) => {
+        const next = toggleParticipantOption(current, index, multiple);
+        if (identity) {
+          if (next.length > 0) {
+            saveAnswerDraft(roomId, identity, { selectedIndexes: next });
+          } else {
+            clearAnswerDraft(roomId, identity);
+          }
+        }
+        return next;
+      });
       if (submitState === "retryable") {
         pendingRef.current = null;
+        restoredPendingRef.current = false;
+        if (identity) clearPendingAnswer(roomId, identity);
         setSubmitState("idle");
         setSubmitMessage("");
       }
     },
-    [isLocked, multiple, submitState],
+    [identity, isLocked, multiple, roomId, submitState],
   );
 
   const progressPercent = useMemo(
@@ -276,6 +381,7 @@ export function useParticipantAnswerController({
     submitMessage,
     connectionError,
     isConnected,
+    isStreamConnected,
     canSubmit:
       selectedIndexes.length > 0 &&
       timeLeft > 0 &&

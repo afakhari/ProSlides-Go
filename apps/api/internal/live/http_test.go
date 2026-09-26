@@ -74,6 +74,7 @@ func (s *snapshotStore) ParticipantSnapshot(_ context.Context, session string, h
 			Role:             "participant",
 			Session:          PublicSession{ID: session, PresentationID: testPresentationID, State: Presenting, StateVersion: 5, ActivityPhase: &accepting, StageView: StageItem, RemainingSeconds: &remaining},
 			Participant:      ParticipantWithScore{Participant: Participant{ID: "participant-1", DisplayName: "Current Player", Avatar: "P"}, Score: 70},
+			HasResponded:     true,
 			ParticipantCount: 10_000,
 			HasScoring:       true,
 			LastEventID:      42,
@@ -268,6 +269,29 @@ func TestRevealedParticipantSnapshotExposesOnlyOwnActivityOutcome(t *testing.T) 
 	}
 	if _, exists := payload["participants"]; exists {
 		t.Fatalf("participant snapshot disclosed roster data")
+	}
+}
+
+func TestAcceptingParticipantSnapshotAcknowledgesResponseWithoutDisclosingIt(t *testing.T) {
+	store := &snapshotStore{}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/live/sessions/"+testPresentationID+"/snapshot", nil)
+	request.AddCookie(&http.Cookie{Name: "proslides_participant", Value: testParticipantToken})
+	response := httptest.NewRecorder()
+
+	snapshotHandler(store).ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["has_responded"] != true {
+		t.Fatalf("expected durable response acknowledgement, got %#v", payload["has_responded"])
+	}
+	if _, exists := payload["personal_activity_result"]; exists {
+		t.Fatalf("accepting snapshot must not disclose response details")
 	}
 }
 
