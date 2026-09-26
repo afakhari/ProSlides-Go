@@ -340,7 +340,7 @@ func (h *HTTP) events(w http.ResponseWriter, r *http.Request) {
 		_ = h.service.SetParticipantPresence(ctx, sessionID, viewer.participantToken, true)
 	}()
 	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-store")
+	w.Header().Set("Cache-Control", "no-cache, no-store, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 	after, _ := strconv.ParseInt(r.Header.Get("Last-Event-ID"), 10, 64)
