@@ -18,8 +18,8 @@ ephemeral concerns and is never the durable response, score or event ledger.
 
 ## ProSlides v2
 
-The active product generation is ProSlides v2. It is an incremental redesign of
-the existing system, not a rewrite.
+The current product generation is ProSlides v2. It was delivered incrementally
+from the existing system rather than through a rewrite.
 
 Read:
 
