@@ -54,9 +54,3 @@ export const identityApi = {
     requestJson<void>("/auth/logout", { method: "POST" }),
 };
 
-export type {
-  CurrentUser,
-  GoogleAuthResult,
-  RegistrationResult,
-  VerificationDeliveryResult,
-};
