@@ -112,7 +112,7 @@ jobs:
         run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
 
       - name: Validate operational shell commands
-        run: bash -n deploy/postgres-backup.sh deploy/postgres-restore.sh
+        run: bash -n deploy/postgres-backup.sh deploy/postgres-restore.sh deploy/postgres-prune-live-events.sh
 
   browser-e2e:
     needs: containers
@@ -266,6 +266,44 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         working-directory: apps/web
         run: npm run test:e2e:critical -- --repeat-each=2
+
+      - name: Verify ended-session live event retention
+        shell: bash
+        env:
+          DATABASE_URL: postgres://proslides:proslides@postgres:5432/proslides?sslmode=disable
+          POSTGRES_CLIENT_IMAGE: ${{ steps.registry.outputs.registry }}/postgres:16.15-alpine
+          LIVE_EVENT_RETENTION_DAYS: "30"
+          LIVE_EVENT_RETENTION_BATCH_SIZE: "2"
+        run: |
+          set -euo pipefail
+          POSTGRES_CLIENT_NETWORK="$(docker inspect "$(docker compose ps -q postgres)" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+          if [[ -z "$POSTGRES_CLIENT_NETWORK" ]]; then
+            echo "::error::unable to resolve the Compose PostgreSQL network"
+            exit 1
+          fi
+          export POSTGRES_CLIENT_NETWORK
+
+          session_id="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT id FROM live_sessions WHERE state='ended' AND EXISTS (SELECT 1 FROM live_events WHERE session_id=live_sessions.id) ORDER BY ended_at DESC NULLS LAST LIMIT 1")"
+          if [[ -z "$session_id" ]]; then
+            echo "::error::browser suite did not leave an ended Session with replay events"
+            exit 1
+          fi
+
+          before="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT count(*) FROM live_events WHERE session_id='$session_id'::uuid")"
+          test "$before" -gt 0
+
+          LIVE_EVENT_RETENTION_DRY_RUN=1 bash deploy/postgres-prune-live-events.sh
+          after_dry_run="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT count(*) FROM live_events WHERE session_id='$session_id'::uuid")"
+          test "$after_dry_run" = "$before"
+
+          docker compose exec -T postgres psql -U proslides -d proslides -v ON_ERROR_STOP=1 -c "UPDATE live_sessions SET ended_at=clock_timestamp()-interval '31 days' WHERE id='$session_id'::uuid" >/dev/null
+
+          LIVE_EVENT_RETENTION_DRY_RUN=0 \
+          LIVE_EVENT_RETENTION_CONFIRMATION=PRUNE_ENDED_LIVE_EVENTS \
+            bash deploy/postgres-prune-live-events.sh
+
+          remaining="$(docker compose exec -T postgres psql -U proslides -d proslides -Atqc "SELECT count(*) FROM live_events WHERE session_id='$session_id'::uuid")"
+          test "$remaining" = "0"
 
       - name: Print stack logs on failure
         if: failure()
