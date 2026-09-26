@@ -8,11 +8,13 @@ import {
 type NativeDialogLifecycleOptions = {
   open: boolean;
   onRequestClose: () => void;
+  initialFocus?: () => HTMLElement | null;
 };
 
 export function useNativeDialogLifecycle({
   open,
   onRequestClose,
+  initialFocus,
 }: NativeDialogLifecycleOptions) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -27,6 +29,7 @@ export function useNativeDialogLifecycle({
         returnFocusRef.current =
           activeElement instanceof HTMLElement ? activeElement : null;
         dialog.showModal();
+        initialFocus?.()?.focus();
       }
       return;
     }
