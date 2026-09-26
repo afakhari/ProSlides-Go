@@ -4,6 +4,22 @@ Status: **historical execution record**. The repository-level V2.1-V2.8 delivery
 
 Current state belongs in `../status/current.md`. Durable product rules remain in `../v2-product-architecture.md` and ADR 0004. Git and GitHub issues/PRs remain authoritative for exact delivery history.
 
+## Completion map
+
+| Slice | Delivery record |
+|---|---|
+| V2.1 | PR #92 |
+| V2.2 | PR #95 |
+| V2.3 | PR #97; post-merge browser alignment #98 |
+| V2.4 | PRs #99, #101, #104; follow-up corrections #100, #102, #103 |
+| V2.5 | PR #107; follow-up correctness/accessibility #108 |
+| V2.6 | PRs #109, #110; stabilization #111 and #113 |
+| V2.7 | cleanup PRs #114-#122; migration correction #124 |
+| V2.8 | hardening PRs #126-#137 |
+
+The table is a navigation aid, not a substitute for the PR discussions, tests or
+Git history.
+
 ## Delivery model
 
 v2 is developed on main through short-lived vertical branches and squash-merged
