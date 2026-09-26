@@ -36,7 +36,13 @@ export function ParticipantWordCloud({
   question: LegacyQuestionSlide;
   quiz: LivePresentationModel;
 }) {
-  const { submitAnswer, isConnected, connectionError, snapshot } = useLiveSession();
+  const {
+    submitAnswer,
+    isConnected,
+    isStreamConnected,
+    connectionError,
+    snapshot,
+  } = useLiveSession();
   const identity = String(question.question_id ?? question.slide_id ?? "");
   const timerScope = String(roomId ?? "unknown") + ":" + identity + ":" + String(question.run_id ?? "na");
   const maxLength = Math.max(1, Number(question.response_max_length ?? 80));
@@ -199,7 +205,7 @@ export function ParticipantWordCloud({
       : 0;
 
   return (
-    <ParticipantShell quiz={quiz} connected={isConnected} showConnection>
+    <ParticipantShell quiz={quiz} connected={isStreamConnected} showConnection>
       <section className="flex flex-1 flex-col py-3">
         {connectionError ? (
           <p
