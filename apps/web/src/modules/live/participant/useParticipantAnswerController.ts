@@ -46,7 +46,7 @@ export function useParticipantAnswerController({
   roomId?: string;
   question: LegacyQuestionSlide;
 }): ParticipantAnswerController {
-  const { submitAnswer, isConnected, connectionError } = useLiveSession();
+  const { submitAnswer, isConnected, connectionError, snapshot } = useLiveSession();
   const identity = questionRunIdentity(question);
   const timerScope = `${String(roomId ?? "unknown")}:${identity}`;
   const questionRef = useRef(question);
@@ -89,6 +89,19 @@ export function useParticipantAnswerController({
     inFlightAttemptRef.current = null;
     setInitializedTimerScope(timerScope);
   }, [identity, roomId, timerScope]);
+
+  useEffect(() => {
+    const alreadySubmitted =
+      snapshot?.role === "participant" &&
+      snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === identity;
+    if (!alreadySubmitted) return;
+
+    pendingRef.current = null;
+    inFlightAttemptRef.current = null;
+    setSubmitState("sent");
+    setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
+  }, [identity, snapshot]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
