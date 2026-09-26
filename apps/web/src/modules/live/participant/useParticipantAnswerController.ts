@@ -11,6 +11,11 @@ import type { LegacyQuestionSlide } from "../model/serverData.ts";
 import { resolveQuestionTimer } from "../model/questionTimer.ts";
 import { useLiveSession } from "../react/useLiveSession.ts";
 import {
+  clearPendingAnswer,
+  readPendingAnswer,
+  savePendingAnswer,
+} from "./pendingAnswerStorage.ts";
+import {
   buildParticipantAnswer,
   isMultipleChoiceQuestion,
   questionRunIdentity,
@@ -90,9 +95,19 @@ export function useParticipantAnswerController({
     setTimeLeft(resolved.remainingSeconds);
     setTotalSeconds(resolved.totalSeconds);
     setSelectedIndexes([]);
-    setSubmitState("idle");
-    setSubmitMessage("");
-    pendingRef.current = null;
+    const restoredAnswer = identity
+      ? readPendingAnswer(roomId, identity)
+      : null;
+    pendingRef.current =
+      identity && restoredAnswer
+        ? { identity, answer: restoredAnswer }
+        : null;
+    setSubmitState(restoredAnswer ? "retryable" : "idle");
+    setSubmitMessage(
+      restoredAnswer
+        ? "ارسال قبلی پس از تازه‌سازی در حال بازیابی است."
+        : "",
+    );
     inFlightAttemptRef.current = null;
     setInitializedTimerScope(timerScope);
   }, [identity, roomId, timerScope]);
@@ -105,6 +120,7 @@ export function useParticipantAnswerController({
     if (!alreadySubmitted) return;
 
     pendingRef.current = null;
+    clearPendingAnswer(roomId, identity);
     inFlightAttemptRef.current = null;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
@@ -165,6 +181,7 @@ export function useParticipantAnswerController({
         remainingRef.current <= 0
       ) {
         pendingRef.current = null;
+        clearPendingAnswer(roomId, attempt.identity);
         setSubmitState("expired");
         setSubmitMessage("زمان پاسخ‌گویی پایان یافت.");
         return;
@@ -193,6 +210,7 @@ export function useParticipantAnswerController({
 
         if (outcome === true) {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, attempt.identity);
           setSubmitState("sent");
           setSubmitMessage("پاسخ شما ثبت شد.");
           return;
@@ -200,6 +218,7 @@ export function useParticipantAnswerController({
 
         if (outcome === "rejected") {
           pendingRef.current = null;
+          clearPendingAnswer(roomId, attempt.identity);
           setSubmitState("rejected");
           setSubmitMessage(
             "پاسخ پذیرفته نشد؛ احتمالاً زمان سؤال پایان یافته است.",
@@ -218,7 +237,7 @@ export function useParticipantAnswerController({
         }
       }
     },
-    [identity, submitAnswer],
+    [identity, roomId, submitAnswer],
   );
 
   const submit = useCallback(async () => {
@@ -240,8 +259,9 @@ export function useParticipantAnswerController({
 
     const attempt = { identity, answer };
     pendingRef.current = attempt;
+    savePendingAnswer(roomId, identity, answer);
     await sendAttempt(attempt);
-  }, [identity, selectedIndexes, sendAttempt, submitState]);
+  }, [identity, roomId, selectedIndexes, sendAttempt, submitState]);
 
   const retry = useCallback(async () => {
     const attempt = pendingRef.current;
@@ -272,11 +292,12 @@ export function useParticipantAnswerController({
       );
       if (submitState === "retryable") {
         pendingRef.current = null;
+        if (identity) clearPendingAnswer(roomId, identity);
         setSubmitState("idle");
         setSubmitMessage("");
       }
     },
-    [isLocked, multiple, submitState],
+    [identity, isLocked, multiple, roomId, submitState],
   );
 
   const progressPercent = useMemo(
