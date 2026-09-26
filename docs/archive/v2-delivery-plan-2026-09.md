@@ -2,7 +2,7 @@
 
 Status: **historical execution record**. The repository-level V2.1-V2.8 delivery program is complete. This file preserves the sequencing and exit criteria that governed that work; it is not a current roadmap.
 
-Current state belongs in `../../status/current.md`. Durable product rules remain in `../../v2-product-architecture.md` and ADR 0004. Git and GitHub issues/PRs remain authoritative for exact delivery history.
+Current state belongs in `../status/current.md`. Durable product rules remain in `../v2-product-architecture.md` and ADR 0004. Git and GitHub issues/PRs remain authoritative for exact delivery history.
 
 ## Delivery model
 
