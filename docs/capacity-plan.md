@@ -63,8 +63,13 @@ functional gate; it is not capacity evidence.
 The recorded load evidence exercises the **pre-v2 question-specific live
 protocol**. It remains useful engineering evidence for the underlying
 HTTP/SSE/PostgreSQL foundation, but it does not certify the final v2 Activity
-protocol. Production capacity gates must be repeated after the v2 live model
-stabilizes.
+protocol.
+
+The checked-in k6 scenario now drives the canonical v2 presenter-paced Activity
+lifecycle and its reconciliation gate checks canonical Activity close/result/
+ranking semantics plus durable correctness invariants. This is harness readiness,
+not capacity evidence. Production-like capacity gates still have to be executed
+and recorded against the final v2 build and named infrastructure.
 
 Role-scoped snapshots, manager keyset pagination, aggregate-only leaderboard
 events, bounded subscriber buffers, presence compaction, one ledger poller per
@@ -89,10 +94,10 @@ capacity sequence and does not compete with that status document.
 2. **Completed locally:** bounded metrics, the 100-user protocol run, hard SQL
    reconciliation, consecutive local 1k passes through Nginx, and API-address
    recovery evidence. These are local observations only.
-3. **Deferred production gate (V2.8):** after the final v2 live protocol is
-   stable, repeat the two-run 1k result on a named production-like single API
-   through TLS ingress, including cold readiness and continuous
-   CPU/heap/pool/query/lock evidence.
+3. **Ready to execute in V2.8:** the final v2 live protocol and canonical
+   correctness harness are stable enough to repeat the two-run 1k result on a
+   named production-like single API through TLS ingress, including cold
+   readiness and continuous CPU/heap/pool/query/lock evidence.
 4. Fix measured bottlenecks and rerun the same gate twice.
 5. Repeat at 5k with multiple API instances and no sticky sessions.
 6. Add Redis outbox wake-up only if event polling/latency measurements require it.
