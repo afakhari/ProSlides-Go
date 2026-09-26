@@ -170,7 +170,3 @@ export const sessionStateLabel = (
     ended: "پایان‌یافته",
   })[state];
 
-const sessionTimeLabel = (session: ReportSessionSummary): string =>
-  session.ended_at
-    ? `پایان: ${formatReportDateTime(session.ended_at)}`
-    : `شروع: ${formatReportDateTime(session.created_at)}`;
