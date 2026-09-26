@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:critical": "playwright test --grep @critical",
     "architecture:check": "node scripts/check-frontend-architecture.mjs",
+    "dead-code:check": "node scripts/check-dead-code.mjs",
     "test:component": "vitest run --config vitest.config.ts",
     "test:component:typecheck": "tsc -p tsconfig.test.json --noEmit"
   },
