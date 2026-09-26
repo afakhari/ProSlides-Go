@@ -25,4 +25,4 @@ export const fa = {
   },
 } as const;
 
-export type PersianMessages = typeof fa;
+type PersianMessages = typeof fa;
