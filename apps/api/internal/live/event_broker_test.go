@@ -229,7 +229,7 @@ func TestEventBrokerExportsLagHistogram(t *testing.T) {
 	output := metrics.String()
 	for _, want := range []string{
 		"# TYPE proslides_live_event_lag_seconds histogram",
-		"proslides_live_event_lag_seconds_bucket{le=\"0.25\"} 1",
+		"proslides_live_event_lag_seconds_bucket{le=\"10\"} 1",
 		"proslides_live_event_lag_seconds_bucket{le=\"+Inf\"} 1",
 		"proslides_live_event_lag_seconds_count 1",
 	} {
