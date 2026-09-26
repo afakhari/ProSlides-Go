@@ -68,7 +68,6 @@ export function useParticipantAnswerController({
 
   const pendingRef = useRef<PendingAttempt | null>(null);
   const inFlightAttemptRef = useRef<string | null>(null);
-  const wasConnectedRef = useRef(isConnected);
   const timerRef = useRef({ anchorStartMs: Date.now(), totalSeconds: 0 });
   const remainingRef = useRef(0);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
@@ -157,6 +156,7 @@ export function useParticipantAnswerController({
       submitState === "retryable"
     ) {
       pendingRef.current = null;
+      if (identity) clearPendingAnswer(roomId, identity);
       setSubmitState("expired");
       setSubmitMessage(
         selectedIndexes.length > 0
@@ -270,14 +270,22 @@ export function useParticipantAnswerController({
   }, [sendAttempt]);
 
   useEffect(() => {
-    const reconnected = !wasConnectedRef.current && isConnected;
-    wasConnectedRef.current = isConnected;
-    if (!reconnected || submitState !== "retryable") return;
+    if (
+      !isConnected ||
+      submitState !== "retryable" ||
+      snapshot?.role !== "participant" ||
+      snapshot.has_responded ||
+      String(snapshot.session.active_item_id ?? "") !== identity
+    ) {
+      return;
+    }
 
     const attempt = pendingRef.current;
-    if (!attempt || attempt.identity !== identity) return;
+    if (!attempt || attempt.identity !== identity || remainingRef.current <= 0) {
+      return;
+    }
     void sendAttempt(attempt);
-  }, [identity, isConnected, sendAttempt, submitState]);
+  }, [identity, isConnected, sendAttempt, snapshot, submitState]);
 
   const multiple = isMultipleChoiceQuestion(question);
   const isLocked = ["sending", "sent", "rejected", "expired"].includes(
