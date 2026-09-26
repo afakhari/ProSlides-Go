@@ -32,10 +32,16 @@ export function AppPresentation({
     let cancelled = false;
     let retry = 750;
     let timer = 0;
+    let wake: (() => void) | null = null;
 
     const wait = (milliseconds: number) =>
       new Promise<void>((resolve) => {
-        timer = window.setTimeout(resolve, milliseconds);
+        wake = resolve;
+        timer = window.setTimeout(() => {
+          timer = 0;
+          wake = null;
+          resolve();
+        }, milliseconds);
       });
 
     void (async () => {
@@ -50,6 +56,7 @@ export function AppPresentation({
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
+      wake?.();
     };
   }, [role, roomId, snapshot?.role, connect]);
 
