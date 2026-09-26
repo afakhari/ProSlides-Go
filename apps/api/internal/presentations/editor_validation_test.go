@@ -32,18 +32,18 @@ func TestValidateSlideContentRejectsInvalidChoiceActivity(t *testing.T) {
 		SchemaVersion: ActivitySchemaVersion1,
 		ActivityKind:  ActivityKindChoice,
 		Prompt:        ActivityPrompt{Text: "Choose"},
-		Response: ChoiceResponsePolicy{
+		Response: ActivityResponsePolicy{
 			Selection: ChoiceSelectionSingle,
 			Options: []ChoiceOptionDefinition{
 				{ID: "a", Text: "A", Order: 1},
 				{ID: "b", Text: "B", Order: 2},
 			},
 		},
-		Evaluation: ChoiceEvaluationPolicy{
+		Evaluation: ActivityEvaluationPolicy{
 			Mode:             EvaluationModeCorrectness,
 			CorrectOptionIDs: []string{"a"},
 		},
-		Scoring: ChoiceScoringPolicy{
+		Scoring: ActivityScoringPolicy{
 			Mode:      ScoringModePoints,
 			MaxPoints: 100,
 		},
@@ -95,18 +95,18 @@ func TestValidateChoiceActivityLengthsCountUnicodeCharacters(t *testing.T) {
 			SchemaVersion: ActivitySchemaVersion1,
 			ActivityKind:  ActivityKindChoice,
 			Prompt:        ActivityPrompt{Text: text},
-			Response: ChoiceResponsePolicy{
+			Response: ActivityResponsePolicy{
 				Selection: ChoiceSelectionSingle,
 				Options: []ChoiceOptionDefinition{
 					{ID: "a", Text: optionText, Order: 1},
 					{ID: "b", Text: "گزینه دوم", Order: 2},
 				},
 			},
-			Evaluation: ChoiceEvaluationPolicy{
+			Evaluation: ActivityEvaluationPolicy{
 				Mode:             EvaluationModeCorrectness,
 				CorrectOptionIDs: []string{"a"},
 			},
-			Scoring: ChoiceScoringPolicy{
+			Scoring: ActivityScoringPolicy{
 				Mode:      ScoringModePoints,
 				MaxPoints: 100,
 			},

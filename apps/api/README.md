@@ -1,9 +1,9 @@
 # ProSlides Go backend
 
-This is the current Go modular-monolith foundation that ProSlides v2 migrates
-incrementally. It currently provides identity, owner-scoped presentation/
-slide/question APIs, durable live sessions, idempotent answers, scoring,
-role-scoped snapshots, manager-paginated rosters and SSE replay. PostgreSQL uses
+This is the current Go modular-monolith foundation for ProSlides v2. It
+provides identity, owner-scoped Presentation/Content/Activity APIs, durable live
+Sessions, idempotent responses, scoring, role-scoped snapshots,
+manager-paginated rosters and SSE replay. PostgreSQL uses
 `pgxpool` and is authoritative. Redis uses `go-redis` for readiness and
 distributed fixed-window identity rate limits, never durable live state.
 
@@ -53,15 +53,15 @@ configured SMTP adapter; Google ID tokens are verified against signed JWKS
 claims. Redis-backed fixed-window limits protect identity entry points. Live manager
 commands use HTTP and state versions; participants receive a scoped HttpOnly
 cookie. The SSE endpoint supports durable `Last-Event-ID` replay and sends
-aggregate answer/leaderboard notifications rather than one event per answer or
-one full-roster event. Multiple choice scoring is behind `ScoringPolicy`; the
-current deduction policy supports partial credit and can be replaced later.
-Aggregate-only leaderboard notifications use schema version 2; retained legacy
-arrays are sanitized to counts during replay without modifying ledger history.
+canonical aggregate Activity-result/ranking events rather than one event per
+response or one full-roster event. Choice scoring is behind `ScoringPolicy`;
+the current deduction policy supports partial credit and can be replaced later.
+Result/ranking events use schema version 2; retained pre-v2 ranking arrays are
+normalized by migrations and defensively sanitized during replay.
 
-Participant snapshots expose public session state, active slide, the caller's
+Participant snapshots expose public Session state, the active Item, the caller's
 participant/score, aggregate participant count, and `last_event_id`; they never
-include the complete roster, score map, or question correctness metadata.
+include the complete roster, score map, or unrevealed Activity correctness metadata.
 `GET /api/v1/live/sessions/resolve?join_code=...` maps the public presenter code
 to the current non-ended Go live session without exposing manager fields.
 Owners set a persistent, case-insensitive unique code with
@@ -80,7 +80,7 @@ Event delivery uses one bounded process-local broker per active session rather
 than polling PostgreSQL from every SSE connection. Slow subscribers are closed
 and recover from the durable ledger. Snapshots return `last_event_id`, presence
 bursts are compacted, and participant scores are maintained atomically for
-indexed snapshot/leaderboard reads. This removes known immediate bottlenecks but
+indexed snapshot/ranking reads. This removes known immediate bottlenecks but
 does not certify the 10k target; see `docs/capacity-plan.md` for the required
 workload and pass/fail gates.
 

@@ -72,9 +72,9 @@ intentionally deferred frontend debt is in `docs/frontend-debt.md`.
 | Module | Owns | Must not own |
 |---|---|---|
 | `identity` | accounts, password hashes, email verification/reset delivery, Google verification, opaque sessions, CSRF | live state or scores |
-| `presentations` | presentations and authored Content/Activity Item definitions; legacy slides/questions during migration | accepting live responses |
+| `presentations` | presentations and authored Content/Activity Item definitions | accepting live responses |
 | `live` | sessions, participants, responses/evaluations, cumulative scoring/ranking, snapshots, events | account lifecycle or mutable authoring truth |
-| `reports` (future) | immutable/session-scoped result projections and exports | live command handling |
+| `reports` | immutable/session-scoped result projections and exports | live command handling |
 | `media` (future) | object metadata and access policy | binary storage in PostgreSQL |
 | `platform` | process lifecycle, config, HTTP, PostgreSQL, Redis; future telemetry | product rules |
 
@@ -105,14 +105,14 @@ presentation and slide representation carries a positive monotonic `revision`.
 Editor mutations send the last observed value in `If-Match`; PostgreSQL checks
 it while holding the existing presentation/slide transaction locks and returns
 `409 edit_conflict` instead of silently overwriting a newer edit. Presentation
-setting patches merge supplied keys atomically. Question and content slide
+setting patches merge supplied keys atomically. Activity and Content Item
 definitions are validated by the Go API even when a client bypasses the React
 editor. This editor revision is not the live session `state_version`; the two
 order different domains and must not be conflated.
 
 Answer transactions take a shared lock on the live-session row. Answers from
 different participants therefore remain concurrent, while a manager transition
-that closes the question waits for all already-admitted answers to commit. The
+that closes the Activity waits for all already-admitted responses to commit. The
 server-side `ends_at` deadline remains authoritative.
 
 ## Scoring
@@ -172,7 +172,7 @@ or resolves the same non-ended session idempotently (`request_id` or
 host+presentation lookup), so the run resumes at the exact live point.
 
 Snapshots are role-scoped and read from a single PostgreSQL `REPEATABLE READ`
-view. Participants receive public session state, active slide, their own
+view. Participants receive public Session state, the active Item, their own
 participant/score, aggregate count, and the event cursor. Managers receive a
 bounded snapshot and fetch roster/leaderboard rows separately with `limit <=
 100` and stable keyset cursors. Joined order uses `(joined_at, id)`; score order
@@ -188,7 +188,7 @@ with `Last-Event-ID`, and refreshes snapshot state before reconnecting. Manager
 roster pages are loaded in batches of at most 100; participant projections
 discard roster input and never hold a complete score map.
 
-Per-question reports are owner-only and bounded. They derive option counts and
+Per-Activity reports are owner-only and bounded. They derive option counts and
 `(score_delta DESC, submitted_at, answer_id)` keyset-ranked rows directly from
 durable Go answers; no Rust callback or second score ledger is accepted.
 

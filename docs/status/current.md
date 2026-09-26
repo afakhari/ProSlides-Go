@@ -19,9 +19,11 @@ The current implementation uses:
 - Redis for operational/ephemeral concerns, never the answer/score/event ledger;
 - HTTP for commands/queries and SSE for server-to-client live delivery.
 
-The current product still contains legacy question/content/leaderboard concepts
-that v2 will migrate incrementally. They remain valid implementation behavior
-until the owning v2 slice cuts them over.
+The public/backend product model is now on the canonical v2
+Content/Activity/Session vocabulary. A small frontend live projection layer
+still uses historical question-shaped view-model field/type names internally;
+it is not a second protocol or compatibility API and is tracked as non-blocking
+frontend debt rather than preserved product behavior.
 
 ## Active program: ProSlides v2
 
@@ -62,9 +64,8 @@ Presentation history lists distinct live Sessions, each report reads frozen
 Session Activity definitions, Activity result/top-performer views remain
 separate from cumulative Session ranking, participant response/evaluation
 history is bounded, and report reads no longer depend on the removed hot
-Session participant counter. The legacy latest-session and question-results
-boundaries remain deprecated compatibility paths rather than the report UI
-source of truth.
+Session participant counter. The temporary latest-session and question-results
+compatibility boundaries were subsequently removed during V2.7 cleanup.
 
 V2.6 / issue #88 implementation is complete via PRs #109 and #110.
 Poll remains a product preset over canonical Choice with evaluation/scoring
@@ -150,13 +151,22 @@ harness guard, restore drill, full browser suite and repeated critical flows;
 post-merge CI #675 and Push on main #536 are green. Production-like 1k/5k/10k
 capacity measurements remain pending named infrastructure and telemetry.
 
-The active repository hardening boundary is now production observability and
-event retention. Replay pruning is restricted to ended Sessions beyond the
-approved retention window and must be dry-run/confirmed/batched. Application
-event lag needs a histogram suitable for p95/p99 alerts, while host/container and
-database-host resource telemetry remains the deployment platform's
-responsibility. Visual-regression coverage and production-like capacity evidence
-remain separate release gates after this boundary.
+PR #134 completed the repository observability/event-retention boundary. Live
+event lag is now exported as a bounded histogram suitable for p95/p99 alerting,
+and the operations/architecture documents define application-versus-platform
+telemetry ownership. Ended-Session replay events have a 30-day default
+operational retention window with dry-run-by-default, explicit-confirmation,
+batched pruning; active/non-ended Sessions are never eligible. CI verifies the
+age threshold and destructive guard on real Session/event data. PR CI #678
+passed after the maintenance path was corrected; post-merge CI #679 and Push on
+main #540 are green.
+
+The remaining V2.8 release gates are now narrower: production-like capacity
+evidence on named infrastructure, deployment-environment dashboard/alert wiring
+and provider/RPO/RTO evidence, stable-surface visual regression where it adds
+signal, and the final release-readiness review. Repository migration residue is
+being audited separately without turning internal naming cleanup into risky
+product rewrites.
 
 v2 is a staged migration of the existing system, not a rewrite.
 
