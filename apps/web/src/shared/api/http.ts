@@ -4,7 +4,7 @@ type ErrorDTO = components["schemas"]["Error"];
 
 const DEFAULT_API_BASE = "/api/v1";
 
-export type ApiErrorPayload = ErrorDTO | null;
+type ApiErrorPayload = ErrorDTO | null;
 
 export type ApiRequestOptions = RequestInit & {
   json?: unknown;
@@ -13,7 +13,7 @@ export type ApiRequestOptions = RequestInit & {
 
 const normalizeBase = (base: string): string => base.trim().replace(/\/+$/, "");
 
-export const getApiBase = (): string => {
+const getApiBase = (): string => {
   const envBase = import.meta.env?.VITE_API_BASE_URL;
   return envBase && envBase.trim() ? normalizeBase(envBase) : DEFAULT_API_BASE;
 };
