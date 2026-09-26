@@ -66,6 +66,8 @@ export function ParticipantWordCloud({
   const remainingRef = useRef(0);
   const pendingRef = useRef<{ requestId: string; text: string } | null>(null);
   const inFlightRef = useRef(false);
+  const restoredPendingRef = useRef(false);
+  const wasConnectedRef = useRef(isConnected);
 
   useEffect(() => {
     const resolved = resolveQuestionTimer({
@@ -99,6 +101,7 @@ export function ParticipantWordCloud({
       restored?.request_id && "text" in restored.response
         ? { requestId: restored.request_id, text: restored.response.text }
         : null;
+    restoredPendingRef.current = Boolean(restored);
     inFlightRef.current = false;
   }, [roomId, timerScope]);
 
@@ -112,6 +115,7 @@ export function ParticipantWordCloud({
     pendingRef.current = null;
     clearPendingAnswer(roomId, timerScope);
     clearAnswerDraft(roomId, timerScope);
+    restoredPendingRef.current = false;
     inFlightRef.current = false;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
@@ -155,6 +159,7 @@ export function ParticipantWordCloud({
   const send = useCallback(
     async (attempt: { requestId: string; text: string }) => {
       if (inFlightRef.current || remainingRef.current <= 0) return;
+      restoredPendingRef.current = false;
       inFlightRef.current = true;
       setSubmitState("sending");
       setSubmitMessage("در حال ارسال پاسخ…");
@@ -209,8 +214,18 @@ export function ParticipantWordCloud({
   };
 
   useEffect(() => {
+    const reconnected = !wasConnectedRef.current && isConnected;
+    wasConnectedRef.current = isConnected;
+
+    const restoredPending =
+      restoredPendingRef.current &&
+      isConnected &&
+      snapshot?.role === "participant" &&
+      !snapshot.has_responded &&
+      String(snapshot.session.active_item_id ?? "") === identity;
+
+    if (!reconnected && !restoredPending) return;
     if (
-      !isConnected ||
       submitState !== "retryable" ||
       !pendingRef.current ||
       remainingRef.current <= 0 ||
@@ -220,6 +235,8 @@ export function ParticipantWordCloud({
     ) {
       return;
     }
+
+    restoredPendingRef.current = false;
     void send(pendingRef.current);
   }, [identity, isConnected, send, snapshot, submitState]);
 
@@ -305,6 +322,7 @@ export function ParticipantWordCloud({
                 }
                 if (submitState === "retryable") {
                   pendingRef.current = null;
+                  restoredPendingRef.current = false;
                   clearPendingAnswer(roomId, timerScope);
                   setSubmitState("idle");
                   setSubmitMessage("");
