@@ -106,7 +106,7 @@ export function ParticipantWordCloud({
     inFlightRef.current = false;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
-  }, [identity, snapshot]);
+  }, [identity, roomId, snapshot, timerScope]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -222,7 +222,7 @@ export function ParticipantWordCloud({
         ? "زمان پاسخ‌گویی پایان یافت و پاسخ ارسال نشد."
         : "زمان پاسخ‌گویی پایان یافت.",
     );
-  }, [locked, normalized, timeLeft]);
+  }, [locked, normalized, roomId, timeLeft, timerScope]);
 
   const progressPercent =
     totalSeconds > 0
