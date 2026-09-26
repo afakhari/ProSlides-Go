@@ -1074,6 +1074,8 @@ export interface components {
                 [key: string]: unknown;
             };
             participant: components["schemas"]["ParticipantWithScore"];
+            /** @description True when this participant already has a durable Response for the active Activity; does not disclose correctness or score delta before reveal. */
+            has_responded: boolean;
             personal_activity_result?: components["schemas"]["PersonalActivityResult"];
             participant_count: number;
             /** @description True when the frozen Session contains at least one scored Activity. */
