@@ -52,8 +52,11 @@ const errorText = (error: unknown) => {
   if (error instanceof LiveAPIError) {
     if (error.status === 401) return "دسترسی Stage معتبر نیست.";
     if (error.status === 404) return "جلسه زنده پیدا نشد.";
+    return "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…";
   }
-  return error instanceof Error ? error.message : "ارتباط Stage برقرار نشد.";
+  return error instanceof Error
+    ? "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…"
+    : "ارتباط Stage برقرار نشد؛ در حال تلاش دوباره…";
 };
 
 export function useStageProjection(sessionId: string | undefined) {
