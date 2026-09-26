@@ -44,6 +44,7 @@ export default function ImageUrlDialog({
   onConfirm,
 }: ImageUrlDialogProps) {
   const previewSequence = useRef(0);
+  const urlInputRef = useRef<HTMLInputElement | null>(null);
   const [url, setUrl] = useState(initialUrl);
   const [previewUrl, setPreviewUrl] = useState("");
   const [error, setError] = useState("");
@@ -74,6 +75,7 @@ export default function ImageUrlDialog({
   } = useNativeDialogLifecycle({
     open,
     onRequestClose: close,
+    initialFocus: () => urlInputRef.current,
   });
 
   const checkPreview = () => {
@@ -167,9 +169,9 @@ export default function ImageUrlDialog({
         </label>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
+            ref={urlInputRef}
             id="editor-image-url"
             type="url"
-            autoFocus
             dir="ltr"
             inputMode="url"
             autoComplete="url"
