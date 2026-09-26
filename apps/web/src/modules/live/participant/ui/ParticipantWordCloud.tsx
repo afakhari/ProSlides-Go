@@ -284,7 +284,7 @@ export function ParticipantWordCloud({
                   : "border-transparent bg-white/10")
               }
               role="timer"
-              aria-live={urgent ? "polite" : "off"}
+              aria-live="off"
               aria-label={Math.ceil(timeLeft).toLocaleString("fa-IR") + " ثانیه باقی مانده"}
             >
               {Math.ceil(timeLeft).toLocaleString("fa-IR")} ثانیه
