@@ -32,11 +32,22 @@ docker run --rm \
   --add-host host.docker.internal:host-gateway \
   --user "$(id -u):$(id -g)" \
   -e RESTORE_DATABASE_URL \
+  -e DATABASE_URL \
   -e BACKUP_NAME="$backup_name" \
   -v "$backup_dir:/backup:ro" \
   "$client_image" \
   sh -euc '
     pg_restore --list "/backup/$BACKUP_NAME" >/dev/null
+
+    if [ -n "${DATABASE_URL:-}" ]; then
+      source_identity="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -AtF "|" -c "SELECT COALESCE(inet_server_addr()::text, ''''), COALESCE(inet_server_port(), 0), current_database()")"
+      target_identity="$(psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -AtF "|" -c "SELECT COALESCE(inet_server_addr()::text, ''''), COALESCE(inet_server_port(), 0), current_database()")"
+      if [ "$source_identity" = "$target_identity" ]; then
+        echo "refusing to restore to the active source database identity" >&2
+        exit 66
+      fi
+    fi
+
     pg_restore \
       --dbname="$RESTORE_DATABASE_URL" \
       --clean \
