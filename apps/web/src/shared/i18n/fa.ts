@@ -24,5 +24,3 @@ export const fa = {
     close: "بستن پنجره اشتراک‌گذاری",
   },
 } as const;
-
-type PersianMessages = typeof fa;
