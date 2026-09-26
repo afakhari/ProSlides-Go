@@ -116,6 +116,8 @@ jobs:
 
   browser-e2e:
     needs: containers
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -271,6 +273,25 @@ jobs:
           path: apps/web/e2e/visual-regression.spec.js-snapshots/
           if-no-files-found: error
           retention-days: 1
+
+      - name: Commit bootstrapped visual baselines
+        if: github.event_name == 'pull_request' && github.head_ref == 'test/v28-stable-visual-regression'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          snapshots="apps/web/e2e/visual-regression.spec.js-snapshots"
+          git add "$snapshots"
+          if git diff --cached --quiet; then
+            echo "Visual baselines are already committed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(v2.8): commit stable visual baselines"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Run browser E2E
         working-directory: apps/web
