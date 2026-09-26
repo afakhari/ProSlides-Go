@@ -110,6 +110,15 @@ security/deployment/restore hardening, load/capacity verification against the
 final v2 live protocol, observability/event-retention decisions, and release
 readiness.
 
+The first V2.8 hardening boundaries are merged. PR #126 restored browser E2E to
+pull requests behind a fast frontend job; PR #127 added bounded repeatability for
+critical flows plus responsive/accessibility coverage. PR #128 moved the
+remaining hand-rolled modal semantics to focus-managed dialogs. Its browser run
+then exposed both an item-picker focus defect and a fail-open aggregate-check
+edge case. PR #129 corrected the focus contract and changed the required
+aggregate `web` job to run with fail-closed semantics. CI #620 and Push on main
+#460 are the verified post-recovery baseline.
+
 v2 is a staged migration of the existing system, not a rewrite.
 
 ### v2.0 scope locks
@@ -164,8 +173,10 @@ is an aggregate release gate rather than the fast frontend job itself:
 `web-fast` runs dependency review, generated-type checks, lint, typecheck,
 architecture checks, unit/component tests and the production build, while
 `browser-e2e` runs the real Compose/API/Playwright stack on pull requests,
-pushes to `main` and manual workflow runs. The required `web` gate completes
-only after both jobs succeed.
+pushes to `main` and manual workflow runs. The required `web` job uses
+`if: always()` and explicitly fails unless both dependencies report
+`success`; a failed or skipped browser job therefore cannot satisfy the
+required check.
 
 This keeps fast frontend feedback visible without allowing a pull request to
 merge before the stable browser flows have passed. The existing `api` required
