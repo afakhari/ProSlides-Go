@@ -14,6 +14,7 @@ type ParticipantJoinController = {
   avatar: string;
   isEditing: boolean;
   isConnected: boolean;
+  isStreamConnected: boolean;
   isJoining: boolean;
   validation: string;
   joinError: string;
@@ -45,6 +46,7 @@ export function useParticipantJoinController(
     connect,
     joinParticipant,
     isConnected,
+    isStreamConnected,
     lastJoinResult,
     connectionError,
   } = useLiveSession();
@@ -221,6 +223,7 @@ export function useParticipantJoinController(
     avatar,
     isEditing,
     isConnected,
+    isStreamConnected,
     isJoining,
     validation,
     joinError,
