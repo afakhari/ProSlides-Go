@@ -58,7 +58,7 @@ function AccessCodeResolver() {
         if (!active) return;
 
         if (!data.session_id) {
-          setStatus("error");
+          setStatus("invalid");
           return;
         }
 
