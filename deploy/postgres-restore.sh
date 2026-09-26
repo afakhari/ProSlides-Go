@@ -25,10 +25,15 @@ if [[ ! -f "$backup" ]]; then
 fi
 
 client_image="${POSTGRES_CLIENT_IMAGE:-postgres:16.15-alpine}"
+network_args=()
+if [[ -n "${POSTGRES_CLIENT_NETWORK:-}" ]]; then
+  network_args+=(--network "$POSTGRES_CLIENT_NETWORK")
+fi
 backup_dir="$(cd "$(dirname "$backup")" && pwd)"
 backup_name="$(basename "$backup")"
 
 docker run --rm \
+  "${network_args[@]}" \
   --add-host host.docker.internal:host-gateway \
   --user "$(id -u):$(id -g)" \
   -e RESTORE_DATABASE_URL \
