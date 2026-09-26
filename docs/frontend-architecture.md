@@ -13,8 +13,7 @@ persistent value, OpenAPI/backend rules take precedence.
 ## Architectural goals
 
 - Preserve editor revision/conflict correctness and live HTTP/SSE recovery.
-- Preserve the modular TypeScript SPA while v2 replaces product/domain surfaces
-  incrementally.
+- Preserve the modular TypeScript SPA and current v2 product/domain boundaries.
 - Keep product-domain ownership explicit.
 - Use one design-system vocabulary and one REST server-state cache.
 - Keep live event state separate from generic REST caching.
@@ -105,8 +104,8 @@ app -> modules -> shared
 - New generic `components`, `hooks`, `services`, or `utils` dumping grounds
   are prohibited.
 
-Dependency rules should be enforced by lint/dependency tooling rather than
-source-string tests as the migration progresses.
+Dependency rules are enforced by lint/dependency tooling rather than ad-hoc
+source-string ownership checks.
 
 ## Routing
 
@@ -157,7 +156,7 @@ route never becomes the application router.
 | State | Owner |
 |---|---|
 | route/params/search state | React Router |
-| REST identity/presentation/report state | one TanStack Query client after migration |
+| REST identity/presentation/report state | one shared TanStack Query client |
 | editor draft/selection/dirty/save/conflict | presentation editor model/reducer/hooks |
 | live snapshot/cursor/reconnect/roster | dedicated typed live runtime |
 | field/open-dialog/selected-tab transient state | local component/form state |
@@ -281,13 +280,12 @@ The runtime must preserve:
 
 React context exposes the runtime controller through a thin external-store adapter. Cursor, reconnect, roster and command state belong to `modules/live/runtime`, not to React lifecycle state.
 
-## ProSlides v2 frontend direction
+## ProSlides v2 frontend model
 
-ADR 0004 and `v2-product-architecture.md` define the product model for the
-active redesign.
+ADR 0004 and `v2-product-architecture.md` define the current product model.
 
-The Editor converges on one stable shell containing an item rail, canvas,
-inspector and top actions. Type-specific behavior is supplied through two
+The Editor uses one stable shell containing an item rail, canvas, inspector and
+top actions. Type-specific behavior is supplied through two
 bounded registries:
 
 - a content registry for non-interactive authored items;
@@ -298,18 +296,16 @@ Editor canvas/inspector rendering, Stage rendering, participant rendering and
 results rendering for its type. It must not become a generic service locator or
 bypass module ownership.
 
-Live rendering converges on three explicit projections:
+Live rendering uses three explicit projections:
 
 - Stage for the audience;
 - Backstage for presenter-only controls and insight;
 - Participant for mobile-first personal interaction.
 
-Activity results and cumulative Session leaderboard are separate UI/domain
-concepts. The v2 authoring rail contains only persisted Items; Activity-result
-and optional overall-ranking behavior is shown as metadata on the owning
-Activity rather than as a selectable synthetic leaderboard entry. Compatibility
-for genuinely persisted legacy leaderboard Items remains isolated until the
-V2.7 cleanup slice.
+Activity results and cumulative Session ranking are separate UI/domain
+concepts. The authoring rail contains only persisted Items; Activity-result and
+optional overall-ranking behavior is shown as metadata on the owning Activity
+rather than as a selectable synthetic ranking entry.
 
 v2.0 intentionally excludes team mode and self-paced/assignment UI. Do not add
 speculative frontend state for those modes.
@@ -385,13 +381,13 @@ Target test stack:
 - Playwright for a small set of real critical flows;
 - limited visual snapshots only after a surface is visually stable.
 
-### Pre-production velocity policy
+### Pre-production verification policy
 
-The project is currently pre-production and active frontend redesign speed takes
-priority over maximizing coverage. Tests should protect expensive-to-rediscover
-behavior, not freeze an interface that is about to change.
+The project is still pre-production, but the broad v2 redesign is complete.
+Tests should protect expensive-to-rediscover behavior without expanding
+maintenance cost solely to increase coverage.
 
-During active redesign:
+For ordinary changes:
 
 - keep fast structural guardrails such as TypeScript, lint, OpenAPI consistency,
   dependency boundaries and existing stable unit/component tests;
@@ -401,30 +397,23 @@ During active redesign:
 - prefer assertions on roles, outcomes, requests and state transitions over DOM
   hierarchy, Tailwind classes, exact layout or incidental copy;
 - do not expand component coverage merely to improve a coverage percentage;
-- do not require new broad E2E or visual-regression coverage for surfaces that
-  are intentionally being redesigned again soon;
-- treat non-required integration checks as diagnostic during rapid iteration,
-  while investigating failures that plausibly indicate a real regression in the
-  changed area.
+- extend broad E2E or visual-regression coverage when a stable surface or costly
+  invariant justifies the maintenance cost;
+- investigate integration failures that plausibly indicate a real regression in
+  the changed area.
 
-### Production-readiness hardening
+### Production-readiness verification
 
-Before the first production release, run a dedicated hardening phase that closes
-deferred verification deliberately. It should include:
+Repository-level V2.8 hardening now enforces critical Playwright flows,
+repeatability, responsive/accessibility checks, selective stable visual
+baselines, container/restore/retention drills, and conservative
+dead-file/export/dependency analysis. Environment-only capacity, alerting,
+provider restore/RPO/RTO and rollout/rollback evidence remain release gates in
+`status/current.md`.
 
-- full critical-flow Playwright coverage and repeated stability runs;
-- editor/report/live pending, error, cancellation, conflict and recovery paths;
-- responsive anchors and relevant intermediate/container states;
-- keyboard, focus, screen-reader and contrast review;
-- bundle/performance regression review;
-- container/deployment validation and security scanning;
-- conservative dead-file/export/dependency analysis with explicit exemptions.
-
-Architecture dependency rules remain enforced continuously because they are
-cheap and prevent expensive structural regressions. V2.8 also enforces
-conservative unreachable-file, unused-export and direct-dependency analysis;
-intentional non-static tooling dependencies require an explicit reviewed
-exemption rather than being silently ignored.
+Architecture dependency rules remain enforced continuously. Intentional
+non-static tooling dependencies require an explicit reviewed exemption rather
+than being silently ignored.
 
 ## Performance and observability
 
@@ -436,9 +425,9 @@ field-performance claims, collect privacy-safe RUM for Core Web Vitals and
 frontend error/route/API/SSE recovery signals with bounded metadata and release
 identification.
 
-## Migration sequencing
+## Evolution policy
 
-The active redesign sequence is owned only by `v2-development-plan.md` to avoid
-stale duplicate roadmaps. Frontend slices must preserve the dependency rules in
-this document, migrate one ownership boundary at a time, and avoid combining
-v2 domain changes with unrelated framework/toolchain upgrades.
+The completed v2 delivery sequence is archived under `archive/`. Future
+frontend changes preserve the dependency rules in this document and should not
+mix product/domain changes with unrelated framework/toolchain upgrades unless a
+measured need requires it.
