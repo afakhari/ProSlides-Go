@@ -44,15 +44,15 @@ echo "live-event retention policy: ended Sessions older than ${retention_days} d
 psql_client -At \
   -v retention_days="$retention_days" \
   -c "SELECT json_build_object(
-        'eligible_sessions', count(DISTINCT session.id),
-        'eligible_events', count(event.event_id),
-        'oldest_event', min(event.occurred_at)
+        'eligible_sessions', count(DISTINCT ls.id),
+        'eligible_events', count(le.event_id),
+        'oldest_event', min(le.occurred_at)
       )
-      FROM live_sessions session
-      LEFT JOIN live_events event ON event.session_id = session.id
-      WHERE session.state = 'ended'
-        AND session.ended_at IS NOT NULL
-        AND session.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
+      FROM live_sessions ls
+      LEFT JOIN live_events le ON le.session_id = ls.id
+      WHERE ls.state = 'ended'
+        AND ls.ended_at IS NOT NULL
+        AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
 
 if [[ "$dry_run" == "1" ]]; then
   echo "dry-run only; no live events were deleted"
@@ -66,20 +66,20 @@ while true; do
       -v retention_days="$retention_days" \
       -v batch_size="$batch_size" <<'SQL'
 WITH doomed AS (
-    SELECT event.event_id
-    FROM live_sessions session
-    JOIN live_events event ON event.session_id = session.id
-    WHERE session.state = 'ended'
-      AND session.ended_at IS NOT NULL
-      AND session.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int)
-    ORDER BY session.ended_at, event.event_id
+    SELECT le.event_id
+    FROM live_sessions ls
+    JOIN live_events le ON le.session_id = ls.id
+    WHERE ls.state = 'ended'
+      AND ls.ended_at IS NOT NULL
+      AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int)
+    ORDER BY ls.ended_at, le.event_id
     LIMIT :'batch_size'::int
-    FOR UPDATE OF event SKIP LOCKED
+    FOR UPDATE OF le SKIP LOCKED
 ), deleted AS (
-    DELETE FROM live_events event
+    DELETE FROM live_events le
     USING doomed
-    WHERE event.event_id = doomed.event_id
-    RETURNING event.event_id
+    WHERE le.event_id = doomed.event_id
+    RETURNING le.event_id
 )
 SELECT count(*) FROM deleted;
 SQL
@@ -99,11 +99,11 @@ remaining="$(
   psql_client -At \
     -v retention_days="$retention_days" \
     -c "SELECT count(*)
-        FROM live_events event
-        JOIN live_sessions session ON session.id = event.session_id
-        WHERE session.state = 'ended'
-          AND session.ended_at IS NOT NULL
-          AND session.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
+        FROM live_events le
+        JOIN live_sessions ls ON ls.id = le.session_id
+        WHERE ls.state = 'ended'
+          AND ls.ended_at IS NOT NULL
+          AND ls.ended_at < clock_timestamp() - make_interval(days => :'retention_days'::int);"
 )"
 if [[ "$remaining" != "0" ]]; then
   echo "retention run left $remaining eligible event(s); retry after concurrent maintenance completes" >&2
