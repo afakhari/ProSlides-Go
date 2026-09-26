@@ -204,13 +204,19 @@ jobs:
       - name: Verify PostgreSQL backup and isolated restore
         shell: bash
         env:
-          DATABASE_URL: postgres://proslides:proslides@host.docker.internal:5432/proslides?sslmode=disable
-          RESTORE_DATABASE_URL: postgres://proslides:proslides@host.docker.internal:5432/proslides_restore?sslmode=disable
+          DATABASE_URL: postgres://proslides:proslides@postgres:5432/proslides?sslmode=disable
+          RESTORE_DATABASE_URL: postgres://proslides:proslides@postgres:5432/proslides_restore?sslmode=disable
           RESTORE_CONFIRMATION: RESTORE_ISOLATED_DATABASE
           POSTGRES_CLIENT_IMAGE: ${{ steps.registry.outputs.registry }}/postgres:16.15-alpine
         run: |
           set -euo pipefail
           backup_path="$RUNNER_TEMP/proslides-restore-drill.dump"
+          POSTGRES_CLIENT_NETWORK="$(docker inspect "$(docker compose ps -q postgres)" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+          if [[ -z "$POSTGRES_CLIENT_NETWORK" ]]; then
+            echo "::error::unable to resolve the Compose PostgreSQL network"
+            exit 1
+          fi
+          export POSTGRES_CLIENT_NETWORK
 
           docker compose exec -T postgres createdb -U proslides proslides_restore
           bash deploy/postgres-backup.sh "$backup_path"
