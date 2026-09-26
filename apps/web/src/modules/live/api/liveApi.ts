@@ -47,7 +47,11 @@ const requestJSON = async <T>(path: string, init: RequestInit = {}, csrf = false
     timeoutController.abort();
   }, JSON_REQUEST_TIMEOUT_MS);
   const forwardAbort = () => timeoutController.abort();
-  init.signal?.addEventListener("abort", forwardAbort, { once: true });
+  if (init.signal?.aborted) {
+    timeoutController.abort();
+  } else {
+    init.signal?.addEventListener("abort", forwardAbort, { once: true });
+  }
 
   try {
     const response = await fetch(liveURL(path), {
@@ -124,15 +128,20 @@ export const streamLiveEvents = async (
 
   try {
     while (!options.signal.aborted) {
-      let timeout = 0;
+      let timeout: ReturnType<typeof globalThis.setTimeout> | undefined;
       const stalled = new Promise<never>((_, reject) => {
         timeout = globalThis.setTimeout(
           () => reject(new LiveAPIError(0, "event_stream_stalled")),
           silenceTimeoutMs,
         );
       });
-      const chunk = await Promise.race([reader.read(), stalled]);
-      globalThis.clearTimeout(timeout);
+
+      let chunk: ReadableStreamReadResult<Uint8Array>;
+      try {
+        chunk = await Promise.race([reader.read(), stalled]);
+      } finally {
+        if (timeout !== undefined) globalThis.clearTimeout(timeout);
+      }
 
       const { value, done } = chunk;
       buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, "\n");
