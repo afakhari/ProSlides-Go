@@ -119,11 +119,11 @@ export function useParticipantAnswerController({
     if (!alreadySubmitted) return;
 
     pendingRef.current = null;
-    clearPendingAnswer(roomId, identity);
+    if (identity) clearPendingAnswer(roomId, identity);
     inFlightAttemptRef.current = null;
     setSubmitState("sent");
     setSubmitMessage("پاسخ شما قبلاً ثبت شده است.");
-  }, [identity, snapshot]);
+  }, [identity, roomId, snapshot]);
 
   useEffect(() => {
     if (!identity || totalSeconds <= 0) return;
@@ -170,6 +170,8 @@ export function useParticipantAnswerController({
     submitState,
     timeLeft,
     timerScope,
+    identity,
+    roomId,
   ]);
 
   const sendAttempt = useCallback(
