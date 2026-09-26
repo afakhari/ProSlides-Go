@@ -51,18 +51,24 @@ export function ParticipantShell({
 
         {showConnection ? (
           <div
-            className="flex items-center gap-2 rounded-full border border-[color:var(--live-border)] bg-black/20 px-3 py-1.5 text-xs backdrop-blur-md"
+            className={
+              "flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold backdrop-blur-md " +
+              (connected
+                ? "border-[color:var(--live-border)] bg-black/20"
+                : "border-warning/40 bg-black/35")
+            }
             role="status"
             aria-live="polite"
+            aria-atomic="true"
           >
             <span
               className={
-                "h-2 w-2 rounded-full " +
+                "h-2 w-2 shrink-0 rounded-full " +
                 (connected ? "bg-success" : "bg-warning")
               }
               aria-hidden="true"
             />
-            {connected ? "متصل" : "در حال اتصال"}
+            {connected ? "ارتباط زنده" : "در حال بازیابی ارتباط"}
           </div>
         ) : null}
       </header>
